@@ -1,0 +1,44 @@
+{
+  "tracks": [
+    {
+      "trackNumber": 1,
+      "trackId": "at-eight-in-a-spanish-bar-001"
+    },
+    {
+      "trackNumber": 2,
+      "trackId": "take-it-out-on-me-002"
+    },
+    {
+      "trackNumber": 3,
+      "trackId": "you-know-it-anyway-003"
+    },
+    {
+      "trackNumber": 4,
+      "trackId": "ill-meet-you-at-the-station-004"
+    },
+    {
+      "trackNumber": 5,
+      "trackId": "gamla-stan-005"
+    },
+    {
+      "trackNumber": 6,
+      "trackId": "the-things-we-say-we-dont-always-mean-006"
+    },
+    {
+      "trackNumber": 7,
+      "trackId": "if-it-isnt-getting-better-007"
+    },
+    {
+      "trackNumber": 8,
+      "trackId": "everyday-secrets-of-your-style-008"
+    },
+    {
+      "trackNumber": 9,
+      "trackId": "a-wonder-inside-009"
+    },
+    {
+      "trackNumber": 10,
+      "trackId": "silver-nails-that-haunt-me-010"
+    }
+  ]
+}

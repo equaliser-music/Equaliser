@@ -37,7 +37,7 @@
         .logo {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            align-items: center;
             margin-bottom: 40px;
             padding: 0 8px;
         }
@@ -45,34 +45,20 @@
         .logo-main {
             display: flex;
             align-items: center;
-            gap: 12px;
-        }
-
-        .logo-icon {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, #ff006e, #8338ec);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
             justify-content: center;
         }
 
+        .logo-main img {
+            width: 180px;
+            height: auto;
+        }
+
         .logo-text {
-            font-size: 24px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #ff006e, #8338ec);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            display: none;
         }
 
         .logo-slogan {
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.5);
-            font-weight: 500;
-            letter-spacing: 0.5px;
-            padding-left: 60px;
+            display: none;
         }
 
         .nav-section {
@@ -107,7 +93,7 @@
         }
 
         .nav-item.active {
-            background: linear-gradient(135deg, rgba(255, 0, 110, 0.15), rgba(131, 56, 236, 0.15));
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(168, 85, 247, 0.15));
             color: #ffffff;
         }
 
@@ -173,7 +159,7 @@
             align-items: center;
             gap: 8px;
             padding: 10px 20px;
-            background: linear-gradient(135deg, #ff006e, #8338ec);
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
             border: none;
             border-radius: 10px;
             color: #ffffff;
@@ -190,7 +176,7 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #ff006e, #8338ec);
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
             cursor: pointer;
         }
 
@@ -225,7 +211,7 @@
             font-size: 48px;
             font-weight: 800;
             margin-bottom: 16px;
-            background: linear-gradient(135deg, #ffffff, #ff006e);
+            background: linear-gradient(135deg, #ffffff, #a855f7);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -258,18 +244,18 @@
         }
 
         .view-all:hover {
-            color: #ff006e;
+            color: #a855f7;
         }
 
-        /* Track Grid */
-        .track-grid {
+        /* Album Grid */
+        .album-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 24px;
-            margin-bottom: 48px;
+            margin-bottom: 32px;
         }
 
-        .track-card {
+        .album-card {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 16px;
@@ -279,53 +265,73 @@
             position: relative;
         }
 
-        .track-card:hover {
+        .album-card:hover {
             background: rgba(255, 255, 255, 0.06);
             border-color: rgba(255, 255, 255, 0.1);
             transform: translateY(-4px);
         }
 
-        .track-cover {
+        .album-card.selected {
+            background: rgba(139, 92, 246, 0.1);
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+
+        .album-cover {
             width: 100%;
             aspect-ratio: 1;
-            background: linear-gradient(135deg, #ff006e, #8338ec);
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
             border-radius: 12px;
             margin-bottom: 12px;
             position: relative;
             overflow: hidden;
         }
 
-        .track-cover img {
+        .album-cover img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            display: block;
         }
 
-        .play-button {
+        .album-play-button {
             position: absolute;
             bottom: 12px;
             right: 12px;
-            width: 48px;
-            height: 48px;
-            background: rgba(255, 255, 255, 0.95);
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             opacity: 0;
             transition: all 0.3s;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 24px rgba(139, 92, 246, 0.5);
         }
 
-        .track-card:hover .play-button {
+        .album-play-button svg {
+            fill: white;
+        }
+
+        .album-card:hover .album-play-button {
+            opacity: 1;
+            transform: scale(1.05);
+        }
+
+        .album-card:hover .album-play-button:hover {
+            transform: scale(1.15);
+            box-shadow: 0 6px 28px rgba(139, 92, 246, 0.7);
+        }
+
+        .album-card.selected .album-play-button {
             opacity: 1;
         }
 
-        .track-info {
+        .album-info {
             padding: 4px 0;
         }
 
-        .track-title {
+        .album-title {
             font-size: 14px;
             font-weight: 600;
             margin-bottom: 4px;
@@ -334,7 +340,7 @@
             text-overflow: ellipsis;
         }
 
-        .track-artist {
+        .album-artist {
             font-size: 12px;
             color: rgba(255, 255, 255, 0.6);
             white-space: nowrap;
@@ -342,14 +348,196 @@
             text-overflow: ellipsis;
         }
 
-        .track-price {
+        .album-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 8px;
+        }
+
+        .album-tracks-count {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .album-price {
             display: flex;
             align-items: center;
             gap: 4px;
-            margin-top: 8px;
             font-size: 12px;
-            color: #ff006e;
+            color: #a855f7;
             font-weight: 600;
+        }
+
+        /* Track List */
+        .track-list-container {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            margin-bottom: 48px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .track-list-container.active {
+            display: block;
+        }
+
+        .track-list-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 24px;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .track-list-album-cover {
+            width: 120px;
+            height: 120px;
+            border-radius: 12px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .track-list-album-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .track-list-album-info {
+            flex: 1;
+        }
+
+        .track-list-album-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .track-list-album-artist {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 12px;
+        }
+
+        .track-list-album-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .track-list-play-all {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            border: none;
+            border-radius: 24px;
+            color: #ffffff;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.2s;
+        }
+
+        .track-list-play-all:hover {
+            transform: scale(1.05);
+        }
+
+        .track-list {
+            padding: 8px 0;
+        }
+
+        .track-list-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 24px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .track-list-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .track-list-item.playing {
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .track-list-number {
+            width: 24px;
+            text-align: center;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .track-list-item:hover .track-list-number,
+        .track-list-item.playing .track-list-number {
+            color: #a855f7;
+        }
+
+        .track-list-item-cover {
+            width: 48px;
+            height: 48px;
+            border-radius: 6px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .track-list-item-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .track-list-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .track-list-item-title {
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 2px;
+        }
+
+        .track-list-item-artist {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .track-list-item-duration {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-right: 16px;
+        }
+
+        .track-list-item-price {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            color: #a855f7;
+            font-weight: 600;
+        }
+
+        .now-playing-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        /* Legacy track-card styles for compatibility */
+        .track-card.playing .play-button {
+            opacity: 1;
         }
 
         /* Player Bar */
@@ -378,7 +566,7 @@
         .now-playing-cover {
             width: 56px;
             height: 56px;
-            background: linear-gradient(135deg, #ff006e, #8338ec);
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
             border-radius: 8px;
             flex-shrink: 0;
         }
@@ -472,7 +660,7 @@
             top: 0;
             height: 100%;
             width: 30%;
-            background: linear-gradient(90deg, #ff006e, #8338ec);
+            background: linear-gradient(90deg, #8b5cf6, #a855f7);
             border-radius: 2px;
         }
 
@@ -497,6 +685,63 @@
             letter-spacing: 0.5px;
         }
 
+        .track-number {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(0, 0, 0, 0.6);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .track-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 8px;
+        }
+
+        .track-duration {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .track-price {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            color: #a855f7;
+            font-weight: 600;
+        }
+
+        .track-card.playing .track-cover::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+        }
+
+        .track-card.playing .play-button {
+            opacity: 1;
+        }
+
+        .track-card.playing .play-button svg {
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .sidebar {
@@ -519,18 +764,8 @@
         <div class="sidebar">
             <div class="logo">
                 <div class="logo-main">
-                    <div class="logo-icon">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                            <rect x="4" y="12" width="2" height="8" rx="1" fill="white"/>
-                            <rect x="8" y="8" width="2" height="12" rx="1" fill="white"/>
-                            <rect x="12" y="4" width="2" height="16" rx="1" fill="white"/>
-                            <rect x="16" y="8" width="2" height="12" rx="1" fill="white"/>
-                            <rect x="20" y="12" width="2" height="8" rx="1" fill="white"/>
-                        </svg>
-                    </div>
-                    <span class="logo-text">EQUALISER</span>
+                    <img src="images/equaliser-logo.png" alt="Equaliser - Music Lives Here">
                 </div>
-                <div class="logo-slogan">Where Music Lives</div>
             </div>
 
             <div class="nav-section">
@@ -594,22 +829,104 @@
 
             <div class="hero">
                 <div class="hero-content">
-                    <h1 class="hero-title">Own Your Music</h1>
+                    <h1 class="hero-title">Welcome to Equaliser - Music Lives Here</h1>
                     <p class="hero-subtitle">
-                        Support artists directly with Bitcoin. Censorship-resistant. Decentralized. Your music, your way.
-                    </p>
+                        A Decentralised Music Streaming Platform for Artists and Fans.
                 </div>
             </div>
 
+            <!-- Featured Albums -->
             <div class="section-header">
-                <h2 class="section-title">Trending Now</h2>
-                <span class="view-all">View All →</span>
+                <h2 class="section-title">Featured Albums</h2>
+                <span class="view-all">View All</span>
             </div>
 
-            <div class="track-grid">
-                <div class="track-card">
+            <div class="album-grid" id="featured-albums">
+                <!-- DOYA by Shibuya Crossings -->
+                <div class="album-card" data-album-id="doya-shibuya-crossings">
+                    <div class="album-cover">
+                        <img src="../content/music/artists/shibuya-crossings/albums/doya-depend-on-your-alter-ego-2011/cover.jpg" alt="DOYA">
+                        <div class="album-play-button">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="album-info">
+                        <div class="album-title">DOYA (Depend On Your Alter-Ego)</div>
+                        <div class="album-artist">Shibuya Crossings</div>
+                        <div class="album-meta">
+                            <span class="album-tracks-count">10 tracks</span>
+                            <span class="album-price">
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                                </svg>
+                                2100 sats
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Songs About You by Language of Flowers -->
+                <div class="album-card" data-album-id="songs-about-you-lof">
+                    <div class="album-cover">
+                        <img src="../content/music/artists/language-of-flowers/albums/songs-about-you-2024/cover.jpg" alt="Songs About You">
+                        <div class="album-play-button">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="album-info">
+                        <div class="album-title">Songs About You</div>
+                        <div class="album-artist">Language of Flowers</div>
+                        <div class="album-meta">
+                            <span class="album-tracks-count">10 tracks</span>
+                            <span class="album-price">
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                                </svg>
+                                2100 sats
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Track List Container (shown when album is selected) -->
+            <div class="track-list-container" id="track-list-container">
+                <div class="track-list-header">
+                    <div class="track-list-album-cover">
+                        <img src="" alt="Album Cover" id="track-list-cover">
+                    </div>
+                    <div class="track-list-album-info">
+                        <div class="track-list-album-title" id="track-list-title">Album Title</div>
+                        <div class="track-list-album-artist" id="track-list-artist">Artist Name</div>
+                        <div class="track-list-album-meta">
+                            <span id="track-list-track-count">10 tracks</span>
+                            <span id="track-list-duration">32 min</span>
+                        </div>
+                    </div>
+                    <button class="track-list-play-all" id="play-all-btn">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
+                        </svg>
+                        Play All
+                    </button>
+                </div>
+                <div class="track-list" id="track-list">
+                    <!-- Track items will be inserted here dynamically -->
+                </div>
+            </div>
+
+            <!-- Hidden track data for Shibuya Crossings -->
+            <div id="shibuya-tracks" style="display: none;">
+                <div class="track-card" data-track-id="1" data-src="../content/music/artists/shibuya-crossings/tracks/at-eight-in-a-spanish-bar-001/full.mp3" data-title="At Eight in a Spanish Bar" data-artist="Shibuya Crossings" data-duration="225" data-cover="../content/music/artists/shibuya-crossings/tracks/at-eight-in-a-spanish-bar-001/cover.jpg">
                     <div class="track-cover">
-                        <div class="preview-badge">30s Free</div>
+                        <img src="../content/music/artists/shibuya-crossings/tracks/at-eight-in-a-spanish-bar-001/cover.jpg" alt="At Eight in a Spanish Bar">
+                        <div class="track-number">1</div>
                         <div class="play-button">
                             <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
@@ -617,21 +934,25 @@
                         </div>
                     </div>
                     <div class="track-info">
-                        <div class="track-title">Midnight Dreams</div>
-                        <div class="track-artist">DJ Nova</div>
-                        <div class="track-price">
-                            <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                            </svg>
-                            100 sats
+                        <div class="track-title">At Eight in a Spanish Bar</div>
+                        <div class="track-artist">Shibuya Crossings</div>
+                        <div class="track-meta">
+                            <span class="track-duration">3:45</span>
+                            <span class="track-price">
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                                </svg>
+                                210 sats
+                            </span>
                         </div>
                     </div>
                 </div>
 
-                <div class="track-card">
-                    <div class="track-cover" style="background: linear-gradient(135deg, #8338ec, #3a86ff);">
-                        <div class="preview-badge">30s Free</div>
+                <div class="track-card" data-track-id="2" data-src="../content/music/artists/shibuya-crossings/tracks/take-it-out-on-me-002/full.mp3" data-title="Take it Out On Me" data-artist="Shibuya Crossings" data-duration="239" data-cover="../content/music/artists/shibuya-crossings/tracks/take-it-out-on-me-002/cover.jpg">
+                    <div class="track-cover">
+                        <img src="../content/music/artists/shibuya-crossings/tracks/take-it-out-on-me-002/cover.jpg" alt="Take it Out On Me">
+                        <div class="track-number">2</div>
                         <div class="play-button">
                             <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
@@ -639,21 +960,25 @@
                         </div>
                     </div>
                     <div class="track-info">
-                        <div class="track-title">Electric Pulse</div>
-                        <div class="track-artist">The Synthmasters</div>
-                        <div class="track-price">
-                            <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                            </svg>
-                            150 sats
+                        <div class="track-title">Take it Out On Me</div>
+                        <div class="track-artist">Shibuya Crossings</div>
+                        <div class="track-meta">
+                            <span class="track-duration">3:59</span>
+                            <span class="track-price">
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                                </svg>
+                                210 sats
+                            </span>
                         </div>
                     </div>
                 </div>
 
-                <div class="track-card">
-                    <div class="track-cover" style="background: linear-gradient(135deg, #fb5607, #ff006e);">
-                        <div class="preview-badge">30s Free</div>
+                <div class="track-card" data-track-id="3" data-src="../content/music/artists/shibuya-crossings/tracks/you-know-it-anyway-003/full.mp3" data-title="You Know it Anyway" data-artist="Shibuya Crossings" data-duration="164" data-cover="../content/music/artists/shibuya-crossings/tracks/you-know-it-anyway-003/cover.jpg">
+                    <div class="track-cover">
+                        <img src="../content/music/artists/shibuya-crossings/tracks/you-know-it-anyway-003/cover.jpg" alt="You Know it Anyway">
+                        <div class="track-number">3</div>
                         <div class="play-button">
                             <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
@@ -661,21 +986,25 @@
                         </div>
                     </div>
                     <div class="track-info">
-                        <div class="track-title">Summer Breeze</div>
-                        <div class="track-artist">Luna Waves</div>
-                        <div class="track-price">
-                            <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                            </svg>
-                            80 sats
+                        <div class="track-title">You Know it Anyway</div>
+                        <div class="track-artist">Shibuya Crossings</div>
+                        <div class="track-meta">
+                            <span class="track-duration">2:44</span>
+                            <span class="track-price">
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                                </svg>
+                                210 sats
+                            </span>
                         </div>
                     </div>
                 </div>
 
-                <div class="track-card">
-                    <div class="track-cover" style="background: linear-gradient(135deg, #06ffa5, #3a86ff);">
-                        <div class="preview-badge">30s Free</div>
+                <div class="track-card" data-track-id="4" data-src="../content/music/artists/shibuya-crossings/tracks/ill-meet-you-at-the-station-004/full.mp3" data-title="I'll Meet You at the Station" data-artist="Shibuya Crossings" data-duration="245" data-cover="../content/music/artists/shibuya-crossings/tracks/ill-meet-you-at-the-station-004/cover.jpg">
+                    <div class="track-cover">
+                        <img src="../content/music/artists/shibuya-crossings/tracks/ill-meet-you-at-the-station-004/cover.jpg" alt="I'll Meet You at the Station">
+                        <div class="track-number">4</div>
                         <div class="play-button">
                             <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
@@ -683,28 +1012,184 @@
                         </div>
                     </div>
                     <div class="track-info">
-                        <div class="track-title">Neon Nights</div>
-                        <div class="track-artist">Cyber Sound</div>
-                        <div class="track-price">
-                            <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                        <div class="track-title">I'll Meet You at the Station</div>
+                        <div class="track-artist">Shibuya Crossings</div>
+                        <div class="track-meta">
+                            <span class="track-duration">4:05</span>
+                            <span class="track-price">
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                                </svg>
+                                210 sats
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="track-card" data-track-id="5" data-src="../content/music/artists/shibuya-crossings/tracks/gamla-stan-005/full.mp3" data-title="Gamla Stan" data-artist="Shibuya Crossings" data-duration="172" data-cover="../content/music/artists/shibuya-crossings/tracks/gamla-stan-005/cover.jpg">
+                    <div class="track-cover">
+                        <img src="../content/music/artists/shibuya-crossings/tracks/gamla-stan-005/cover.jpg" alt="Gamla Stan">
+                        <div class="track-number">5</div>
+                        <div class="play-button">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
                             </svg>
-                            120 sats
+                        </div>
+                    </div>
+                    <div class="track-info">
+                        <div class="track-title">Gamla Stan</div>
+                        <div class="track-artist">Shibuya Crossings</div>
+                        <div class="track-meta">
+                            <span class="track-duration">2:52</span>
+                            <span class="track-price">
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                                </svg>
+                                210 sats
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="track-card" data-track-id="6" data-src="../content/music/artists/shibuya-crossings/tracks/the-things-we-say-we-dont-always-mean-006/full.mp3" data-title="The Things We Say We Don't Always Mean" data-artist="Shibuya Crossings" data-duration="163" data-cover="../content/music/artists/shibuya-crossings/tracks/the-things-we-say-we-dont-always-mean-006/cover.jpg">
+                    <div class="track-cover">
+                        <img src="../content/music/artists/shibuya-crossings/tracks/the-things-we-say-we-dont-always-mean-006/cover.jpg" alt="The Things We Say We Don't Always Mean">
+                        <div class="track-number">6</div>
+                        <div class="play-button">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="track-info">
+                        <div class="track-title">The Things We Say...</div>
+                        <div class="track-artist">Shibuya Crossings</div>
+                        <div class="track-meta">
+                            <span class="track-duration">2:43</span>
+                            <span class="track-price">
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                                </svg>
+                                210 sats
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="track-card" data-track-id="7" data-src="../content/music/artists/shibuya-crossings/tracks/if-it-isnt-getting-better-007/full.mp3" data-title="If It Isn't Getting Better" data-artist="Shibuya Crossings" data-duration="170" data-cover="../content/music/artists/shibuya-crossings/tracks/if-it-isnt-getting-better-007/cover.jpg">
+                    <div class="track-cover">
+                        <img src="../content/music/artists/shibuya-crossings/tracks/if-it-isnt-getting-better-007/cover.jpg" alt="If It Isn't Getting Better">
+                        <div class="track-number">7</div>
+                        <div class="play-button">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="track-info">
+                        <div class="track-title">If It Isn't Getting Better</div>
+                        <div class="track-artist">Shibuya Crossings</div>
+                        <div class="track-meta">
+                            <span class="track-duration">2:50</span>
+                            <span class="track-price">
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                                </svg>
+                                210 sats
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="track-card" data-track-id="8" data-src="../content/music/artists/shibuya-crossings/tracks/everyday-secrets-of-your-style-008/full.mp3" data-title="Everyday (Secrets Of Your Style)" data-artist="Shibuya Crossings" data-duration="193" data-cover="../content/music/artists/shibuya-crossings/tracks/everyday-secrets-of-your-style-008/cover.jpg">
+                    <div class="track-cover">
+                        <img src="../content/music/artists/shibuya-crossings/tracks/everyday-secrets-of-your-style-008/cover.jpg" alt="Everyday (Secrets Of Your Style)">
+                        <div class="track-number">8</div>
+                        <div class="play-button">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="track-info">
+                        <div class="track-title">Everyday (Secrets Of Your Style)</div>
+                        <div class="track-artist">Shibuya Crossings</div>
+                        <div class="track-meta">
+                            <span class="track-duration">3:13</span>
+                            <span class="track-price">
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                                </svg>
+                                210 sats
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="track-card" data-track-id="9" data-src="../content/music/artists/shibuya-crossings/tracks/a-wonder-inside-009/full.mp3" data-title="A Wonder Inside" data-artist="Shibuya Crossings" data-duration="245" data-cover="../content/music/artists/shibuya-crossings/tracks/a-wonder-inside-009/cover.jpg">
+                    <div class="track-cover">
+                        <img src="../content/music/artists/shibuya-crossings/tracks/a-wonder-inside-009/cover.jpg" alt="A Wonder Inside">
+                        <div class="track-number">9</div>
+                        <div class="play-button">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="track-info">
+                        <div class="track-title">A Wonder Inside</div>
+                        <div class="track-artist">Shibuya Crossings</div>
+                        <div class="track-meta">
+                            <span class="track-duration">4:05</span>
+                            <span class="track-price">
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                                </svg>
+                                210 sats
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="track-card" data-track-id="10" data-src="../content/music/artists/shibuya-crossings/tracks/silver-nails-that-haunt-me-010/full.mp3" data-title="Silver Nails That Haunt Me" data-artist="Shibuya Crossings" data-duration="169" data-cover="../content/music/artists/shibuya-crossings/tracks/silver-nails-that-haunt-me-010/cover.jpg">
+                    <div class="track-cover">
+                        <img src="../content/music/artists/shibuya-crossings/tracks/silver-nails-that-haunt-me-010/cover.jpg" alt="Silver Nails That Haunt Me">
+                        <div class="track-number">10</div>
+                        <div class="play-button">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="track-info">
+                        <div class="track-title">Silver Nails That Haunt Me</div>
+                        <div class="track-artist">Shibuya Crossings</div>
+                        <div class="track-meta">
+                            <span class="track-duration">2:49</span>
+                            <span class="track-price">
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                                </svg>
+                                210 sats
+                            </span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="section-header">
-                <h2 class="section-title">New Releases</h2>
-                <span class="view-all">View All →</span>
-            </div>
-
-            <div class="track-grid">
-                <div class="track-card">
-                    <div class="track-cover" style="background: linear-gradient(135deg, #ffbe0b, #fb5607);">
-                        <div class="preview-badge">30s Free</div>
+            <!-- Hidden track data for Language of Flowers -->
+            <div id="lof-tracks" style="display: none;">
+                <div class="track-card" data-track-id="11" data-src="../content/music/artists/language-of-flowers/tracks/where-you-belong-001/full.mp3" data-title="Where You Belong" data-artist="Language of Flowers" data-duration="292" data-cover="../content/music/artists/language-of-flowers/tracks/where-you-belong-001/cover.jpg">
+                    <div class="track-cover">
+                        <img src="../content/music/artists/language-of-flowers/tracks/where-you-belong-001/cover.jpg" alt="Where You Belong">
+                        <div class="track-number">1</div>
                         <div class="play-button">
                             <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
@@ -712,21 +1197,25 @@
                         </div>
                     </div>
                     <div class="track-info">
-                        <div class="track-title">Golden Hour</div>
-                        <div class="track-artist">Solar Beats</div>
-                        <div class="track-price">
-                            <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                            </svg>
-                            90 sats
+                        <div class="track-title">Where You Belong</div>
+                        <div class="track-artist">Language of Flowers</div>
+                        <div class="track-meta">
+                            <span class="track-duration">4:52</span>
+                            <span class="track-price">
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                                </svg>
+                                210 sats
+                            </span>
                         </div>
                     </div>
                 </div>
 
-                <div class="track-card">
-                    <div class="track-cover" style="background: linear-gradient(135deg, #7209b7, #f72585);">
-                        <div class="preview-badge">30s Free</div>
+                <div class="track-card" data-track-id="12" data-src="../content/music/artists/language-of-flowers/tracks/if-its-not-you-002/full.mp3" data-title="If It's Not You" data-artist="Language of Flowers" data-duration="188" data-cover="../content/music/artists/language-of-flowers/tracks/if-its-not-you-002/cover.jpg">
+                    <div class="track-cover">
+                        <img src="../content/music/artists/language-of-flowers/tracks/if-its-not-you-002/cover.jpg" alt="If It's Not You">
+                        <div class="track-number">2</div>
                         <div class="play-button">
                             <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
@@ -734,21 +1223,25 @@
                         </div>
                     </div>
                     <div class="track-info">
-                        <div class="track-title">Cosmic Dance</div>
-                        <div class="track-artist">Astro Vibes</div>
-                        <div class="track-price">
-                            <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                            </svg>
-                            110 sats
+                        <div class="track-title">If It's Not You</div>
+                        <div class="track-artist">Language of Flowers</div>
+                        <div class="track-meta">
+                            <span class="track-duration">3:08</span>
+                            <span class="track-price">
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                                </svg>
+                                210 sats
+                            </span>
                         </div>
                     </div>
                 </div>
 
-                <div class="track-card">
-                    <div class="track-cover" style="background: linear-gradient(135deg, #06ffa5, #fffffc);">
-                        <div class="preview-badge">30s Free</div>
+                <div class="track-card" data-track-id="13" data-src="../content/music/artists/language-of-flowers/tracks/songs-about-you-003/full.mp3" data-title="Songs About You" data-artist="Language of Flowers" data-duration="192" data-cover="../content/music/artists/language-of-flowers/tracks/songs-about-you-003/cover.jpg">
+                    <div class="track-cover">
+                        <img src="../content/music/artists/language-of-flowers/tracks/songs-about-you-003/cover.jpg" alt="Songs About You">
+                        <div class="track-number">3</div>
                         <div class="play-button">
                             <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
@@ -756,21 +1249,25 @@
                         </div>
                     </div>
                     <div class="track-info">
-                        <div class="track-title">Frozen Time</div>
-                        <div class="track-artist">Ice Crystal</div>
-                        <div class="track-price">
-                            <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                            </svg>
-                            95 sats
+                        <div class="track-title">Songs About You</div>
+                        <div class="track-artist">Language of Flowers</div>
+                        <div class="track-meta">
+                            <span class="track-duration">3:12</span>
+                            <span class="track-price">
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                                </svg>
+                                210 sats
+                            </span>
                         </div>
                     </div>
                 </div>
 
-                <div class="track-card">
-                    <div class="track-cover" style="background: linear-gradient(135deg, #4361ee, #4cc9f0);">
-                        <div class="preview-badge">30s Free</div>
+                <div class="track-card" data-track-id="14" data-src="../content/music/artists/language-of-flowers/tracks/leaving-004/full.mp3" data-title="Leaving" data-artist="Language of Flowers" data-duration="220" data-cover="../content/music/artists/language-of-flowers/tracks/leaving-004/cover.jpg">
+                    <div class="track-cover">
+                        <img src="../content/music/artists/language-of-flowers/tracks/leaving-004/cover.jpg" alt="Leaving">
+                        <div class="track-number">4</div>
                         <div class="play-button">
                             <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
@@ -778,14 +1275,173 @@
                         </div>
                     </div>
                     <div class="track-info">
-                        <div class="track-title">Ocean Waves</div>
-                        <div class="track-artist">Deep Blue</div>
-                        <div class="track-price">
-                            <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                        <div class="track-title">Leaving</div>
+                        <div class="track-artist">Language of Flowers</div>
+                        <div class="track-meta">
+                            <span class="track-duration">3:40</span>
+                            <span class="track-price">
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                                </svg>
+                                210 sats
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="track-card" data-track-id="15" data-src="../content/music/artists/language-of-flowers/tracks/who-youre-with-005/full.mp3" data-title="Who You're With" data-artist="Language of Flowers" data-duration="184" data-cover="../content/music/artists/language-of-flowers/tracks/who-youre-with-005/cover.jpg">
+                    <div class="track-cover">
+                        <img src="../content/music/artists/language-of-flowers/tracks/who-youre-with-005/cover.jpg" alt="Who You're With">
+                        <div class="track-number">5</div>
+                        <div class="play-button">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
                             </svg>
-                            105 sats
+                        </div>
+                    </div>
+                    <div class="track-info">
+                        <div class="track-title">Who You're With</div>
+                        <div class="track-artist">Language of Flowers</div>
+                        <div class="track-meta">
+                            <span class="track-duration">3:04</span>
+                            <span class="track-price">
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                                </svg>
+                                210 sats
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="track-card" data-track-id="16" data-src="../content/music/artists/language-of-flowers/tracks/youre-the-one-006/full.mp3" data-title="You're the One" data-artist="Language of Flowers" data-duration="254" data-cover="../content/music/artists/language-of-flowers/tracks/youre-the-one-006/cover.jpg">
+                    <div class="track-cover">
+                        <img src="../content/music/artists/language-of-flowers/tracks/youre-the-one-006/cover.jpg" alt="You're the One">
+                        <div class="track-number">6</div>
+                        <div class="play-button">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="track-info">
+                        <div class="track-title">You're the One</div>
+                        <div class="track-artist">Language of Flowers</div>
+                        <div class="track-meta">
+                            <span class="track-duration">4:14</span>
+                            <span class="track-price">
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                                </svg>
+                                210 sats
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="track-card" data-track-id="17" data-src="../content/music/artists/language-of-flowers/tracks/summers-been-and-gone-007/full.mp3" data-title="Summer's Been And Gone" data-artist="Language of Flowers" data-duration="299" data-cover="../content/music/artists/language-of-flowers/tracks/summers-been-and-gone-007/cover.jpg">
+                    <div class="track-cover">
+                        <img src="../content/music/artists/language-of-flowers/tracks/summers-been-and-gone-007/cover.jpg" alt="Summer's Been And Gone">
+                        <div class="track-number">7</div>
+                        <div class="play-button">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="track-info">
+                        <div class="track-title">Summer's Been And Gone</div>
+                        <div class="track-artist">Language of Flowers</div>
+                        <div class="track-meta">
+                            <span class="track-duration">4:59</span>
+                            <span class="track-price">
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                                </svg>
+                                210 sats
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="track-card" data-track-id="18" data-src="../content/music/artists/language-of-flowers/tracks/botanic-gardens-008/full.mp3" data-title="Botanic Gardens" data-artist="Language of Flowers" data-duration="227" data-cover="../content/music/artists/language-of-flowers/tracks/botanic-gardens-008/cover.jpg">
+                    <div class="track-cover">
+                        <img src="../content/music/artists/language-of-flowers/tracks/botanic-gardens-008/cover.jpg" alt="Botanic Gardens">
+                        <div class="track-number">8</div>
+                        <div class="play-button">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="track-info">
+                        <div class="track-title">Botanic Gardens</div>
+                        <div class="track-artist">Language of Flowers</div>
+                        <div class="track-meta">
+                            <span class="track-duration">3:47</span>
+                            <span class="track-price">
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                                </svg>
+                                210 sats
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="track-card" data-track-id="19" data-src="../content/music/artists/language-of-flowers/tracks/i-dont-care-at-all-009/full.mp3" data-title="I Don't Care At All" data-artist="Language of Flowers" data-duration="318" data-cover="../content/music/artists/language-of-flowers/tracks/i-dont-care-at-all-009/cover.jpg">
+                    <div class="track-cover">
+                        <img src="../content/music/artists/language-of-flowers/tracks/i-dont-care-at-all-009/cover.jpg" alt="I Don't Care At All">
+                        <div class="track-number">9</div>
+                        <div class="play-button">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="track-info">
+                        <div class="track-title">I Don't Care At All</div>
+                        <div class="track-artist">Language of Flowers</div>
+                        <div class="track-meta">
+                            <span class="track-duration">5:18</span>
+                            <span class="track-price">
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                                </svg>
+                                210 sats
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="track-card" data-track-id="20" data-src="../content/music/artists/language-of-flowers/tracks/tara-mascara-010/full.mp3" data-title="Tara Mascara" data-artist="Language of Flowers" data-duration="313" data-cover="../content/music/artists/language-of-flowers/tracks/tara-mascara-010/cover.jpg">
+                    <div class="track-cover">
+                        <img src="../content/music/artists/language-of-flowers/tracks/tara-mascara-010/cover.jpg" alt="Tara Mascara">
+                        <div class="track-number">10</div>
+                        <div class="play-button">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="track-info">
+                        <div class="track-title">Tara Mascara</div>
+                        <div class="track-artist">Language of Flowers</div>
+                        <div class="track-meta">
+                            <span class="track-duration">5:13</span>
+                            <span class="track-price">
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                                </svg>
+                                210 sats
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -796,10 +1452,12 @@
     <!-- Player Bar -->
     <div class="player-bar">
         <div class="now-playing">
-            <div class="now-playing-cover"></div>
+            <div class="now-playing-cover">
+                <img src="../content/music/artists/shibuya-crossings/albums/doya-depend-on-your-alter-ego-2011/cover.jpg" alt="Album Cover">
+            </div>
             <div class="now-playing-info">
-                <div class="now-playing-title">Midnight Dreams</div>
-                <div class="now-playing-artist">DJ Nova</div>
+                <div class="now-playing-title">Select a track</div>
+                <div class="now-playing-artist">Shibuya Crossings</div>
             </div>
         </div>
 
@@ -844,16 +1502,313 @@
         </div>
     </div>
 
+    <!-- Hidden Audio Element -->
+    <audio id="audio-player" preload="metadata"></audio>
+
     <script>
-        // Add basic interactivity
-        document.querySelectorAll('.track-card').forEach(card => {
-            card.addEventListener('click', function() {
-                console.log('Track clicked');
+        // Audio Player State
+        const audioPlayer = document.getElementById('audio-player');
+        let currentTrackElement = null;
+        let isPlaying = false;
+        let currentAlbumTracks = [];
+        let currentTrackIndex = -1;
+        let selectedAlbumId = null;
+
+        // Album data
+        const albums = {
+            'doya-shibuya-crossings': {
+                id: 'doya-shibuya-crossings',
+                title: 'DOYA (Depend On Your Alter-Ego)',
+                artist: 'Shibuya Crossings',
+                cover: '../content/music/artists/shibuya-crossings/albums/doya-depend-on-your-alter-ego-2011/cover.jpg',
+                tracksContainerId: 'shibuya-tracks'
+            },
+            'songs-about-you-lof': {
+                id: 'songs-about-you-lof',
+                title: 'Songs About You',
+                artist: 'Language of Flowers',
+                cover: '../content/music/artists/language-of-flowers/albums/songs-about-you-2024/cover.jpg',
+                tracksContainerId: 'lof-tracks'
+            }
+        };
+
+        // Format time in mm:ss
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Get tracks from hidden container
+        function getAlbumTracks(albumId) {
+            const album = albums[albumId];
+            if (!album) return [];
+
+            const container = document.getElementById(album.tracksContainerId);
+            if (!container) return [];
+
+            const tracks = [];
+            container.querySelectorAll('.track-card').forEach((card, index) => {
+                tracks.push({
+                    src: card.dataset.src,
+                    title: card.dataset.title,
+                    artist: card.dataset.artist,
+                    duration: parseInt(card.dataset.duration),
+                    cover: card.dataset.cover,
+                    index: index
+                });
+            });
+            return tracks;
+        }
+
+        // Calculate total duration of album
+        function calculateTotalDuration(tracks) {
+            const totalSeconds = tracks.reduce((sum, t) => sum + t.duration, 0);
+            const mins = Math.floor(totalSeconds / 60);
+            return `${mins} min`;
+        }
+
+        // Select album and show track list
+        function selectAlbum(albumId, autoPlay = false) {
+            const album = albums[albumId];
+            if (!album) return;
+
+            // Update selected album card
+            document.querySelectorAll('.album-card').forEach(card => {
+                card.classList.remove('selected');
+                if (card.dataset.albumId === albumId) {
+                    card.classList.add('selected');
+                }
+            });
+
+            selectedAlbumId = albumId;
+            currentAlbumTracks = getAlbumTracks(albumId);
+
+            // Update track list header
+            document.getElementById('track-list-cover').src = album.cover;
+            document.getElementById('track-list-title').textContent = album.title;
+            document.getElementById('track-list-artist').textContent = album.artist;
+            document.getElementById('track-list-track-count').textContent = `${currentAlbumTracks.length} tracks`;
+            document.getElementById('track-list-duration').textContent = calculateTotalDuration(currentAlbumTracks);
+
+            // Generate track list HTML
+            const trackListEl = document.getElementById('track-list');
+            trackListEl.innerHTML = currentAlbumTracks.map((track, index) => `
+                <div class="track-list-item" data-track-index="${index}">
+                    <div class="track-list-number">${index + 1}</div>
+                    <div class="track-list-item-cover">
+                        <img src="${track.cover}" alt="${track.title}">
+                    </div>
+                    <div class="track-list-item-info">
+                        <div class="track-list-item-title">${track.title}</div>
+                        <div class="track-list-item-artist">${track.artist}</div>
+                    </div>
+                    <div class="track-list-item-duration">${formatTime(track.duration)}</div>
+                    <div class="track-list-item-price">
+                        <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                        </svg>
+                        210 sats
+                    </div>
+                </div>
+            `).join('');
+
+            // Add click handlers to track list items
+            trackListEl.querySelectorAll('.track-list-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const index = parseInt(this.dataset.trackIndex);
+                    playTrackFromList(index);
+                });
+            });
+
+            // Show track list container
+            document.getElementById('track-list-container').classList.add('active');
+
+            // Auto-play first track if requested
+            if (autoPlay && currentAlbumTracks.length > 0) {
+                playTrackFromList(0);
+            }
+
+            // Update playing state if current track is in this album
+            updateTrackListPlayingState();
+        }
+
+        // Update player bar UI
+        function updatePlayerBar(track) {
+            document.querySelector('.now-playing-title').textContent = track.title;
+            document.querySelector('.now-playing-artist').textContent = track.artist;
+
+            const nowPlayingCover = document.querySelector('.now-playing-cover img');
+            if (nowPlayingCover && track.cover) {
+                nowPlayingCover.src = track.cover;
+                nowPlayingCover.alt = track.title;
+            }
+        }
+
+        // Update progress bar
+        function updateProgress() {
+            if (audioPlayer.duration) {
+                const progress = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+                document.querySelector('.progress-fill').style.width = `${progress}%`;
+                document.querySelector('.progress-bar .time:first-child').textContent = formatTime(audioPlayer.currentTime);
+                document.querySelector('.progress-bar .time:last-child').textContent = formatTime(audioPlayer.duration);
+            }
+        }
+
+        // Update track list playing state
+        function updateTrackListPlayingState() {
+            document.querySelectorAll('.track-list-item').forEach((item, index) => {
+                if (index === currentTrackIndex) {
+                    item.classList.add('playing');
+                } else {
+                    item.classList.remove('playing');
+                }
+            });
+        }
+
+        // Play track from track list
+        function playTrackFromList(index) {
+            if (index < 0 || index >= currentAlbumTracks.length) return;
+
+            const track = currentAlbumTracks[index];
+            currentTrackIndex = index;
+            currentTrackElement = document.querySelector(`.track-list-item[data-track-index="${index}"]`);
+
+            // Set audio source and play
+            audioPlayer.src = track.src;
+            audioPlayer.play().then(() => {
+                isPlaying = true;
+                updatePlayPauseButton();
+            }).catch(err => {
+                console.error('Error playing audio:', err);
+            });
+
+            updatePlayerBar(track);
+            updateTrackListPlayingState();
+        }
+
+        // Toggle play/pause
+        function togglePlayPause() {
+            if (isPlaying) {
+                audioPlayer.pause();
+                isPlaying = false;
+            } else {
+                audioPlayer.play();
+                isPlaying = true;
+            }
+            updatePlayPauseButton();
+        }
+
+        // Update play/pause button icon
+        function updatePlayPauseButton() {
+            const playBtn = document.querySelector('.control-btn.play');
+            if (isPlaying) {
+                playBtn.innerHTML = `
+                    <svg width="24" height="24" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>`;
+            } else {
+                playBtn.innerHTML = `
+                    <svg width="24" height="24" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/>
+                    </svg>`;
+            }
+        }
+
+        // Play next track
+        function playNext() {
+            if (currentAlbumTracks.length === 0) return;
+            const nextIndex = (currentTrackIndex + 1) % currentAlbumTracks.length;
+            playTrackFromList(nextIndex);
+        }
+
+        // Play previous track
+        function playPrevious() {
+            if (currentAlbumTracks.length === 0) return;
+            const prevIndex = currentTrackIndex <= 0 ? currentAlbumTracks.length - 1 : currentTrackIndex - 1;
+            playTrackFromList(prevIndex);
+        }
+
+        // Album card click handlers
+        document.querySelectorAll('.album-card').forEach(card => {
+            card.addEventListener('click', function(e) {
+                const albumId = this.dataset.albumId;
+                const isPlayButton = e.target.closest('.album-play-button');
+                selectAlbum(albumId, isPlayButton);
             });
         });
 
+        // Play All button handler
+        document.getElementById('play-all-btn').addEventListener('click', function() {
+            if (currentAlbumTracks.length > 0) {
+                playTrackFromList(0);
+            }
+        });
+
+        // Player control buttons
+        document.querySelector('.control-btn.play').addEventListener('click', function() {
+            if (currentTrackIndex === -1 && currentAlbumTracks.length > 0) {
+                playTrackFromList(0);
+            } else if (currentTrackIndex === -1) {
+                // No album selected, select first album
+                const firstAlbumId = Object.keys(albums)[0];
+                selectAlbum(firstAlbumId, true);
+            } else {
+                togglePlayPause();
+            }
+        });
+
+        // Previous/Next buttons
+        const controlButtons = document.querySelectorAll('.control-buttons .control-btn:not(.play)');
+        controlButtons[0].addEventListener('click', playPrevious);
+        controlButtons[1].addEventListener('click', playNext);
+
+        // Progress bar click to seek
+        document.querySelector('.progress').addEventListener('click', function(e) {
+            if (audioPlayer.duration) {
+                const rect = this.getBoundingClientRect();
+                const percent = (e.clientX - rect.left) / rect.width;
+                audioPlayer.currentTime = percent * audioPlayer.duration;
+            }
+        });
+
+        // Audio event listeners
+        audioPlayer.addEventListener('timeupdate', updateProgress);
+        audioPlayer.addEventListener('ended', playNext);
+        audioPlayer.addEventListener('pause', () => {
+            isPlaying = false;
+            updatePlayPauseButton();
+        });
+        audioPlayer.addEventListener('play', () => {
+            isPlaying = true;
+            updatePlayPauseButton();
+        });
+
+        // Wallet button
         document.querySelector('.wallet-btn').addEventListener('click', function() {
             alert('Wallet connection coming soon! This will integrate with Strike/Lightning wallets.');
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space' && e.target.tagName !== 'INPUT') {
+                e.preventDefault();
+                if (currentTrackIndex === -1 && currentAlbumTracks.length > 0) {
+                    playTrackFromList(0);
+                } else if (currentTrackIndex === -1) {
+                    const firstAlbumId = Object.keys(albums)[0];
+                    selectAlbum(firstAlbumId, true);
+                } else {
+                    togglePlayPause();
+                }
+            }
+            if (e.code === 'ArrowRight') {
+                playNext();
+            }
+            if (e.code === 'ArrowLeft') {
+                playPrevious();
+            }
         });
     </script>
 </body>

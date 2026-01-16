@@ -1,0 +1,8 @@
+{
+  "lightningAddress": "languageofflowers@getalby.com",
+  "lnurlPay": "",
+  "nodePublicKey": "",
+  "description": "Support Language of Flowers directly via Lightning Network",
+  "minSats": 1,
+  "maxSats": 1000000
+}
