@@ -1,0 +1,16 @@
+{
+  "trackId": "where-you-belong-001",
+  "title": "Where You Belong",
+  "artist": "Language of Flowers",
+  "albumId": "songs-about-you-2024",
+  "trackNumber": 1,
+  "duration": 292,
+  "genre": "Indie Pop",
+  "priceSats": 210,
+  "releaseDate": "2024-06-19",
+  "previewStart": 60,
+  "previewDuration": 30,
+  "fileFormat": "mp3",
+  "bitrate": 320,
+  "tags": ["indie", "pop", "emotional", "opening"]
+}
