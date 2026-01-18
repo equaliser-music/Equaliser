@@ -842,56 +842,9 @@
             </div>
 
             <div class="album-grid" id="featured-albums">
-                <!-- DOYA by Shibuya Crossings -->
-                <div class="album-card" data-album-id="doya-shibuya-crossings">
-                    <div class="album-cover">
-                        <img src="../content/music/artists/shibuya-crossings/albums/doya-depend-on-your-alter-ego-2011/cover.jpg" alt="DOYA">
-                        <div class="album-play-button">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="album-info">
-                        <div class="album-title">DOYA (Depend On Your Alter-Ego)</div>
-                        <div class="album-artist">Shibuya Crossings</div>
-                        <div class="album-meta">
-                            <span class="album-tracks-count">10 tracks</span>
-                            <span class="album-price">
-                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                                </svg>
-                                2100 sats
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Songs About You by Language of Flowers -->
-                <div class="album-card" data-album-id="songs-about-you-lof">
-                    <div class="album-cover">
-                        <img src="../content/music/artists/language-of-flowers/albums/songs-about-you-2024/cover.jpg" alt="Songs About You">
-                        <div class="album-play-button">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="album-info">
-                        <div class="album-title">Songs About You</div>
-                        <div class="album-artist">Language of Flowers</div>
-                        <div class="album-meta">
-                            <span class="album-tracks-count">10 tracks</span>
-                            <span class="album-price">
-                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                                </svg>
-                                2100 sats
-                            </span>
-                        </div>
-                    </div>
+                <!-- Albums loaded dynamically from API -->
+                <div class="loading-placeholder" style="grid-column: 1 / -1; text-align: center; padding: 40px; color: rgba(255,255,255,0.5);">
+                    Loading albums...
                 </div>
             </div>
 
@@ -921,534 +874,7 @@
                 </div>
             </div>
 
-            <!-- Hidden track data for Shibuya Crossings -->
-            <div id="shibuya-tracks" style="display: none;">
-                <div class="track-card" data-track-id="1" data-src="../content/music/artists/shibuya-crossings/tracks/at-eight-in-a-spanish-bar-001/full.mp3" data-title="At Eight in a Spanish Bar" data-artist="Shibuya Crossings" data-duration="225" data-cover="../content/music/artists/shibuya-crossings/tracks/at-eight-in-a-spanish-bar-001/cover.jpg">
-                    <div class="track-cover">
-                        <img src="../content/music/artists/shibuya-crossings/tracks/at-eight-in-a-spanish-bar-001/cover.jpg" alt="At Eight in a Spanish Bar">
-                        <div class="track-number">1</div>
-                        <div class="play-button">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="track-info">
-                        <div class="track-title">At Eight in a Spanish Bar</div>
-                        <div class="track-artist">Shibuya Crossings</div>
-                        <div class="track-meta">
-                            <span class="track-duration">3:45</span>
-                            <span class="track-price">
-                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                                </svg>
-                                210 sats
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="track-card" data-track-id="2" data-src="../content/music/artists/shibuya-crossings/tracks/take-it-out-on-me-002/full.mp3" data-title="Take it Out On Me" data-artist="Shibuya Crossings" data-duration="239" data-cover="../content/music/artists/shibuya-crossings/tracks/take-it-out-on-me-002/cover.jpg">
-                    <div class="track-cover">
-                        <img src="../content/music/artists/shibuya-crossings/tracks/take-it-out-on-me-002/cover.jpg" alt="Take it Out On Me">
-                        <div class="track-number">2</div>
-                        <div class="play-button">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="track-info">
-                        <div class="track-title">Take it Out On Me</div>
-                        <div class="track-artist">Shibuya Crossings</div>
-                        <div class="track-meta">
-                            <span class="track-duration">3:59</span>
-                            <span class="track-price">
-                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                                </svg>
-                                210 sats
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="track-card" data-track-id="3" data-src="../content/music/artists/shibuya-crossings/tracks/you-know-it-anyway-003/full.mp3" data-title="You Know it Anyway" data-artist="Shibuya Crossings" data-duration="164" data-cover="../content/music/artists/shibuya-crossings/tracks/you-know-it-anyway-003/cover.jpg">
-                    <div class="track-cover">
-                        <img src="../content/music/artists/shibuya-crossings/tracks/you-know-it-anyway-003/cover.jpg" alt="You Know it Anyway">
-                        <div class="track-number">3</div>
-                        <div class="play-button">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="track-info">
-                        <div class="track-title">You Know it Anyway</div>
-                        <div class="track-artist">Shibuya Crossings</div>
-                        <div class="track-meta">
-                            <span class="track-duration">2:44</span>
-                            <span class="track-price">
-                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                                </svg>
-                                210 sats
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="track-card" data-track-id="4" data-src="../content/music/artists/shibuya-crossings/tracks/ill-meet-you-at-the-station-004/full.mp3" data-title="I'll Meet You at the Station" data-artist="Shibuya Crossings" data-duration="245" data-cover="../content/music/artists/shibuya-crossings/tracks/ill-meet-you-at-the-station-004/cover.jpg">
-                    <div class="track-cover">
-                        <img src="../content/music/artists/shibuya-crossings/tracks/ill-meet-you-at-the-station-004/cover.jpg" alt="I'll Meet You at the Station">
-                        <div class="track-number">4</div>
-                        <div class="play-button">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="track-info">
-                        <div class="track-title">I'll Meet You at the Station</div>
-                        <div class="track-artist">Shibuya Crossings</div>
-                        <div class="track-meta">
-                            <span class="track-duration">4:05</span>
-                            <span class="track-price">
-                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                                </svg>
-                                210 sats
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="track-card" data-track-id="5" data-src="../content/music/artists/shibuya-crossings/tracks/gamla-stan-005/full.mp3" data-title="Gamla Stan" data-artist="Shibuya Crossings" data-duration="172" data-cover="../content/music/artists/shibuya-crossings/tracks/gamla-stan-005/cover.jpg">
-                    <div class="track-cover">
-                        <img src="../content/music/artists/shibuya-crossings/tracks/gamla-stan-005/cover.jpg" alt="Gamla Stan">
-                        <div class="track-number">5</div>
-                        <div class="play-button">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="track-info">
-                        <div class="track-title">Gamla Stan</div>
-                        <div class="track-artist">Shibuya Crossings</div>
-                        <div class="track-meta">
-                            <span class="track-duration">2:52</span>
-                            <span class="track-price">
-                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                                </svg>
-                                210 sats
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="track-card" data-track-id="6" data-src="../content/music/artists/shibuya-crossings/tracks/the-things-we-say-we-dont-always-mean-006/full.mp3" data-title="The Things We Say We Don't Always Mean" data-artist="Shibuya Crossings" data-duration="163" data-cover="../content/music/artists/shibuya-crossings/tracks/the-things-we-say-we-dont-always-mean-006/cover.jpg">
-                    <div class="track-cover">
-                        <img src="../content/music/artists/shibuya-crossings/tracks/the-things-we-say-we-dont-always-mean-006/cover.jpg" alt="The Things We Say We Don't Always Mean">
-                        <div class="track-number">6</div>
-                        <div class="play-button">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="track-info">
-                        <div class="track-title">The Things We Say...</div>
-                        <div class="track-artist">Shibuya Crossings</div>
-                        <div class="track-meta">
-                            <span class="track-duration">2:43</span>
-                            <span class="track-price">
-                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                                </svg>
-                                210 sats
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="track-card" data-track-id="7" data-src="../content/music/artists/shibuya-crossings/tracks/if-it-isnt-getting-better-007/full.mp3" data-title="If It Isn't Getting Better" data-artist="Shibuya Crossings" data-duration="170" data-cover="../content/music/artists/shibuya-crossings/tracks/if-it-isnt-getting-better-007/cover.jpg">
-                    <div class="track-cover">
-                        <img src="../content/music/artists/shibuya-crossings/tracks/if-it-isnt-getting-better-007/cover.jpg" alt="If It Isn't Getting Better">
-                        <div class="track-number">7</div>
-                        <div class="play-button">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="track-info">
-                        <div class="track-title">If It Isn't Getting Better</div>
-                        <div class="track-artist">Shibuya Crossings</div>
-                        <div class="track-meta">
-                            <span class="track-duration">2:50</span>
-                            <span class="track-price">
-                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                                </svg>
-                                210 sats
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="track-card" data-track-id="8" data-src="../content/music/artists/shibuya-crossings/tracks/everyday-secrets-of-your-style-008/full.mp3" data-title="Everyday (Secrets Of Your Style)" data-artist="Shibuya Crossings" data-duration="193" data-cover="../content/music/artists/shibuya-crossings/tracks/everyday-secrets-of-your-style-008/cover.jpg">
-                    <div class="track-cover">
-                        <img src="../content/music/artists/shibuya-crossings/tracks/everyday-secrets-of-your-style-008/cover.jpg" alt="Everyday (Secrets Of Your Style)">
-                        <div class="track-number">8</div>
-                        <div class="play-button">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="track-info">
-                        <div class="track-title">Everyday (Secrets Of Your Style)</div>
-                        <div class="track-artist">Shibuya Crossings</div>
-                        <div class="track-meta">
-                            <span class="track-duration">3:13</span>
-                            <span class="track-price">
-                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                                </svg>
-                                210 sats
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="track-card" data-track-id="9" data-src="../content/music/artists/shibuya-crossings/tracks/a-wonder-inside-009/full.mp3" data-title="A Wonder Inside" data-artist="Shibuya Crossings" data-duration="245" data-cover="../content/music/artists/shibuya-crossings/tracks/a-wonder-inside-009/cover.jpg">
-                    <div class="track-cover">
-                        <img src="../content/music/artists/shibuya-crossings/tracks/a-wonder-inside-009/cover.jpg" alt="A Wonder Inside">
-                        <div class="track-number">9</div>
-                        <div class="play-button">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="track-info">
-                        <div class="track-title">A Wonder Inside</div>
-                        <div class="track-artist">Shibuya Crossings</div>
-                        <div class="track-meta">
-                            <span class="track-duration">4:05</span>
-                            <span class="track-price">
-                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                                </svg>
-                                210 sats
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="track-card" data-track-id="10" data-src="../content/music/artists/shibuya-crossings/tracks/silver-nails-that-haunt-me-010/full.mp3" data-title="Silver Nails That Haunt Me" data-artist="Shibuya Crossings" data-duration="169" data-cover="../content/music/artists/shibuya-crossings/tracks/silver-nails-that-haunt-me-010/cover.jpg">
-                    <div class="track-cover">
-                        <img src="../content/music/artists/shibuya-crossings/tracks/silver-nails-that-haunt-me-010/cover.jpg" alt="Silver Nails That Haunt Me">
-                        <div class="track-number">10</div>
-                        <div class="play-button">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="track-info">
-                        <div class="track-title">Silver Nails That Haunt Me</div>
-                        <div class="track-artist">Shibuya Crossings</div>
-                        <div class="track-meta">
-                            <span class="track-duration">2:49</span>
-                            <span class="track-price">
-                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                                </svg>
-                                210 sats
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Hidden track data for Language of Flowers -->
-            <div id="lof-tracks" style="display: none;">
-                <div class="track-card" data-track-id="11" data-src="../content/music/artists/language-of-flowers/tracks/where-you-belong-001/full.mp3" data-title="Where You Belong" data-artist="Language of Flowers" data-duration="292" data-cover="../content/music/artists/language-of-flowers/tracks/where-you-belong-001/cover.jpg">
-                    <div class="track-cover">
-                        <img src="../content/music/artists/language-of-flowers/tracks/where-you-belong-001/cover.jpg" alt="Where You Belong">
-                        <div class="track-number">1</div>
-                        <div class="play-button">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="track-info">
-                        <div class="track-title">Where You Belong</div>
-                        <div class="track-artist">Language of Flowers</div>
-                        <div class="track-meta">
-                            <span class="track-duration">4:52</span>
-                            <span class="track-price">
-                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                                </svg>
-                                210 sats
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="track-card" data-track-id="12" data-src="../content/music/artists/language-of-flowers/tracks/if-its-not-you-002/full.mp3" data-title="If It's Not You" data-artist="Language of Flowers" data-duration="188" data-cover="../content/music/artists/language-of-flowers/tracks/if-its-not-you-002/cover.jpg">
-                    <div class="track-cover">
-                        <img src="../content/music/artists/language-of-flowers/tracks/if-its-not-you-002/cover.jpg" alt="If It's Not You">
-                        <div class="track-number">2</div>
-                        <div class="play-button">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="track-info">
-                        <div class="track-title">If It's Not You</div>
-                        <div class="track-artist">Language of Flowers</div>
-                        <div class="track-meta">
-                            <span class="track-duration">3:08</span>
-                            <span class="track-price">
-                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                                </svg>
-                                210 sats
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="track-card" data-track-id="13" data-src="../content/music/artists/language-of-flowers/tracks/songs-about-you-003/full.mp3" data-title="Songs About You" data-artist="Language of Flowers" data-duration="192" data-cover="../content/music/artists/language-of-flowers/tracks/songs-about-you-003/cover.jpg">
-                    <div class="track-cover">
-                        <img src="../content/music/artists/language-of-flowers/tracks/songs-about-you-003/cover.jpg" alt="Songs About You">
-                        <div class="track-number">3</div>
-                        <div class="play-button">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="track-info">
-                        <div class="track-title">Songs About You</div>
-                        <div class="track-artist">Language of Flowers</div>
-                        <div class="track-meta">
-                            <span class="track-duration">3:12</span>
-                            <span class="track-price">
-                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                                </svg>
-                                210 sats
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="track-card" data-track-id="14" data-src="../content/music/artists/language-of-flowers/tracks/leaving-004/full.mp3" data-title="Leaving" data-artist="Language of Flowers" data-duration="220" data-cover="../content/music/artists/language-of-flowers/tracks/leaving-004/cover.jpg">
-                    <div class="track-cover">
-                        <img src="../content/music/artists/language-of-flowers/tracks/leaving-004/cover.jpg" alt="Leaving">
-                        <div class="track-number">4</div>
-                        <div class="play-button">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="track-info">
-                        <div class="track-title">Leaving</div>
-                        <div class="track-artist">Language of Flowers</div>
-                        <div class="track-meta">
-                            <span class="track-duration">3:40</span>
-                            <span class="track-price">
-                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                                </svg>
-                                210 sats
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="track-card" data-track-id="15" data-src="../content/music/artists/language-of-flowers/tracks/who-youre-with-005/full.mp3" data-title="Who You're With" data-artist="Language of Flowers" data-duration="184" data-cover="../content/music/artists/language-of-flowers/tracks/who-youre-with-005/cover.jpg">
-                    <div class="track-cover">
-                        <img src="../content/music/artists/language-of-flowers/tracks/who-youre-with-005/cover.jpg" alt="Who You're With">
-                        <div class="track-number">5</div>
-                        <div class="play-button">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="track-info">
-                        <div class="track-title">Who You're With</div>
-                        <div class="track-artist">Language of Flowers</div>
-                        <div class="track-meta">
-                            <span class="track-duration">3:04</span>
-                            <span class="track-price">
-                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                                </svg>
-                                210 sats
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="track-card" data-track-id="16" data-src="../content/music/artists/language-of-flowers/tracks/youre-the-one-006/full.mp3" data-title="You're the One" data-artist="Language of Flowers" data-duration="254" data-cover="../content/music/artists/language-of-flowers/tracks/youre-the-one-006/cover.jpg">
-                    <div class="track-cover">
-                        <img src="../content/music/artists/language-of-flowers/tracks/youre-the-one-006/cover.jpg" alt="You're the One">
-                        <div class="track-number">6</div>
-                        <div class="play-button">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="track-info">
-                        <div class="track-title">You're the One</div>
-                        <div class="track-artist">Language of Flowers</div>
-                        <div class="track-meta">
-                            <span class="track-duration">4:14</span>
-                            <span class="track-price">
-                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                                </svg>
-                                210 sats
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="track-card" data-track-id="17" data-src="../content/music/artists/language-of-flowers/tracks/summers-been-and-gone-007/full.mp3" data-title="Summer's Been And Gone" data-artist="Language of Flowers" data-duration="299" data-cover="../content/music/artists/language-of-flowers/tracks/summers-been-and-gone-007/cover.jpg">
-                    <div class="track-cover">
-                        <img src="../content/music/artists/language-of-flowers/tracks/summers-been-and-gone-007/cover.jpg" alt="Summer's Been And Gone">
-                        <div class="track-number">7</div>
-                        <div class="play-button">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="track-info">
-                        <div class="track-title">Summer's Been And Gone</div>
-                        <div class="track-artist">Language of Flowers</div>
-                        <div class="track-meta">
-                            <span class="track-duration">4:59</span>
-                            <span class="track-price">
-                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                                </svg>
-                                210 sats
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="track-card" data-track-id="18" data-src="../content/music/artists/language-of-flowers/tracks/botanic-gardens-008/full.mp3" data-title="Botanic Gardens" data-artist="Language of Flowers" data-duration="227" data-cover="../content/music/artists/language-of-flowers/tracks/botanic-gardens-008/cover.jpg">
-                    <div class="track-cover">
-                        <img src="../content/music/artists/language-of-flowers/tracks/botanic-gardens-008/cover.jpg" alt="Botanic Gardens">
-                        <div class="track-number">8</div>
-                        <div class="play-button">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="track-info">
-                        <div class="track-title">Botanic Gardens</div>
-                        <div class="track-artist">Language of Flowers</div>
-                        <div class="track-meta">
-                            <span class="track-duration">3:47</span>
-                            <span class="track-price">
-                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                                </svg>
-                                210 sats
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="track-card" data-track-id="19" data-src="../content/music/artists/language-of-flowers/tracks/i-dont-care-at-all-009/full.mp3" data-title="I Don't Care At All" data-artist="Language of Flowers" data-duration="318" data-cover="../content/music/artists/language-of-flowers/tracks/i-dont-care-at-all-009/cover.jpg">
-                    <div class="track-cover">
-                        <img src="../content/music/artists/language-of-flowers/tracks/i-dont-care-at-all-009/cover.jpg" alt="I Don't Care At All">
-                        <div class="track-number">9</div>
-                        <div class="play-button">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="track-info">
-                        <div class="track-title">I Don't Care At All</div>
-                        <div class="track-artist">Language of Flowers</div>
-                        <div class="track-meta">
-                            <span class="track-duration">5:18</span>
-                            <span class="track-price">
-                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                                </svg>
-                                210 sats
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="track-card" data-track-id="20" data-src="../content/music/artists/language-of-flowers/tracks/tara-mascara-010/full.mp3" data-title="Tara Mascara" data-artist="Language of Flowers" data-duration="313" data-cover="../content/music/artists/language-of-flowers/tracks/tara-mascara-010/cover.jpg">
-                    <div class="track-cover">
-                        <img src="../content/music/artists/language-of-flowers/tracks/tara-mascara-010/cover.jpg" alt="Tara Mascara">
-                        <div class="track-number">10</div>
-                        <div class="play-button">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="track-info">
-                        <div class="track-title">Tara Mascara</div>
-                        <div class="track-artist">Language of Flowers</div>
-                        <div class="track-meta">
-                            <span class="track-duration">5:13</span>
-                            <span class="track-price">
-                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                                </svg>
-                                210 sats
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
+            <!-- Track data now loaded dynamically from API -->
     <!-- Player Bar -->
     <div class="player-bar">
         <div class="now-playing">
@@ -1514,23 +940,8 @@
         let currentTrackIndex = -1;
         let selectedAlbumId = null;
 
-        // Album data
-        const albums = {
-            'doya-shibuya-crossings': {
-                id: 'doya-shibuya-crossings',
-                title: 'DOYA (Depend On Your Alter-Ego)',
-                artist: 'Shibuya Crossings',
-                cover: '../content/music/artists/shibuya-crossings/albums/doya-depend-on-your-alter-ego-2011/cover.jpg',
-                tracksContainerId: 'shibuya-tracks'
-            },
-            'songs-about-you-lof': {
-                id: 'songs-about-you-lof',
-                title: 'Songs About You',
-                artist: 'Language of Flowers',
-                cover: '../content/music/artists/language-of-flowers/albums/songs-about-you-2024/cover.jpg',
-                tracksContainerId: 'lof-tracks'
-            }
-        };
+        // Album data - will be populated from API
+        let albums = {};
 
         // Format time in mm:ss
         function formatTime(seconds) {
@@ -1539,26 +950,20 @@
             return `${mins}:${secs.toString().padStart(2, '0')}`;
         }
 
-        // Get tracks from hidden container
+        // Get tracks from album data
         function getAlbumTracks(albumId) {
             const album = albums[albumId];
-            if (!album) return [];
+            if (!album || !album.tracks) return [];
 
-            const container = document.getElementById(album.tracksContainerId);
-            if (!container) return [];
-
-            const tracks = [];
-            container.querySelectorAll('.track-card').forEach((card, index) => {
-                tracks.push({
-                    src: card.dataset.src,
-                    title: card.dataset.title,
-                    artist: card.dataset.artist,
-                    duration: parseInt(card.dataset.duration),
-                    cover: card.dataset.cover,
-                    index: index
-                });
-            });
-            return tracks;
+            return album.tracks.map((track, index) => ({
+                src: track.fullPath,
+                title: track.title,
+                artist: track.artist,
+                duration: track.duration || 180,
+                cover: track.coverPath || album.cover,
+                priceSats: track.priceSats || 210,
+                index: index
+            }));
         }
 
         // Calculate total duration of album
@@ -1609,7 +1014,7 @@
                             <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
                         </svg>
-                        210 sats
+                        ${track.priceSats} sats
                     </div>
                 </div>
             `).join('');
@@ -1730,14 +1135,73 @@
             playTrackFromList(prevIndex);
         }
 
-        // Album card click handlers
-        document.querySelectorAll('.album-card').forEach(card => {
-            card.addEventListener('click', function(e) {
-                const albumId = this.dataset.albumId;
-                const isPlayButton = e.target.closest('.album-play-button');
-                selectAlbum(albumId, isPlayButton);
-            });
-        });
+        // Load albums from API and render
+        async function loadAlbums() {
+            try {
+                const response = await fetch('/api/albums');
+                const data = await response.json();
+
+                const albumGrid = document.getElementById('featured-albums');
+                albumGrid.innerHTML = ''; // Clear existing content
+
+                for (const album of data.albums) {
+                    // Store in albums object
+                    albums[album.id] = {
+                        id: album.id,
+                        title: album.title,
+                        artist: album.artist,
+                        cover: album.coverPath,
+                        priceSats: album.priceSats || 2100,
+                        tracks: album.tracks
+                    };
+
+                    // Create album card HTML
+                    const card = document.createElement('div');
+                    card.className = 'album-card';
+                    card.dataset.albumId = album.id;
+                    card.innerHTML = `
+                        <div class="album-cover">
+                            <img src="${album.coverPath}" alt="${album.title}">
+                            <div class="album-play-button">
+                                <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="album-info">
+                            <div class="album-title">${album.title}</div>
+                            <div class="album-artist">${album.artist}</div>
+                            <div class="album-meta">
+                                <span class="album-tracks-count">${album.tracks.length} tracks</span>
+                                <span class="album-price">
+                                    <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                                    </svg>
+                                    ${album.priceSats || 2100} sats
+                                </span>
+                            </div>
+                        </div>
+                    `;
+
+                    // Add click handler
+                    card.addEventListener('click', function(e) {
+                        const albumId = this.dataset.albumId;
+                        const isPlayButton = e.target.closest('.album-play-button');
+                        selectAlbum(albumId, isPlayButton);
+                    });
+
+                    albumGrid.appendChild(card);
+                }
+
+                console.log(`Loaded ${data.albums.length} albums`);
+            } catch (error) {
+                console.error('Error loading albums:', error);
+            }
+        }
+
+        // Initialize - load albums
+        loadAlbums();
 
         // Play All button handler
         document.getElementById('play-all-btn').addEventListener('click', function() {
