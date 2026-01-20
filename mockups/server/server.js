@@ -15,6 +15,8 @@ const PORT = 3001;
 const CONTENT_PATH = path.join(__dirname, '..', 'content', 'music', 'artists');
 const TEMP_PATH = path.join(__dirname, 'temp');
 const WEB_PORTAL_PATH = path.join(__dirname, '..', 'web_portal');
+const CLIENT_PATH = path.join(WEB_PORTAL_PATH, 'client');
+const CONTENT_NODE_PATH = path.join(WEB_PORTAL_PATH, 'content_node');
 
 // Ensure temp directory exists
 if (!fs.existsSync(TEMP_PATH)) {
@@ -25,6 +27,8 @@ if (!fs.existsSync(TEMP_PATH)) {
 app.use(cors());
 app.use(express.json());
 app.use(express.static(WEB_PORTAL_PATH));
+app.use(express.static(CLIENT_PATH)); // Serve client files (home.html, artist.html)
+app.use('/admin', express.static(CONTENT_NODE_PATH)); // Serve artist admin portal at /admin
 app.use('/content', express.static(path.join(__dirname, '..', 'content')));
 
 // Multer configuration for file uploads
@@ -380,6 +384,117 @@ app.get('/api/artists', (req, res) => {
     }
 });
 
+// API: Get single artist with all data
+app.get('/api/artist/:slug', (req, res) => {
+    try {
+        const { slug } = req.params;
+        const artistPath = path.join(CONTENT_PATH, slug);
+
+        if (!fs.existsSync(artistPath)) {
+            return res.status(404).json({ error: 'Artist not found' });
+        }
+
+        // Load profile
+        const bioPath = path.join(artistPath, 'profile', 'bio.json');
+        let profile = { name: slug };
+        if (fs.existsSync(bioPath)) {
+            profile = JSON.parse(fs.readFileSync(bioPath, 'utf8'));
+        }
+
+        // Check for avatar and banner
+        const avatarPath = path.join(artistPath, 'profile', 'avatar.jpg');
+        const bannerPath = path.join(artistPath, 'profile', 'banner.jpg');
+
+        // Load albums with tracks
+        const albums = [];
+        const albumsDir = path.join(artistPath, 'albums');
+        if (fs.existsSync(albumsDir)) {
+            const albumDirs = fs.readdirSync(albumsDir)
+                .filter(f => fs.statSync(path.join(albumsDir, f)).isDirectory());
+
+            for (const albumSlug of albumDirs) {
+                const albumPath = path.join(albumsDir, albumSlug);
+                const metadataPath = path.join(albumPath, 'metadata.json');
+                const tracksPath = path.join(albumPath, 'tracks.json');
+                const coverPath = path.join(albumPath, 'cover.jpg');
+
+                if (!fs.existsSync(metadataPath)) continue;
+
+                const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+
+                // Load track list
+                let trackList = [];
+                if (fs.existsSync(tracksPath)) {
+                    const tracksData = JSON.parse(fs.readFileSync(tracksPath, 'utf8'));
+                    trackList = tracksData.tracks || [];
+                }
+
+                // Load full track metadata
+                const tracksWithMetadata = [];
+                for (const trackRef of trackList) {
+                    const trackDir = path.join(artistPath, 'tracks', trackRef.trackId);
+                    const trackMetaPath = path.join(trackDir, 'metadata.json');
+
+                    if (fs.existsSync(trackMetaPath)) {
+                        const trackMeta = JSON.parse(fs.readFileSync(trackMetaPath, 'utf8'));
+                        tracksWithMetadata.push({
+                            ...trackMeta,
+                            trackNumber: trackRef.trackNumber,
+                            fullPath: `/content/music/artists/${slug}/tracks/${trackRef.trackId}/full.mp3`,
+                            previewPath: `/content/music/artists/${slug}/tracks/${trackRef.trackId}/preview.mp3`,
+                            coverPath: `/content/music/artists/${slug}/tracks/${trackRef.trackId}/cover.jpg`
+                        });
+                    }
+                }
+
+                albums.push({
+                    albumId: albumSlug,
+                    ...metadata,
+                    coverPath: fs.existsSync(coverPath)
+                        ? `/content/music/artists/${slug}/albums/${albumSlug}/cover.jpg`
+                        : null,
+                    tracks: tracksWithMetadata
+                });
+            }
+        }
+
+        // Load media/photos
+        const photos = [];
+        const photosDir = path.join(artistPath, 'media', 'photos');
+        if (fs.existsSync(photosDir)) {
+            const photoFiles = fs.readdirSync(photosDir)
+                .filter(f => /\.(jpg|jpeg|png|gif)$/i.test(f));
+            photoFiles.forEach(file => {
+                photos.push(`/content/music/artists/${slug}/media/photos/${file}`);
+            });
+        }
+
+        // Load payment info
+        let payments = null;
+        const paymentsPath = path.join(artistPath, 'payments', 'lightning-address.json');
+        if (fs.existsSync(paymentsPath)) {
+            payments = JSON.parse(fs.readFileSync(paymentsPath, 'utf8'));
+        }
+
+        res.json({
+            slug,
+            profile,
+            avatarPath: fs.existsSync(avatarPath)
+                ? `/content/music/artists/${slug}/profile/avatar.jpg`
+                : null,
+            bannerPath: fs.existsSync(bannerPath)
+                ? `/content/music/artists/${slug}/profile/banner.jpg`
+                : null,
+            albums,
+            photos,
+            payments
+        });
+    } catch (error) {
+        console.error('Error fetching artist:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // API: List all albums with tracks
 app.get('/api/albums', (req, res) => {
     try {
@@ -453,6 +568,16 @@ app.get('/api/albums', (req, res) => {
         console.error('Error fetching albums:', error);
         res.status(500).json({ error: error.message });
     }
+});
+
+// Serve home.html at root
+app.get('/', (req, res) => {
+    res.sendFile(path.join(CLIENT_PATH, 'home.html'));
+});
+
+// Serve dashboard.html at /admin root
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(CONTENT_NODE_PATH, 'dashboard.html'));
 });
 
 // Start server
