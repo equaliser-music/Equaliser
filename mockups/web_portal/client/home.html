@@ -346,6 +346,13 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            text-decoration: none;
+            display: block;
+        }
+
+        .album-artist.artist-link:hover {
+            color: #a855f7;
+            text-decoration: underline;
         }
 
         .album-meta {
@@ -742,7 +749,210 @@
             50% { transform: scale(1.1); }
         }
 
+        /* Right Sidebar - Nostr Feed */
+        .nostr-sidebar {
+            width: 320px;
+            background: rgba(15, 15, 25, 0.8);
+            backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .nostr-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            flex-shrink: 0;
+        }
+
+        .nostr-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .nostr-title svg {
+            color: #9333ea;
+        }
+
+        .nostr-subtitle {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .nostr-feed {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            margin-bottom: 80px; /* Space for player bar */
+        }
+
+        .nostr-feed::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .nostr-feed::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .nostr-feed::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .nostr-feed::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .nostr-post {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+        }
+
+        .nostr-post:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .nostr-post-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .nostr-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .nostr-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .nostr-user-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .nostr-username {
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .nostr-handle {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .nostr-time {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .nostr-content {
+            font-size: 13px;
+            line-height: 1.5;
+            color: rgba(255, 255, 255, 0.85);
+            margin-bottom: 12px;
+        }
+
+        .nostr-content a {
+            color: #a855f7;
+            text-decoration: none;
+        }
+
+        .nostr-content a:hover {
+            text-decoration: underline;
+        }
+
+        .nostr-content .mention {
+            color: #a855f7;
+        }
+
+        .nostr-content .hashtag {
+            color: #60a5fa;
+        }
+
+        .nostr-media {
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .nostr-media img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .nostr-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .nostr-action {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .nostr-action:hover {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .nostr-action.zap:hover {
+            color: #fbbf24;
+        }
+
+        .nostr-action.zap svg {
+            color: #fbbf24;
+        }
+
+        .nostr-action svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .zap-amount {
+            color: #fbbf24;
+            font-weight: 600;
+        }
+
         /* Responsive */
+        @media (max-width: 1200px) {
+            .nostr-sidebar {
+                display: none;
+            }
+        }
+
         @media (max-width: 768px) {
             .sidebar {
                 width: 80px;
@@ -764,7 +974,7 @@
         <div class="sidebar">
             <div class="logo">
                 <div class="logo-main">
-                    <img src="images/equaliser-logo.png" alt="Equaliser - Music Lives Here">
+                    <img src="/images/equaliser-logo.png" alt="Equaliser - Music Lives Here">
                 </div>
             </div>
 
@@ -875,11 +1085,260 @@
             </div>
 
             <!-- Track data now loaded dynamically from API -->
+        </div>
+
+        <!-- Nostr Community Feed Sidebar -->
+        <div class="nostr-sidebar">
+            <div class="nostr-header">
+                <div class="nostr-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                    </svg>
+                    Community Feed
+                </div>
+                <div class="nostr-subtitle">Live from Nostr #equaliser</div>
+            </div>
+            <div class="nostr-feed" id="nostr-feed">
+                <!-- Mock Post 1 -->
+                <div class="nostr-post">
+                    <div class="nostr-post-header">
+                        <div class="nostr-avatar">SC</div>
+                        <div class="nostr-user-info">
+                            <div class="nostr-username">Shibuya Crossings</div>
+                            <div class="nostr-handle">@shibuya_xings</div>
+                        </div>
+                        <div class="nostr-time">2m</div>
+                    </div>
+                    <div class="nostr-content">
+                        Just uploaded our new album "DOYA" to <span class="mention">@equaliser</span>! Stream it now and support independent artists directly. <span class="hashtag">#indiemusic</span> <span class="hashtag">#equaliser</span>
+                    </div>
+                    <div class="nostr-actions">
+                        <div class="nostr-action">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"/></svg>
+                            12
+                        </div>
+                        <div class="nostr-action">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"/></svg>
+                            8
+                        </div>
+                        <div class="nostr-action zap">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/></svg>
+                            <span class="zap-amount">2.1k sats</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mock Post 2 -->
+                <div class="nostr-post">
+                    <div class="nostr-post-header">
+                        <div class="nostr-avatar">MK</div>
+                        <div class="nostr-user-info">
+                            <div class="nostr-username">MusicKing_21</div>
+                            <div class="nostr-handle">@musiclover21</div>
+                        </div>
+                        <div class="nostr-time">5m</div>
+                    </div>
+                    <div class="nostr-content">
+                        Finally! A music platform that actually pays artists fairly. Just zapped <span class="mention">@swansea_sound</span> 500 sats for their amazing new track "Paradise". This is the future!
+                    </div>
+                    <div class="nostr-actions">
+                        <div class="nostr-action">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"/></svg>
+                            24
+                        </div>
+                        <div class="nostr-action">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"/></svg>
+                            15
+                        </div>
+                        <div class="nostr-action zap">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/></svg>
+                            <span class="zap-amount">890 sats</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mock Post 3 -->
+                <div class="nostr-post">
+                    <div class="nostr-post-header">
+                        <div class="nostr-avatar">LoF</div>
+                        <div class="nostr-user-info">
+                            <div class="nostr-username">Language of Flowers</div>
+                            <div class="nostr-handle">@langofflowers</div>
+                        </div>
+                        <div class="nostr-time">12m</div>
+                    </div>
+                    <div class="nostr-content">
+                        Working on some new tracks in the studio today. Can't wait to share them with you all on <span class="mention">@equaliser</span>! Stay tuned for "Songs About You" dropping next week. <span class="hashtag">#newmusic</span>
+                    </div>
+                    <div class="nostr-actions">
+                        <div class="nostr-action">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"/></svg>
+                            31
+                        </div>
+                        <div class="nostr-action">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"/></svg>
+                            22
+                        </div>
+                        <div class="nostr-action zap">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/></svg>
+                            <span class="zap-amount">1.5k sats</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mock Post 4 -->
+                <div class="nostr-post">
+                    <div class="nostr-post-header">
+                        <div class="nostr-avatar">RK</div>
+                        <div class="nostr-user-info">
+                            <div class="nostr-username">RecordKollector</div>
+                            <div class="nostr-handle">@vinylhead</div>
+                        </div>
+                        <div class="nostr-time">18m</div>
+                    </div>
+                    <div class="nostr-content">
+                        The sound quality on <span class="mention">@equaliser</span> is incredible - 320kbps MP3s that actually sound like the artists intended. No more compressed streaming garbage! <span class="hashtag">#audiophile</span> <span class="hashtag">#musicquality</span>
+                    </div>
+                    <div class="nostr-actions">
+                        <div class="nostr-action">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"/></svg>
+                            45
+                        </div>
+                        <div class="nostr-action">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"/></svg>
+                            28
+                        </div>
+                        <div class="nostr-action zap">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/></svg>
+                            <span class="zap-amount">3.2k sats</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mock Post 5 -->
+                <div class="nostr-post">
+                    <div class="nostr-post-header">
+                        <div class="nostr-avatar">SS</div>
+                        <div class="nostr-user-info">
+                            <div class="nostr-username">Swansea Sound</div>
+                            <div class="nostr-handle">@swansea_sound</div>
+                        </div>
+                        <div class="nostr-time">25m</div>
+                    </div>
+                    <div class="nostr-content">
+                        Thrilled to announce "Twentieth Century" is now streaming on <span class="mention">@equaliser</span>! 12 tracks of sparkling pop-punk goodness. Thank you for all the zaps! <span class="hashtag">#indiepop</span>
+                    </div>
+                    <div class="nostr-actions">
+                        <div class="nostr-action">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"/></svg>
+                            67
+                        </div>
+                        <div class="nostr-action">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"/></svg>
+                            41
+                        </div>
+                        <div class="nostr-action zap">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/></svg>
+                            <span class="zap-amount">5.8k sats</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mock Post 6 -->
+                <div class="nostr-post">
+                    <div class="nostr-post-header">
+                        <div class="nostr-avatar">DJ</div>
+                        <div class="nostr-user-info">
+                            <div class="nostr-username">DJ_Crypto</div>
+                            <div class="nostr-handle">@djcrypto</div>
+                        </div>
+                        <div class="nostr-time">32m</div>
+                    </div>
+                    <div class="nostr-content">
+                        Spinning some tracks from <span class="mention">@shibuya_xings</span> tonight at my set. Crowd is loving it! The future of music is decentralized. <span class="hashtag">#djlife</span> <span class="hashtag">#equaliser</span>
+                    </div>
+                    <div class="nostr-actions">
+                        <div class="nostr-action">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"/></svg>
+                            89
+                        </div>
+                        <div class="nostr-action">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"/></svg>
+                            52
+                        </div>
+                        <div class="nostr-action zap">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/></svg>
+                            <span class="zap-amount">4.1k sats</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mock Post 7 -->
+                <div class="nostr-post">
+                    <div class="nostr-post-header">
+                        <div class="nostr-avatar">AM</div>
+                        <div class="nostr-user-info">
+                            <div class="nostr-username">ArtistMike</div>
+                            <div class="nostr-handle">@artistmike</div>
+                        </div>
+                        <div class="nostr-time">45m</div>
+                    </div>
+                    <div class="nostr-content">
+                        As an independent artist, <span class="mention">@equaliser</span> has been a game changer. No middlemen, just direct connection with fans. Finally a platform that respects creators! <span class="hashtag">#indieartist</span> <span class="hashtag">#musiccommunity</span>
+                    </div>
+                    <div class="nostr-actions">
+                        <div class="nostr-action">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"/></svg>
+                            156
+                        </div>
+                        <div class="nostr-action">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"/></svg>
+                            98
+                        </div>
+                        <div class="nostr-action zap">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/></svg>
+                            <span class="zap-amount">12k sats</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mock Post 8 -->
+                <div class="nostr-post">
+                    <div class="nostr-post-header">
+                        <div class="nostr-avatar">PL</div>
+                        <div class="nostr-user-info">
+                            <div class="nostr-username">PlaylistPete</div>
+                            <div class="nostr-handle">@playlistpete</div>
+                        </div>
+                        <div class="nostr-time">1h</div>
+                    </div>
+                    <div class="nostr-content">
+                        Just discovered <span class="mention">@langofflowers</span> through <span class="mention">@equaliser</span> and I'm obsessed! Their dreamy sound is exactly what my playlist needed. Support indie artists, people! <span class="hashtag">#newmusicdiscovery</span>
+                    </div>
+                    <div class="nostr-actions">
+                        <div class="nostr-action">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"/></svg>
+                            203
+                        </div>
+                        <div class="nostr-action">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"/></svg>
+                            145
+                        </div>
+                        <div class="nostr-action zap">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/></svg>
+                            <span class="zap-amount">21k sats</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Player Bar -->
     <div class="player-bar">
         <div class="now-playing">
             <div class="now-playing-cover">
-                <img src="../content/music/artists/shibuya-crossings/albums/doya-depend-on-your-alter-ego-2011/cover.jpg" alt="Album Cover">
+                <img src="/content/music/artists/shibuya-crossings/albums/doya-depend-on-your-alter-ego-2011/cover.jpg" alt="Album Cover">
             </div>
             <div class="now-playing-info">
                 <div class="now-playing-title">Select a track</div>
@@ -1150,6 +1609,7 @@
                         id: album.id,
                         title: album.title,
                         artist: album.artist,
+                        artistSlug: album.artistSlug,
                         cover: album.coverPath,
                         priceSats: album.priceSats || 2100,
                         tracks: album.tracks
@@ -1159,6 +1619,7 @@
                     const card = document.createElement('div');
                     card.className = 'album-card';
                     card.dataset.albumId = album.id;
+                    card.dataset.artistSlug = album.artistSlug;
                     card.innerHTML = `
                         <div class="album-cover">
                             <img src="${album.coverPath}" alt="${album.title}">
@@ -1170,7 +1631,7 @@
                         </div>
                         <div class="album-info">
                             <div class="album-title">${album.title}</div>
-                            <div class="album-artist">${album.artist}</div>
+                            <a href="artist.html?artist=${album.artistSlug}" class="album-artist artist-link">${album.artist}</a>
                             <div class="album-meta">
                                 <span class="album-tracks-count">${album.tracks.length} tracks</span>
                                 <span class="album-price">
@@ -1186,6 +1647,8 @@
 
                     // Add click handler
                     card.addEventListener('click', function(e) {
+                        // Don't trigger album selection if clicking artist link
+                        if (e.target.closest('.artist-link')) return;
                         const albumId = this.dataset.albumId;
                         const isPlayButton = e.target.closest('.album-play-button');
                         selectAlbum(albumId, isPlayButton);
