@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artist - Equaliser</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 240px;
+            background: rgba(15, 15, 25, 0.8);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            padding: 24px 16px;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .logo {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 40px;
+            padding: 0 8px;
+            text-decoration: none;
+        }
+
+        .logo h1 {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-section {
+            margin-bottom: 32px;
+        }
+
+        .nav-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 12px;
+            padding: 0 12px;
+            font-weight: 600;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 4px;
+            text-decoration: none;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+        }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(168, 85, 247, 0.15));
+            color: #ffffff;
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            opacity: 0.8;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 240px;
+            padding-bottom: 100px;
+        }
+
+        /* Banner */
+        .artist-banner {
+            width: 100%;
+            height: 300px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(168, 85, 247, 0.2));
+            position: relative;
+            overflow: hidden;
+        }
+
+        .artist-banner img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .artist-banner::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 150px;
+            background: linear-gradient(transparent, rgba(10, 10, 15, 1));
+        }
+
+        /* Artist Header */
+        .artist-header {
+            padding: 0 32px;
+            margin-top: -80px;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            gap: 24px;
+            align-items: flex-end;
+        }
+
+        .artist-avatar {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            border: 4px solid rgba(10, 10, 15, 1);
+            overflow: hidden;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 64px;
+            font-weight: 700;
+        }
+
+        .artist-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .artist-info {
+            padding-bottom: 16px;
+        }
+
+        .artist-name {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #ffffff, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .artist-meta {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            flex-wrap: wrap;
+        }
+
+        .artist-meta span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .genre-tag {
+            background: rgba(139, 92, 246, 0.2);
+            color: #a855f7;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .npub-tag {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.6);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .npub-tag:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Artist Actions */
+        .artist-actions {
+            padding: 24px 32px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 12px 32px;
+            border-radius: 24px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            border: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.05);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        /* Bio Section */
+        .artist-bio {
+            padding: 0 32px 32px;
+        }
+
+        .bio-text {
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.7;
+            font-size: 15px;
+            max-width: 800px;
+            white-space: pre-wrap;
+        }
+
+        /* Section Headers */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding: 0 32px;
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        /* Info Card */
+        .info-section {
+            padding: 0 32px 32px;
+        }
+
+        .info-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 600px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+        }
+
+        .info-value {
+            color: #ffffff;
+            font-size: 14px;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            word-break: break-all;
+            text-align: right;
+            max-width: 300px;
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px;
+            color: rgba(255, 255, 255, 0.5);
+            gap: 16px;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #8b5cf6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Error State */
+        .error {
+            text-align: center;
+            padding: 60px;
+        }
+
+        .error-title {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .error-message {
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 24px;
+        }
+
+        /* Search Form */
+        .search-section {
+            padding: 32px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .search-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .search-subtitle {
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 12px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 14px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 14px;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            .artist-header {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+            .artist-avatar {
+                width: 120px;
+                height: 120px;
+                font-size: 48px;
+            }
+            .artist-name {
+                font-size: 32px;
+            }
+            .artist-meta {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <a href="#" class="logo">
+                <h1>Equaliser</h1>
+            </a>
+
+            <div class="nav-section">
+                <div class="nav-title">Menu</div>
+                <a href="#" class="nav-item">
+                    <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                    </svg>
+                    <span>Home</span>
+                </a>
+                <a href="#" class="nav-item active">
+                    <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                    </svg>
+                    <span>Artist</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content" id="main-content">
+            <!-- Initial state: Search form -->
+            <div class="search-section" id="search-section">
+                <h2 class="search-title">Find Artist</h2>
+                <p class="search-subtitle">Enter an npub to view an artist's profile from the NOSTR relay</p>
+                <form class="search-form" onsubmit="searchArtist(event)">
+                    <input type="text" class="search-input" id="npub-input" placeholder="npub1..." value="">
+                    <button type="submit" class="btn btn-primary">View Profile</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- nostr-tools via CDN -->
+    <script src="https://unpkg.com/nostr-tools@2.1.4/lib/nostr.bundle.js"></script>
+
+    <script>
+        // Configuration
+        const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+
+        // Relay configuration
+        const LOCAL_RELAY = 'ws://' + window.location.host + '/relay';
+        const PUBLIC_RELAYS = [
+            'wss://relay.damus.io',
+            'wss://nos.lol',
+            'wss://relay.nostr.band'
+        ];
+
+        // Use local relay for development, public relays for production
+        const DEFAULT_RELAYS = isLocalDev ? [LOCAL_RELAY] : PUBLIC_RELAYS;
+
+        // State
+        let artistProfile = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check URL for npub parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const npub = urlParams.get('npub');
+
+            if (npub) {
+                document.getElementById('npub-input').value = npub;
+                loadArtist(npub);
+            }
+        });
+
+        // Search artist
+        function searchArtist(event) {
+            event.preventDefault();
+            const npub = document.getElementById('npub-input').value.trim();
+
+            if (!npub) {
+                alert('Please enter an npub');
+                return;
+            }
+
+            // Update URL
+            const url = new URL(window.location);
+            url.searchParams.set('npub', npub);
+            window.history.pushState({}, '', url);
+
+            loadArtist(npub);
+        }
+
+        // Load artist from NOSTR relay
+        async function loadArtist(npub) {
+            const mainContent = document.getElementById('main-content');
+
+            // Show loading state
+            mainContent.innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <span>Loading artist profile from NOSTR relay...</span>
+                </div>
+            `;
+
+            try {
+                // Decode npub to hex pubkey
+                let pubkeyHex;
+                try {
+                    const decoded = NostrTools.nip19.decode(npub);
+                    if (decoded.type !== 'npub') {
+                        throw new Error('Invalid npub format');
+                    }
+                    pubkeyHex = decoded.data;
+                } catch (e) {
+                    throw new Error('Invalid npub format. Expected npub1...');
+                }
+
+                // Connect to relay and fetch Kind 0 event
+                const profile = await fetchProfile(pubkeyHex);
+
+                if (!profile) {
+                    throw new Error('Artist not found on relay');
+                }
+
+                artistProfile = profile;
+                renderArtist(npub, pubkeyHex);
+
+            } catch (error) {
+                console.error('Error loading artist:', error);
+                mainContent.innerHTML = `
+                    <div class="error">
+                        <h2 class="error-title">Could not load artist</h2>
+                        <p class="error-message">${error.message}</p>
+                        <button class="btn btn-secondary" onclick="showSearch()">Try Again</button>
+                    </div>
+                `;
+            }
+        }
+
+        // Fetch profile from a single relay
+        function fetchProfileFromRelay(relayUrl, pubkeyHex) {
+            return new Promise((resolve) => {
+                const ws = new WebSocket(relayUrl);
+                let profile = null;
+
+                const timeout = setTimeout(() => {
+                    ws.close();
+                    resolve(null);
+                }, 8000);
+
+                ws.onopen = () => {
+                    const subId = 'profile-' + Date.now();
+                    const req = JSON.stringify(['REQ', subId, {
+                        kinds: [0],
+                        authors: [pubkeyHex],
+                        limit: 1
+                    }]);
+                    ws.send(req);
+                };
+
+                ws.onmessage = (e) => {
+                    const data = JSON.parse(e.data);
+
+                    if (data[0] === 'EVENT') {
+                        const event = data[2];
+                        try {
+                            profile = JSON.parse(event.content);
+                            profile._event = event;
+                        } catch (err) {
+                            console.error('Error parsing profile content:', err);
+                        }
+                    }
+
+                    if (data[0] === 'EOSE') {
+                        clearTimeout(timeout);
+                        ws.close();
+                        resolve(profile);
+                    }
+                };
+
+                ws.onerror = () => {
+                    clearTimeout(timeout);
+                    resolve(null);
+                };
+            });
+        }
+
+        // Fetch profile from multiple relays (decentralised)
+        async function fetchProfile(pubkeyHex) {
+            // Try all relays in parallel
+            const results = await Promise.all(
+                DEFAULT_RELAYS.map(relay => fetchProfileFromRelay(relay, pubkeyHex))
+            );
+
+            // Return the first successful result
+            for (const profile of results) {
+                if (profile) {
+                    return profile;
+                }
+            }
+
+            return null;
+        }
+
+        // Render artist profile
+        function renderArtist(npub, pubkeyHex) {
+            const mainContent = document.getElementById('main-content');
+            const profile = artistProfile;
+
+            // Get initials for avatar fallback
+            const initials = (profile.name || 'A')
+                .split(' ')
+                .map(w => w[0])
+                .join('')
+                .substring(0, 2)
+                .toUpperCase();
+
+            // Get equaliser-specific fields
+            const equaliser = profile.equaliser || {};
+            const genres = equaliser.genres || [];
+            const location = equaliser.location || profile.location || '';
+            const joinedDate = equaliser.joinedDate || '';
+
+            // Truncate npub for display
+            const shortNpub = npub.substring(0, 12) + '...' + npub.substring(npub.length - 6);
+
+            mainContent.innerHTML = `
+                <!-- Banner -->
+                <div class="artist-banner" id="artist-banner">
+                    ${profile.banner ? `<img src="${profile.banner}" alt="Artist Banner">` : ''}
+                </div>
+
+                <!-- Artist Header -->
+                <div class="artist-header">
+                    <div class="artist-avatar" id="artist-avatar">
+                        ${profile.picture
+                            ? `<img src="${profile.picture}" alt="${profile.name}">`
+                            : initials
+                        }
+                    </div>
+                    <div class="artist-info">
+                        <h1 class="artist-name">${profile.name || 'Unknown Artist'}</h1>
+                        <div class="artist-meta">
+                            ${location ? `
+                                <span>
+                                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+                                    </svg>
+                                    ${location}
+                                </span>
+                            ` : ''}
+                            ${genres.map(g => `<span class="genre-tag">${g}</span>`).join('')}
+                            <span class="npub-tag" onclick="copyNpub('${npub}')" title="Click to copy full npub">${shortNpub}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="artist-actions">
+                    <button class="btn btn-secondary" onclick="copyNpub('${npub}')">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/>
+                            <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/>
+                        </svg>
+                        Copy npub
+                    </button>
+                    ${profile.lud16 ? `
+                        <button class="btn btn-primary" onclick="alert('Lightning address: ${profile.lud16}')">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/>
+                            </svg>
+                            Tip Artist
+                        </button>
+                    ` : ''}
+                    <button class="btn btn-secondary" onclick="showSearch()">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
+                        </svg>
+                        Search Another
+                    </button>
+                </div>
+
+                <!-- Bio -->
+                ${profile.about ? `
+                    <div class="artist-bio">
+                        <p class="bio-text">${escapeHtml(profile.about)}</p>
+                    </div>
+                ` : ''}
+
+                <!-- Profile Info -->
+                <div class="info-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Profile Details</h2>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-row">
+                            <span class="info-label">Public Key (npub)</span>
+                            <span class="info-value">${shortNpub}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Public Key (hex)</span>
+                            <span class="info-value">${pubkeyHex.substring(0, 16)}...${pubkeyHex.substring(pubkeyHex.length - 8)}</span>
+                        </div>
+                        ${profile.nip05 ? `
+                            <div class="info-row">
+                                <span class="info-label">NIP-05 Identifier</span>
+                                <span class="info-value">${profile.nip05}</span>
+                            </div>
+                        ` : ''}
+                        ${profile.lud16 ? `
+                            <div class="info-row">
+                                <span class="info-label">Lightning Address</span>
+                                <span class="info-value">${profile.lud16}</span>
+                            </div>
+                        ` : ''}
+                        ${profile.website ? `
+                            <div class="info-row">
+                                <span class="info-label">Website</span>
+                                <span class="info-value"><a href="${profile.website}" target="_blank" style="color: #a855f7;">${profile.website}</a></span>
+                            </div>
+                        ` : ''}
+                        ${joinedDate ? `
+                            <div class="info-row">
+                                <span class="info-label">Joined Equaliser</span>
+                                <span class="info-value">${joinedDate}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+
+            // Update page title
+            document.title = `${profile.name || 'Artist'} - Equaliser`;
+        }
+
+        // Show search form
+        function showSearch() {
+            const mainContent = document.getElementById('main-content');
+            mainContent.innerHTML = `
+                <div class="search-section" id="search-section">
+                    <h2 class="search-title">Find Artist</h2>
+                    <p class="search-subtitle">Enter an npub to view an artist's profile from the NOSTR relay</p>
+                    <form class="search-form" onsubmit="searchArtist(event)">
+                        <input type="text" class="search-input" id="npub-input" placeholder="npub1..." value="">
+                        <button type="submit" class="btn btn-primary">View Profile</button>
+                    </form>
+                </div>
+            `;
+
+            // Clear URL parameter
+            const url = new URL(window.location);
+            url.searchParams.delete('npub');
+            window.history.pushState({}, '', url);
+
+            document.title = 'Artist - Equaliser';
+        }
+
+        // Copy npub to clipboard
+        async function copyNpub(npub) {
+            try {
+                await navigator.clipboard.writeText(npub);
+                alert('npub copied to clipboard!');
+            } catch (err) {
+                console.error('Copy failed:', err);
+            }
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
