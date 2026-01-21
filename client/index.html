@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equaliser - Music Lives Here</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 32px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Background glow effects */
+        .glow {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.3;
+            z-index: 0;
+        }
+
+        .glow-1 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.4), transparent);
+            top: -100px;
+            right: -100px;
+        }
+
+        .glow-2 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(255, 0, 110, 0.3), transparent);
+            bottom: -50px;
+            left: -50px;
+        }
+
+        .logo {
+            margin-bottom: 40px;
+        }
+
+        .logo img {
+            width: 280px;
+            height: auto;
+        }
+
+        .hero-title {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #ffffff, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 20px;
+            color: rgba(255, 255, 255, 0.7);
+            max-width: 600px;
+            margin-bottom: 48px;
+            line-height: 1.6;
+        }
+
+        /* Construction badge */
+        .construction-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 0, 110, 0.15);
+            border: 1px solid rgba(255, 0, 110, 0.3);
+            padding: 16px 32px;
+            border-radius: 16px;
+            margin-bottom: 32px;
+        }
+
+        .construction-icon {
+            width: 32px;
+            height: 32px;
+            color: #ff006e;
+        }
+
+        .construction-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: #ff006e;
+        }
+
+        /* Features preview */
+        .features {
+            display: flex;
+            gap: 24px;
+            margin-top: 48px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            width: 200px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-4px);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 16px;
+            color: #a855f7;
+        }
+
+        .feature-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .feature-desc {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            line-height: 1.5;
+        }
+
+        /* Footer */
+        .footer {
+            position: fixed;
+            bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 12px;
+        }
+
+        .footer a {
+            color: #a855f7;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .nostr-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(139, 92, 246, 0.1);
+            padding: 6px 12px;
+            border-radius: 20px;
+            color: #a855f7;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 32px;
+            }
+            .hero-subtitle {
+                font-size: 16px;
+            }
+            .logo img {
+                width: 200px;
+            }
+            .features {
+                flex-direction: column;
+                align-items: center;
+            }
+            .feature-card {
+                width: 100%;
+                max-width: 280px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background glows -->
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+
+    <div class="container">
+        <div class="logo">
+            <img src="/images/equaliser-logo.png" alt="Equaliser - Music Lives Here">
+        </div>
+
+        <div class="construction-badge">
+            <svg class="construction-icon" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+            </svg>
+            <span class="construction-text">Under Construction</span>
+        </div>
+
+        <h1 class="hero-title">Music Lives Here</h1>
+        <p class="hero-subtitle">
+            A decentralised music streaming platform where artists own their content
+            and fans support them directly through Bitcoin Lightning payments.
+        </p>
+
+        <div class="features">
+            <div class="feature-card">
+                <svg class="feature-icon" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/>
+                </svg>
+                <div class="feature-title">Artist Owned</div>
+                <div class="feature-desc">Artists control their content and earn directly from fans</div>
+            </div>
+            <div class="feature-card">
+                <svg class="feature-icon" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/>
+                </svg>
+                <div class="feature-title">Lightning Payments</div>
+                <div class="feature-desc">Instant micropayments via Bitcoin Lightning Network</div>
+            </div>
+            <div class="feature-card">
+                <svg class="feature-icon" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clip-rule="evenodd"/>
+                </svg>
+                <div class="feature-title">Decentralised</div>
+                <div class="feature-desc">Built on NOSTR protocol for censorship resistance</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <span class="nostr-badge">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+            </svg>
+            Powered by NOSTR
+        </span>
+        <span>|</span>
+        <a href="/admin/onboarding.html">Artist Onboarding</a>
+    </div>
+</body>
+</html>
