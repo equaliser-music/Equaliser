@@ -1,0 +1,18 @@
+# nostr-rs-relay configuration
+
+[info]
+name = "Equaliser Content Node Relay"
+description = "A NOSTR relay for the Equaliser music platform content node"
+pubkey = ""
+contact = ""
+
+[database]
+data_directory = "/usr/src/app/db"
+
+[network]
+address = "0.0.0.0"
+port = 8080
+
+[limits]
+max_event_bytes = 131072
+max_conn = 4096

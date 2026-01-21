@@ -1,0 +1,20 @@
+services:
+  nostr-relay:
+    image: scsibug/nostr-rs-relay:latest
+    container_name: equaliser-nostr-relay
+    ports:
+      - "8080:8080"
+    volumes:
+      - nostr-data:/usr/src/app/db
+      - ./config.toml:/usr/src/app/config.toml:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  nostr-data:
+    driver: local
