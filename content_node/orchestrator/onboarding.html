@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equaliser - Artist Onboarding</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 640px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo h1 {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo p {
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 8px;
+        }
+
+        /* Progress Steps */
+        .progress {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 40px;
+        }
+
+        .progress-step {
+            width: 40px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            transition: background 0.3s;
+        }
+
+        .progress-step.active {
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+        }
+
+        .progress-step.completed {
+            background: #22c55e;
+        }
+
+        /* Card */
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .card-description {
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        /* Steps */
+        .step {
+            display: none;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        textarea.form-input {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 6px;
+        }
+
+        /* Key Display */
+        .key-display {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .key-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 8px;
+        }
+
+        .key-value {
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 13px;
+            word-break: break-all;
+            line-height: 1.5;
+            color: #a855f7;
+        }
+
+        .key-value.private {
+            color: #f97316;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .copy-btn.copied {
+            background: #22c55e;
+        }
+
+        /* Warning Box */
+        .warning {
+            background: rgba(249, 115, 22, 0.1);
+            border: 1px solid rgba(249, 115, 22, 0.3);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .warning-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #f97316;
+            margin-bottom: 8px;
+        }
+
+        .warning-text {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.6;
+        }
+
+        /* Checkbox */
+        .checkbox-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+            margin-bottom: 16px;
+            cursor: pointer;
+        }
+
+        .checkbox-group input {
+            width: 20px;
+            height: 20px;
+            accent-color: #8b5cf6;
+            cursor: pointer;
+        }
+
+        .checkbox-label {
+            font-size: 14px;
+            line-height: 1.5;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            color: #ffffff;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn-group .btn {
+            flex: 1;
+        }
+
+        /* Relay Config */
+        .relay-list {
+            margin-bottom: 16px;
+        }
+
+        .relay-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .relay-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #8b5cf6;
+        }
+
+        .relay-url {
+            flex: 1;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .relay-status {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .relay-status.connected {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .relay-status.disconnected {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        /* Success State */
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(34, 197, 94, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+        }
+
+        .success-icon svg {
+            width: 40px;
+            height: 40px;
+            color: #22c55e;
+        }
+
+        /* Genre Tags */
+        .genre-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .genre-tag {
+            padding: 6px 12px;
+            background: rgba(139, 92, 246, 0.2);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .genre-tag:hover {
+            background: rgba(139, 92, 246, 0.3);
+        }
+
+        .genre-tag.selected {
+            background: #8b5cf6;
+            border-color: #8b5cf6;
+        }
+
+        .genre-tag .remove {
+            margin-left: 6px;
+            opacity: 0.7;
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .btn-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>Equaliser</h1>
+            <p>Artist Onboarding</p>
+        </div>
+
+        <div class="progress">
+            <div class="progress-step active" data-step="1"></div>
+            <div class="progress-step" data-step="2"></div>
+            <div class="progress-step" data-step="3"></div>
+            <div class="progress-step" data-step="4"></div>
+            <div class="progress-step" data-step="5"></div>
+        </div>
+
+        <!-- Step 1: Generate Keys -->
+        <div class="step active" id="step-1">
+            <div class="card">
+                <h2 class="card-title">Create Your NOSTR Identity</h2>
+                <p class="card-description">
+                    Your NOSTR identity is a cryptographic key pair that proves you are you.
+                    It's portable across all NOSTR apps and gives you true ownership of your profile.
+                </p>
+
+                <div class="warning">
+                    <div class="warning-title">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        Important
+                    </div>
+                    <p class="warning-text">
+                        Your keys will be generated in your browser and never sent to any server.
+                        You must save your private key (nsec) securely - if you lose it, you lose access to your identity forever.
+                    </p>
+                </div>
+
+                <button class="btn btn-primary" onclick="generateKeys()">
+                    Generate My Keys
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 2: Save Keys -->
+        <div class="step" id="step-2">
+            <div class="card">
+                <h2 class="card-title">Save Your Keys</h2>
+                <p class="card-description">
+                    Your keys have been generated. Save them now before continuing.
+                </p>
+
+                <div class="warning">
+                    <div class="warning-title">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        Critical: Save Your Private Key
+                    </div>
+                    <p class="warning-text">
+                        Your private key (nsec) is the ONLY way to access your identity. Store it in a password manager,
+                        write it down, or save it somewhere extremely secure. Never share it with anyone.
+                    </p>
+                </div>
+
+                <div class="key-display">
+                    <div class="key-label">Private Key (nsec) - Keep Secret!</div>
+                    <div class="key-value private" id="nsec-display"></div>
+                    <button class="copy-btn" onclick="copyKey('nsec')">Copy</button>
+                </div>
+
+                <div class="key-display">
+                    <div class="key-label">Public Key (npub) - Safe to Share</div>
+                    <div class="key-value" id="npub-display"></div>
+                    <button class="copy-btn" onclick="copyKey('npub')">Copy</button>
+                </div>
+
+                <label class="checkbox-group">
+                    <input type="checkbox" id="saved-keys-check" onchange="updateStep2Button()">
+                    <span class="checkbox-label">
+                        I have securely saved my private key (nsec) and understand that losing it means losing access to my identity forever.
+                    </span>
+                </label>
+
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="goToStep(1)">Back</button>
+                    <button class="btn btn-primary" id="step-2-next" disabled onclick="goToStep(3)">Continue</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Profile Info -->
+        <div class="step" id="step-3">
+            <div class="card">
+                <h2 class="card-title">Your Artist Profile</h2>
+                <p class="card-description">
+                    Tell fans about yourself. This information will be published to NOSTR and visible across all compatible apps.
+                </p>
+
+                <div class="form-group">
+                    <label class="form-label">Artist / Project Name *</label>
+                    <input type="text" class="form-input" id="artist-name" placeholder="e.g. Shibuya Crossings" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Bio</label>
+                    <textarea class="form-input" id="artist-bio" placeholder="Tell your story..."></textarea>
+                    <p class="form-hint">A short description of you and your music</p>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Location</label>
+                    <input type="text" class="form-input" id="artist-location" placeholder="e.g. Tokyo, Japan">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Genres</label>
+                    <input type="text" class="form-input" id="genre-input" placeholder="Type a genre and press Enter">
+                    <div class="genre-tags" id="genre-tags"></div>
+                    <p class="form-hint">Add genres that describe your music</p>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="goToStep(2)">Back</button>
+                    <button class="btn btn-primary" onclick="goToStep(4)">Continue</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Configure Relays -->
+        <div class="step" id="step-4">
+            <div class="card">
+                <h2 class="card-title">Choose Relays</h2>
+                <p class="card-description">
+                    Your profile will be published to these NOSTR relays. More relays = better redundancy and discoverability.
+                </p>
+
+                <div class="relay-list" id="relay-list">
+                    <!-- Populated by JS -->
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Add Custom Relay</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" class="form-input" id="custom-relay" placeholder="wss://relay.example.com" style="flex: 1;">
+                        <button class="btn btn-secondary" onclick="addRelay()" style="width: auto; padding: 12px 20px;">Add</button>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="goToStep(3)">Back</button>
+                    <button class="btn btn-primary" onclick="publishProfile()">
+                        Publish Profile
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 5: Success -->
+        <div class="step" id="step-5">
+            <div class="card" style="text-align: center;">
+                <div class="success-icon">
+                    <svg fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <h2 class="card-title">Welcome to Equaliser!</h2>
+                <p class="card-description">
+                    Your artist profile has been published to NOSTR. You now have a decentralized identity that you truly own.
+                </p>
+
+                <div class="key-display" style="text-align: left;">
+                    <div class="key-label">Your Public Key (npub)</div>
+                    <div class="key-value" id="final-npub"></div>
+                    <button class="copy-btn" onclick="copyKey('final-npub')">Copy</button>
+                </div>
+
+                <div id="publish-results" style="text-align: left; margin-top: 20px;">
+                    <!-- Populated by JS -->
+                </div>
+
+                <div class="btn-group" style="margin-top: 32px;">
+                    <button class="btn btn-primary" onclick="downloadBackup()">
+                        Download Backup File
+                    </button>
+                </div>
+                <p class="form-hint" style="margin-top: 12px;">
+                    Save this backup file securely. It contains your keys and profile information.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- nostr-tools via CDN -->
+    <script src="https://unpkg.com/nostr-tools@2.1.4/lib/nostr.bundle.js"></script>
+
+    <script>
+        // State
+        let privateKey = null;
+        let publicKey = null;
+        let nsec = null;
+        let npub = null;
+        let genres = [];
+
+        const defaultRelays = [
+            { url: 'ws://localhost:8080', enabled: true, local: true },
+            { url: 'wss://relay.damus.io', enabled: false, local: false },
+            { url: 'wss://nos.lol', enabled: false, local: false },
+            { url: 'wss://relay.nostr.band', enabled: false, local: false }
+        ];
+
+        let relays = [...defaultRelays];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            renderRelays();
+            setupGenreInput();
+        });
+
+        // Key Generation
+        function generateKeys() {
+            try {
+                // Generate random private key
+                privateKey = NostrTools.generateSecretKey();
+                publicKey = NostrTools.getPublicKey(privateKey);
+
+                // Convert to bech32 format
+                nsec = NostrTools.nip19.nsecEncode(privateKey);
+                npub = NostrTools.nip19.npubEncode(publicKey);
+
+                // Display keys
+                document.getElementById('nsec-display').textContent = nsec;
+                document.getElementById('npub-display').textContent = npub;
+
+                goToStep(2);
+            } catch (error) {
+                console.error('Key generation failed:', error);
+                alert('Failed to generate keys. Please try again.');
+            }
+        }
+
+        // Copy to clipboard
+        async function copyKey(type) {
+            let text;
+            let btn;
+
+            if (type === 'nsec') {
+                text = nsec;
+                btn = document.querySelector('#step-2 .key-display:first-of-type .copy-btn');
+            } else if (type === 'npub') {
+                text = npub;
+                btn = document.querySelector('#step-2 .key-display:last-of-type .copy-btn');
+            } else if (type === 'final-npub') {
+                text = npub;
+                btn = document.querySelector('#step-5 .copy-btn');
+            }
+
+            try {
+                await navigator.clipboard.writeText(text);
+                btn.textContent = 'Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = 'Copy';
+                    btn.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                console.error('Copy failed:', err);
+            }
+        }
+
+        // Step 2 checkbox
+        function updateStep2Button() {
+            const checkbox = document.getElementById('saved-keys-check');
+            const button = document.getElementById('step-2-next');
+            button.disabled = !checkbox.checked;
+        }
+
+        // Genre tags
+        function setupGenreInput() {
+            const input = document.getElementById('genre-input');
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const genre = input.value.trim();
+                    if (genre && !genres.includes(genre)) {
+                        genres.push(genre);
+                        renderGenres();
+                    }
+                    input.value = '';
+                }
+            });
+        }
+
+        function renderGenres() {
+            const container = document.getElementById('genre-tags');
+            container.innerHTML = genres.map((genre, i) => `
+                <span class="genre-tag selected">
+                    ${genre}
+                    <span class="remove" onclick="removeGenre(${i})">×</span>
+                </span>
+            `).join('');
+        }
+
+        function removeGenre(index) {
+            genres.splice(index, 1);
+            renderGenres();
+        }
+
+        // Relays
+        function renderRelays() {
+            const container = document.getElementById('relay-list');
+            container.innerHTML = relays.map((relay, i) => `
+                <div class="relay-item">
+                    <input type="checkbox" ${relay.enabled ? 'checked' : ''} onchange="toggleRelay(${i})">
+                    <span class="relay-url">${relay.url}</span>
+                    <span class="relay-status" id="relay-status-${i}">
+                        ${relay.local ? 'Local' : 'Public'}
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        function toggleRelay(index) {
+            relays[index].enabled = !relays[index].enabled;
+        }
+
+        function addRelay() {
+            const input = document.getElementById('custom-relay');
+            const url = input.value.trim();
+
+            if (url && (url.startsWith('ws://') || url.startsWith('wss://'))) {
+                if (!relays.find(r => r.url === url)) {
+                    relays.push({ url, enabled: true, local: false });
+                    renderRelays();
+                }
+                input.value = '';
+            } else {
+                alert('Please enter a valid WebSocket URL (ws:// or wss://)');
+            }
+        }
+
+        // Publish Profile
+        async function publishProfile() {
+            const name = document.getElementById('artist-name').value.trim();
+
+            if (!name) {
+                alert('Please enter your artist name');
+                return;
+            }
+
+            const enabledRelays = relays.filter(r => r.enabled);
+            if (enabledRelays.length === 0) {
+                alert('Please select at least one relay');
+                return;
+            }
+
+            // Build profile metadata
+            const profileContent = {
+                name: name,
+                about: document.getElementById('artist-bio').value.trim(),
+                picture: '',
+                banner: '',
+                website: '',
+                nip05: '',
+                lud16: ''
+            };
+
+            // Add Equaliser-specific fields
+            const location = document.getElementById('artist-location').value.trim();
+            if (location || genres.length > 0) {
+                profileContent.equaliser = {};
+                if (location) profileContent.equaliser.location = location;
+                if (genres.length > 0) profileContent.equaliser.genres = genres;
+                profileContent.equaliser.joinedDate = new Date().toISOString().split('T')[0];
+            }
+
+            // Create Kind 0 event
+            const event = {
+                kind: 0,
+                created_at: Math.floor(Date.now() / 1000),
+                tags: [],
+                content: JSON.stringify(profileContent)
+            };
+
+            // Sign the event
+            const signedEvent = NostrTools.finalizeEvent(event, privateKey);
+
+            // Publish to relays
+            const results = [];
+
+            for (const relay of enabledRelays) {
+                try {
+                    const ws = new WebSocket(relay.url);
+
+                    const result = await new Promise((resolve) => {
+                        const timeout = setTimeout(() => {
+                            ws.close();
+                            resolve({ url: relay.url, success: false, error: 'Timeout' });
+                        }, 5000);
+
+                        ws.onopen = () => {
+                            const msg = JSON.stringify(['EVENT', signedEvent]);
+                            ws.send(msg);
+                        };
+
+                        ws.onmessage = (e) => {
+                            const data = JSON.parse(e.data);
+                            if (data[0] === 'OK') {
+                                clearTimeout(timeout);
+                                ws.close();
+                                resolve({ url: relay.url, success: data[2], error: data[2] ? null : data[3] });
+                            }
+                        };
+
+                        ws.onerror = () => {
+                            clearTimeout(timeout);
+                            resolve({ url: relay.url, success: false, error: 'Connection failed' });
+                        };
+                    });
+
+                    results.push(result);
+                } catch (err) {
+                    results.push({ url: relay.url, success: false, error: err.message });
+                }
+            }
+
+            // Show results
+            document.getElementById('final-npub').textContent = npub;
+
+            const resultsHtml = results.map(r => `
+                <div class="relay-item">
+                    <span class="relay-url">${r.url}</span>
+                    <span class="relay-status ${r.success ? 'connected' : 'disconnected'}">
+                        ${r.success ? 'Published' : r.error}
+                    </span>
+                </div>
+            `).join('');
+
+            document.getElementById('publish-results').innerHTML = `
+                <div class="key-label" style="margin-bottom: 12px;">Publish Results</div>
+                ${resultsHtml}
+            `;
+
+            goToStep(5);
+        }
+
+        // Download backup
+        function downloadBackup() {
+            const backup = {
+                version: 1,
+                created: new Date().toISOString(),
+                keys: {
+                    nsec: nsec,
+                    npub: npub,
+                    privateKeyHex: NostrTools.bytesToHex(privateKey),
+                    publicKeyHex: publicKey
+                },
+                profile: {
+                    name: document.getElementById('artist-name').value.trim(),
+                    bio: document.getElementById('artist-bio').value.trim(),
+                    location: document.getElementById('artist-location').value.trim(),
+                    genres: genres
+                }
+            };
+
+            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `equaliser-backup-${backup.profile.name.toLowerCase().replace(/\s+/g, '-') || 'artist'}-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Navigation
+        function goToStep(step) {
+            // Update progress
+            document.querySelectorAll('.progress-step').forEach((el, i) => {
+                el.classList.remove('active', 'completed');
+                if (i + 1 < step) el.classList.add('completed');
+                if (i + 1 === step) el.classList.add('active');
+            });
+
+            // Show step
+            document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+            document.getElementById(`step-${step}`).classList.add('active');
+        }
+    </script>
+</body>
+</html>
