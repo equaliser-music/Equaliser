@@ -1,5 +1,12 @@
 # Project Rules
 
+## Documentation
+
+Before working on either folder, read the relevant documentation:
+
+- **mockups/**: Read [mockups/MOCKUPS.md](mockups/MOCKUPS.md) for server setup, URLs, and folder structure
+- **content_node/**: Read [content_node/CONTENT_NODE.md](content_node/CONTENT_NODE.md) for Docker services, configuration, and development workflow
+
 ## Folder Separation
 
 ### `mockups/`
