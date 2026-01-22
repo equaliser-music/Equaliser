@@ -53,6 +53,42 @@ cd content_node
 docker-compose up -d
 ```
 
+## Install Instructions
+
+After starting the containers for the first time, run these commands to set up the required folder structure:
+
+### IPFS Folder Structure
+
+Create the music directory structure on the IPFS node:
+
+```bash
+docker exec equaliser-ipfs ipfs files mkdir -p /music/labels
+docker exec equaliser-ipfs ipfs files mkdir -p /music/artists
+```
+
+Verify the structure was created:
+
+```bash
+docker exec equaliser-ipfs ipfs files ls /music
+```
+
+Expected output:
+```
+artists
+labels
+```
+
+### IPFS CORS Configuration
+
+Enable CORS on the IPFS API to allow browser uploads from the admin pages:
+
+```bash
+docker exec equaliser-ipfs ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '["http://localhost", "http://127.0.0.1", "*"]'
+docker exec equaliser-ipfs ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods '["PUT", "POST", "GET"]'
+docker exec equaliser-ipfs ipfs config --json API.HTTPHeaders.Access-Control-Allow-Headers '["Authorization", "Content-Type"]'
+docker restart equaliser-ipfs
+```
+
 ### View Logs
 
 ```bash
