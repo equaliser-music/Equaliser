@@ -1,4 +1,21 @@
 services:
+  # IPFS daemon for decentralised content storage
+  ipfs:
+    image: ipfs/kubo:latest
+    container_name: equaliser-ipfs
+    ports:
+      - "4001:4001"   # P2P swarm (libp2p)
+      - "5001:5001"   # API (for orchestrator to upload content)
+    volumes:
+      - ipfs-data:/data/ipfs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "ipfs dag stat /ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
   # Nginx web server - serves static files and routes requests
   web:
     image: nginx:alpine
@@ -11,6 +28,7 @@ services:
       - ./orchestrator:/usr/share/nginx/html/admin:ro
     depends_on:
       - nostr-relay
+      - ipfs
     restart: unless-stopped
 
   # NOSTR relay
@@ -30,4 +48,6 @@ services:
 
 volumes:
   nostr-data:
+    driver: local
+  ipfs-data:
     driver: local

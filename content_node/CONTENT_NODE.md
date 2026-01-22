@@ -7,6 +7,8 @@ The content node is the infrastructure that powers an artist's presence on the E
 ```
 content_node/
 ├── docker-compose.yml      # Orchestrates all services
+├── ipfs/                   # IPFS configuration and documentation
+│   └── IPFS.md
 ├── nostr-relay/            # NOSTR relay configuration
 │   └── config.toml
 ├── orchestrator/           # Artist admin tools & API (future)
@@ -21,6 +23,7 @@ content_node/
 
 | Service | Container | Internal Port | Purpose |
 |---------|-----------|---------------|---------|
+| `ipfs` | ipfs/kubo | 4001, 5001, 8080 | Decentralised content storage |
 | `web` | nginx:alpine | 80 | Serves static files, routes requests |
 | `nostr-relay` | nostr-rs-relay | 8080 | NOSTR event storage and relay |
 
@@ -32,6 +35,7 @@ content_node/
 | `/artist.html` | `client/artist.html` | Artist profile page (accepts `?npub=` parameter) |
 | `/admin` | `orchestrator/` | Artist admin tools (onboarding, dashboard) |
 | `/relay` | nostr-relay:8080 | WebSocket proxy to NOSTR relay |
+| `/ipfs/{CID}` | ipfs:8080 | IPFS gateway for content retrieval |
 | `/api` | orchestrator:8000 | API endpoints (future) |
 | `/health` | nginx | Health check endpoint |
 
@@ -56,6 +60,7 @@ docker-compose up -d
 docker-compose logs -f
 
 # Specific service
+docker-compose logs -f ipfs
 docker-compose logs -f web
 docker-compose logs -f nostr-relay
 ```
@@ -82,6 +87,7 @@ Once running:
 | http://localhost/artist.html?npub=... | Artist profile page |
 | http://localhost/admin/onboarding.html | Artist onboarding wizard |
 | ws://localhost/relay | NOSTR relay WebSocket |
+| http://localhost/ipfs/{CID} | IPFS content gateway |
 | http://localhost/health | Health check |
 
 ## Client Application
@@ -171,6 +177,32 @@ The `/relay` path is configured for WebSocket connections to the NOSTR relay wit
 
 Gzip compression is enabled for text, CSS, JSON, and JavaScript files.
 
+## IPFS Node
+
+The content node runs a Kubo IPFS daemon for decentralised content storage.
+
+### First-Time Setup
+
+After starting containers for the first time, configure the gateway:
+
+```bash
+docker exec equaliser-ipfs ipfs config --json Gateway.PublicGateways '{"localhost": {"UseSubdomains": false, "Paths": ["/ipfs", "/ipns"]}}'
+docker restart equaliser-ipfs
+```
+
+### Key Features
+
+- **Content Storage**: Encrypted HLS segments stored with unique CIDs
+- **Gateway Access**: Content served via `/ipfs/{CID}` through nginx
+- **API Access**: Port 5001 for orchestrator to upload content
+- **P2P Network**: Port 4001 for connecting to the IPFS network
+
+### Data Persistence
+
+IPFS data is stored in the Docker volume `ipfs-data`.
+
+See [IPFS.md](./ipfs/IPFS.md) for detailed configuration and operations.
+
 ## Future Components
 
 ### Orchestrator API (Planned)
@@ -181,13 +213,6 @@ Python/FastAPI service that will handle:
 - IPFS integration
 - Strike payment webhooks
 - Decryption key distribution
-
-### IPFS Node (Planned)
-
-Kubo IPFS daemon for:
-- Encrypted content storage
-- Content addressing (CIDs)
-- Distributed content delivery
 
 ## Development
 
@@ -263,4 +288,6 @@ docker-compose exec web ls -la /usr/share/nginx/html/admin
 - [Project Rules](../PROJECT_RULES.md)
 - [NOSTR Protocol](https://github.com/nostr-protocol/nostr)
 - [nostr-rs-relay](https://github.com/scsibug/nostr-rs-relay)
+- [IPFS/Kubo](https://github.com/ipfs/kubo)
 - [Onboarding Documentation](./orchestrator/ONBOARDING.md)
+- [IPFS Documentation](./ipfs/IPFS.md)
