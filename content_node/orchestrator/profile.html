@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equaliser - Edit Profile</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo h1 {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo p {
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 8px;
+        }
+
+        /* Card */
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .card-description {
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        /* Sections */
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        textarea.form-input {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 6px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        /* Profile Images */
+        .profile-images {
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+            margin-bottom: 24px;
+        }
+
+        .image-upload {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .image-preview {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: rgba(139, 92, 246, 0.2);
+            border: 2px dashed rgba(139, 92, 246, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .image-preview:hover {
+            border-color: #a855f7;
+            background: rgba(139, 92, 246, 0.3);
+        }
+
+        .image-preview svg {
+            width: 32px;
+            height: 32px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .image-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .image-preview.has-image svg {
+            display: none;
+        }
+
+        .image-label {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .banner-preview {
+            width: 100%;
+            max-width: 400px;
+            height: 100px;
+            border-radius: 12px;
+        }
+
+        .upload-status {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .upload-status.uploading {
+            background: rgba(251, 191, 36, 0.9);
+        }
+
+        .upload-status.success {
+            background: rgba(34, 197, 94, 0.9);
+        }
+
+        .upload-status.error {
+            background: rgba(239, 68, 68, 0.9);
+        }
+
+        /* Genre Tags */
+        .genre-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .genre-tag {
+            padding: 6px 12px;
+            background: rgba(139, 92, 246, 0.2);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .genre-tag:hover {
+            background: rgba(139, 92, 246, 0.3);
+        }
+
+        .genre-tag.selected {
+            background: #8b5cf6;
+            border-color: #8b5cf6;
+        }
+
+        .genre-tag .remove {
+            margin-left: 6px;
+            opacity: 0.7;
+        }
+
+        /* Relay Config */
+        .relay-list {
+            margin-bottom: 16px;
+        }
+
+        .relay-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .relay-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #8b5cf6;
+        }
+
+        .relay-url {
+            flex: 1;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .relay-status {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .relay-status.local {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+        }
+
+        .relay-status.public {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        /* Publish Status */
+        .publish-status {
+            margin-top: 16px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+        }
+
+        .publish-status-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+            font-size: 14px;
+        }
+
+        .publish-status-item .status-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .publish-status-item.pending .status-icon {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .publish-status-item.connecting .status-icon {
+            color: #fbbf24;
+        }
+
+        .publish-status-item.success .status-icon {
+            color: #22c55e;
+        }
+
+        .publish-status-item.error .status-icon {
+            color: #ef4444;
+        }
+
+        .publish-status-item .status-text {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            color: #ffffff;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn-group .btn {
+            flex: 1;
+        }
+
+        /* Warning Box */
+        .warning {
+            background: rgba(249, 115, 22, 0.1);
+            border: 1px solid rgba(249, 115, 22, 0.3);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .warning-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #f97316;
+            margin-bottom: 8px;
+        }
+
+        .warning-text {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.6;
+        }
+
+        /* Success Box */
+        .success-box {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success-box.visible {
+            display: block;
+        }
+
+        .success-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #22c55e;
+            margin-bottom: 8px;
+        }
+
+        .success-text {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.6;
+        }
+
+        /* Error Box */
+        .error-box {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error-box.visible {
+            display: block;
+        }
+
+        .error-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #ef4444;
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* User Info Bar */
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+            margin-bottom: 24px;
+        }
+
+        .user-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+            overflow: hidden;
+        }
+
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .user-details {
+            flex: 1;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .user-npub {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+        }
+
+        /* Links */
+        .link {
+            color: #a855f7;
+            text-decoration: none;
+        }
+
+        .link:hover {
+            text-decoration: underline;
+        }
+
+        /* Hidden file inputs */
+        input[type="file"] {
+            display: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .profile-images {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            .btn-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>Equaliser</h1>
+            <p>Edit Profile</p>
+        </div>
+
+        <!-- Login Section -->
+        <div class="section active" id="login-section">
+            <div class="card">
+                <h2 class="card-title">Login to Edit Profile</h2>
+                <p class="card-description">
+                    Enter your private key (nsec) to access your artist profile. Your key stays in your browser and is never sent to any server.
+                </p>
+
+                <div class="warning">
+                    <div class="warning-title">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                        </svg>
+                        Security Notice
+                    </div>
+                    <p class="warning-text">
+                        Your nsec is your identity. Never share it with anyone and make sure you're on the correct website before entering it.
+                    </p>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Private Key (nsec)</label>
+                    <input type="password" class="form-input" id="nsec-input" placeholder="nsec1...">
+                    <p class="form-hint">Your nsec is never sent to any server - it stays in your browser</p>
+                </div>
+
+                <div id="login-error" class="error-box">
+                    <div class="error-title">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        <span id="login-error-text">Error</span>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" id="login-btn" onclick="login()">
+                    Login
+                </button>
+
+                <p style="text-align: center; margin-top: 20px; color: rgba(255,255,255,0.5); font-size: 14px;">
+                    Don't have a NOSTR identity? <a href="onboarding.html" class="link">Create one here</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- Profile Editor Section -->
+        <div class="section" id="profile-section">
+            <div class="user-info">
+                <div class="user-avatar" id="user-avatar">??</div>
+                <div class="user-details">
+                    <div class="user-name" id="user-name">Loading...</div>
+                    <div class="user-npub" id="user-npub"></div>
+                </div>
+                <button class="btn btn-secondary" style="width: auto; padding: 8px 16px;" onclick="logout()">
+                    Logout
+                </button>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">Profile Images</h2>
+                <p class="card-description">
+                    Upload your avatar and banner images. They will be stored on IPFS for decentralized access.
+                </p>
+
+                <div class="profile-images">
+                    <div class="image-upload">
+                        <label class="image-preview" id="avatar-preview" for="avatar-input">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                            </svg>
+                        </label>
+                        <input type="file" id="avatar-input" accept="image/*" onchange="handleAvatarUpload(event)">
+                        <span class="image-label">Avatar</span>
+                    </div>
+                    <div class="image-upload" style="flex: 1;">
+                        <label class="image-preview banner-preview" id="banner-preview" for="banner-input">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                            </svg>
+                        </label>
+                        <input type="file" id="banner-input" accept="image/*" onchange="handleBannerUpload(event)">
+                        <span class="image-label">Banner (recommended: 1024x768)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">Profile Information</h2>
+                <p class="card-description">
+                    This information will be published to NOSTR and visible across all compatible apps.
+                </p>
+
+                <div class="form-group">
+                    <label class="form-label">Artist / Project Name *</label>
+                    <input type="text" class="form-input" id="name" placeholder="e.g. Shibuya Crossings" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Bio</label>
+                    <textarea class="form-input" id="about" placeholder="Tell your story..."></textarea>
+                    <p class="form-hint">A short description of you and your music</p>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Location</label>
+                        <input type="text" class="form-input" id="location" placeholder="e.g. Tokyo, Japan">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Website</label>
+                        <input type="url" class="form-input" id="website" placeholder="https://yoursite.com">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Genres</label>
+                    <input type="text" class="form-input" id="genre-input" placeholder="Type a genre and press Enter">
+                    <div class="genre-tags" id="genre-tags"></div>
+                    <p class="form-hint">Add genres that describe your music</p>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">NIP-05 Address</label>
+                        <input type="text" class="form-input" id="nip05" placeholder="you@yourdomain.com">
+                        <p class="form-hint">For identity verification</p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Lightning Address</label>
+                        <input type="text" class="form-input" id="lud16" placeholder="you@getalby.com">
+                        <p class="form-hint">For receiving zaps/tips</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">Publish To Relays</h2>
+                <p class="card-description">
+                    Select which relays to publish your updated profile to.
+                </p>
+
+                <div class="relay-list" id="relay-list">
+                    <!-- Populated by JS -->
+                </div>
+
+                <div id="publish-success" class="success-box">
+                    <div class="success-title">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        Profile Updated
+                    </div>
+                    <p class="success-text" id="publish-success-text">Your profile has been published successfully.</p>
+                </div>
+
+                <div id="publish-error" class="error-box">
+                    <div class="error-title">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        <span id="publish-error-text">Error</span>
+                    </div>
+                </div>
+
+                <div id="publish-status" class="publish-status" style="display: none;">
+                    <!-- Populated by JS during publishing -->
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="logout()">Cancel</button>
+                    <button class="btn btn-primary" id="save-btn" onclick="publishProfile()">
+                        Save Profile
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- nostr-tools via CDN -->
+    <script src="https://unpkg.com/nostr-tools@2.1.4/lib/nostr.bundle.js"></script>
+
+    <script>
+        // Session state (memory only, never persisted)
+        let privateKey = null;
+        let publicKey = null;
+        let nsec = null;
+        let npub = null;
+
+        // Profile state
+        let existingProfile = null;
+        let genres = [];
+        let avatarCID = null;
+        let bannerCID = null;
+
+        // Configuration
+        const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        const localRelayUrl = 'ws://' + window.location.host + '/relay';
+
+        const defaultRelays = isLocalDev
+            ? [
+                { url: localRelayUrl, enabled: true, local: true }
+              ]
+            : [
+                { url: localRelayUrl, enabled: false, local: true },
+                { url: 'wss://relay.damus.io', enabled: true, local: false },
+                { url: 'wss://nos.lol', enabled: true, local: false },
+                { url: 'wss://relay.nostr.band', enabled: true, local: false }
+              ];
+
+        let relays = [...defaultRelays];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            renderRelays();
+            setupGenreInput();
+
+            // Handle Enter key on login
+            document.getElementById('nsec-input').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    login();
+                }
+            });
+        });
+
+        // Clear sensitive data on page unload
+        window.addEventListener('beforeunload', () => {
+            privateKey = null;
+            publicKey = null;
+            nsec = null;
+        });
+
+        // Login
+        async function login() {
+            const nsecInput = document.getElementById('nsec-input').value.trim();
+            const loginBtn = document.getElementById('login-btn');
+            const errorBox = document.getElementById('login-error');
+
+            if (!nsecInput) {
+                showLoginError('Please enter your nsec');
+                return;
+            }
+
+            // Show loading state
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<span class="loading"></span> Logging in...';
+            errorBox.classList.remove('visible');
+
+            try {
+                // Decode the nsec
+                const decoded = NostrTools.nip19.decode(nsecInput);
+
+                if (decoded.type !== 'nsec') {
+                    throw new Error('Invalid format. Expected nsec1...');
+                }
+
+                // Store keys in memory
+                privateKey = decoded.data;
+                publicKey = NostrTools.getPublicKey(privateKey);
+                nsec = nsecInput;
+                npub = NostrTools.nip19.npubEncode(publicKey);
+
+                // Fetch existing profile
+                existingProfile = await fetchExistingProfile(publicKey);
+
+                // Populate form with existing data
+                populateForm(existingProfile);
+
+                // Update user info display
+                updateUserInfoDisplay();
+
+                // Show profile editor
+                showSection('profile-section');
+
+            } catch (error) {
+                console.error('Login failed:', error);
+                showLoginError(error.message);
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = 'Login';
+            }
+        }
+
+        function showLoginError(message) {
+            const errorBox = document.getElementById('login-error');
+            document.getElementById('login-error-text').textContent = message;
+            errorBox.classList.add('visible');
+        }
+
+        // Fetch existing profile from relays
+        async function fetchExistingProfile(pubkeyHex) {
+            const relaysToCheck = isLocalDev
+                ? [localRelayUrl]
+                : ['wss://relay.damus.io', 'wss://nos.lol', 'wss://relay.nostr.band'];
+
+            for (const relayUrl of relaysToCheck) {
+                try {
+                    const profile = await new Promise((resolve) => {
+                        const ws = new WebSocket(relayUrl);
+                        let profileData = null;
+
+                        const timeout = setTimeout(() => {
+                            ws.close();
+                            resolve(null);
+                        }, 5000);
+
+                        ws.onopen = () => {
+                            ws.send(JSON.stringify(['REQ', 'profile-fetch', {
+                                kinds: [0],
+                                authors: [pubkeyHex],
+                                limit: 1
+                            }]));
+                        };
+
+                        ws.onmessage = (e) => {
+                            const data = JSON.parse(e.data);
+                            if (data[0] === 'EVENT') {
+                                try {
+                                    profileData = JSON.parse(data[2].content);
+                                } catch (err) {
+                                    console.error('Error parsing profile:', err);
+                                }
+                            }
+                            if (data[0] === 'EOSE') {
+                                clearTimeout(timeout);
+                                ws.close();
+                                resolve(profileData);
+                            }
+                        };
+
+                        ws.onerror = () => {
+                            clearTimeout(timeout);
+                            resolve(null);
+                        };
+                    });
+
+                    if (profile) return profile;
+                } catch (err) {
+                    console.log('Failed to fetch from', relayUrl, err);
+                }
+            }
+
+            return null;
+        }
+
+        // Populate form with existing profile data
+        function populateForm(profile) {
+            if (!profile) return;
+
+            // Standard NIP-01/NIP-24 fields
+            document.getElementById('name').value = profile.name || '';
+            document.getElementById('about').value = profile.about || '';
+            document.getElementById('website').value = profile.website || '';
+            document.getElementById('nip05').value = profile.nip05 || '';
+            document.getElementById('lud16').value = profile.lud16 || '';
+
+            // Load existing images if they exist
+            if (profile.picture) {
+                showImagePreview('avatar-preview', profile.picture);
+            }
+            if (profile.banner) {
+                showImagePreview('banner-preview', profile.banner);
+            }
+
+            // Equaliser-specific fields
+            if (profile.equaliser) {
+                document.getElementById('location').value = profile.equaliser.location || '';
+                if (profile.equaliser.genres && Array.isArray(profile.equaliser.genres)) {
+                    genres = [...profile.equaliser.genres];
+                    renderGenres();
+                }
+            }
+        }
+
+        // Update user info display
+        function updateUserInfoDisplay() {
+            const name = existingProfile?.name || 'New Artist';
+            const initials = name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+
+            document.getElementById('user-name').textContent = name;
+            document.getElementById('user-npub').textContent = npub.substring(0, 20) + '...' + npub.substring(npub.length - 8);
+
+            const avatarEl = document.getElementById('user-avatar');
+            if (existingProfile?.picture) {
+                avatarEl.innerHTML = `<img src="${existingProfile.picture}" alt="${name}">`;
+            } else {
+                avatarEl.textContent = initials || '??';
+            }
+        }
+
+        // Show image preview
+        function showImagePreview(elementId, url) {
+            const el = document.getElementById(elementId);
+            el.innerHTML = `<img src="${url}" alt="Preview">`;
+            el.classList.add('has-image');
+        }
+
+        // IPFS Image Upload
+        async function uploadToIPFS(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('http://localhost:5001/api/v0/add', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error(`IPFS upload failed: ${response.status}`);
+            }
+
+            const result = await response.json();
+            const cid = result.Hash;
+            const gatewayUrl = `${window.location.origin}/ipfs/${cid}`;
+
+            return { cid, gatewayUrl };
+        }
+
+        async function handleAvatarUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const previewEl = document.getElementById('avatar-preview');
+
+            try {
+                // Show local preview immediately
+                const localPreview = URL.createObjectURL(file);
+                showImagePreview('avatar-preview', localPreview);
+
+                // Add uploading indicator
+                previewEl.innerHTML += '<span class="upload-status uploading"><span class="loading" style="width:12px;height:12px;border-width:1px;"></span></span>';
+
+                // Upload to IPFS
+                const { cid, gatewayUrl } = await uploadToIPFS(file);
+                avatarCID = cid;
+
+                // Update preview with gateway URL and success indicator
+                URL.revokeObjectURL(localPreview);
+                showImagePreview('avatar-preview', gatewayUrl);
+                previewEl.innerHTML += '<span class="upload-status success">&#10003;</span>';
+
+                // Update user info avatar too
+                document.getElementById('user-avatar').innerHTML = `<img src="${gatewayUrl}" alt="Avatar">`;
+
+            } catch (error) {
+                console.error('Avatar upload error:', error);
+                previewEl.innerHTML += '<span class="upload-status error">!</span>';
+                alert('Failed to upload avatar: ' + error.message);
+            }
+        }
+
+        async function handleBannerUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const previewEl = document.getElementById('banner-preview');
+
+            try {
+                // Show local preview immediately
+                const localPreview = URL.createObjectURL(file);
+                showImagePreview('banner-preview', localPreview);
+
+                // Add uploading indicator
+                previewEl.innerHTML += '<span class="upload-status uploading"><span class="loading" style="width:12px;height:12px;border-width:1px;"></span></span>';
+
+                // Upload to IPFS
+                const { cid, gatewayUrl } = await uploadToIPFS(file);
+                bannerCID = cid;
+
+                // Update preview with gateway URL and success indicator
+                URL.revokeObjectURL(localPreview);
+                showImagePreview('banner-preview', gatewayUrl);
+                previewEl.innerHTML += '<span class="upload-status success">&#10003;</span>';
+
+            } catch (error) {
+                console.error('Banner upload error:', error);
+                previewEl.innerHTML += '<span class="upload-status error">!</span>';
+                alert('Failed to upload banner: ' + error.message);
+            }
+        }
+
+        // Genre tags
+        function setupGenreInput() {
+            const input = document.getElementById('genre-input');
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const genre = input.value.trim();
+                    if (genre && !genres.includes(genre)) {
+                        genres.push(genre);
+                        renderGenres();
+                    }
+                    input.value = '';
+                }
+            });
+        }
+
+        function renderGenres() {
+            const container = document.getElementById('genre-tags');
+            container.innerHTML = genres.map((genre, i) => `
+                <span class="genre-tag selected">
+                    ${genre}
+                    <span class="remove" onclick="removeGenre(${i})">×</span>
+                </span>
+            `).join('');
+        }
+
+        function removeGenre(index) {
+            genres.splice(index, 1);
+            renderGenres();
+        }
+
+        // Relays
+        function renderRelays() {
+            const container = document.getElementById('relay-list');
+            container.innerHTML = relays.map((relay, i) => `
+                <div class="relay-item">
+                    <input type="checkbox" ${relay.enabled ? 'checked' : ''} onchange="toggleRelay(${i})">
+                    <span class="relay-url">${relay.url}</span>
+                    <span class="relay-status ${relay.local ? 'local' : 'public'}">
+                        ${relay.local ? 'Local' : 'Public'}
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        function toggleRelay(index) {
+            relays[index].enabled = !relays[index].enabled;
+        }
+
+        // Build profile content
+        function buildProfileContent() {
+            // Start with existing profile to preserve unknown fields
+            const profile = existingProfile ? { ...existingProfile } : {};
+
+            // Update standard fields
+            profile.name = document.getElementById('name').value.trim();
+            profile.about = document.getElementById('about').value.trim();
+            profile.website = document.getElementById('website').value.trim();
+            profile.nip05 = document.getElementById('nip05').value.trim();
+            profile.lud16 = document.getElementById('lud16').value.trim();
+
+            // Update image URLs only if new images were uploaded
+            if (avatarCID) {
+                profile.picture = `${window.location.origin}/ipfs/${avatarCID}`;
+            }
+            if (bannerCID) {
+                profile.banner = `${window.location.origin}/ipfs/${bannerCID}`;
+            }
+
+            // Equaliser-specific fields
+            const location = document.getElementById('location').value.trim();
+            if (location || genres.length > 0 || (profile.equaliser && profile.equaliser.joinedDate)) {
+                profile.equaliser = profile.equaliser || {};
+                if (location) profile.equaliser.location = location;
+                if (genres.length > 0) profile.equaliser.genres = genres;
+                // Preserve joinedDate if it exists, otherwise set it
+                if (!profile.equaliser.joinedDate) {
+                    profile.equaliser.joinedDate = new Date().toISOString().split('T')[0];
+                }
+            }
+
+            return profile;
+        }
+
+        // Publish profile
+        async function publishProfile() {
+            const name = document.getElementById('name').value.trim();
+
+            if (!name) {
+                alert('Please enter your artist name');
+                return;
+            }
+
+            const enabledRelays = relays.filter(r => r.enabled);
+            if (enabledRelays.length === 0) {
+                alert('Please select at least one relay');
+                return;
+            }
+
+            // Hide previous status messages
+            document.getElementById('publish-success').classList.remove('visible');
+            document.getElementById('publish-error').classList.remove('visible');
+
+            // Disable save button and show status
+            const saveBtn = document.getElementById('save-btn');
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="loading"></span> Publishing...';
+
+            // Show publish status container
+            const statusContainer = document.getElementById('publish-status');
+            statusContainer.style.display = 'block';
+            statusContainer.innerHTML = enabledRelays.map((relay, i) => `
+                <div class="publish-status-item pending" id="publish-status-${i}">
+                    <span class="status-icon">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                            <circle cx="10" cy="10" r="6" fill="currentColor" opacity="0.3"/>
+                        </svg>
+                    </span>
+                    <span class="relay-url">${relay.url}</span>
+                    <span class="status-text">Waiting...</span>
+                </div>
+            `).join('');
+
+            // Build profile content
+            const profileContent = buildProfileContent();
+
+            // Create Kind 0 event
+            const event = {
+                kind: 0,
+                created_at: Math.floor(Date.now() / 1000),
+                tags: [],
+                content: JSON.stringify(profileContent)
+            };
+
+            // Sign the event
+            const signedEvent = NostrTools.finalizeEvent(event, privateKey);
+
+            // Publish to each relay
+            const results = [];
+
+            for (let i = 0; i < enabledRelays.length; i++) {
+                const relay = enabledRelays[i];
+                const statusEl = document.getElementById(`publish-status-${i}`);
+
+                // Update to connecting state
+                statusEl.className = 'publish-status-item connecting';
+                statusEl.querySelector('.status-icon').innerHTML = '<span class="loading"></span>';
+                statusEl.querySelector('.status-text').textContent = 'Connecting...';
+
+                try {
+                    const result = await publishToRelay(relay.url, signedEvent);
+                    results.push(result);
+
+                    // Update status based on result
+                    if (result.success) {
+                        statusEl.className = 'publish-status-item success';
+                        statusEl.querySelector('.status-icon').innerHTML = `
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>`;
+                        statusEl.querySelector('.status-text').textContent = 'Published';
+                    } else {
+                        statusEl.className = 'publish-status-item error';
+                        statusEl.querySelector('.status-icon').innerHTML = `
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                            </svg>`;
+                        statusEl.querySelector('.status-text').textContent = result.error;
+                    }
+
+                } catch (err) {
+                    results.push({ url: relay.url, success: false, error: err.message });
+                    statusEl.className = 'publish-status-item error';
+                    statusEl.querySelector('.status-icon').innerHTML = `
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>`;
+                    statusEl.querySelector('.status-text').textContent = err.message;
+                }
+            }
+
+            // Check results
+            const successCount = results.filter(r => r.success).length;
+
+            if (successCount === 0) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = 'Retry Save';
+                document.getElementById('publish-error-text').textContent = 'Failed to publish to any relay. Please check your connection and try again.';
+                document.getElementById('publish-error').classList.add('visible');
+            } else {
+                // Update existingProfile with new data
+                existingProfile = profileContent;
+                updateUserInfoDisplay();
+
+                document.getElementById('publish-success-text').textContent = `Profile updated successfully on ${successCount}/${results.length} relays!`;
+                document.getElementById('publish-success').classList.add('visible');
+
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = 'Save Profile';
+
+                // Reset upload states
+                avatarCID = null;
+                bannerCID = null;
+            }
+        }
+
+        async function publishToRelay(relayUrl, signedEvent) {
+            return new Promise((resolve) => {
+                const ws = new WebSocket(relayUrl);
+
+                const timeout = setTimeout(() => {
+                    ws.close();
+                    resolve({ url: relayUrl, success: false, error: 'Timeout' });
+                }, 8000);
+
+                ws.onopen = () => {
+                    ws.send(JSON.stringify(['EVENT', signedEvent]));
+                };
+
+                ws.onmessage = (e) => {
+                    const data = JSON.parse(e.data);
+                    if (data[0] === 'OK') {
+                        clearTimeout(timeout);
+                        ws.close();
+                        resolve({
+                            url: relayUrl,
+                            success: data[2],
+                            error: data[2] ? null : data[3]
+                        });
+                    }
+                };
+
+                ws.onerror = () => {
+                    clearTimeout(timeout);
+                    resolve({ url: relayUrl, success: false, error: 'Connection failed' });
+                };
+            });
+        }
+
+        // Logout
+        function logout() {
+            // Clear all sensitive data from memory
+            privateKey = null;
+            publicKey = null;
+            nsec = null;
+            npub = null;
+            existingProfile = null;
+            genres = [];
+            avatarCID = null;
+            bannerCID = null;
+
+            // Reset form
+            document.getElementById('name').value = '';
+            document.getElementById('about').value = '';
+            document.getElementById('location').value = '';
+            document.getElementById('website').value = '';
+            document.getElementById('nip05').value = '';
+            document.getElementById('lud16').value = '';
+            document.getElementById('genre-tags').innerHTML = '';
+            document.getElementById('nsec-input').value = '';
+
+            // Reset image previews
+            document.getElementById('avatar-preview').innerHTML = `
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                </svg>`;
+            document.getElementById('avatar-preview').classList.remove('has-image');
+            document.getElementById('banner-preview').innerHTML = `
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                </svg>`;
+            document.getElementById('banner-preview').classList.remove('has-image');
+
+            // Hide status messages
+            document.getElementById('publish-status').style.display = 'none';
+            document.getElementById('publish-success').classList.remove('visible');
+            document.getElementById('publish-error').classList.remove('visible');
+            document.getElementById('login-error').classList.remove('visible');
+
+            // Reset relays
+            relays = [...defaultRelays];
+            renderRelays();
+
+            // Show login section
+            showSection('login-section');
+        }
+
+        // Section navigation
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+        }
+    </script>
+</body>
+</html>
