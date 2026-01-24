@@ -16,61 +16,67 @@
             background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
             color: #ffffff;
             min-height: 100vh;
-            padding: 40px 20px;
         }
 
         .container {
-            max-width: 720px;
-            margin: 0 auto;
+            display: flex;
+            min-height: 100vh;
         }
 
-        .logo {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .logo h1 {
-            font-size: 32px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #8b5cf6, #a855f7);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .logo p {
-            color: rgba(255, 255, 255, 0.5);
-            margin-top: 8px;
-        }
-
-        /* Card */
-        .card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 240px;
             padding: 32px;
-            margin-bottom: 24px;
+            padding-bottom: 100px;
+            max-width: 900px;
         }
 
-        .card-title {
-            font-size: 24px;
-            font-weight: 600;
+        .header {
+            margin-bottom: 32px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
             margin-bottom: 8px;
         }
 
-        .card-description {
+        .page-description {
             color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+        }
+
+        /* Settings Sections */
+        .settings-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
             margin-bottom: 24px;
-            line-height: 1.6;
         }
 
-        /* Sections */
-        .section {
-            display: none;
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .section.active {
-            display: block;
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title svg {
+            width: 20px;
+            height: 20px;
+            color: #a855f7;
         }
 
         /* Form Elements */
@@ -78,12 +84,16 @@
             margin-bottom: 20px;
         }
 
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
         .form-label {
             display: block;
-            font-size: 14px;
-            font-weight: 500;
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.7);
             margin-bottom: 8px;
-            color: rgba(255, 255, 255, 0.8);
         }
 
         .form-input {
@@ -99,7 +109,7 @@
 
         .form-input:focus {
             outline: none;
-            border-color: #8b5cf6;
+            border-color: #a855f7;
             background: rgba(139, 92, 246, 0.1);
         }
 
@@ -107,7 +117,7 @@
             color: rgba(255, 255, 255, 0.3);
         }
 
-        textarea.form-input {
+        .form-textarea {
             min-height: 100px;
             resize: vertical;
         }
@@ -124,12 +134,11 @@
             gap: 16px;
         }
 
-        /* Profile Images */
+        /* Profile Image Upload */
         .profile-images {
             display: flex;
             gap: 24px;
             align-items: flex-start;
-            margin-bottom: 24px;
         }
 
         .image-upload {
@@ -244,52 +253,13 @@
             opacity: 0.7;
         }
 
-        /* Relay Config */
-        .relay-list {
-            margin-bottom: 16px;
-        }
-
-        .relay-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 8px;
-            margin-bottom: 8px;
-        }
-
-        .relay-item input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            accent-color: #8b5cf6;
-        }
-
+        /* Publish Status */
         .relay-url {
-            flex: 1;
             font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
             font-size: 13px;
             color: rgba(255, 255, 255, 0.7);
         }
 
-        .relay-status {
-            font-size: 11px;
-            padding: 4px 8px;
-            border-radius: 4px;
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .relay-status.local {
-            background: rgba(59, 130, 246, 0.2);
-            color: #3b82f6;
-        }
-
-        .relay-status.public {
-            background: rgba(34, 197, 94, 0.2);
-            color: #22c55e;
-        }
-
-        /* Publish Status */
         .publish-status {
             margin-top: 16px;
             padding: 16px;
@@ -338,16 +308,15 @@
         .btn {
             display: inline-flex;
             align-items: center;
-            justify-content: center;
             gap: 8px;
-            padding: 14px 28px;
+            padding: 12px 24px;
             border: none;
             border-radius: 10px;
             font-weight: 600;
-            font-size: 14px;
             cursor: pointer;
             transition: all 0.2s;
-            width: 100%;
+            font-size: 14px;
+            text-decoration: none;
         }
 
         .btn-primary {
@@ -375,48 +344,10 @@
             background: rgba(255, 255, 255, 0.1);
         }
 
-        .btn-danger {
-            background: rgba(239, 68, 68, 0.1);
-            color: #ef4444;
-            border: 1px solid rgba(239, 68, 68, 0.2);
-        }
-
-        .btn-danger:hover {
-            background: rgba(239, 68, 68, 0.2);
-        }
-
-        .btn-group {
+        .button-group {
             display: flex;
             gap: 12px;
             margin-top: 24px;
-        }
-
-        .btn-group .btn {
-            flex: 1;
-        }
-
-        /* Warning Box */
-        .warning {
-            background: rgba(249, 115, 22, 0.1);
-            border: 1px solid rgba(249, 115, 22, 0.3);
-            border-radius: 10px;
-            padding: 16px;
-            margin-bottom: 20px;
-        }
-
-        .warning-title {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 600;
-            color: #f97316;
-            margin-bottom: 8px;
-        }
-
-        .warning-text {
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.7);
-            line-height: 1.6;
         }
 
         /* Success Box */
@@ -485,51 +416,6 @@
             to { transform: rotate(360deg); }
         }
 
-        /* User Info Bar */
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 16px;
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 10px;
-            margin-bottom: 24px;
-        }
-
-        .user-avatar {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #8b5cf6, #a855f7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 18px;
-            overflow: hidden;
-        }
-
-        .user-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .user-details {
-            flex: 1;
-        }
-
-        .user-name {
-            font-weight: 600;
-            font-size: 16px;
-        }
-
-        .user-npub {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.5);
-            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-        }
-
         /* Links */
         .link {
             color: #a855f7;
@@ -546,15 +432,11 @@
         }
 
         /* Responsive */
-        @media (max-width: 600px) {
-            .profile-images {
-                flex-direction: column;
-                align-items: stretch;
-            }
+        @media (max-width: 768px) {
             .form-row {
                 grid-template-columns: 1fr;
             }
-            .btn-group {
+            .profile-images {
                 flex-direction: column;
             }
         }
@@ -562,74 +444,26 @@
 </head>
 <body>
     <div class="container">
-        <div class="logo">
-            <h1>Equaliser</h1>
-            <p>Edit Profile</p>
-        </div>
+        <!-- Sidebar (injected by admin-sidebar.js) -->
+        <div class="sidebar"></div>
 
-        <!-- Login Section -->
-        <div class="section active" id="login-section">
-            <div class="card">
-                <h2 class="card-title">Login to Edit Profile</h2>
-                <p class="card-description">
-                    Enter your private key (nsec) to access your artist profile. Your key stays in your browser and is never sent to any server.
-                </p>
-
-                <div class="warning">
-                    <div class="warning-title">
-                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
-                        </svg>
-                        Security Notice
-                    </div>
-                    <p class="warning-text">
-                        Your nsec is your identity. Never share it with anyone and make sure you're on the correct website before entering it.
-                    </p>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Private Key (nsec)</label>
-                    <input type="password" class="form-input" id="nsec-input" placeholder="nsec1...">
-                    <p class="form-hint">Your nsec is never sent to any server - it stays in your browser</p>
-                </div>
-
-                <div id="login-error" class="error-box">
-                    <div class="error-title">
-                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                        </svg>
-                        <span id="login-error-text">Error</span>
-                    </div>
-                </div>
-
-                <button class="btn btn-primary" id="login-btn" onclick="login()">
-                    Login
-                </button>
-
-                <p style="text-align: center; margin-top: 20px; color: rgba(255,255,255,0.5); font-size: 14px;">
-                    Don't have a NOSTR identity? <a href="onboarding.html" class="link">Create one here</a>
-                </p>
-            </div>
-        </div>
-
-        <!-- Profile Editor Section -->
-        <div class="section" id="profile-section">
-            <div class="user-info">
-                <div class="user-avatar" id="user-avatar">??</div>
-                <div class="user-details">
-                    <div class="user-name" id="user-name">Loading...</div>
-                    <div class="user-npub" id="user-npub"></div>
-                </div>
-                <button class="btn btn-secondary" style="width: auto; padding: 8px 16px;" onclick="logout()">
-                    Logout
-                </button>
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1 class="page-title">Edit Profile</h1>
+                <p class="page-description">Update your artist profile information</p>
             </div>
 
-            <div class="card">
-                <h2 class="card-title">Profile Images</h2>
-                <p class="card-description">
-                    Upload your avatar and banner images. They will be stored on IPFS for decentralized access.
-                </p>
+            <!-- Profile Images Section -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                        </svg>
+                        Profile Images
+                    </h2>
+                </div>
 
                 <div class="profile-images">
                     <div class="image-upload">
@@ -648,16 +482,23 @@
                             </svg>
                         </label>
                         <input type="file" id="banner-input" accept="image/*" onchange="handleBannerUpload(event)">
-                        <span class="image-label">Banner (recommended: 1024x768)</span>
+                        <span class="image-label">Banner (1920x480)</span>
                     </div>
                 </div>
+
+                <p class="form-hint" style="margin-top: 16px;">Images will be stored on IPFS for decentralized access.</p>
             </div>
 
-            <div class="card">
-                <h2 class="card-title">Profile Information</h2>
-                <p class="card-description">
-                    This information will be published to NOSTR and visible across all compatible apps.
-                </p>
+            <!-- Profile Information Section -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                        </svg>
+                        Profile Information
+                    </h2>
+                </div>
 
                 <div class="form-group">
                     <label class="form-label">Artist / Project Name *</label>
@@ -666,7 +507,7 @@
 
                 <div class="form-group">
                     <label class="form-label">Bio</label>
-                    <textarea class="form-input" id="about" placeholder="Tell your story..."></textarea>
+                    <textarea class="form-input form-textarea" id="about" placeholder="Tell your story..."></textarea>
                     <p class="form-hint">A short description of you and your music</p>
                 </div>
 
@@ -687,6 +528,24 @@
                     <div class="genre-tags" id="genre-tags"></div>
                     <p class="form-hint">Add genres that describe your music</p>
                 </div>
+            </div>
+
+            <!-- NOSTR Identity Section -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z"/>
+                        </svg>
+                        NOSTR Identity
+                    </h2>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Your Public Key (npub)</label>
+                    <input type="text" class="form-input" id="user-npub-display" readonly style="background: rgba(255,255,255,0.02); cursor: default;">
+                    <p class="form-hint">Share this to let others find you on NOSTR</p>
+                </div>
 
                 <div class="form-row">
                     <div class="form-group">
@@ -702,15 +561,20 @@
                 </div>
             </div>
 
-            <div class="card">
-                <h2 class="card-title">Publish To Relays</h2>
-                <p class="card-description">
-                    Select which relays to publish your updated profile to.
-                </p>
-
-                <div class="relay-list" id="relay-list">
-                    <!-- Populated by JS -->
+            <!-- Save Section -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
+                        </svg>
+                        Save Profile
+                    </h2>
                 </div>
+
+                <p style="color: rgba(255,255,255,0.5); font-size: 14px; margin-bottom: 16px;">
+                    Your profile will be published to your local content node relay.
+                </p>
 
                 <div id="publish-success" class="success-box">
                     <div class="success-title">
@@ -735,8 +599,7 @@
                     <!-- Populated by JS during publishing -->
                 </div>
 
-                <div class="btn-group">
-                    <button class="btn btn-secondary" onclick="logout()">Cancel</button>
+                <div class="button-group">
                     <button class="btn btn-primary" id="save-btn" onclick="publishProfile()">
                         Save Profile
                     </button>
@@ -747,14 +610,12 @@
 
     <!-- nostr-tools via CDN -->
     <script src="https://unpkg.com/nostr-tools@2.1.4/lib/nostr.bundle.js"></script>
+    <!-- Session Manager -->
+    <script src="js/session.js"></script>
+    <!-- Admin Sidebar -->
+    <script src="js/admin-sidebar.js"></script>
 
     <script>
-        // Session state (memory only, never persisted)
-        let privateKey = null;
-        let publicKey = null;
-        let nsec = null;
-        let npub = null;
-
         // Profile state
         let existingProfile = null;
         let genres = [];
@@ -762,103 +623,49 @@
         let bannerCID = null;
 
         // Configuration
-        const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname);
         const localRelayUrl = 'ws://' + window.location.host + '/relay';
 
-        const defaultRelays = isLocalDev
-            ? [
-                { url: localRelayUrl, enabled: true, local: true }
-              ]
-            : [
-                { url: localRelayUrl, enabled: false, local: true },
-                { url: 'wss://relay.damus.io', enabled: true, local: false },
-                { url: 'wss://nos.lol', enabled: true, local: false },
-                { url: 'wss://relay.nostr.band', enabled: true, local: false }
-              ];
-
-        let relays = [...defaultRelays];
-
         // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            renderRelays();
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Initialize session manager
+            SessionManager.init();
+
+            // Require session - redirects to login if not authenticated
+            if (!SessionManager.requireSession()) {
+                return; // Will redirect to login
+            }
+
+            // Initialize sidebar
+            AdminSidebar.init();
+
+            // Setup UI
             setupGenreInput();
 
-            // Handle Enter key on login
-            document.getElementById('nsec-input').addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    login();
-                }
-            });
+            // Load profile data
+            await loadProfileData();
         });
 
-        // Clear sensitive data on page unload
-        window.addEventListener('beforeunload', () => {
-            privateKey = null;
-            publicKey = null;
-            nsec = null;
-        });
+        // Load profile data from session and relays
+        async function loadProfileData() {
+            const session = SessionManager.getSession();
+            if (!session) return;
 
-        // Login
-        async function login() {
-            const nsecInput = document.getElementById('nsec-input').value.trim();
-            const loginBtn = document.getElementById('login-btn');
-            const errorBox = document.getElementById('login-error');
+            // Update npub display
+            document.getElementById('user-npub-display').value = session.npub;
 
-            if (!nsecInput) {
-                showLoginError('Please enter your nsec');
-                return;
-            }
+            // Fetch existing profile from relays
+            existingProfile = await fetchExistingProfile(session.publicKey);
 
-            // Show loading state
-            loginBtn.disabled = true;
-            loginBtn.innerHTML = '<span class="loading"></span> Logging in...';
-            errorBox.classList.remove('visible');
+            // Populate form with existing data
+            populateForm(existingProfile);
 
-            try {
-                // Decode the nsec
-                const decoded = NostrTools.nip19.decode(nsecInput);
-
-                if (decoded.type !== 'nsec') {
-                    throw new Error('Invalid format. Expected nsec1...');
-                }
-
-                // Store keys in memory
-                privateKey = decoded.data;
-                publicKey = NostrTools.getPublicKey(privateKey);
-                nsec = nsecInput;
-                npub = NostrTools.nip19.npubEncode(publicKey);
-
-                // Fetch existing profile
-                existingProfile = await fetchExistingProfile(publicKey);
-
-                // Populate form with existing data
-                populateForm(existingProfile);
-
-                // Update user info display
-                updateUserInfoDisplay();
-
-                // Show profile editor
-                showSection('profile-section');
-
-            } catch (error) {
-                console.error('Login failed:', error);
-                showLoginError(error.message);
-                loginBtn.disabled = false;
-                loginBtn.innerHTML = 'Login';
-            }
+            // Update sidebar display
+            updateSidebarDisplay();
         }
 
-        function showLoginError(message) {
-            const errorBox = document.getElementById('login-error');
-            document.getElementById('login-error-text').textContent = message;
-            errorBox.classList.add('visible');
-        }
-
-        // Fetch existing profile from relays
+        // Fetch existing profile from local relay
         async function fetchExistingProfile(pubkeyHex) {
-            const relaysToCheck = isLocalDev
-                ? [localRelayUrl]
-                : ['wss://relay.damus.io', 'wss://nos.lol', 'wss://relay.nostr.band'];
+            const relaysToCheck = [localRelayUrl];
 
             for (const relayUrl of relaysToCheck) {
                 try {
@@ -939,20 +746,11 @@
             }
         }
 
-        // Update user info display
-        function updateUserInfoDisplay() {
+        // Update sidebar display
+        function updateSidebarDisplay() {
             const name = existingProfile?.name || 'New Artist';
-            const initials = name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
-
-            document.getElementById('user-name').textContent = name;
-            document.getElementById('user-npub').textContent = npub.substring(0, 20) + '...' + npub.substring(npub.length - 8);
-
-            const avatarEl = document.getElementById('user-avatar');
-            if (existingProfile?.picture) {
-                avatarEl.innerHTML = `<img src="${existingProfile.picture}" alt="${name}">`;
-            } else {
-                avatarEl.textContent = initials || '??';
-            }
+            const avatarUrl = existingProfile?.picture || null;
+            AdminSidebar.updateArtistDisplay(name, avatarUrl);
         }
 
         // Show image preview
@@ -1006,8 +804,9 @@
                 showImagePreview('avatar-preview', gatewayUrl);
                 previewEl.innerHTML += '<span class="upload-status success">&#10003;</span>';
 
-                // Update user info avatar too
-                document.getElementById('user-avatar').innerHTML = `<img src="${gatewayUrl}" alt="Avatar">`;
+                // Update sidebar avatar too
+                const name = document.getElementById('name').value.trim() || 'Artist';
+                AdminSidebar.updateArtistDisplay(name, gatewayUrl);
 
             } catch (error) {
                 console.error('Avatar upload error:', error);
@@ -1077,24 +876,6 @@
             renderGenres();
         }
 
-        // Relays
-        function renderRelays() {
-            const container = document.getElementById('relay-list');
-            container.innerHTML = relays.map((relay, i) => `
-                <div class="relay-item">
-                    <input type="checkbox" ${relay.enabled ? 'checked' : ''} onchange="toggleRelay(${i})">
-                    <span class="relay-url">${relay.url}</span>
-                    <span class="relay-status ${relay.local ? 'local' : 'public'}">
-                        ${relay.local ? 'Local' : 'Public'}
-                    </span>
-                </div>
-            `).join('');
-        }
-
-        function toggleRelay(index) {
-            relays[index].enabled = !relays[index].enabled;
-        }
-
         // Build profile content
         function buildProfileContent() {
             // Start with existing profile to preserve unknown fields
@@ -1139,12 +920,6 @@
                 return;
             }
 
-            const enabledRelays = relays.filter(r => r.enabled);
-            if (enabledRelays.length === 0) {
-                alert('Please select at least one relay');
-                return;
-            }
-
             // Hide previous status messages
             document.getElementById('publish-success').classList.remove('visible');
             document.getElementById('publish-error').classList.remove('visible');
@@ -1152,22 +927,22 @@
             // Disable save button and show status
             const saveBtn = document.getElementById('save-btn');
             saveBtn.disabled = true;
-            saveBtn.innerHTML = '<span class="loading"></span> Publishing...';
+            saveBtn.innerHTML = '<span class="loading"></span> Saving...';
 
             // Show publish status container
             const statusContainer = document.getElementById('publish-status');
             statusContainer.style.display = 'block';
-            statusContainer.innerHTML = enabledRelays.map((relay, i) => `
-                <div class="publish-status-item pending" id="publish-status-${i}">
+            statusContainer.innerHTML = `
+                <div class="publish-status-item pending" id="publish-status-0">
                     <span class="status-icon">
                         <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
                             <circle cx="10" cy="10" r="6" fill="currentColor" opacity="0.3"/>
                         </svg>
                     </span>
-                    <span class="relay-url">${relay.url}</span>
+                    <span class="relay-url">${localRelayUrl}</span>
                     <span class="status-text">Waiting...</span>
                 </div>
-            `).join('');
+            `;
 
             // Build profile content
             const profileContent = buildProfileContent();
@@ -1177,78 +952,81 @@
                 kind: 0,
                 created_at: Math.floor(Date.now() / 1000),
                 tags: [],
-                content: JSON.stringify(profileContent)
+                content: JSON.stringify(profileContent),
+                pubkey: SessionManager.getSession().publicKey
             };
 
-            // Sign the event
-            const signedEvent = NostrTools.finalizeEvent(event, privateKey);
+            // Sign the event using session
+            let signedEvent;
+            try {
+                signedEvent = await SessionManager.signEvent(event);
+            } catch (err) {
+                document.getElementById('publish-error-text').textContent = 'Failed to sign event: ' + err.message;
+                document.getElementById('publish-error').classList.add('visible');
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = 'Save Profile';
+                return;
+            }
 
-            // Publish to each relay
-            const results = [];
+            // Publish to local relay
+            const statusEl = document.getElementById('publish-status-0');
 
-            for (let i = 0; i < enabledRelays.length; i++) {
-                const relay = enabledRelays[i];
-                const statusEl = document.getElementById(`publish-status-${i}`);
+            // Update to connecting state
+            statusEl.className = 'publish-status-item connecting';
+            statusEl.querySelector('.status-icon').innerHTML = '<span class="loading"></span>';
+            statusEl.querySelector('.status-text').textContent = 'Connecting...';
 
-                // Update to connecting state
-                statusEl.className = 'publish-status-item connecting';
-                statusEl.querySelector('.status-icon').innerHTML = '<span class="loading"></span>';
-                statusEl.querySelector('.status-text').textContent = 'Connecting...';
+            try {
+                const result = await publishToRelay(localRelayUrl, signedEvent);
 
-                try {
-                    const result = await publishToRelay(relay.url, signedEvent);
-                    results.push(result);
+                // Update status based on result
+                if (result.success) {
+                    statusEl.className = 'publish-status-item success';
+                    statusEl.querySelector('.status-icon').innerHTML = `
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>`;
+                    statusEl.querySelector('.status-text').textContent = 'Saved';
 
-                    // Update status based on result
-                    if (result.success) {
-                        statusEl.className = 'publish-status-item success';
-                        statusEl.querySelector('.status-icon').innerHTML = `
-                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                            </svg>`;
-                        statusEl.querySelector('.status-text').textContent = 'Published';
-                    } else {
-                        statusEl.className = 'publish-status-item error';
-                        statusEl.querySelector('.status-icon').innerHTML = `
-                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                            </svg>`;
-                        statusEl.querySelector('.status-text').textContent = result.error;
-                    }
+                    // Update existingProfile with new data
+                    existingProfile = profileContent;
+                    updateSidebarDisplay();
 
-                } catch (err) {
-                    results.push({ url: relay.url, success: false, error: err.message });
+                    document.getElementById('publish-success-text').textContent = 'Profile saved successfully!';
+                    document.getElementById('publish-success').classList.add('visible');
+
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = 'Save Profile';
+
+                    // Reset upload states
+                    avatarCID = null;
+                    bannerCID = null;
+                } else {
                     statusEl.className = 'publish-status-item error';
                     statusEl.querySelector('.status-icon').innerHTML = `
                         <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
                         </svg>`;
-                    statusEl.querySelector('.status-text').textContent = err.message;
+                    statusEl.querySelector('.status-text').textContent = result.error;
+
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = 'Retry Save';
+                    document.getElementById('publish-error-text').textContent = 'Failed to save profile: ' + result.error;
+                    document.getElementById('publish-error').classList.add('visible');
                 }
-            }
 
-            // Check results
-            const successCount = results.filter(r => r.success).length;
+            } catch (err) {
+                statusEl.className = 'publish-status-item error';
+                statusEl.querySelector('.status-icon').innerHTML = `
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>`;
+                statusEl.querySelector('.status-text').textContent = err.message;
 
-            if (successCount === 0) {
                 saveBtn.disabled = false;
                 saveBtn.innerHTML = 'Retry Save';
-                document.getElementById('publish-error-text').textContent = 'Failed to publish to any relay. Please check your connection and try again.';
+                document.getElementById('publish-error-text').textContent = 'Failed to save profile: ' + err.message;
                 document.getElementById('publish-error').classList.add('visible');
-            } else {
-                // Update existingProfile with new data
-                existingProfile = profileContent;
-                updateUserInfoDisplay();
-
-                document.getElementById('publish-success-text').textContent = `Profile updated successfully on ${successCount}/${results.length} relays!`;
-                document.getElementById('publish-success').classList.add('visible');
-
-                saveBtn.disabled = false;
-                saveBtn.innerHTML = 'Save Profile';
-
-                // Reset upload states
-                avatarCID = null;
-                bannerCID = null;
             }
         }
 
@@ -1283,60 +1061,6 @@
                     resolve({ url: relayUrl, success: false, error: 'Connection failed' });
                 };
             });
-        }
-
-        // Logout
-        function logout() {
-            // Clear all sensitive data from memory
-            privateKey = null;
-            publicKey = null;
-            nsec = null;
-            npub = null;
-            existingProfile = null;
-            genres = [];
-            avatarCID = null;
-            bannerCID = null;
-
-            // Reset form
-            document.getElementById('name').value = '';
-            document.getElementById('about').value = '';
-            document.getElementById('location').value = '';
-            document.getElementById('website').value = '';
-            document.getElementById('nip05').value = '';
-            document.getElementById('lud16').value = '';
-            document.getElementById('genre-tags').innerHTML = '';
-            document.getElementById('nsec-input').value = '';
-
-            // Reset image previews
-            document.getElementById('avatar-preview').innerHTML = `
-                <svg fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
-                </svg>`;
-            document.getElementById('avatar-preview').classList.remove('has-image');
-            document.getElementById('banner-preview').innerHTML = `
-                <svg fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
-                </svg>`;
-            document.getElementById('banner-preview').classList.remove('has-image');
-
-            // Hide status messages
-            document.getElementById('publish-status').style.display = 'none';
-            document.getElementById('publish-success').classList.remove('visible');
-            document.getElementById('publish-error').classList.remove('visible');
-            document.getElementById('login-error').classList.remove('visible');
-
-            // Reset relays
-            relays = [...defaultRelays];
-            renderRelays();
-
-            // Show login section
-            showSection('login-section');
-        }
-
-        // Section navigation
-        function showSection(sectionId) {
-            document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
-            document.getElementById(sectionId).classList.add('active');
         }
     </script>
 </body>

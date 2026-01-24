@@ -12,7 +12,13 @@ content_node/
 ├── nostr-relay/            # NOSTR relay configuration
 │   └── config.toml
 ├── orchestrator/           # Artist admin tools & API (future)
+│   ├── login.html          # Login gateway (single entry point)
 │   ├── onboarding.html     # Artist onboarding wizard
+│   ├── profile.html        # Profile editor
+│   ├── settings.html       # Relay and account settings
+│   ├── js/
+│   │   ├── session.js      # Centralized in-memory session manager
+│   │   └── status-bar.js   # Session status bar component
 │   └── ONBOARDING.md       # Onboarding documentation
 ├── web/                    # Nginx web server configuration
 │   └── nginx.conf
@@ -121,7 +127,10 @@ Once running:
 |-----|-------------|
 | http://localhost | Landing page (under construction) |
 | http://localhost/artist.html?npub=... | Artist profile page |
+| http://localhost/admin/login.html | Login gateway (single entry point) |
 | http://localhost/admin/onboarding.html | Artist onboarding wizard |
+| http://localhost/admin/profile.html | Artist profile editor |
+| http://localhost/admin/settings.html | Relay and account settings |
 | ws://localhost/relay | NOSTR relay WebSocket |
 | http://localhost/ipfs/{CID} | IPFS content gateway |
 | http://localhost/health | Health check |
@@ -163,6 +172,70 @@ The onboarding wizard at `/admin/onboarding.html` allows artists to:
 - Backup file download includes keys and profile data
 
 See [ONBOARDING.md](./orchestrator/ONBOARDING.md) for detailed documentation.
+
+## Artist Admin Pages
+
+The admin section provides tools for artists to manage their NOSTR presence.
+
+### Profile Editor (`/admin/profile.html`)
+
+Allows artists to edit their NOSTR profile (Kind 0 event):
+
+- **Profile Images**: Upload avatar and banner images to IPFS
+- **Profile Information**: Name, bio, location, website, genres
+- **NOSTR Identity**: View npub, configure NIP-05 and Lightning address
+- **Publish**: Select relays and publish profile updates
+
+### Settings (`/admin/settings.html`)
+
+Manages relay configuration and account settings:
+
+- **Relay Configuration**: Add, remove, and configure relays in your NIP-65 relay list
+- **Read/Write Permissions**: Toggle relay permissions (read-only, write-only, or both)
+- **NOSTR Identity**: View your public keys (npub and hex format)
+
+### Session Management
+
+The admin pages use a centralized in-memory session management system with a single login gateway.
+
+#### Architecture
+
+- **Single Login Point**: All admin pages redirect to `/admin/login.html` if not authenticated
+- **In-Memory Only**: Private keys are stored only in memory, never in localStorage/sessionStorage
+- **Session Cleared**: On tab close, idle timeout (30 min), or explicit logout
+
+#### Login Methods
+
+1. **NIP-07 Browser Extension** (Recommended)
+   - Supports Alby, nos2x, and other NIP-07 compatible extensions
+   - Private key never leaves the extension
+   - Signing delegated to the extension
+
+2. **Manual nsec Entry**
+   - Enter your private key (nsec1...) directly
+   - Key stored in memory only for the session duration
+
+#### Status Bar
+
+A persistent status bar appears at the top of all admin pages showing:
+- **Connection Status**: Green pulsing indicator when connected
+- **Identity**: Shortened npub badge
+- **Session Duration**: How long you've been logged in
+- **Navigation**: Quick links between Profile and Settings
+- **Logout**: End session and clear all data
+
+#### Security Features
+
+- **Idle Timeout**: 30-minute inactivity timeout (audio/video playback aware)
+- **Multi-Tab Sync**: Logout from one tab logs out all tabs via BroadcastChannel
+- **No Persistence**: Keys never touch localStorage or cookies
+- **Return URL**: Redirects back to original page after login
+
+#### Files
+
+- `orchestrator/js/session.js` - Core session manager
+- `orchestrator/js/status-bar.js` - Status bar component
+- `orchestrator/login.html` - Login gateway page
 
 ## NOSTR Relay
 
