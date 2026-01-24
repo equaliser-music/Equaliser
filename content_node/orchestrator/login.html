@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Equaliser</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0a0a0f 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            padding: 20px;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 440px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo h1 {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo p {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 32px;
+        }
+
+        .card-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .card-header h2 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .card-header p {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+        }
+
+        /* Session expired notice */
+        .expired-notice {
+            display: none;
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .expired-notice.visible {
+            display: block;
+        }
+
+        .expired-notice svg {
+            width: 24px;
+            height: 24px;
+            color: #fbbf24;
+            margin-bottom: 8px;
+        }
+
+        .expired-notice p {
+            color: #fbbf24;
+            font-size: 14px;
+        }
+
+        /* Extension login section */
+        .extension-section {
+            margin-bottom: 24px;
+        }
+
+        .extension-btn {
+            width: 100%;
+            padding: 16px 24px;
+            background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
+            border: none;
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            transition: all 0.2s;
+        }
+
+        .extension-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(168, 85, 247, 0.3);
+        }
+
+        .extension-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .extension-btn svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .extension-unavailable {
+            text-align: center;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px dashed rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+        }
+
+        .extension-unavailable p {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .extension-unavailable a {
+            color: #a855f7;
+            text-decoration: none;
+            font-size: 13px;
+        }
+
+        .extension-unavailable a:hover {
+            text-decoration: underline;
+        }
+
+        /* Divider */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 24px 0;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 13px;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Form elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 15px;
+            font-family: monospace;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #a855f7;
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 8px;
+        }
+
+        /* Warning box */
+        .warning-box {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 14px;
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .warning-box svg {
+            width: 20px;
+            height: 20px;
+            color: #fbbf24;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .warning-text {
+            font-size: 13px;
+            color: #fbbf24;
+            line-height: 1.5;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 14px 24px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
+            color: #ffffff;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(168, 85, 247, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Error box */
+        .error-box {
+            display: none;
+            padding: 14px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .error-box.visible {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .error-box svg {
+            width: 20px;
+            height: 20px;
+            color: #ef4444;
+            flex-shrink: 0;
+        }
+
+        .error-text {
+            color: #ef4444;
+            font-size: 14px;
+        }
+
+        /* Loading spinner */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #ffffff;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Footer links */
+        .footer-links {
+            text-align: center;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer-links a {
+            color: rgba(255, 255, 255, 0.5);
+            text-decoration: none;
+            font-size: 13px;
+            margin: 0 12px;
+        }
+
+        .footer-links a:hover {
+            color: #a855f7;
+        }
+
+        /* Security badge */
+        .security-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 24px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 12px;
+        }
+
+        .security-badge svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 24px;
+            }
+
+            .logo h1 {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <h1>Equaliser</h1>
+            <p>Artist Admin Portal</p>
+        </div>
+
+        <div class="login-card">
+            <div class="card-header">
+                <h2>Welcome</h2>
+                <p>Sign in to manage your artist profile</p>
+            </div>
+
+            <!-- Session expired notice -->
+            <div class="expired-notice" id="expired-notice">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p>Your session expired due to inactivity. Please sign in again.</p>
+            </div>
+
+            <!-- Extension login (shown if available) -->
+            <div class="extension-section" id="extension-section">
+                <button class="extension-btn" id="extension-btn" onclick="loginWithExtension()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    </svg>
+                    Sign in with Browser Extension
+                </button>
+                <p class="form-hint" style="text-align: center; margin-top: 12px;">
+                    Recommended: Your keys never leave your extension
+                </p>
+            </div>
+
+            <!-- No extension available -->
+            <div class="extension-unavailable" id="no-extension" style="display: none;">
+                <p>No NOSTR extension detected</p>
+                <a href="https://github.com/nickydev/nos2x" target="_blank">Install nos2x</a>
+                <span style="color: rgba(255,255,255,0.3); margin: 0 8px;">|</span>
+                <a href="https://getalby.com" target="_blank">Install Alby</a>
+            </div>
+
+            <div class="divider">or sign in manually</div>
+
+            <!-- Manual nsec login -->
+            <div class="warning-box">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                <p class="warning-text">
+                    Your nsec is your identity. Never share it with anyone. Make sure you're on the correct website.
+                </p>
+            </div>
+
+            <div id="login-error" class="error-box">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span class="error-text" id="login-error-text">Error message</span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Private Key (nsec)</label>
+                <input type="password" class="form-input" id="nsec-input" placeholder="nsec1...">
+                <p class="form-hint">Your key is stored only in memory and cleared when you close the tab</p>
+            </div>
+
+            <button class="btn btn-primary" id="login-btn" onclick="loginWithNsec()">
+                Sign In
+            </button>
+
+            <div class="footer-links">
+                <a href="onboarding.html">Create New Identity</a>
+                <a href="https://nostr.how" target="_blank">Learn about NOSTR</a>
+            </div>
+        </div>
+
+        <div class="security-badge">
+            <svg fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+            </svg>
+            <span>Keys never leave your device</span>
+        </div>
+    </div>
+
+    <!-- nostr-tools via CDN -->
+    <script src="https://unpkg.com/nostr-tools@2.1.4/lib/nostr.bundle.js"></script>
+    <!-- Session Manager -->
+    <script src="js/session.js"></script>
+
+    <script>
+        // Get return URL from query params
+        const urlParams = new URLSearchParams(window.location.search);
+        const returnUrl = urlParams.get('return') || 'profile.html';
+        const sessionExpired = urlParams.get('expired') === '1';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            SessionManager.init();
+
+            // Show expired notice if session timed out
+            if (sessionExpired) {
+                document.getElementById('expired-notice').classList.add('visible');
+            }
+
+            // Check for extension availability
+            checkExtension();
+
+            // Handle Enter key on nsec input
+            document.getElementById('nsec-input').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    loginWithNsec();
+                }
+            });
+
+            // If already logged in, redirect to return URL
+            if (SessionManager.hasSession()) {
+                window.location.href = returnUrl;
+            }
+        });
+
+        // Check if NIP-07 extension is available
+        function checkExtension() {
+            // Give extensions time to inject window.nostr
+            setTimeout(() => {
+                if (SessionManager.hasExtension()) {
+                    document.getElementById('extension-section').style.display = 'block';
+                    document.getElementById('no-extension').style.display = 'none';
+                } else {
+                    document.getElementById('extension-section').style.display = 'none';
+                    document.getElementById('no-extension').style.display = 'block';
+                }
+            }, 100);
+        }
+
+        // Login with browser extension
+        async function loginWithExtension() {
+            const btn = document.getElementById('extension-btn');
+            const errorBox = document.getElementById('login-error');
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Connecting...';
+            errorBox.classList.remove('visible');
+
+            try {
+                await SessionManager.createSessionFromExtension();
+
+                // Redirect to return URL
+                window.location.href = returnUrl;
+
+            } catch (error) {
+                console.error('Extension login failed:', error);
+                showError(error.message);
+                btn.disabled = false;
+                btn.innerHTML = `
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    </svg>
+                    Sign in with Browser Extension
+                `;
+            }
+        }
+
+        // Login with nsec
+        async function loginWithNsec() {
+            const nsecInput = document.getElementById('nsec-input').value.trim();
+            const btn = document.getElementById('login-btn');
+            const errorBox = document.getElementById('login-error');
+
+            if (!nsecInput) {
+                showError('Please enter your nsec');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Signing in...';
+            errorBox.classList.remove('visible');
+
+            try {
+                await SessionManager.createSessionFromNsec(nsecInput);
+
+                // Clear input before redirecting
+                document.getElementById('nsec-input').value = '';
+
+                // Redirect to return URL
+                window.location.href = returnUrl;
+
+            } catch (error) {
+                console.error('Login failed:', error);
+                showError(error.message);
+                btn.disabled = false;
+                btn.innerHTML = 'Sign In';
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorBox = document.getElementById('login-error');
+            document.getElementById('login-error-text').textContent = message;
+            errorBox.classList.add('visible');
+        }
+    </script>
+</body>
+</html>
