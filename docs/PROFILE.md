@@ -9,9 +9,10 @@ The profile editor allows artists to login with their NOSTR identity and update 
 ## Features
 
 ### Login
-- Enter nsec (private key) to authenticate
-- Keys stored in memory only (never persisted to localStorage)
+- Requires active session from login page (see SESSION_MANAGEMENT_FUNCTIONAL.md)
 - Automatically fetches existing profile from NOSTR relays
+- If logged in via backup file, form fields pre-fill from backup data
+- Pre-fill only applies when no existing NOSTR profile is found
 
 ### Profile Images
 - **Avatar:** Circular profile image
@@ -49,14 +50,16 @@ User selects image
     ↓
 Show local preview (blob URL)
     ↓
-POST to http://localhost:5001/api/v0/add
+POST to /api/tracks/cover-art (orchestrator endpoint)
     ↓
-Receive CID (e.g., QmXxx...)
+Orchestrator uploads to IPFS and returns CID
     ↓
-Display via http://localhost/ipfs/{CID}
+Display via /ipfs/{CID} (nginx gateway proxy)
     ↓
 Store CID for Kind 0 event
 ```
+
+Note: The orchestrator `/api/tracks/cover-art` endpoint handles IPFS uploads. This avoids exposing the IPFS API port (5001) publicly.
 
 ### Kind 0 Event Structure
 
@@ -74,9 +77,10 @@ Store CID for Kind 0 event
 
 ### Security
 
-- **Keys in memory only:** nsec/privateKey never stored in localStorage or sessionStorage
+- **Session-based authentication:** Uses centralized SessionManager
+- **Keys in memory only:** nsec/privateKey never stored in localStorage
 - **Cleared on logout:** All sensitive data wiped from memory
-- **Cleared on page unload:** Keys cleared when navigating away
+- **Idle timeout:** Session expires after 30 minutes of inactivity
 - **Client-side signing:** Events signed in browser, nsec never sent to any server
 
 ### Relay Configuration
@@ -93,7 +97,9 @@ Store CID for Kind 0 event
 ## Dependencies
 
 - **nostr-tools@2.1.4** - NOSTR protocol library (via CDN)
-- **IPFS API** - Port 5001 for uploads
+- **SessionManager** - Centralized session management (js/session.js)
+- **AdminSidebar** - Navigation sidebar (js/admin-sidebar.js)
+- **Orchestrator API** - `/api/tracks/cover-art` for IPFS uploads
 - **IPFS Gateway** - Via nginx at `/ipfs`
 
 ## Related Files

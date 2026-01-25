@@ -57,16 +57,20 @@ curl -X POST -F file=@myfile.mp3 "http://localhost:5001/api/v0/add"
 
 The IPFS node must be configured to use path-style gateway URLs (not subdomain-style) for compatibility with the nginx proxy.
 
-### First-Time Setup
+### Automatic Gateway Configuration
 
-After starting the containers for the first time, run this command to configure the gateway:
+Gateway configuration is handled automatically on container startup via `ipfs/configure-gateway.sh`. This script runs as part of the container entrypoint and sets `UseSubdomains: false` to ensure `/ipfs/{CID}` URLs work correctly through nginx.
+
+No manual configuration is required after starting the containers.
+
+### Manual Configuration (if needed)
+
+If you need to reconfigure the gateway manually:
 
 ```bash
 docker exec equaliser-ipfs ipfs config --json Gateway.PublicGateways '{"localhost": {"UseSubdomains": false, "Paths": ["/ipfs", "/ipns"]}}'
 docker restart equaliser-ipfs
 ```
-
-This configuration is persisted in the `ipfs-data` volume and only needs to be run once.
 
 ### Key Configuration Settings
 

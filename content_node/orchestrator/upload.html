@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Equaliser - Upload Track</title>
+    <title>Equaliser - Upload Music</title>
     <style>
         * {
             margin: 0;
@@ -29,26 +29,28 @@
             margin-left: 240px;
             padding: 32px;
             padding-bottom: 100px;
-            max-width: 900px;
         }
 
         .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 32px;
         }
 
         .page-title {
             font-size: 28px;
             font-weight: 700;
-            margin-bottom: 8px;
         }
 
         .page-description {
             color: rgba(255, 255, 255, 0.5);
             font-size: 14px;
+            margin-top: 4px;
         }
 
         /* Settings Sections */
-        .settings-section {
+        .upload-section {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 16px;
@@ -61,8 +63,6 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 24px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .section-title {
@@ -79,13 +79,25 @@
             color: #a855f7;
         }
 
-        /* Form Elements */
-        .form-group {
-            margin-bottom: 20px;
+        .section-badge {
+            background: rgba(139, 92, 246, 0.2);
+            color: #a855f7;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
         }
 
-        .form-group:last-child {
-            margin-bottom: 0;
+        /* Form Elements */
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
         }
 
         .form-label {
@@ -96,7 +108,7 @@
             margin-bottom: 8px;
         }
 
-        .form-input {
+        .form-input, .form-select {
             width: 100%;
             padding: 12px 16px;
             background: rgba(255, 255, 255, 0.05);
@@ -107,7 +119,7 @@
             transition: all 0.2s;
         }
 
-        .form-input:focus {
+        .form-input:focus, .form-select:focus {
             outline: none;
             border-color: #a855f7;
             background: rgba(139, 92, 246, 0.1);
@@ -117,16 +129,15 @@
             color: rgba(255, 255, 255, 0.3);
         }
 
+        .form-select option {
+            background: #1a1a2e;
+            color: #ffffff;
+        }
+
         .form-hint {
             font-size: 12px;
             color: rgba(255, 255, 255, 0.4);
             margin-top: 6px;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
         }
 
         /* File Upload Zone */
@@ -140,99 +151,258 @@
             background: rgba(139, 92, 246, 0.05);
         }
 
-        .upload-zone:hover {
+        .upload-zone:hover, .upload-zone.dragover {
             border-color: #a855f7;
             background: rgba(139, 92, 246, 0.1);
         }
 
-        .upload-zone.dragging {
-            border-color: #a855f7;
-            background: rgba(139, 92, 246, 0.2);
-        }
-
-        .upload-zone.has-file {
-            border-style: solid;
-            border-color: #22c55e;
-            background: rgba(34, 197, 94, 0.1);
-        }
-
-        .upload-icon {
+        .upload-zone-icon {
             width: 64px;
             height: 64px;
             margin: 0 auto 16px;
-            color: rgba(255, 255, 255, 0.4);
+            color: #a855f7;
         }
 
-        .upload-zone.has-file .upload-icon {
-            color: #22c55e;
-        }
-
-        .upload-text {
-            font-size: 16px;
+        .upload-zone-title {
+            font-size: 18px;
+            font-weight: 600;
             margin-bottom: 8px;
         }
 
-        .upload-hint {
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.4);
-        }
-
-        .file-info {
-            display: none;
-            margin-top: 16px;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-        }
-
-        .upload-zone.has-file .file-info {
-            display: block;
-        }
-
-        .file-name {
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-
-        .file-size {
-            font-size: 13px;
+        .upload-zone-subtitle {
+            font-size: 14px;
             color: rgba(255, 255, 255, 0.5);
         }
 
-        /* Progress */
-        .progress-container {
-            display: none;
+        .upload-zone-formats {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .format-badge {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* Track List */
+        .track-list {
             margin-top: 24px;
         }
 
-        .progress-container.active {
+        .track-list-empty {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.4);
+            padding: 32px;
+            font-size: 14px;
+        }
+
+        .track-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            transition: all 0.3s;
+        }
+
+        .track-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .track-item.uploading {
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+
+        .track-item.processing {
+            border-color: rgba(251, 191, 36, 0.3);
+        }
+
+        .track-item.complete {
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+
+        .track-item.error {
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .track-number {
+            width: 32px;
+            height: 32px;
+            background: rgba(139, 92, 246, 0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: #a855f7;
+            flex-shrink: 0;
+        }
+
+        .track-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .track-title {
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+
+        .track-meta {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            display: flex;
+            gap: 12px;
+        }
+
+        .track-status {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+
+        .track-status.pending {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .track-status.uploading {
+            background: rgba(139, 92, 246, 0.2);
+            color: #a855f7;
+        }
+
+        .track-status.processing {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
+        .track-status.complete {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .track-status.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .track-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .track-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .track-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+        }
+
+        .track-btn.delete:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .track-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Track Edit Panel */
+        .track-edit-panel {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: -4px;
+            margin-bottom: 12px;
+            display: none;
+        }
+
+        .track-edit-panel.active {
             display: block;
         }
 
+        /* Progress Bar */
+        .progress-container {
+            margin-top: 8px;
+        }
+
         .progress-bar {
-            height: 8px;
+            height: 4px;
             background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
+            border-radius: 2px;
             overflow: hidden;
-            margin-bottom: 12px;
         }
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #a855f7, #ec4899);
-            border-radius: 4px;
+            background: linear-gradient(90deg, #8b5cf6, #a855f7);
+            border-radius: 2px;
             transition: width 0.3s;
-            width: 0%;
         }
 
-        .progress-status {
+        .progress-fill.complete {
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+        }
+
+        /* Submit Section */
+        .submit-section {
             display: flex;
             justify-content: space-between;
-            font-size: 13px;
+            align-items: center;
+            padding: 24px 32px;
+            background: rgba(15, 15, 25, 0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            position: fixed;
+            bottom: 0;
+            left: 240px;
+            right: 0;
+            z-index: 50;
+        }
+
+        .submit-info {
+            font-size: 14px;
             color: rgba(255, 255, 255, 0.6);
         }
 
-        /* Buttons */
+        .submit-info strong {
+            color: #a855f7;
+        }
+
+        .submit-actions {
+            display: flex;
+            gap: 16px;
+        }
+
         .btn {
             padding: 12px 24px;
             border: none;
@@ -241,389 +411,916 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #a855f7, #ec4899);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 20px rgba(168, 85, 247, 0.4);
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .btn-secondary {
             background: rgba(255, 255, 255, 0.1);
-            color: white;
+            color: #ffffff;
         }
 
         .btn-secondary:hover {
             background: rgba(255, 255, 255, 0.15);
         }
 
-        .form-actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 24px;
-        }
-
-        /* Status Messages */
-        .status-message {
-            padding: 16px;
-            border-radius: 10px;
-            margin-top: 24px;
-            display: none;
-        }
-
-        .status-message.success {
-            display: block;
-            background: rgba(34, 197, 94, 0.1);
-            border: 1px solid rgba(34, 197, 94, 0.3);
-            color: #22c55e;
-        }
-
-        .status-message.error {
-            display: block;
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: #ef4444;
-        }
-
-        /* Result Card */
-        .result-card {
-            display: none;
-            margin-top: 24px;
-            padding: 20px;
-            background: rgba(34, 197, 94, 0.1);
-            border: 1px solid rgba(34, 197, 94, 0.3);
-            border-radius: 12px;
-        }
-
-        .result-card.visible {
-            display: block;
-        }
-
-        .result-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 16px;
-            color: #22c55e;
-        }
-
-        .result-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            font-size: 13px;
-        }
-
-        .result-item:last-child {
-            border-bottom: none;
-        }
-
-        .result-label {
-            color: rgba(255, 255, 255, 0.6);
-        }
-
-        .result-value {
-            font-family: monospace;
+        .btn-primary {
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
             color: #ffffff;
         }
 
-        .result-value.truncate {
-            max-width: 300px;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
         }
 
-        /* Loading */
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Loading spinner */
         .loading {
             display: inline-block;
             width: 16px;
             height: 16px;
             border: 2px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
-            border-top-color: #a855f7;
-            animation: spin 1s linear infinite;
+            border-top-color: #ffffff;
+            animation: spin 0.8s linear infinite;
         }
 
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
 
-        /* Hidden file input */
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            padding: 16px 24px;
+            background: rgba(15, 15, 25, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+            transform: translateX(120%);
+            transition: transform 0.3s;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+
+        .notification.error {
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .notification-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .notification.success .notification-icon {
+            color: #22c55e;
+        }
+
+        .notification.error .notification-icon {
+            color: #ef4444;
+        }
+
+        /* Result info */
+        .result-info {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 8px;
+        }
+
+        .result-info code {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 11px;
+        }
+
+        /* Hidden file inputs */
         input[type="file"] {
             display: none;
+        }
+
+        /* Cover Art Upload */
+        .cover-art-section {
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+            margin-top: 16px;
+        }
+
+        .cover-art-preview {
+            width: 160px;
+            height: 160px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px dashed rgba(139, 92, 246, 0.3);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .cover-art-preview:hover {
+            border-color: #a855f7;
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .cover-art-preview.has-image {
+            border-style: solid;
+            border-color: rgba(139, 92, 246, 0.5);
+        }
+
+        .cover-art-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .cover-art-preview .placeholder {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .cover-art-preview .placeholder svg {
+            width: 40px;
+            height: 40px;
+            margin-bottom: 8px;
+            color: #a855f7;
+        }
+
+        .cover-art-preview .placeholder span {
+            font-size: 12px;
+        }
+
+        .cover-art-info {
+            flex: 1;
+        }
+
+        .cover-art-info h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .cover-art-info p {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 12px;
+        }
+
+        .cover-art-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .cover-art-status.uploading {
+            color: #a855f7;
+        }
+
+        .cover-art-status.success {
+            color: #22c55e;
+        }
+
+        .cover-art-status.error {
+            color: #ef4444;
+        }
+
+        .cover-art-cid {
+            font-family: monospace;
+            font-size: 11px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                margin-left: 0;
+                padding: 16px;
+            }
+            .submit-section {
+                left: 0;
+            }
+            .form-row {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Sidebar (injected by admin-sidebar.js) -->
         <div class="sidebar"></div>
 
+        <!-- Main Content -->
         <div class="main-content">
             <div class="header">
-                <h1 class="page-title">Upload Track</h1>
-                <p class="page-description">Upload your music to IPFS and publish to NOSTR</p>
+                <div>
+                    <h1 class="page-title">Upload Music</h1>
+                    <p class="page-description">Upload your tracks to IPFS and publish to NOSTR</p>
+                </div>
             </div>
 
-            <form id="upload-form">
-                <!-- Audio File Upload -->
-                <div class="settings-section">
-                    <div class="section-header">
-                        <h2 class="section-title">
-                            <svg fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/>
-                            </svg>
-                            Audio File
-                        </h2>
-                    </div>
-
-                    <div class="upload-zone" id="upload-zone">
-                        <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+            <!-- Default Track Settings -->
+            <div class="upload-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
                         </svg>
-                        <p class="upload-text">Drop your audio file here or click to browse</p>
-                        <p class="upload-hint">Supports MP3, WAV, FLAC, AAC (max 500MB)</p>
-                        <div class="file-info">
-                            <p class="file-name" id="file-name"></p>
-                            <p class="file-size" id="file-size"></p>
-                        </div>
-                    </div>
-                    <input type="file" id="audio-file" accept="audio/*">
+                        Default Settings
+                    </h2>
+                    <span class="section-badge">Applied to all tracks</span>
                 </div>
 
-                <!-- Track Metadata -->
-                <div class="settings-section">
-                    <div class="section-header">
-                        <h2 class="section-title">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Release Type</label>
+                        <select class="form-select" id="default-release-type" onchange="onReleaseTypeChange()">
+                            <option value="single">Single</option>
+                            <option value="album">Album</option>
+                            <option value="ep">EP</option>
+                        </select>
+                        <p class="form-hint">Choose the type of release</p>
+                    </div>
+                    <div class="form-group" id="album-name-group" style="display: none;">
+                        <label class="form-label">Album/EP Name <span style="color: #ef4444;">*</span></label>
+                        <input type="text" class="form-input" id="default-album" placeholder="Album or EP name">
+                        <p class="form-hint">Required for albums and EPs</p>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Artist Name</label>
+                        <input type="text" class="form-input" id="default-artist" placeholder="Your artist name">
+                        <p class="form-hint">Will be loaded from your profile</p>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Genre</label>
+                        <select class="form-select" id="default-genre">
+                            <option value="">Select genre</option>
+                            <option value="electronic">Electronic</option>
+                            <option value="house">House</option>
+                            <option value="techno">Techno</option>
+                            <option value="ambient">Ambient</option>
+                            <option value="indie">Indie</option>
+                            <option value="pop">Pop</option>
+                            <option value="rock">Rock</option>
+                            <option value="hip-hop">Hip-Hop</option>
+                            <option value="r-and-b">R&B</option>
+                            <option value="jazz">Jazz</option>
+                            <option value="classical">Classical</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Price per Stream (sats)</label>
+                        <input type="number" class="form-input" id="default-price" value="100" min="0">
+                        <p class="form-hint">0 for free streaming</p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Release Date</label>
+                        <input type="date" class="form-input" id="default-release-date">
+                    </div>
+                </div>
+
+                <!-- Cover Art Upload -->
+                <div class="cover-art-section">
+                    <div class="cover-art-preview" id="cover-art-preview" onclick="document.getElementById('cover-art-input').click()">
+                        <div class="placeholder">
                             <svg fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm3 1h6v4H7V5zm6 6H7v2h6v-2z" clip-rule="evenodd"/>
+                                <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
                             </svg>
-                            Track Details
-                        </h2>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label" for="title">Title *</label>
-                        <input type="text" class="form-input" id="title" placeholder="Track title" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label" for="artist">Artist *</label>
-                        <input type="text" class="form-input" id="artist" placeholder="Artist name" required>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label" for="album">Album</label>
-                            <input type="text" class="form-input" id="album" placeholder="Album name (optional)">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" for="genre">Genre</label>
-                            <input type="text" class="form-input" id="genre" placeholder="e.g., Electronic, Rock">
+                            <span>Click to upload<br>cover art</span>
                         </div>
                     </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label" for="release-date">Release Date</label>
-                            <input type="date" class="form-input" id="release-date">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" for="price">Price (sats)</label>
-                            <input type="number" class="form-input" id="price" value="100" min="0">
-                            <p class="form-hint">Price per stream in satoshis (0 for free)</p>
+                    <input type="file" id="cover-art-input" accept="image/jpeg,image/png,image/webp" onchange="handleCoverArtUpload(this)">
+                    <div class="cover-art-info">
+                        <h4>Cover Art</h4>
+                        <p>Upload artwork for your release. Recommended size: 1400x1400 pixels.<br>Supported formats: JPEG, PNG, WebP.</p>
+                        <div class="cover-art-status" id="cover-art-status" style="display: none;">
+                            <span id="cover-art-status-text"></span>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Progress -->
-                <div class="progress-container" id="progress-container">
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progress-fill"></div>
-                    </div>
-                    <div class="progress-status">
-                        <span id="progress-message">Preparing...</span>
-                        <span id="progress-percent">0%</span>
-                    </div>
+            <!-- Tracks Upload Section -->
+            <div class="upload-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        Upload Tracks
+                    </h2>
+                    <span class="section-badge" id="track-count">0 tracks</span>
                 </div>
 
-                <!-- Status Messages -->
-                <div class="status-message" id="status-message"></div>
-
-                <!-- Result Card -->
-                <div class="result-card" id="result-card">
-                    <h3 class="result-title">Track Published Successfully</h3>
-                    <div class="result-item">
-                        <span class="result-label">Track ID</span>
-                        <span class="result-value" id="result-track-id"></span>
+                <div class="upload-zone" id="upload-zone">
+                    <svg class="upload-zone-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                    <div class="upload-zone-title">Drag & drop your audio files here</div>
+                    <div class="upload-zone-subtitle">or click to browse your computer</div>
+                    <div class="upload-zone-formats">
+                        <span class="format-badge">MP3</span>
+                        <span class="format-badge">WAV</span>
+                        <span class="format-badge">FLAC</span>
+                        <span class="format-badge">AAC</span>
                     </div>
-                    <div class="result-item">
-                        <span class="result-label">Duration</span>
-                        <span class="result-value" id="result-duration"></span>
-                    </div>
-                    <div class="result-item">
-                        <span class="result-label">Full Track CID</span>
-                        <span class="result-value truncate" id="result-manifest-cid"></span>
-                    </div>
-                    <div class="result-item">
-                        <span class="result-label">Preview CID</span>
-                        <span class="result-value truncate" id="result-preview-cid"></span>
-                    </div>
-                    <div class="result-item">
-                        <span class="result-label">NOSTR Event</span>
-                        <span class="result-value truncate" id="result-event-id"></span>
+                    <div class="upload-zone-subtitle" style="margin-top: 12px; font-size: 12px;">
+                        Files will be encoded to HLS for optimal streaming
                     </div>
                 </div>
+                <input type="file" id="file-input" accept="audio/*" multiple>
 
-                <!-- Actions -->
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary" id="submit-btn" disabled>
-                        Upload Track
-                    </button>
-                    <button type="button" class="btn btn-secondary" id="reset-btn">
-                        Reset
-                    </button>
-                </div>
-            </form>
+                <div class="track-list" id="track-list"></div>
+            </div>
         </div>
     </div>
 
+    <!-- Submit Section -->
+    <div class="submit-section">
+        <div class="submit-info">
+            <span id="upload-summary">No tracks ready for upload</span>
+        </div>
+        <div class="submit-actions">
+            <button class="btn btn-secondary" onclick="clearAll()">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                Clear All
+            </button>
+            <button class="btn btn-primary" id="upload-btn" onclick="uploadAllTracks()" disabled>
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                </svg>
+                Upload All Tracks
+            </button>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification">
+        <svg class="notification-icon" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+        </svg>
+        <span id="notification-text">Success!</span>
+    </div>
+
+    <!-- nostr-tools via CDN -->
+    <script src="https://unpkg.com/nostr-tools@2.1.4/lib/nostr.bundle.js"></script>
+    <!-- Session Manager -->
     <script src="js/session.js"></script>
+    <!-- Admin Sidebar -->
     <script src="js/admin-sidebar.js"></script>
+
     <script>
-        // Initialize session and sidebar
-        SessionManager.init();
-        AdminSidebar.init();
+        // Track state
+        let tracks = [];
+        let isUploading = false;
+        let coverArtCid = null;
 
-        // Elements
-        const uploadZone = document.getElementById('upload-zone');
-        const fileInput = document.getElementById('audio-file');
-        const fileName = document.getElementById('file-name');
-        const fileSize = document.getElementById('file-size');
-        const uploadForm = document.getElementById('upload-form');
-        const submitBtn = document.getElementById('submit-btn');
-        const resetBtn = document.getElementById('reset-btn');
-        const progressContainer = document.getElementById('progress-container');
-        const progressFill = document.getElementById('progress-fill');
-        const progressMessage = document.getElementById('progress-message');
-        const progressPercent = document.getElementById('progress-percent');
-        const statusMessage = document.getElementById('status-message');
-        const resultCard = document.getElementById('result-card');
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Initialize session manager
+            SessionManager.init();
 
-        let selectedFile = null;
-        let pollInterval = null;
-
-        // File drop handling
-        uploadZone.addEventListener('click', () => fileInput.click());
-
-        uploadZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadZone.classList.add('dragging');
-        });
-
-        uploadZone.addEventListener('dragleave', () => {
-            uploadZone.classList.remove('dragging');
-        });
-
-        uploadZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadZone.classList.remove('dragging');
-            const files = e.dataTransfer.files;
-            if (files.length > 0 && files[0].type.startsWith('audio/')) {
-                handleFileSelect(files[0]);
-            }
-        });
-
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handleFileSelect(e.target.files[0]);
-            }
-        });
-
-        function handleFileSelect(file) {
-            selectedFile = file;
-            fileName.textContent = file.name;
-            fileSize.textContent = formatFileSize(file.size);
-            uploadZone.classList.add('has-file');
-            validateForm();
-        }
-
-        function formatFileSize(bytes) {
-            if (bytes < 1024) return bytes + ' B';
-            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-        }
-
-        function validateForm() {
-            const title = document.getElementById('title').value.trim();
-            const artist = document.getElementById('artist').value.trim();
-            submitBtn.disabled = !selectedFile || !title || !artist;
-        }
-
-        // Form validation on input
-        document.getElementById('title').addEventListener('input', validateForm);
-        document.getElementById('artist').addEventListener('input', validateForm);
-
-        // Reset form
-        resetBtn.addEventListener('click', () => {
-            uploadForm.reset();
-            selectedFile = null;
-            uploadZone.classList.remove('has-file');
-            progressContainer.classList.remove('active');
-            statusMessage.className = 'status-message';
-            resultCard.classList.remove('visible');
-            submitBtn.disabled = true;
-            if (pollInterval) {
-                clearInterval(pollInterval);
-                pollInterval = null;
-            }
-        });
-
-        // Form submission
-        uploadForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            if (!selectedFile) return;
-
-            const session = SessionManager.getSession();
-            if (!session) {
-                showError('Please log in first');
+            // Require session - redirects to login if not authenticated
+            if (!SessionManager.requireSession()) {
                 return;
             }
 
-            // Prepare form data
-            const formData = new FormData();
-            formData.append('file', selectedFile);
-            formData.append('title', document.getElementById('title').value.trim());
-            formData.append('artist', document.getElementById('artist').value.trim());
-            formData.append('album', document.getElementById('album').value.trim());
-            formData.append('genre', document.getElementById('genre').value.trim());
-            formData.append('release_date', document.getElementById('release-date').value);
-            formData.append('price_sats', document.getElementById('price').value || '100');
-            formData.append('artist_pubkey', session.pubkey);
+            // Initialize sidebar
+            AdminSidebar.init();
 
-            // If using extension, we won't pass private key (client-side signing later)
-            // For now, skip NOSTR publishing if no private key
+            // Setup UI
+            setupUploadZone();
+            setDefaultDate();
+            renderTrackList(); // Show empty state initially
+            await loadArtistInfo();
+        });
 
-            // Show progress
-            submitBtn.disabled = true;
-            progressContainer.classList.add('active');
-            statusMessage.className = 'status-message';
-            resultCard.classList.remove('visible');
-            updateProgress(0, 'Uploading file...');
+        // Set default release date to today
+        function setDefaultDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('default-release-date').value = today;
+        }
+
+        // Handle release type change
+        function onReleaseTypeChange() {
+            const releaseType = document.getElementById('default-release-type').value;
+            const albumGroup = document.getElementById('album-name-group');
+            const albumInput = document.getElementById('default-album');
+
+            if (releaseType === 'single') {
+                albumGroup.style.display = 'none';
+                albumInput.removeAttribute('required');
+            } else {
+                albumGroup.style.display = 'block';
+                albumInput.setAttribute('required', 'required');
+            }
+        }
+
+        // Load artist info from profile
+        async function loadArtistInfo() {
+            const session = SessionManager.getSession();
+            if (!session) return;
 
             try {
+                const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/relay`);
+
+                ws.onopen = () => {
+                    ws.send(JSON.stringify(['REQ', 'profile', {
+                        kinds: [0],
+                        authors: [session.publicKey],
+                        limit: 1
+                    }]));
+                };
+
+                ws.onmessage = (event) => {
+                    const msg = JSON.parse(event.data);
+                    if (msg[0] === 'EVENT' && msg[2]) {
+                        try {
+                            const profile = JSON.parse(msg[2].content);
+                            if (profile.name) {
+                                document.getElementById('default-artist').value = profile.name;
+                            }
+                            // Update sidebar
+                            const avatarUrl = profile.picture || null;
+                            AdminSidebar.updateArtistDisplay(profile.name, avatarUrl);
+                        } catch (e) {
+                            console.error('Error parsing profile:', e);
+                        }
+                    }
+                    if (msg[0] === 'EOSE') {
+                        ws.close();
+                    }
+                };
+
+                ws.onerror = () => {
+                    console.log('Could not load profile from relay');
+                };
+            } catch (error) {
+                console.log('Could not connect to relay:', error);
+            }
+        }
+
+        // Setup upload zone drag and drop
+        function setupUploadZone() {
+            const uploadZone = document.getElementById('upload-zone');
+            const fileInput = document.getElementById('file-input');
+
+            uploadZone.addEventListener('click', () => {
+                if (!isUploading) {
+                    fileInput.click();
+                }
+            });
+
+            uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadZone.classList.add('dragover');
+            });
+
+            uploadZone.addEventListener('dragleave', () => {
+                uploadZone.classList.remove('dragover');
+            });
+
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadZone.classList.remove('dragover');
+                if (!isUploading) {
+                    handleFiles(e.dataTransfer.files);
+                }
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                handleFiles(e.target.files);
+                fileInput.value = ''; // Reset to allow same file selection
+            });
+        }
+
+        // Handle file selection
+        function handleFiles(files) {
+            const validTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/flac', 'audio/aac', 'audio/x-m4a'];
+
+            Array.from(files).forEach(file => {
+                // Check if audio file
+                if (!file.type.startsWith('audio/') && !validTypes.some(t => file.name.toLowerCase().endsWith(t.split('/')[1]))) {
+                    showNotification(`"${file.name}" is not a valid audio file`, 'error');
+                    return;
+                }
+
+                // Check for duplicates
+                if (tracks.some(t => t.file.name === file.name && t.file.size === file.size)) {
+                    showNotification(`"${file.name}" already added`, 'error');
+                    return;
+                }
+
+                addTrack(file);
+            });
+        }
+
+        // Add track to list
+        function addTrack(file) {
+            const trackId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+
+            // Extract title from filename
+            const filename = file.name.replace(/\.[^/.]+$/, '');
+            const title = filename.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+            // Get release type and album name
+            const releaseType = document.getElementById('default-release-type').value;
+            const albumName = releaseType !== 'single' ? document.getElementById('default-album').value : '';
+
+            const track = {
+                id: trackId,
+                file: file,
+                title: title,
+                artist: document.getElementById('default-artist').value || '',
+                album: albumName,
+                releaseType: releaseType,
+                genre: document.getElementById('default-genre').value || '',
+                price: parseInt(document.getElementById('default-price').value) || 100,
+                releaseDate: document.getElementById('default-release-date').value || '',
+                duration: 0,
+                status: 'pending',
+                progress: 0,
+                result: null,
+                error: null
+            };
+
+            tracks.push(track);
+
+            // Get audio duration
+            const audio = new Audio();
+            audio.src = URL.createObjectURL(file);
+            audio.addEventListener('loadedmetadata', () => {
+                track.duration = Math.round(audio.duration);
+                updateTrackDisplay(track.id);
+                URL.revokeObjectURL(audio.src);
+            });
+
+            renderTrackList();
+            updateSubmitButton();
+        }
+
+        // Render track list
+        function renderTrackList() {
+            const trackList = document.getElementById('track-list');
+
+            if (tracks.length === 0) {
+                trackList.innerHTML = `
+                    <div class="track-list-empty">
+                        No tracks added yet. Drag files above or click to browse.
+                    </div>
+                `;
+            } else {
+                trackList.innerHTML = tracks.map((track, index) => `
+                    <div class="track-item ${track.status}" id="track-${track.id}">
+                        <div class="track-number">${index + 1}</div>
+                        <div class="track-info">
+                            <div class="track-title">${escapeHtml(track.title)}</div>
+                            <div class="track-meta">
+                                <span>${escapeHtml(track.file.name)}</span>
+                                <span>${track.duration > 0 ? formatDuration(track.duration) : 'Loading...'}</span>
+                                <span>${formatFileSize(track.file.size)}</span>
+                                ${track.album ? `<span>📀 ${escapeHtml(track.album)}</span>` : `<span style="opacity: 0.5;">Single</span>`}
+                            </div>
+                            ${track.status === 'uploading' || track.status === 'processing' ? `
+                                <div class="progress-container">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill ${track.status === 'complete' ? 'complete' : ''}" style="width: ${track.progress}%"></div>
+                                    </div>
+                                </div>
+                            ` : ''}
+                            ${track.result ? `
+                                <div class="result-info">
+                                    IPFS: <code>${track.result.ipfs_manifest_cid.slice(0, 20)}...</code>
+                                    ${track.result.nostr_event_id ? `<br>NOSTR: <code>${track.result.nostr_event_id.slice(0, 16)}...</code>` : ''}
+                                </div>
+                            ` : ''}
+                            ${track.error ? `
+                                <div class="result-info" style="color: #ef4444;">
+                                    Error: ${escapeHtml(track.error)}
+                                </div>
+                            ` : ''}
+                        </div>
+                        <span class="track-status ${track.status}">${getStatusText(track.status)}</span>
+                        <div class="track-actions">
+                            <button class="track-btn" onclick="toggleTrackEdit('${track.id}')" title="Edit" ${isUploading ? 'disabled' : ''}>
+                                <svg fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                                </svg>
+                            </button>
+                            <button class="track-btn delete" onclick="removeTrack('${track.id}')" title="Remove" ${isUploading ? 'disabled' : ''}>
+                                <svg fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="track-edit-panel" id="edit-${track.id}">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Track Title</label>
+                                <input type="text" class="form-input" value="${escapeHtml(track.title)}" onchange="updateTrackMeta('${track.id}', 'title', this.value)">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Artist</label>
+                                <input type="text" class="form-input" value="${escapeHtml(track.artist)}" onchange="updateTrackMeta('${track.id}', 'artist', this.value)">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Release Type</label>
+                                <select class="form-select" onchange="updateTrackReleaseType('${track.id}', this.value)">
+                                    <option value="single" ${track.releaseType === 'single' ? 'selected' : ''}>Single</option>
+                                    <option value="album" ${track.releaseType === 'album' ? 'selected' : ''}>Album</option>
+                                    <option value="ep" ${track.releaseType === 'ep' ? 'selected' : ''}>EP</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="album-group-${track.id}" ${track.releaseType === 'single' ? 'style="display:none;"' : ''}>
+                                <label class="form-label">Album/EP Name</label>
+                                <input type="text" class="form-input" value="${escapeHtml(track.album)}" onchange="updateTrackMeta('${track.id}', 'album', this.value)">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Genre</label>
+                                <select class="form-select" onchange="updateTrackMeta('${track.id}', 'genre', this.value)">
+                                    <option value="">Select genre</option>
+                                    <option value="electronic" ${track.genre === 'electronic' ? 'selected' : ''}>Electronic</option>
+                                    <option value="house" ${track.genre === 'house' ? 'selected' : ''}>House</option>
+                                    <option value="techno" ${track.genre === 'techno' ? 'selected' : ''}>Techno</option>
+                                    <option value="ambient" ${track.genre === 'ambient' ? 'selected' : ''}>Ambient</option>
+                                    <option value="indie" ${track.genre === 'indie' ? 'selected' : ''}>Indie</option>
+                                    <option value="pop" ${track.genre === 'pop' ? 'selected' : ''}>Pop</option>
+                                    <option value="rock" ${track.genre === 'rock' ? 'selected' : ''}>Rock</option>
+                                    <option value="hip-hop" ${track.genre === 'hip-hop' ? 'selected' : ''}>Hip-Hop</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Price (sats)</label>
+                                <input type="number" class="form-input" value="${track.price}" min="0" onchange="updateTrackMeta('${track.id}', 'price', parseInt(this.value))">
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Update track count badge
+            document.getElementById('track-count').textContent = `${tracks.length} track${tracks.length !== 1 ? 's' : ''}`;
+        }
+
+        // Update single track display
+        function updateTrackDisplay(trackId) {
+            const track = tracks.find(t => t.id === trackId);
+            if (!track) return;
+
+            const trackEl = document.getElementById(`track-${trackId}`);
+            if (!trackEl) return;
+
+            // Update class
+            trackEl.className = `track-item ${track.status}`;
+
+            // Update status badge
+            const statusEl = trackEl.querySelector('.track-status');
+            if (statusEl) {
+                statusEl.className = `track-status ${track.status}`;
+                statusEl.textContent = getStatusText(track.status);
+            }
+
+            // Update progress if exists
+            const progressFill = trackEl.querySelector('.progress-fill');
+            if (progressFill) {
+                progressFill.style.width = track.progress + '%';
+                if (track.status === 'complete') {
+                    progressFill.classList.add('complete');
+                }
+            }
+
+            // Update meta display
+            const metaEl = trackEl.querySelector('.track-meta');
+            if (metaEl && track.duration > 0) {
+                metaEl.innerHTML = `
+                    <span>${escapeHtml(track.file.name)}</span>
+                    <span>${formatDuration(track.duration)}</span>
+                    <span>${formatFileSize(track.file.size)}</span>
+                `;
+            }
+
+            updateSubmitButton();
+        }
+
+        // Get status text
+        function getStatusText(status) {
+            switch (status) {
+                case 'pending': return 'Ready';
+                case 'uploading': return 'Uploading';
+                case 'processing': return 'Processing';
+                case 'complete': return 'Complete';
+                case 'error': return 'Failed';
+                default: return status;
+            }
+        }
+
+        // Toggle track edit panel
+        function toggleTrackEdit(trackId) {
+            const panel = document.getElementById(`edit-${trackId}`);
+            if (panel) {
+                panel.classList.toggle('active');
+            }
+        }
+
+        // Update track metadata
+        function updateTrackMeta(trackId, field, value) {
+            const track = tracks.find(t => t.id === trackId);
+            if (track) {
+                track[field] = value;
+            }
+        }
+
+        // Update track release type (shows/hides album field)
+        function updateTrackReleaseType(trackId, releaseType) {
+            const track = tracks.find(t => t.id === trackId);
+            if (track) {
+                track.releaseType = releaseType;
+                if (releaseType === 'single') {
+                    track.album = '';
+                }
+                // Show/hide album field in edit panel
+                const albumGroup = document.getElementById(`album-group-${trackId}`);
+                if (albumGroup) {
+                    albumGroup.style.display = releaseType === 'single' ? 'none' : '';
+                }
+                renderTrackList();
+            }
+        }
+
+        // Remove track
+        function removeTrack(trackId) {
+            tracks = tracks.filter(t => t.id !== trackId);
+            renderTrackList();
+            updateSubmitButton();
+        }
+
+        // Clear all tracks
+        function clearAll() {
+            if (tracks.length === 0) return;
+            if (isUploading) return;
+
+            if (confirm('Remove all tracks?')) {
+                tracks = [];
+                renderTrackList();
+                updateSubmitButton();
+            }
+        }
+
+        // Update submit button state
+        function updateSubmitButton() {
+            const uploadBtn = document.getElementById('upload-btn');
+            const summary = document.getElementById('upload-summary');
+
+            const pendingTracks = tracks.filter(t => t.status === 'pending').length;
+            const completeTracks = tracks.filter(t => t.status === 'complete').length;
+            const processingTracks = tracks.filter(t => t.status === 'uploading' || t.status === 'processing').length;
+
+            if (tracks.length === 0) {
+                summary.textContent = 'No tracks ready for upload';
+            } else if (isUploading) {
+                summary.innerHTML = `<strong>${completeTracks}/${tracks.length}</strong> tracks uploaded (${processingTracks} processing...)`;
+            } else if (completeTracks === tracks.length) {
+                summary.innerHTML = `<strong>${completeTracks}</strong> tracks uploaded successfully!`;
+            } else {
+                summary.innerHTML = `<strong>${pendingTracks}</strong> track${pendingTracks !== 1 ? 's' : ''} ready for upload`;
+            }
+
+            uploadBtn.disabled = pendingTracks === 0 || isUploading;
+
+            if (isUploading) {
+                uploadBtn.innerHTML = '<span class="loading"></span> Uploading...';
+            } else {
+                uploadBtn.innerHTML = `
+                    <svg fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                    Upload All Tracks
+                `;
+            }
+        }
+
+        // Upload all tracks
+        async function uploadAllTracks() {
+            const session = SessionManager.getSession();
+            if (!session) {
+                showNotification('Please log in first', 'error');
+                return;
+            }
+
+            const pendingTracks = tracks.filter(t => t.status === 'pending');
+            if (pendingTracks.length === 0) return;
+
+            // Validate album name for album/EP releases
+            const releaseType = document.getElementById('default-release-type').value;
+            if (releaseType !== 'single') {
+                const albumName = document.getElementById('default-album').value.trim();
+                if (!albumName) {
+                    showNotification(`Please enter an ${releaseType === 'album' ? 'album' : 'EP'} name`, 'error');
+                    document.getElementById('default-album').focus();
+                    return;
+                }
+                // Update album name on all pending tracks in case it was changed after adding
+                pendingTracks.forEach(track => {
+                    track.album = albumName;
+                    track.releaseType = releaseType;
+                });
+            }
+
+            isUploading = true;
+            updateSubmitButton();
+            renderTrackList();
+
+            for (const track of pendingTracks) {
+                await uploadTrack(track, session);
+            }
+
+            isUploading = false;
+            updateSubmitButton();
+            renderTrackList();
+
+            const completeTracks = tracks.filter(t => t.status === 'complete').length;
+            const failedTracks = tracks.filter(t => t.status === 'error').length;
+
+            if (failedTracks === 0) {
+                showNotification(`Successfully uploaded ${completeTracks} track${completeTracks !== 1 ? 's' : ''}!`, 'success');
+            } else {
+                showNotification(`Uploaded ${completeTracks}, failed ${failedTracks}`, 'error');
+            }
+        }
+
+        // Upload single track
+        async function uploadTrack(track, session) {
+            track.status = 'uploading';
+            track.progress = 0;
+            updateTrackDisplay(track.id);
+            renderTrackList();
+
+            try {
+                // Build form data
+                const formData = new FormData();
+                formData.append('file', track.file);
+                formData.append('title', track.title);
+                formData.append('artist', track.artist || document.getElementById('default-artist').value);
+                formData.append('artist_pubkey', session.publicKey);
+                formData.append('album', track.album);
+                formData.append('genre', track.genre);
+                formData.append('release_date', track.releaseDate);
+                formData.append('price_sats', track.price.toString());
+                formData.append('release_type', track.releaseType || 'single');
+                if (coverArtCid) {
+                    formData.append('cover_art_cid', coverArtCid);
+                }
+
                 // Upload file
                 const response = await fetch('/api/tracks/upload', {
                     method: 'POST',
@@ -636,114 +1333,205 @@
                 }
 
                 const result = await response.json();
-                updateProgress(10, 'File uploaded, processing...');
+                track.progress = 10;
+                track.status = 'processing';
+                updateTrackDisplay(track.id);
 
                 // Poll for status
-                pollStatus(result.track_id);
+                await pollTrackStatus(track, result.track_id);
 
             } catch (error) {
-                showError(error.message);
-                submitBtn.disabled = false;
-                progressContainer.classList.remove('active');
+                track.status = 'error';
+                track.error = error.message;
+                updateTrackDisplay(track.id);
             }
-        });
+        }
 
-        function pollStatus(trackId) {
-            pollInterval = setInterval(async () => {
-                try {
-                    const response = await fetch(`/api/tracks/status/${trackId}`);
-                    if (!response.ok) throw new Error('Failed to get status');
+        // Poll for track processing status
+        async function pollTrackStatus(track, trackId) {
+            const session = SessionManager.getSession();
 
-                    const status = await response.json();
-                    updateProgress(status.progress, status.message);
+            return new Promise((resolve) => {
+                const interval = setInterval(async () => {
+                    try {
+                        const response = await fetch(`/api/tracks/status/${trackId}`);
+                        if (!response.ok) throw new Error('Failed to get status');
 
-                    if (status.status === 'complete') {
-                        clearInterval(pollInterval);
-                        pollInterval = null;
-                        showSuccess(status.result);
-                    } else if (status.status === 'error') {
-                        clearInterval(pollInterval);
-                        pollInterval = null;
-                        showError(status.message);
-                        submitBtn.disabled = false;
+                        const status = await response.json();
+                        track.progress = status.progress;
+                        updateTrackDisplay(track.id);
+
+                        if (status.status === 'complete') {
+                            clearInterval(interval);
+                            track.result = status.result;
+
+                            // Sign and publish NOSTR event if unsigned event returned
+                            if (status.result.unsigned_nostr_event && session) {
+                                try {
+                                    track.progress = 90;
+                                    updateTrackDisplay(track.id);
+
+                                    const eventId = await signAndPublishEvent(
+                                        status.result.unsigned_nostr_event,
+                                        session
+                                    );
+                                    track.result.nostr_event_id = eventId;
+                                } catch (e) {
+                                    console.error('Failed to publish NOSTR event:', e);
+                                    // Don't fail the whole upload if NOSTR publish fails
+                                    track.error = 'IPFS OK, NOSTR failed: ' + e.message;
+                                }
+                            }
+
+                            track.status = 'complete';
+                            track.progress = 100;
+                            updateTrackDisplay(track.id);
+                            resolve();
+                        } else if (status.status === 'error') {
+                            clearInterval(interval);
+                            track.status = 'error';
+                            track.error = status.message;
+                            updateTrackDisplay(track.id);
+                            resolve();
+                        }
+                    } catch (error) {
+                        clearInterval(interval);
+                        track.status = 'error';
+                        track.error = error.message;
+                        updateTrackDisplay(track.id);
+                        resolve();
                     }
-                } catch (error) {
-                    console.error('Poll error:', error);
+                }, 1000);
+            });
+        }
+
+        // Sign and publish NOSTR event using session
+        async function signAndPublishEvent(unsignedEvent, session) {
+            // Sign the event using the session
+            const signedEvent = await session.sign({
+                kind: unsignedEvent.kind,
+                pubkey: unsignedEvent.pubkey,
+                created_at: unsignedEvent.created_at,
+                tags: unsignedEvent.tags,
+                content: unsignedEvent.content
+            });
+
+            // Publish the signed event
+            const response = await fetch('/api/tracks/publish', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ signed_event: signedEvent })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to publish');
+            }
+
+            const result = await response.json();
+            return result.event_id;
+        }
+
+        // Handle cover art upload
+        async function handleCoverArtUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            // Validate file type
+            const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+            if (!validTypes.includes(file.type)) {
+                showNotification('Please upload a JPEG, PNG, or WebP image', 'error');
+                input.value = '';
+                return;
+            }
+
+            // Show preview
+            const preview = document.getElementById('cover-art-preview');
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.innerHTML = `<img src="${e.target.result}" alt="Cover art preview">`;
+                preview.classList.add('has-image');
+            };
+            reader.readAsDataURL(file);
+
+            // Show uploading status
+            const statusEl = document.getElementById('cover-art-status');
+            const statusText = document.getElementById('cover-art-status-text');
+            statusEl.style.display = 'flex';
+            statusEl.className = 'cover-art-status uploading';
+            statusText.innerHTML = '<span class="loading"></span> Uploading to IPFS...';
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch('/api/tracks/cover-art', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Upload failed');
                 }
-            }, 1000);
+
+                const result = await response.json();
+                coverArtCid = result.cid;
+
+                statusEl.className = 'cover-art-status success';
+                statusText.innerHTML = `<svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg> Uploaded: <span class="cover-art-cid">${result.cid}</span>`;
+
+                showNotification('Cover art uploaded successfully!', 'success');
+            } catch (error) {
+                coverArtCid = null;
+                statusEl.className = 'cover-art-status error';
+                statusText.innerHTML = `<svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg> Failed: ${error.message}`;
+                showNotification('Failed to upload cover art: ' + error.message, 'error');
+            }
+
+            input.value = '';
         }
 
-        function updateProgress(percent, message) {
-            progressFill.style.width = percent + '%';
-            progressPercent.textContent = percent + '%';
-            progressMessage.textContent = message;
-        }
-
-        function showError(message) {
-            statusMessage.className = 'status-message error';
-            statusMessage.textContent = message;
-            progressContainer.classList.remove('active');
-        }
-
-        function showSuccess(result) {
-            progressContainer.classList.remove('active');
-
-            // Populate result card
-            document.getElementById('result-track-id').textContent = result.track_id;
-            document.getElementById('result-duration').textContent = formatDuration(result.duration);
-            document.getElementById('result-manifest-cid').textContent = result.ipfs_manifest_cid;
-            document.getElementById('result-preview-cid').textContent = result.ipfs_preview_cid;
-            document.getElementById('result-event-id').textContent = result.nostr_event_id || 'Not published (sign manually)';
-
-            resultCard.classList.add('visible');
-            submitBtn.disabled = false;
-        }
-
+        // Utility functions
         function formatDuration(seconds) {
             const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
+            const secs = Math.floor(seconds % 60);
             return `${mins}:${secs.toString().padStart(2, '0')}`;
         }
 
-        // Pre-fill artist name from profile if available
-        async function loadArtistName() {
-            const session = SessionManager.getSession();
-            if (!session) return;
-
-            try {
-                // Try to fetch profile from relay
-                const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/relay`);
-
-                ws.onopen = () => {
-                    const filter = {
-                        kinds: [0],
-                        authors: [session.pubkey],
-                        limit: 1
-                    };
-                    ws.send(JSON.stringify(['REQ', 'profile', filter]));
-                };
-
-                ws.onmessage = (event) => {
-                    const msg = JSON.parse(event.data);
-                    if (msg[0] === 'EVENT' && msg[2]) {
-                        try {
-                            const profile = JSON.parse(msg[2].content);
-                            if (profile.name) {
-                                document.getElementById('artist').value = profile.name;
-                                validateForm();
-                            }
-                        } catch (e) {}
-                    }
-                    if (msg[0] === 'EOSE') {
-                        ws.close();
-                    }
-                };
-            } catch (error) {
-                console.log('Could not load profile:', error);
-            }
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
         }
 
-        loadArtistName();
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text || '';
+            return div.innerHTML;
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            const text = document.getElementById('notification-text');
+
+            notification.className = `notification ${type}`;
+            text.textContent = message;
+
+            // Update icon
+            const icon = notification.querySelector('.notification-icon');
+            if (type === 'success') {
+                icon.innerHTML = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>';
+            } else {
+                icon.innerHTML = '<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>';
+            }
+
+            notification.classList.add('show');
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 4000);
+        }
     </script>
 </body>
 </html>

@@ -22,7 +22,7 @@ from pydantic import BaseModel
 
 from services.hls import encode_to_hls, get_audio_duration
 from services.ipfs import upload_directory_to_ipfs, upload_file_to_ipfs
-from services.nostr import create_track_event, publish_event
+from services.nostr import create_track_event, publish_event, publish_signed_event
 
 router = APIRouter()
 
@@ -39,6 +39,8 @@ class TrackMetadata(BaseModel):
     genre: Optional[str] = None
     release_date: Optional[str] = None
     price_sats: int = 100  # Default price per stream
+    release_type: Optional[str] = None  # single, album, ep
+    cover_art_cid: Optional[str] = None  # IPFS CID of cover art
 
 
 class TrackUploadResponse(BaseModel):
@@ -50,6 +52,7 @@ class TrackUploadResponse(BaseModel):
     ipfs_manifest_cid: str
     ipfs_preview_cid: str
     nostr_event_id: Optional[str] = None
+    unsigned_nostr_event: Optional[dict] = None  # For client-side signing
     status: str
 
 
@@ -76,6 +79,8 @@ async def upload_track(
     genre: Optional[str] = Form(None),
     release_date: Optional[str] = Form(None),
     price_sats: int = Form(100),
+    release_type: Optional[str] = Form(None),  # single, album, ep
+    cover_art_cid: Optional[str] = Form(None),  # IPFS CID of cover art
     artist_pubkey: str = Form(...),
     artist_privkey: Optional[str] = Form(None),  # Optional: for server-side signing
 ):
@@ -131,7 +136,9 @@ async def upload_track(
         album=album,
         genre=genre,
         release_date=release_date,
-        price_sats=price_sats
+        price_sats=price_sats,
+        release_type=release_type,
+        cover_art_cid=cover_art_cid
     )
 
     # Start background processing
@@ -165,6 +172,108 @@ async def list_tracks():
         if status.status == "complete" and status.result
     ]
     return {"tracks": completed, "count": len(completed)}
+
+
+class SignedEventRequest(BaseModel):
+    """Request to publish a signed NOSTR event."""
+    signed_event: dict
+
+
+class PublishEventResponse(BaseModel):
+    """Response after publishing a NOSTR event."""
+    event_id: str
+    success: bool
+
+
+@router.post("/publish", response_model=PublishEventResponse)
+async def publish_track_event(request: SignedEventRequest):
+    """
+    Publish a pre-signed NOSTR event for a track.
+
+    Used when client-side signing is preferred (non-custodial).
+    The event must be a valid signed Kind 30050 track event.
+    """
+    event = request.signed_event
+
+    # Validate event structure
+    if "id" not in event or "sig" not in event:
+        raise HTTPException(
+            status_code=400,
+            detail="Event must include 'id' and 'sig' fields (must be signed)"
+        )
+
+    if event.get("kind") != 30050:
+        raise HTTPException(
+            status_code=400,
+            detail="Event must be Kind 30050 (track metadata)"
+        )
+
+    try:
+        event_id = await publish_signed_event(event)
+        return PublishEventResponse(event_id=event_id, success=True)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to publish event: {str(e)}"
+        )
+
+
+class CoverArtResponse(BaseModel):
+    """Response after successful cover art upload."""
+    cid: str
+    url: str
+
+
+@router.post("/cover-art", response_model=CoverArtResponse)
+async def upload_cover_art(
+    file: UploadFile = File(...),
+):
+    """
+    Upload cover art image to IPFS.
+
+    Accepts JPEG, PNG, or WebP images.
+    Returns the IPFS CID for use in release/track metadata.
+    """
+    # Validate file type
+    valid_types = ["image/jpeg", "image/png", "image/webp"]
+    if not file.content_type or file.content_type not in valid_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type: {file.content_type}. Must be JPEG, PNG, or WebP."
+        )
+
+    try:
+        # Read file content
+        content = await file.read()
+
+        # Create temp file
+        import tempfile
+        ext = {
+            "image/jpeg": ".jpg",
+            "image/png": ".png",
+            "image/webp": ".webp"
+        }.get(file.content_type, ".jpg")
+
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+
+        # Upload to IPFS
+        cid = await upload_file_to_ipfs(Path(tmp_path))
+
+        # Clean up temp file
+        os.unlink(tmp_path)
+
+        return CoverArtResponse(
+            cid=cid,
+            url=f"https://ipfs.io/ipfs/{cid}"
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to upload cover art: {str(e)}"
+        )
 
 
 async def process_track(
@@ -210,25 +319,33 @@ async def process_track(
         # Upload preview separately
         preview_cid = await upload_directory_to_ipfs(preview_dir)
 
-        update_status(track_id, "publishing", 80, "Publishing to NOSTR...")
+        update_status(track_id, "publishing", 80, "Creating NOSTR event...")
 
-        # Step 4: Create and publish NOSTR event
+        # Step 4: Create NOSTR event
+        event = create_track_event(
+            title=metadata.title,
+            artist=metadata.artist,
+            album=metadata.album,
+            genre=metadata.genre,
+            duration=duration,
+            manifest_cid=manifest_cid,
+            preview_cid=preview_cid,
+            price_sats=metadata.price_sats,
+            release_date=metadata.release_date,
+            pubkey=artist_pubkey,
+            release_type=metadata.release_type,
+            cover_art_cid=metadata.cover_art_cid
+        )
+
         event_id = None
+        unsigned_event = None
+
         if artist_privkey:
             # Server-side signing (custodial)
-            event = create_track_event(
-                title=metadata.title,
-                artist=metadata.artist,
-                album=metadata.album,
-                genre=metadata.genre,
-                duration=duration,
-                manifest_cid=manifest_cid,
-                preview_cid=preview_cid,
-                price_sats=metadata.price_sats,
-                release_date=metadata.release_date,
-                pubkey=artist_pubkey
-            )
             event_id = await publish_event(event, artist_privkey)
+        else:
+            # Return unsigned event for client-side signing
+            unsigned_event = event
 
         # Complete
         result = TrackUploadResponse(
@@ -239,6 +356,7 @@ async def process_track(
             ipfs_manifest_cid=manifest_cid,
             ipfs_preview_cid=preview_cid,
             nostr_event_id=event_id,
+            unsigned_nostr_event=unsigned_event,
             status="complete"
         )
 

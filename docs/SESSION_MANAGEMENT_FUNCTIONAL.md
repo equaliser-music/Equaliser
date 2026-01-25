@@ -88,6 +88,13 @@ A dedicated authentication page that serves as the single entry point:
 - Extension manages keys - they never enter the browser at all
 - More secure option for artists with extensions
 
+**Backup File Authentication:**
+- Accepts `equaliser-backup-*.json` files from onboarding
+- Parses keys and profile data from the backup
+- Creates session using the nsec from the backup
+- Stores profile data in sessionStorage for the profile page to pre-fill
+- Enables identity recovery across browsers or after reinstallation
+
 **Return URL Handling:**
 - System remembers which page the artist was trying to access
 - After successful login, sends them directly there
@@ -151,9 +158,19 @@ A visual component that appears on all authenticated admin pages:
 1. Artist clicks link to Profile Editor or Settings
 2. System detects no authentication
 3. Redirects to clean, friendly login page
-4. Artist enters nsec or connects extension
+4. Artist enters nsec, connects extension, or loads backup file
 5. Returns to Profile Editor (or wherever they were headed)
 6. Status bar appears at top showing they're logged in
+
+### Recovering Identity from Backup
+
+1. Artist loads `equaliser-backup-*.json` on login page
+2. System extracts keys and validates the backup format
+3. Creates session from the nsec in the backup
+4. Stores profile data temporarily for the profile page
+5. Redirects to requested page (or dashboard)
+6. If profile page is visited, form fields pre-fill from backup data
+7. Artist can review and publish to update their NOSTR profile
 
 ### Working Across Multiple Pages
 

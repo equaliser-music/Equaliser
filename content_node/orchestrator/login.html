@@ -356,6 +356,30 @@
             height: 14px;
         }
 
+        /* Backup section */
+        .backup-section {
+            margin-bottom: 16px;
+        }
+
+        .backup-btn {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            cursor: pointer;
+        }
+
+        .backup-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+        }
+
         /* Responsive */
         @media (max-width: 480px) {
             .login-card {
@@ -438,6 +462,22 @@
             <button class="btn btn-primary" id="login-btn" onclick="loginWithNsec()">
                 Sign In
             </button>
+
+            <div class="divider">or restore from backup</div>
+
+            <!-- Backup file restore -->
+            <div class="backup-section">
+                <label class="btn btn-secondary backup-btn">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                    </svg>
+                    Load Backup File
+                    <input type="file" id="backup-file-input" accept=".json" onchange="loadBackupFile(event)" style="display: none;">
+                </label>
+                <p class="form-hint" style="text-align: center; margin-top: 8px;">
+                    Restore from an equaliser-backup-*.json file
+                </p>
+            </div>
 
             <div class="footer-links">
                 <a href="onboarding.html">Create New Identity</a>
@@ -568,6 +608,51 @@
             const errorBox = document.getElementById('login-error');
             document.getElementById('login-error-text').textContent = message;
             errorBox.classList.add('visible');
+        }
+
+        // Load from backup file
+        function loadBackupFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const errorBox = document.getElementById('login-error');
+            errorBox.classList.remove('visible');
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const backup = JSON.parse(e.target.result);
+
+                    // Validate backup structure
+                    if (!backup.keys || !backup.keys.nsec) {
+                        throw new Error('Invalid backup file: missing keys');
+                    }
+
+                    // Use the nsec to create session
+                    await SessionManager.createSessionFromNsec(backup.keys.nsec);
+
+                    // Store backup profile data for the profile page to use
+                    if (backup.profile) {
+                        sessionStorage.setItem('equaliser_backup_profile', JSON.stringify(backup.profile));
+                    }
+
+                    // Redirect to return URL
+                    window.location.href = returnUrl;
+
+                } catch (error) {
+                    console.error('Failed to load backup:', error);
+                    showError('Failed to load backup: ' + error.message);
+                }
+            };
+
+            reader.onerror = function() {
+                showError('Failed to read file');
+            };
+
+            reader.readAsText(file);
+
+            // Reset the input so the same file can be selected again
+            event.target.value = '';
         }
     </script>
 </body>

@@ -17,6 +17,7 @@ content_node/
 │   │   ├── routers/        # API endpoints
 │   │   └── services/       # HLS, IPFS, NOSTR services
 │   ├── login.html          # Login gateway
+│   ├── dashboard.html      # Artist home page (default for /admin)
 │   ├── onboarding.html     # Artist onboarding wizard
 │   ├── profile.html        # Profile editor
 │   ├── upload.html         # Track upload interface
@@ -44,7 +45,7 @@ content_node/
 |------|-------------|-------------|
 | `/` | `client/` | Fan-facing web app (landing page, artist pages) |
 | `/artist.html` | `client/artist.html` | Artist profile page (accepts `?npub=` parameter) |
-| `/admin` | `orchestrator/` | Artist admin tools (onboarding, dashboard) |
+| `/admin` | `orchestrator/dashboard.html` | Artist admin home page (requires login) |
 | `/relay` | nostr-relay:8080 | WebSocket proxy to NOSTR relay |
 | `/ipfs/{CID}` | ipfs:8080 | IPFS gateway for content retrieval |
 | `/api` | orchestrator:8000 | Orchestrator API (track uploads, etc.) |
@@ -132,6 +133,7 @@ Once running:
 |-----|-------------|
 | http://localhost | Landing page (under construction) |
 | http://localhost/artist.html?npub=... | Artist profile page |
+| http://localhost/admin | Artist dashboard (redirects to login if not authenticated) |
 | http://localhost/admin/login.html | Login gateway (single entry point) |
 | http://localhost/admin/onboarding.html | Artist onboarding wizard |
 | http://localhost/admin/profile.html | Artist profile editor |
@@ -183,6 +185,17 @@ See [ONBOARDING.md](./orchestrator/ONBOARDING.md) for detailed documentation.
 
 The admin section provides tools for artists to manage their NOSTR presence.
 
+### Dashboard (`/admin` or `/admin/dashboard.html`)
+
+The artist home page, displayed after login:
+
+- **Profile Summary**: Avatar, name, and npub from NOSTR Kind 0 event
+- **Recent Releases**: Latest releases from NOSTR Kind 30050 events
+- **Stats Overview**: Total tracks count (plays, sats, followers - TODO)
+- **Quick Actions**: Upload new track, edit profile links
+
+Navigating to `/admin` redirects to the dashboard (or login if not authenticated).
+
 ### Profile Editor (`/admin/profile.html`)
 
 Allows artists to edit their NOSTR profile (Kind 0 event):
@@ -220,6 +233,11 @@ The admin pages use a centralized in-memory session management system with a sin
 2. **Manual nsec Entry**
    - Enter your private key (nsec1...) directly
    - Key stored in memory only for the session duration
+
+3. **Backup File Import**
+   - Load an `equaliser-backup-*.json` file from onboarding
+   - Restores keys and pre-fills profile data on the profile page
+   - Useful for recovering or transferring identity between browsers
 
 #### Status Bar
 
@@ -296,14 +314,11 @@ Gzip compression is enabled for text, CSS, JSON, and JavaScript files.
 
 The content node runs a Kubo IPFS daemon for decentralised content storage.
 
-### First-Time Setup
+### Gateway Configuration
 
-After starting containers for the first time, configure the gateway:
+The IPFS gateway is automatically configured on container startup to use path-style URLs (e.g., `/ipfs/CID`) instead of subdomain-style URLs. This is handled by `ipfs/configure-gateway.sh` which runs via the container entrypoint.
 
-```bash
-docker exec equaliser-ipfs ipfs config --json Gateway.PublicGateways '{"localhost": {"UseSubdomains": false, "Paths": ["/ipfs", "/ipns"]}}'
-docker restart equaliser-ipfs
-```
+This ensures images and content load correctly through the nginx proxy without browser redirect issues.
 
 ### Key Features
 
