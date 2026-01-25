@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equaliser - My Releases</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 240px;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 240px;
+            padding: 32px;
+            padding-bottom: 100px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .page-description {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Filter Bar */
+        .filter-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background: rgba(139, 92, 246, 0.2);
+            border-color: rgba(139, 92, 246, 0.3);
+            color: #ffffff;
+        }
+
+        .search-box {
+            flex: 1;
+            max-width: 300px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            color: #ffffff;
+            font-size: 13px;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: rgba(139, 92, 246, 0.5);
+        }
+
+        .search-box::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 24px;
+            padding: 16px 24px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #a855f7;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Releases List */
+        .releases-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Release Card */
+        .release-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .release-card:hover {
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+
+        .release-card.expanded {
+            border-color: rgba(139, 92, 246, 0.4);
+        }
+
+        .release-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            cursor: pointer;
+        }
+
+        .release-cover {
+            width: 120px;
+            height: 120px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(168, 85, 247, 0.2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .release-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .release-cover svg {
+            width: 40px;
+            height: 40px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .release-type-badge {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            padding: 3px 8px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .release-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .release-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .release-meta {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 12px;
+        }
+
+        .release-stats {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .release-stat {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+
+        .release-stat svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .release-actions {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .release-action-btn {
+            width: 40px;
+            height: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .release-action-btn:hover {
+            background: rgba(139, 92, 246, 0.2);
+            border-color: rgba(139, 92, 246, 0.3);
+            color: #ffffff;
+        }
+
+        .release-action-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .expand-icon {
+            transition: transform 0.3s;
+        }
+
+        .release-card.expanded .expand-icon {
+            transform: rotate(180deg);
+        }
+
+        /* Track List */
+        .track-list {
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .release-card.expanded .track-list {
+            max-height: 2000px;
+        }
+
+        .track-list-header {
+            display: flex;
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.02);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .track-list-header .track-num { width: 50px; }
+        .track-list-header .track-title { flex: 1; }
+        .track-list-header .track-duration { width: 80px; text-align: right; }
+        .track-list-header .track-price { width: 80px; text-align: right; }
+        .track-list-header .track-actions { width: 100px; }
+
+        .track-row {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            transition: background 0.2s;
+        }
+
+        .track-row:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .track-row:last-child {
+            border-bottom: none;
+        }
+
+        .track-num {
+            width: 50px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .track-title-col {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .track-title-text {
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .track-cid {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.3);
+            font-family: monospace;
+        }
+
+        .track-duration {
+            width: 80px;
+            text-align: right;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .track-price {
+            width: 80px;
+            text-align: right;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .track-actions-col {
+            width: 100px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 4px;
+        }
+
+        .track-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .track-btn:hover {
+            background: rgba(139, 92, 246, 0.2);
+            color: #ffffff;
+        }
+
+        .track-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 2px dashed rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            color: rgba(255, 255, 255, 0.2);
+            margin-bottom: 16px;
+        }
+
+        .empty-state h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 24px;
+        }
+
+        /* Loading State */
+        .loading-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid rgba(139, 92, 246, 0.2);
+            border-top-color: #a855f7;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-state p {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: #1a1a2e;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .modal-close:hover {
+            color: #ffffff;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 8px;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 14px;
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #a855f7;
+        }
+
+        .form-input::placeholder, .form-textarea::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        /* Cover Art Upload */
+        .cover-upload {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .cover-preview {
+            width: 120px;
+            height: 120px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px dashed rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .cover-preview:hover {
+            border-color: rgba(139, 92, 246, 0.5);
+        }
+
+        .cover-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .cover-preview svg {
+            width: 32px;
+            height: 32px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .cover-upload-info {
+            flex: 1;
+        }
+
+        .cover-upload-info p {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 8px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .modal-actions .btn {
+            flex: 1;
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            padding: 16px 24px;
+            background: rgba(15, 15, 25, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1100;
+            transform: translateX(120%);
+            transition: transform 0.3s;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+
+        .notification.error {
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .notification-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .notification.success .notification-icon {
+            color: #22c55e;
+        }
+
+        .notification.error .notification-icon {
+            color: #ef4444;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                margin-left: 0;
+                padding: 16px;
+            }
+            .release-header {
+                flex-direction: column;
+                text-align: center;
+            }
+            .release-actions {
+                margin-top: 16px;
+            }
+            .track-list-header,
+            .track-row {
+                font-size: 12px;
+            }
+            .stats-bar {
+                flex-wrap: wrap;
+            }
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar"></div>
+
+        <div class="main-content">
+            <div class="header">
+                <div>
+                    <h1 class="page-title">My Releases</h1>
+                    <p class="page-description">Manage your albums, EPs, and singles</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="refreshReleases()">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
+                        </svg>
+                        Refresh
+                    </button>
+                    <a href="upload.html" class="btn btn-primary">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                        </svg>
+                        Upload New
+                    </a>
+                </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="stats-bar" id="stats-bar">
+                <div class="stat-item">
+                    <span class="stat-value" id="total-releases">-</span>
+                    <span class="stat-label">Releases</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="total-tracks">-</span>
+                    <span class="stat-label">Tracks</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="total-duration">-</span>
+                    <span class="stat-label">Total Duration</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="total-plays">0</span>
+                    <span class="stat-label">Plays</span>
+                </div>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="filter-bar">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="album">Albums</button>
+                <button class="filter-btn" data-filter="ep">EPs</button>
+                <button class="filter-btn" data-filter="single">Singles</button>
+                <input type="text" class="search-box" id="search-box" placeholder="Search releases...">
+            </div>
+
+            <!-- Releases List -->
+            <div id="releases-container">
+                <div class="loading-state">
+                    <div class="loading-spinner"></div>
+                    <p>Loading your releases...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Release Modal -->
+    <div class="modal-overlay" id="edit-release-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Edit Release</h2>
+                <button class="modal-close" onclick="closeEditReleaseModal()">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            </div>
+            <form id="edit-release-form" onsubmit="saveReleaseEdit(event)">
+                <input type="hidden" id="edit-release-id">
+
+                <div class="form-group">
+                    <label class="form-label">Cover Art</label>
+                    <div class="cover-upload">
+                        <div class="cover-preview" id="cover-preview" onclick="document.getElementById('cover-input').click()">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <input type="file" id="cover-input" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleCoverUpload(event)">
+                        <input type="hidden" id="edit-cover-cid">
+                        <div class="cover-upload-info">
+                            <button type="button" class="btn btn-secondary" onclick="document.getElementById('cover-input').click()">
+                                <svg fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                                Upload Cover
+                            </button>
+                            <p>JPEG, PNG, or WebP. Recommended 1000x1000px.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Title</label>
+                    <input type="text" class="form-input" id="edit-release-title" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Artist</label>
+                        <input type="text" class="form-input" id="edit-release-artist" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Release Type</label>
+                        <select class="form-select" id="edit-release-type">
+                            <option value="album">Album</option>
+                            <option value="ep">EP</option>
+                            <option value="single">Single</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Genre</label>
+                        <select class="form-select" id="edit-release-genre">
+                            <option value="">Select genre</option>
+                            <option value="electronic">Electronic</option>
+                            <option value="house">House</option>
+                            <option value="techno">Techno</option>
+                            <option value="ambient">Ambient</option>
+                            <option value="indie">Indie</option>
+                            <option value="pop">Pop</option>
+                            <option value="rock">Rock</option>
+                            <option value="hip-hop">Hip-Hop</option>
+                            <option value="r-and-b">R&B</option>
+                            <option value="jazz">Jazz</option>
+                            <option value="classical">Classical</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Release Date</label>
+                        <input type="date" class="form-input" id="edit-release-date">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" id="edit-release-description" placeholder="Tell the story behind this release..."></textarea>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeEditReleaseModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="save-release-btn">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification">
+        <svg class="notification-icon" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+        </svg>
+        <span id="notification-text">Success!</span>
+    </div>
+
+    <script src="https://unpkg.com/nostr-tools@2.1.4/lib/nostr.bundle.js"></script>
+    <script src="js/session.js"></script>
+    <script src="js/admin-sidebar.js"></script>
+
+    <script>
+        // State
+        let releases = [];  // Grouped releases
+        let allTracks = []; // All track events
+        let currentFilter = 'all';
+        let searchQuery = '';
+        let expandedRelease = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            SessionManager.init();
+            if (!SessionManager.requireSession()) return;
+
+            AdminSidebar.init();
+            setupFilters();
+            setupSearch();
+            await loadReleases();
+            await loadArtistInfo();
+        });
+
+        function setupFilters() {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentFilter = this.dataset.filter;
+                    renderReleases();
+                });
+            });
+        }
+
+        function setupSearch() {
+            document.getElementById('search-box').addEventListener('input', (e) => {
+                searchQuery = e.target.value.toLowerCase();
+                renderReleases();
+            });
+        }
+
+        // Load and group releases from track events
+        async function loadReleases() {
+            const session = SessionManager.getSession();
+            if (!session) return;
+
+            const container = document.getElementById('releases-container');
+            container.innerHTML = `
+                <div class="loading-state">
+                    <div class="loading-spinner"></div>
+                    <p>Loading your releases...</p>
+                </div>
+            `;
+
+            try {
+                const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/relay`);
+
+                ws.onopen = () => {
+                    // Fetch all Kind 30050 track events
+                    ws.send(JSON.stringify(['REQ', 'tracks', {
+                        kinds: [30050],
+                        authors: [session.publicKey],
+                        limit: 500
+                    }]));
+                };
+
+                ws.onmessage = (event) => {
+                    const msg = JSON.parse(event.data);
+                    if (msg[0] === 'EVENT' && msg[2]) {
+                        allTracks.push(parseTrackEvent(msg[2]));
+                    }
+                    if (msg[0] === 'EOSE') {
+                        ws.close();
+                        groupTracksIntoReleases();
+                        renderReleases();
+                        updateStats();
+                    }
+                };
+
+                ws.onerror = () => {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            <h3>Connection Error</h3>
+                            <p>Could not connect to the relay. Please try again.</p>
+                            <button class="btn btn-primary" onclick="refreshReleases()">Retry</button>
+                        </div>
+                    `;
+                };
+            } catch (error) {
+                console.error('Error loading releases:', error);
+            }
+        }
+
+        function parseTrackEvent(event) {
+            const tags = {};
+            event.tags.forEach(tag => {
+                if (tag.length >= 2) {
+                    tags[tag[0]] = tag[1];
+                }
+            });
+
+            return {
+                eventId: event.id,
+                pubkey: event.pubkey,
+                createdAt: event.created_at,
+                d: tags.d || '',
+                title: tags.title || 'Untitled',
+                artist: tags.artist || 'Unknown',
+                album: tags.album || '',
+                releaseType: tags.release_type || (tags.album ? 'album' : 'single'),
+                genre: tags.genre || '',
+                duration: parseInt(tags.duration) || 0,
+                manifestCid: tags.ipfs_manifest_cid || '',
+                previewCid: tags.ipfs_preview_cid || '',
+                priceSats: parseInt(tags.price_sats) || 100,
+                releaseDate: tags.release_date || '',
+                coverArtCid: tags.cover_art_cid || '',
+                releaseId: tags.release_id || '',
+                trackNumber: parseInt(tags.track_number) || 0
+            };
+        }
+
+        // Group tracks into releases based on album name
+        function groupTracksIntoReleases() {
+            const releaseMap = new Map();
+
+            allTracks.forEach(track => {
+                // Key: album name for albums/EPs, or track title for singles
+                const key = track.releaseType === 'single' || !track.album
+                    ? `single:${track.d}`  // Unique key for each single
+                    : `${track.releaseType}:${track.album}`;
+
+                if (!releaseMap.has(key)) {
+                    releaseMap.set(key, {
+                        id: key,
+                        title: track.releaseType === 'single' || !track.album ? track.title : track.album,
+                        artist: track.artist,
+                        releaseType: track.releaseType || 'single',
+                        genre: track.genre,
+                        releaseDate: track.releaseDate,
+                        coverArtCid: track.coverArtCid,
+                        tracks: [],
+                        totalDuration: 0,
+                        totalPrice: 0,
+                        createdAt: track.createdAt
+                    });
+                }
+
+                const release = releaseMap.get(key);
+                release.tracks.push(track);
+                release.totalDuration += track.duration;
+                release.totalPrice += track.priceSats;
+
+                // Use latest cover art
+                if (track.coverArtCid && !release.coverArtCid) {
+                    release.coverArtCid = track.coverArtCid;
+                }
+
+                // Use earliest date
+                if (track.createdAt < release.createdAt) {
+                    release.createdAt = track.createdAt;
+                }
+            });
+
+            // Sort tracks within releases by track number
+            releaseMap.forEach(release => {
+                release.tracks.sort((a, b) => a.trackNumber - b.trackNumber);
+            });
+
+            // Convert to array and sort by date (newest first)
+            releases = Array.from(releaseMap.values())
+                .sort((a, b) => b.createdAt - a.createdAt);
+        }
+
+        function renderReleases() {
+            const container = document.getElementById('releases-container');
+
+            let filtered = releases.filter(r => {
+                if (searchQuery) {
+                    const searchable = `${r.title} ${r.artist}`.toLowerCase();
+                    if (!searchable.includes(searchQuery)) return false;
+                }
+                if (currentFilter !== 'all' && r.releaseType !== currentFilter) return false;
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/>
+                        </svg>
+                        <h3>${releases.length === 0 ? 'No Releases Yet' : 'No Matching Releases'}</h3>
+                        <p>${releases.length === 0 ? 'Upload your first track to get started.' : 'Try adjusting your search or filters.'}</p>
+                        ${releases.length === 0 ? '<a href="upload.html" class="btn btn-primary">Upload Music</a>' : ''}
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="releases-list">
+                    ${filtered.map(release => renderReleaseCard(release)).join('')}
+                </div>
+            `;
+        }
+
+        function renderReleaseCard(release) {
+            const typeLabels = { single: 'Single', album: 'Album', ep: 'EP' };
+            const type = typeLabels[release.releaseType] || 'Single';
+            const isExpanded = expandedRelease === release.id;
+            const dateStr = release.releaseDate || new Date(release.createdAt * 1000).toLocaleDateString();
+
+            return `
+                <div class="release-card ${isExpanded ? 'expanded' : ''}" id="release-${encodeId(release.id)}">
+                    <div class="release-header" onclick="toggleRelease('${encodeId(release.id)}')">
+                        <div class="release-cover">
+                            ${release.coverArtCid
+                                ? `<img src="/ipfs/${release.coverArtCid}" alt="${escapeHtml(release.title)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                   <svg fill="currentColor" viewBox="0 0 20 20" style="display:none; width:40px; height:40px; color:rgba(255,255,255,0.3);">
+                                       <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/>
+                                   </svg>`
+                                : `<svg fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/>
+                                </svg>`
+                            }
+                            <span class="release-type-badge">${type}</span>
+                        </div>
+                        <div class="release-info">
+                            <div class="release-title">${escapeHtml(release.title)}</div>
+                            <div class="release-meta">${escapeHtml(release.artist)} · ${dateStr}</div>
+                            <div class="release-stats">
+                                <div class="release-stat">
+                                    <svg fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/>
+                                    </svg>
+                                    ${release.tracks.length} track${release.tracks.length !== 1 ? 's' : ''}
+                                </div>
+                                <div class="release-stat">
+                                    <svg fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                                    </svg>
+                                    ${formatDuration(release.totalDuration)}
+                                </div>
+                                ${release.genre ? `
+                                    <div class="release-stat">
+                                        <svg fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
+                                        </svg>
+                                        ${escapeHtml(release.genre)}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                        <div class="release-actions" onclick="event.stopPropagation()">
+                            <button class="release-action-btn" onclick="openEditReleaseModal('${encodeId(release.id)}')" title="Edit">
+                                <svg fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                                </svg>
+                            </button>
+                            <button class="release-action-btn expand-icon" title="Expand">
+                                <svg fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="track-list">
+                        <div class="track-list-header">
+                            <span class="track-num">#</span>
+                            <span class="track-title">Title</span>
+                            <span class="track-duration">Duration</span>
+                            <span class="track-price">Price</span>
+                            <span class="track-actions">Actions</span>
+                        </div>
+                        ${release.tracks.map((track, i) => renderTrackRow(track, i + 1)).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderTrackRow(track, num) {
+            return `
+                <div class="track-row">
+                    <span class="track-num">${num}</span>
+                    <div class="track-title-col">
+                        <div class="track-title-text">${escapeHtml(track.title)}</div>
+                        <div class="track-cid">${track.manifestCid.slice(0, 16)}...</div>
+                    </div>
+                    <span class="track-duration">${formatDuration(track.duration)}</span>
+                    <span class="track-price">${track.priceSats} sats</span>
+                    <div class="track-actions-col">
+                        <button class="track-btn" onclick="playPreview('${track.previewCid}')" title="Preview">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                        <button class="track-btn" onclick="copyIPFSLink('${track.manifestCid}')" title="Copy IPFS Link">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/>
+                                <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleRelease(encodedId) {
+            const id = decodeId(encodedId);
+            if (expandedRelease === id) {
+                expandedRelease = null;
+            } else {
+                expandedRelease = id;
+            }
+            renderReleases();
+        }
+
+        function encodeId(id) {
+            return btoa(id).replace(/=/g, '');
+        }
+
+        function decodeId(encoded) {
+            return atob(encoded + '='.repeat((4 - encoded.length % 4) % 4));
+        }
+
+        function updateStats() {
+            document.getElementById('total-releases').textContent = releases.length;
+            document.getElementById('total-tracks').textContent = allTracks.length;
+
+            const totalSeconds = allTracks.reduce((sum, t) => sum + t.duration, 0);
+            document.getElementById('total-duration').textContent = formatDurationLong(totalSeconds);
+        }
+
+        async function refreshReleases() {
+            releases = [];
+            allTracks = [];
+            expandedRelease = null;
+            await loadReleases();
+        }
+
+        // Edit Release Modal
+        function openEditReleaseModal(encodedId) {
+            const id = decodeId(encodedId);
+            const release = releases.find(r => r.id === id);
+            if (!release) return;
+
+            document.getElementById('edit-release-id').value = id;
+            document.getElementById('edit-release-title').value = release.title;
+            document.getElementById('edit-release-artist').value = release.artist;
+            document.getElementById('edit-release-type').value = release.releaseType;
+            document.getElementById('edit-release-genre').value = release.genre || '';
+            document.getElementById('edit-release-date').value = release.releaseDate || '';
+            document.getElementById('edit-release-description').value = release.description || '';
+            document.getElementById('edit-cover-cid').value = release.coverArtCid || '';
+
+            // Show cover preview
+            const preview = document.getElementById('cover-preview');
+            if (release.coverArtCid) {
+                preview.innerHTML = `<img src="/ipfs/${release.coverArtCid}" alt="Cover">`;
+            } else {
+                preview.innerHTML = `<svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg>`;
+            }
+
+            document.getElementById('edit-release-modal').classList.add('active');
+        }
+
+        function closeEditReleaseModal() {
+            document.getElementById('edit-release-modal').classList.remove('active');
+        }
+
+        async function handleCoverUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const preview = document.getElementById('cover-preview');
+            const saveBtn = document.getElementById('save-release-btn');
+
+            // Show loading state
+            preview.innerHTML = '<div class="loading-spinner" style="width:24px;height:24px;"></div>';
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Uploading cover...';
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch('/api/tracks/cover-art', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Upload failed');
+                }
+
+                const result = await response.json();
+
+                // Update preview and hidden input (use local IPFS gateway)
+                preview.innerHTML = `<img src="/ipfs/${result.cid}" alt="Cover">`;
+                document.getElementById('edit-cover-cid').value = result.cid;
+
+                showNotification('Cover art uploaded successfully', 'success');
+
+            } catch (error) {
+                preview.innerHTML = `<svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg>`;
+                showNotification('Failed to upload cover: ' + error.message, 'error');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save Changes';
+            }
+        }
+
+        async function saveReleaseEdit(e) {
+            e.preventDefault();
+
+            const session = SessionManager.getSession();
+            if (!session) {
+                showNotification('Not logged in', 'error');
+                return;
+            }
+
+            const releaseId = document.getElementById('edit-release-id').value;
+            const release = releases.find(r => r.id === releaseId);
+            if (!release) return;
+
+            const newTitle = document.getElementById('edit-release-title').value;
+            const newArtist = document.getElementById('edit-release-artist').value;
+            const newType = document.getElementById('edit-release-type').value;
+            const newGenre = document.getElementById('edit-release-genre').value;
+            const newDate = document.getElementById('edit-release-date').value;
+            const newCoverCid = document.getElementById('edit-cover-cid').value;
+
+            try {
+                // Update each track in this release
+                for (const track of release.tracks) {
+                    const tags = [
+                        ['d', track.d],
+                        ['app', 'Equaliser'],
+                        ['title', track.title],
+                        ['artist', newArtist],
+                        ['duration', track.duration.toString()],
+                        ['ipfs_manifest_cid', track.manifestCid],
+                        ['ipfs_preview_cid', track.previewCid],
+                        ['price_sats', track.priceSats.toString()],
+                        ['release_type', newType]
+                    ];
+
+                    // For albums/EPs, set album name
+                    if (newType !== 'single') {
+                        tags.push(['album', newTitle]);
+                    }
+                    if (newGenre) tags.push(['genre', newGenre]);
+                    if (newDate) tags.push(['release_date', newDate]);
+                    if (newCoverCid) tags.push(['cover_art_cid', newCoverCid]);
+                    if (track.trackNumber) tags.push(['track_number', track.trackNumber.toString()]);
+
+                    const unsignedEvent = {
+                        kind: 30050,
+                        pubkey: session.publicKey,
+                        created_at: Math.floor(Date.now() / 1000),
+                        tags: tags,
+                        content: ''
+                    };
+
+                    const signedEvent = await session.sign(unsignedEvent);
+
+                    const response = await fetch('/api/tracks/publish', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ signed_event: signedEvent })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to update track');
+                    }
+                }
+
+                closeEditReleaseModal();
+                showNotification('Release updated successfully', 'success');
+                await refreshReleases();
+
+            } catch (error) {
+                showNotification('Failed to update: ' + error.message, 'error');
+            }
+        }
+
+        function playPreview(previewCid) {
+            if (!previewCid) {
+                showNotification('No preview available', 'error');
+                return;
+            }
+            window.open(`/ipfs/${previewCid}/playlist.m3u8`, '_blank');
+        }
+
+        function copyIPFSLink(cid) {
+            const url = `${window.location.origin}/ipfs/${cid}`;
+            navigator.clipboard.writeText(url).then(() => {
+                showNotification('IPFS link copied to clipboard', 'success');
+            }).catch(() => {
+                showNotification('Failed to copy link', 'error');
+            });
+        }
+
+        async function loadArtistInfo() {
+            const session = SessionManager.getSession();
+            if (!session) return;
+
+            try {
+                const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/relay`);
+
+                ws.onopen = () => {
+                    ws.send(JSON.stringify(['REQ', 'profile', {
+                        kinds: [0],
+                        authors: [session.publicKey],
+                        limit: 1
+                    }]));
+                };
+
+                ws.onmessage = (event) => {
+                    const msg = JSON.parse(event.data);
+                    if (msg[0] === 'EVENT' && msg[2]) {
+                        try {
+                            const profile = JSON.parse(msg[2].content);
+                            AdminSidebar.updateArtistDisplay(profile.name || 'Artist', profile.picture || null);
+                        } catch (e) {}
+                    }
+                    if (msg[0] === 'EOSE') ws.close();
+                };
+            } catch (error) {}
+        }
+
+        // Utilities
+        function formatDuration(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function formatDurationLong(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const mins = Math.floor((seconds % 3600) / 60);
+            if (hours > 0) return `${hours}h ${mins}m`;
+            return `${mins}m`;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text || '';
+            return div.innerHTML;
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            const text = document.getElementById('notification-text');
+
+            notification.className = `notification ${type}`;
+            text.textContent = message;
+
+            const icon = notification.querySelector('.notification-icon');
+            if (type === 'success') {
+                icon.innerHTML = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>';
+            } else {
+                icon.innerHTML = '<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>';
+            }
+
+            notification.classList.add('show');
+            setTimeout(() => notification.classList.remove('show'), 4000);
+        }
+    </script>
+</body>
+</html>

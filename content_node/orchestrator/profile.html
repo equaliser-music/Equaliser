@@ -653,14 +653,56 @@
             // Update npub display
             document.getElementById('user-npub-display').value = session.npub;
 
+            // Check for backup profile data (from login with backup file)
+            const backupProfileData = checkForBackupProfile();
+
             // Fetch existing profile from relays
             existingProfile = await fetchExistingProfile(session.publicKey);
 
-            // Populate form with existing data
-            populateForm(existingProfile);
+            // If we have backup data and no existing profile (or backup is newer),
+            // use the backup data to pre-fill
+            if (backupProfileData && !existingProfile) {
+                populateFormFromBackup(backupProfileData);
+            } else {
+                // Populate form with existing relay data
+                populateForm(existingProfile);
+            }
 
             // Update sidebar display
             updateSidebarDisplay();
+        }
+
+        // Check for backup profile data stored during login
+        function checkForBackupProfile() {
+            try {
+                const backupData = sessionStorage.getItem('equaliser_backup_profile');
+                if (backupData) {
+                    // Clear it after reading (one-time use)
+                    sessionStorage.removeItem('equaliser_backup_profile');
+                    return JSON.parse(backupData);
+                }
+            } catch (e) {
+                console.warn('Failed to read backup profile data:', e);
+            }
+            return null;
+        }
+
+        // Populate form from backup file data
+        function populateFormFromBackup(backup) {
+            if (!backup) return;
+
+            // Map backup fields to form fields
+            document.getElementById('name').value = backup.name || '';
+            document.getElementById('about').value = backup.bio || '';  // backup uses 'bio', profile uses 'about'
+            document.getElementById('location').value = backup.location || '';
+
+            // Handle genres
+            if (backup.genres && Array.isArray(backup.genres)) {
+                genres = [...backup.genres];
+                renderGenres();
+            }
+
+            console.log('Profile form pre-filled from backup file');
         }
 
         // Fetch existing profile from local relay
@@ -787,24 +829,24 @@
             el.classList.add('has-image');
         }
 
-        // IPFS Image Upload
+        // IPFS Image Upload via orchestrator API
         async function uploadToIPFS(file) {
             const formData = new FormData();
             formData.append('file', file);
 
-            const response = await fetch('http://localhost:5001/api/v0/add', {
+            // Use the cover-art API endpoint which handles IPFS uploads
+            const response = await fetch('/api/tracks/cover-art', {
                 method: 'POST',
                 body: formData
             });
 
             if (!response.ok) {
-                throw new Error(`IPFS upload failed: ${response.status}`);
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.detail || `Upload failed: ${response.status}`);
             }
 
             const result = await response.json();
-            const cid = result.Hash;
-
-            return { cid };
+            return { cid: result.cid };
         }
 
         async function handleAvatarUpload(event) {
@@ -907,7 +949,11 @@
         // Build profile content
         function buildProfileContent() {
             // Start with existing profile to preserve unknown fields
+            // Deep copy the equaliser object to avoid reference issues
             const profile = existingProfile ? { ...existingProfile } : {};
+            if (existingProfile?.equaliser) {
+                profile.equaliser = { ...existingProfile.equaliser };
+            }
 
             // Update standard fields
             profile.name = document.getElementById('name').value.trim();
@@ -946,7 +992,8 @@
             const location = document.getElementById('location').value.trim();
 
             if (location) profile.equaliser.location = location;
-            if (genres.length > 0) profile.equaliser.genres = genres;
+            // Always save genres array (even if empty, to clear old values)
+            profile.equaliser.genres = [...genres];
 
             // Preserve joinedDate if it exists, otherwise set it
             if (!profile.equaliser.joinedDate) {

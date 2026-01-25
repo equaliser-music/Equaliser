@@ -31,12 +31,14 @@ app.include_router(tracks.router, prefix="/api/tracks", tags=["tracks"])
 
 
 @app.get("/health")
+@app.get("/api/health")
 async def health_check():
     """Health check endpoint for container orchestration."""
     return {"status": "healthy"}
 
 
 @app.get("/")
+@app.get("/api")
 async def root():
     """Root endpoint with API info."""
     return {

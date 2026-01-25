@@ -97,6 +97,31 @@ GET /api/tracks/
 
 Returns all successfully processed tracks from the in-memory cache.
 
+### Cover Art Upload
+
+```
+POST /api/tracks/cover-art
+Content-Type: multipart/form-data
+```
+
+Uploads an image file to IPFS and returns the CID. Used by the profile page for avatar and banner images.
+
+**Parameters:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `file` | File | Yes | Image file (JPG, PNG, GIF, WebP) |
+
+**Response:**
+
+```json
+{
+  "cid": "Qm...",
+  "size": 123456,
+  "name": "avatar.jpg"
+}
+```
+
 ## Processing Pipeline
 
 When a track is uploaded, the orchestrator:
@@ -166,8 +191,12 @@ orchestrator/
 │       ├── hls.py           # FFmpeg encoding
 │       ├── ipfs.py          # IPFS uploads
 │       └── nostr.py         # NOSTR events
+├── login.html               # Login gateway
+├── dashboard.html           # Artist home page
 ├── upload.html              # Track upload UI
 ├── profile.html             # Profile editor
+├── settings.html            # Relay configuration
+├── onboarding.html          # New artist setup
 └── js/
     ├── session.js           # Session management
     └── admin-sidebar.js     # Sidebar component
@@ -213,7 +242,7 @@ The following features are planned but not yet implemented:
 - **Key Storage**: SQLite database for encryption keys
 - **Payment Integration**: Strike API for receiving payments
 - **Key Distribution**: NIP-44 encrypted keys sent after payment verification
-- **Cover Art Upload**: Associate artwork with tracks
+- **Track Cover Art**: Associate artwork with track uploads (profile images already supported)
 
 See [Technical Specification](./Technical%20Specification.md) sections 4.3-4.4 for the complete design.
 
