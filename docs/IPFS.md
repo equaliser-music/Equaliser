@@ -208,6 +208,70 @@ The content might not be available on the network. Try:
 - **Gateway Access**: The gateway (via nginx) is read-only and safe for public access.
 - **P2P Port**: Port 4001 must be accessible for the node to participate in the IPFS network.
 
+## Content Availability and Public Gateways
+
+### Local vs Public Gateway
+
+Content uploaded to your local IPFS node is immediately accessible via:
+- **Local gateway**: `http://localhost/ipfs/{CID}` - Works instantly, content is on your node
+
+However, content is **not immediately available** on public gateways like `https://ipfs.io/ipfs/{CID}` because:
+
+1. **Network propagation**: Your Docker IPFS node may not be well-connected to the public IPFS swarm
+2. **DHT advertisement**: Content must be advertised to the distributed hash table for discovery
+3. **Gateway timeout**: Public gateways return 504 if they can't find content within ~30 seconds
+
+### Development vs Production
+
+| Environment | Gateway URL | Notes |
+|-------------|-------------|-------|
+| Development | `http://localhost/ipfs/{CID}` | Fast, local access |
+| Production  | `https://ipfs.io/ipfs/{CID}` | Requires content propagation |
+
+### Making Content Publicly Available
+
+For content to be accessible on public gateways:
+
+1. **Ensure swarm connectivity**: Your node must connect to public IPFS peers
+   ```bash
+   docker exec equaliser-ipfs ipfs swarm peers | wc -l
+   ```
+   If zero peers, check port 4001 is accessible from the internet.
+
+2. **Use a pinning service**: Pin content to services that maintain public availability
+   - [Pinata](https://pinata.cloud)
+   - [web3.storage](https://web3.storage)
+   - [Infura IPFS](https://infura.io/product/ipfs)
+
+3. **Run a public gateway**: Deploy your own publicly-accessible IPFS gateway
+
+### IPFS Desktop / Companion Conflicts
+
+If you have **IPFS Desktop** installed (even if not running), it may redirect browser requests from public gateways to `localhost:8080`. This happens because:
+
+- IPFS Desktop registers a protocol handler
+- Browser extensions intercept `ipfs.io` requests
+- Redirects go to port 8080, but our Docker gateway is on port 80
+
+**Symptoms:**
+- Visiting `https://ipfs.io/ipfs/{CID}` redirects to `http://localhost:8080/ipfs/{CID}`
+- Browser shows "localhost refused to connect"
+- Content works at `http://localhost/ipfs/{CID}` (no port)
+
+**Solutions:**
+1. Configure IPFS Companion to use `http://localhost` instead of `http://localhost:8080`
+2. Disable IPFS Companion's gateway redirect in extension settings
+3. Test in incognito/private browsing (extensions disabled)
+4. Expose port 8080 in docker-compose for compatibility
+
+### Profile Image URLs
+
+Per [IPFS_CID_COMPATIBILITY.md](./IPFS_CID_COMPATIBILITY.md), artist profiles store:
+- **Standard fields** (`picture`, `banner`): Public gateway URLs for NOSTR client compatibility
+- **Equaliser fields** (`picture_cid`, `banner_cid`): Raw CIDs for resilient gateway fallback
+
+The profile editor uses the local gateway for display but publishes public gateway URLs. Equaliser-aware clients can use raw CIDs to try alternative gateways if the primary is unavailable.
+
 ## References
 
 - [Kubo Documentation](https://docs.ipfs.tech/install/command-line/)

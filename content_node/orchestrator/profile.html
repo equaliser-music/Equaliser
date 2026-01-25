@@ -717,6 +717,23 @@
             return null;
         }
 
+        // Public IPFS gateway for compatibility with other NOSTR clients (used in published profiles)
+        const PUBLIC_IPFS_GATEWAY = 'https://ipfs.io/ipfs/';
+        // Local IPFS gateway for fast preview display (content is on local node)
+        const LOCAL_IPFS_GATEWAY = `${window.location.origin}/ipfs/`;
+
+        // Extract CID from any IPFS URL format
+        function extractCidFromUrl(url) {
+            if (!url) return null;
+            const ipfsMatch = url.match(/\/ipfs\/([a-zA-Z0-9]+)/);
+            return ipfsMatch ? ipfsMatch[1] : null;
+        }
+
+        // Get local gateway URL for a CID (for fast preview display)
+        function getLocalGatewayUrl(cid) {
+            return `${LOCAL_IPFS_GATEWAY}${cid}`;
+        }
+
         // Populate form with existing profile data
         function populateForm(profile) {
             if (!profile) return;
@@ -729,11 +746,16 @@
             document.getElementById('lud16').value = profile.lud16 || '';
 
             // Load existing images if they exist
+            // Use local gateway for display (faster, content is on local node)
             if (profile.picture) {
-                showImagePreview('avatar-preview', profile.picture);
+                const cid = profile.equaliser?.picture_cid || extractCidFromUrl(profile.picture);
+                const pictureUrl = cid ? getLocalGatewayUrl(cid) : profile.picture;
+                showImagePreview('avatar-preview', pictureUrl);
             }
             if (profile.banner) {
-                showImagePreview('banner-preview', profile.banner);
+                const cid = profile.equaliser?.banner_cid || extractCidFromUrl(profile.banner);
+                const bannerUrl = cid ? getLocalGatewayUrl(cid) : profile.banner;
+                showImagePreview('banner-preview', bannerUrl);
             }
 
             // Equaliser-specific fields
@@ -749,7 +771,12 @@
         // Update sidebar display
         function updateSidebarDisplay() {
             const name = existingProfile?.name || 'New Artist';
-            const avatarUrl = existingProfile?.picture || null;
+            // Use local gateway for display (faster)
+            let avatarUrl = null;
+            const cid = existingProfile?.equaliser?.picture_cid || extractCidFromUrl(existingProfile?.picture);
+            if (cid) {
+                avatarUrl = getLocalGatewayUrl(cid);
+            }
             AdminSidebar.updateArtistDisplay(name, avatarUrl);
         }
 
@@ -776,9 +803,8 @@
 
             const result = await response.json();
             const cid = result.Hash;
-            const gatewayUrl = `${window.location.origin}/ipfs/${cid}`;
 
-            return { cid, gatewayUrl };
+            return { cid };
         }
 
         async function handleAvatarUpload(event) {
@@ -796,17 +822,18 @@
                 previewEl.innerHTML += '<span class="upload-status uploading"><span class="loading" style="width:12px;height:12px;border-width:1px;"></span></span>';
 
                 // Upload to IPFS
-                const { cid, gatewayUrl } = await uploadToIPFS(file);
+                const { cid } = await uploadToIPFS(file);
                 avatarCID = cid;
 
-                // Update preview with gateway URL and success indicator
+                // Update preview with local gateway URL (fast) and success indicator
                 URL.revokeObjectURL(localPreview);
-                showImagePreview('avatar-preview', gatewayUrl);
+                const localUrl = getLocalGatewayUrl(cid);
+                showImagePreview('avatar-preview', localUrl);
                 previewEl.innerHTML += '<span class="upload-status success">&#10003;</span>';
 
                 // Update sidebar avatar too
                 const name = document.getElementById('name').value.trim() || 'Artist';
-                AdminSidebar.updateArtistDisplay(name, gatewayUrl);
+                AdminSidebar.updateArtistDisplay(name, localUrl);
 
             } catch (error) {
                 console.error('Avatar upload error:', error);
@@ -830,12 +857,13 @@
                 previewEl.innerHTML += '<span class="upload-status uploading"><span class="loading" style="width:12px;height:12px;border-width:1px;"></span></span>';
 
                 // Upload to IPFS
-                const { cid, gatewayUrl } = await uploadToIPFS(file);
+                const { cid } = await uploadToIPFS(file);
                 bannerCID = cid;
 
-                // Update preview with gateway URL and success indicator
+                // Update preview with local gateway URL (fast) and success indicator
                 URL.revokeObjectURL(localPreview);
-                showImagePreview('banner-preview', gatewayUrl);
+                const localUrl = getLocalGatewayUrl(cid);
+                showImagePreview('banner-preview', localUrl);
                 previewEl.innerHTML += '<span class="upload-status success">&#10003;</span>';
 
             } catch (error) {
@@ -888,24 +916,41 @@
             profile.nip05 = document.getElementById('nip05').value.trim();
             profile.lud16 = document.getElementById('lud16').value.trim();
 
-            // Update image URLs only if new images were uploaded
-            if (avatarCID) {
-                profile.picture = `${window.location.origin}/ipfs/${avatarCID}`;
+            // Per IPFS_CID_COMPATIBILITY.md: use public gateway URLs in standard fields,
+            // store raw CIDs in equaliser namespace for resilience
+
+            // Always ensure equaliser namespace exists
+            profile.equaliser = profile.equaliser || {};
+
+            // Determine picture CID: new upload, existing equaliser CID, or extract from URL
+            const pictureCid = avatarCID
+                || profile.equaliser.picture_cid
+                || extractCidFromUrl(profile.picture);
+
+            if (pictureCid) {
+                profile.picture = `${PUBLIC_IPFS_GATEWAY}${pictureCid}`;
+                profile.equaliser.picture_cid = pictureCid;
             }
-            if (bannerCID) {
-                profile.banner = `${window.location.origin}/ipfs/${bannerCID}`;
+
+            // Determine banner CID: new upload, existing equaliser CID, or extract from URL
+            const bannerCid = bannerCID
+                || profile.equaliser.banner_cid
+                || extractCidFromUrl(profile.banner);
+
+            if (bannerCid) {
+                profile.banner = `${PUBLIC_IPFS_GATEWAY}${bannerCid}`;
+                profile.equaliser.banner_cid = bannerCid;
             }
 
             // Equaliser-specific fields
             const location = document.getElementById('location').value.trim();
-            if (location || genres.length > 0 || (profile.equaliser && profile.equaliser.joinedDate)) {
-                profile.equaliser = profile.equaliser || {};
-                if (location) profile.equaliser.location = location;
-                if (genres.length > 0) profile.equaliser.genres = genres;
-                // Preserve joinedDate if it exists, otherwise set it
-                if (!profile.equaliser.joinedDate) {
-                    profile.equaliser.joinedDate = new Date().toISOString().split('T')[0];
-                }
+
+            if (location) profile.equaliser.location = location;
+            if (genres.length > 0) profile.equaliser.genres = genres;
+
+            // Preserve joinedDate if it exists, otherwise set it
+            if (!profile.equaliser.joinedDate) {
+                profile.equaliser.joinedDate = new Date().toISOString().split('T')[0];
             }
 
             return profile;
