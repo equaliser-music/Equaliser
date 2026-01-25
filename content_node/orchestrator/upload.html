@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equaliser - Upload Track</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 240px;
+            padding: 32px;
+            padding-bottom: 100px;
+            max-width: 900px;
+        }
+
+        .header {
+            margin-bottom: 32px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .page-description {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+        }
+
+        /* Settings Sections */
+        .settings-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title svg {
+            width: 20px;
+            height: 20px;
+            color: #a855f7;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #a855f7;
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 6px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        /* File Upload Zone */
+        .upload-zone {
+            border: 2px dashed rgba(139, 92, 246, 0.3);
+            border-radius: 16px;
+            padding: 48px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(139, 92, 246, 0.05);
+        }
+
+        .upload-zone:hover {
+            border-color: #a855f7;
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .upload-zone.dragging {
+            border-color: #a855f7;
+            background: rgba(139, 92, 246, 0.2);
+        }
+
+        .upload-zone.has-file {
+            border-style: solid;
+            border-color: #22c55e;
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .upload-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 16px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .upload-zone.has-file .upload-icon {
+            color: #22c55e;
+        }
+
+        .upload-text {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .upload-hint {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .file-info {
+            display: none;
+            margin-top: 16px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .upload-zone.has-file .file-info {
+            display: block;
+        }
+
+        .file-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .file-size {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Progress */
+        .progress-container {
+            display: none;
+            margin-top: 24px;
+        }
+
+        .progress-container.active {
+            display: block;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #a855f7, #ec4899);
+            border-radius: 4px;
+            transition: width 0.3s;
+            width: 0%;
+        }
+
+        .progress-status {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #a855f7, #ec4899);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(168, 85, 247, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        /* Status Messages */
+        .status-message {
+            padding: 16px;
+            border-radius: 10px;
+            margin-top: 24px;
+            display: none;
+        }
+
+        .status-message.success {
+            display: block;
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #22c55e;
+        }
+
+        .status-message.error {
+            display: block;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+        }
+
+        /* Result Card */
+        .result-card {
+            display: none;
+            margin-top: 24px;
+            padding: 20px;
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 12px;
+        }
+
+        .result-card.visible {
+            display: block;
+        }
+
+        .result-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #22c55e;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 13px;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-label {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .result-value {
+            font-family: monospace;
+            color: #ffffff;
+        }
+
+        .result-value.truncate {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #a855f7;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Hidden file input */
+        input[type="file"] {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar"></div>
+
+        <div class="main-content">
+            <div class="header">
+                <h1 class="page-title">Upload Track</h1>
+                <p class="page-description">Upload your music to IPFS and publish to NOSTR</p>
+            </div>
+
+            <form id="upload-form">
+                <!-- Audio File Upload -->
+                <div class="settings-section">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/>
+                            </svg>
+                            Audio File
+                        </h2>
+                    </div>
+
+                    <div class="upload-zone" id="upload-zone">
+                        <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                        <p class="upload-text">Drop your audio file here or click to browse</p>
+                        <p class="upload-hint">Supports MP3, WAV, FLAC, AAC (max 500MB)</p>
+                        <div class="file-info">
+                            <p class="file-name" id="file-name"></p>
+                            <p class="file-size" id="file-size"></p>
+                        </div>
+                    </div>
+                    <input type="file" id="audio-file" accept="audio/*">
+                </div>
+
+                <!-- Track Metadata -->
+                <div class="settings-section">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm3 1h6v4H7V5zm6 6H7v2h6v-2z" clip-rule="evenodd"/>
+                            </svg>
+                            Track Details
+                        </h2>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="title">Title *</label>
+                        <input type="text" class="form-input" id="title" placeholder="Track title" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="artist">Artist *</label>
+                        <input type="text" class="form-input" id="artist" placeholder="Artist name" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="album">Album</label>
+                            <input type="text" class="form-input" id="album" placeholder="Album name (optional)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="genre">Genre</label>
+                            <input type="text" class="form-input" id="genre" placeholder="e.g., Electronic, Rock">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="release-date">Release Date</label>
+                            <input type="date" class="form-input" id="release-date">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="price">Price (sats)</label>
+                            <input type="number" class="form-input" id="price" value="100" min="0">
+                            <p class="form-hint">Price per stream in satoshis (0 for free)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress -->
+                <div class="progress-container" id="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <div class="progress-status">
+                        <span id="progress-message">Preparing...</span>
+                        <span id="progress-percent">0%</span>
+                    </div>
+                </div>
+
+                <!-- Status Messages -->
+                <div class="status-message" id="status-message"></div>
+
+                <!-- Result Card -->
+                <div class="result-card" id="result-card">
+                    <h3 class="result-title">Track Published Successfully</h3>
+                    <div class="result-item">
+                        <span class="result-label">Track ID</span>
+                        <span class="result-value" id="result-track-id"></span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Duration</span>
+                        <span class="result-value" id="result-duration"></span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Full Track CID</span>
+                        <span class="result-value truncate" id="result-manifest-cid"></span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Preview CID</span>
+                        <span class="result-value truncate" id="result-preview-cid"></span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">NOSTR Event</span>
+                        <span class="result-value truncate" id="result-event-id"></span>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="submit-btn" disabled>
+                        Upload Track
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="reset-btn">
+                        Reset
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/session.js"></script>
+    <script src="js/admin-sidebar.js"></script>
+    <script>
+        // Initialize session and sidebar
+        SessionManager.init();
+        AdminSidebar.init();
+
+        // Elements
+        const uploadZone = document.getElementById('upload-zone');
+        const fileInput = document.getElementById('audio-file');
+        const fileName = document.getElementById('file-name');
+        const fileSize = document.getElementById('file-size');
+        const uploadForm = document.getElementById('upload-form');
+        const submitBtn = document.getElementById('submit-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const progressContainer = document.getElementById('progress-container');
+        const progressFill = document.getElementById('progress-fill');
+        const progressMessage = document.getElementById('progress-message');
+        const progressPercent = document.getElementById('progress-percent');
+        const statusMessage = document.getElementById('status-message');
+        const resultCard = document.getElementById('result-card');
+
+        let selectedFile = null;
+        let pollInterval = null;
+
+        // File drop handling
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragging');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragging');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragging');
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type.startsWith('audio/')) {
+                handleFileSelect(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            selectedFile = file;
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            uploadZone.classList.add('has-file');
+            validateForm();
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function validateForm() {
+            const title = document.getElementById('title').value.trim();
+            const artist = document.getElementById('artist').value.trim();
+            submitBtn.disabled = !selectedFile || !title || !artist;
+        }
+
+        // Form validation on input
+        document.getElementById('title').addEventListener('input', validateForm);
+        document.getElementById('artist').addEventListener('input', validateForm);
+
+        // Reset form
+        resetBtn.addEventListener('click', () => {
+            uploadForm.reset();
+            selectedFile = null;
+            uploadZone.classList.remove('has-file');
+            progressContainer.classList.remove('active');
+            statusMessage.className = 'status-message';
+            resultCard.classList.remove('visible');
+            submitBtn.disabled = true;
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+        });
+
+        // Form submission
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!selectedFile) return;
+
+            const session = SessionManager.getSession();
+            if (!session) {
+                showError('Please log in first');
+                return;
+            }
+
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('title', document.getElementById('title').value.trim());
+            formData.append('artist', document.getElementById('artist').value.trim());
+            formData.append('album', document.getElementById('album').value.trim());
+            formData.append('genre', document.getElementById('genre').value.trim());
+            formData.append('release_date', document.getElementById('release-date').value);
+            formData.append('price_sats', document.getElementById('price').value || '100');
+            formData.append('artist_pubkey', session.pubkey);
+
+            // If using extension, we won't pass private key (client-side signing later)
+            // For now, skip NOSTR publishing if no private key
+
+            // Show progress
+            submitBtn.disabled = true;
+            progressContainer.classList.add('active');
+            statusMessage.className = 'status-message';
+            resultCard.classList.remove('visible');
+            updateProgress(0, 'Uploading file...');
+
+            try {
+                // Upload file
+                const response = await fetch('/api/tracks/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Upload failed');
+                }
+
+                const result = await response.json();
+                updateProgress(10, 'File uploaded, processing...');
+
+                // Poll for status
+                pollStatus(result.track_id);
+
+            } catch (error) {
+                showError(error.message);
+                submitBtn.disabled = false;
+                progressContainer.classList.remove('active');
+            }
+        });
+
+        function pollStatus(trackId) {
+            pollInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/api/tracks/status/${trackId}`);
+                    if (!response.ok) throw new Error('Failed to get status');
+
+                    const status = await response.json();
+                    updateProgress(status.progress, status.message);
+
+                    if (status.status === 'complete') {
+                        clearInterval(pollInterval);
+                        pollInterval = null;
+                        showSuccess(status.result);
+                    } else if (status.status === 'error') {
+                        clearInterval(pollInterval);
+                        pollInterval = null;
+                        showError(status.message);
+                        submitBtn.disabled = false;
+                    }
+                } catch (error) {
+                    console.error('Poll error:', error);
+                }
+            }, 1000);
+        }
+
+        function updateProgress(percent, message) {
+            progressFill.style.width = percent + '%';
+            progressPercent.textContent = percent + '%';
+            progressMessage.textContent = message;
+        }
+
+        function showError(message) {
+            statusMessage.className = 'status-message error';
+            statusMessage.textContent = message;
+            progressContainer.classList.remove('active');
+        }
+
+        function showSuccess(result) {
+            progressContainer.classList.remove('active');
+
+            // Populate result card
+            document.getElementById('result-track-id').textContent = result.track_id;
+            document.getElementById('result-duration').textContent = formatDuration(result.duration);
+            document.getElementById('result-manifest-cid').textContent = result.ipfs_manifest_cid;
+            document.getElementById('result-preview-cid').textContent = result.ipfs_preview_cid;
+            document.getElementById('result-event-id').textContent = result.nostr_event_id || 'Not published (sign manually)';
+
+            resultCard.classList.add('visible');
+            submitBtn.disabled = false;
+        }
+
+        function formatDuration(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Pre-fill artist name from profile if available
+        async function loadArtistName() {
+            const session = SessionManager.getSession();
+            if (!session) return;
+
+            try {
+                // Try to fetch profile from relay
+                const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/relay`);
+
+                ws.onopen = () => {
+                    const filter = {
+                        kinds: [0],
+                        authors: [session.pubkey],
+                        limit: 1
+                    };
+                    ws.send(JSON.stringify(['REQ', 'profile', filter]));
+                };
+
+                ws.onmessage = (event) => {
+                    const msg = JSON.parse(event.data);
+                    if (msg[0] === 'EVENT' && msg[2]) {
+                        try {
+                            const profile = JSON.parse(msg[2].content);
+                            if (profile.name) {
+                                document.getElementById('artist').value = profile.name;
+                                validateForm();
+                            }
+                        } catch (e) {}
+                    }
+                    if (msg[0] === 'EOSE') {
+                        ws.close();
+                    }
+                };
+            } catch (error) {
+                console.log('Could not load profile:', error);
+            }
+        }
+
+        loadArtistName();
+    </script>
+</body>
+</html>

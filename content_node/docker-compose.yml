@@ -29,6 +29,7 @@ services:
     depends_on:
       - nostr-relay
       - ipfs
+      - orchestrator
     restart: unless-stopped
 
   # NOSTR relay
@@ -46,8 +47,30 @@ services:
       retries: 3
       start_period: 10s
 
+  # Orchestrator API - handles track uploads, encoding, and NOSTR publishing
+  orchestrator:
+    build: ./orchestrator/api
+    container_name: equaliser-orchestrator
+    environment:
+      - IPFS_API_URL=http://ipfs:5001
+      - NOSTR_RELAY_URL=ws://nostr-relay:8080
+    volumes:
+      - orchestrator-uploads:/tmp/equaliser/uploads
+    depends_on:
+      - ipfs
+      - nostr-relay
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
 volumes:
   nostr-data:
     driver: local
   ipfs-data:
+    driver: local
+  orchestrator-uploads:
     driver: local

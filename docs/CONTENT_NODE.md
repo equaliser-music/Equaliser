@@ -7,22 +7,26 @@ The content node is the infrastructure that powers an artist's presence on the E
 ```
 content_node/
 ├── docker-compose.yml      # Orchestrates all services
-├── ipfs/                   # IPFS configuration and documentation
-│   └── IPFS.md
+├── ipfs/                   # IPFS configuration
 ├── nostr-relay/            # NOSTR relay configuration
 │   └── config.toml
-├── orchestrator/           # Artist admin tools & API (future)
-│   ├── login.html          # Login gateway (single entry point)
+├── orchestrator/           # Artist admin tools & API
+│   ├── api/                # FastAPI backend
+│   │   ├── Dockerfile
+│   │   ├── main.py
+│   │   ├── routers/        # API endpoints
+│   │   └── services/       # HLS, IPFS, NOSTR services
+│   ├── login.html          # Login gateway
 │   ├── onboarding.html     # Artist onboarding wizard
 │   ├── profile.html        # Profile editor
+│   ├── upload.html         # Track upload interface
 │   ├── settings.html       # Relay and account settings
-│   ├── js/
-│   │   ├── session.js      # Centralized in-memory session manager
-│   │   └── status-bar.js   # Session status bar component
-│   └── ONBOARDING.md       # Onboarding documentation
-├── web/                    # Nginx web server configuration
+│   └── js/
+│       ├── session.js      # Session manager
+│       └── admin-sidebar.js # Sidebar component
+├── web/                    # Nginx configuration
 │   └── nginx.conf
-└── demo_accounts/          # Local storage for demo artist keys (gitignored)
+└── demo_accounts/          # Demo artist keys (gitignored)
 ```
 
 ## Services
@@ -32,6 +36,7 @@ content_node/
 | `ipfs` | ipfs/kubo | 4001, 5001, 8080 | Decentralised content storage |
 | `web` | nginx:alpine | 80 | Serves static files, routes requests |
 | `nostr-relay` | nostr-rs-relay | 8080 | NOSTR event storage and relay |
+| `orchestrator` | custom (Python) | 8000 | Track uploads, HLS encoding, API |
 
 ## URL Routing
 
@@ -42,7 +47,7 @@ content_node/
 | `/admin` | `orchestrator/` | Artist admin tools (onboarding, dashboard) |
 | `/relay` | nostr-relay:8080 | WebSocket proxy to NOSTR relay |
 | `/ipfs/{CID}` | ipfs:8080 | IPFS gateway for content retrieval |
-| `/api` | orchestrator:8000 | API endpoints (future) |
+| `/api` | orchestrator:8000 | Orchestrator API (track uploads, etc.) |
 | `/health` | nginx | Health check endpoint |
 
 ## Quick Start
@@ -131,6 +136,7 @@ Once running:
 | http://localhost/admin/onboarding.html | Artist onboarding wizard |
 | http://localhost/admin/profile.html | Artist profile editor |
 | http://localhost/admin/settings.html | Relay and account settings |
+| http://localhost/admin/upload.html | Track upload interface |
 | ws://localhost/relay | NOSTR relay WebSocket |
 | http://localhost/ipfs/{CID} | IPFS content gateway |
 | http://localhost/health | Health check |
@@ -312,16 +318,24 @@ IPFS data is stored in the Docker volume `ipfs-data`.
 
 See [IPFS.md](./ipfs/IPFS.md) for detailed configuration and operations.
 
-## Future Components
+## Orchestrator API
 
-### Orchestrator API (Planned)
+The orchestrator is a FastAPI backend that handles content processing:
 
-Python/FastAPI service that will handle:
-- Content upload and processing
-- HLS encoding with FFmpeg
-- IPFS integration
+- **Track Upload**: Accept audio files and metadata
+- **HLS Encoding**: Convert to streaming format with FFmpeg
+- **IPFS Integration**: Upload segments and get CIDs
+- **NOSTR Publishing**: Create Kind 30050 track events
+
+Access the upload UI at `/admin/upload.html`.
+
+See [ORCHESTRATOR.md](./ORCHESTRATOR.md) for full API documentation.
+
+### Future Enhancements
+
+- AES-256 encryption of HLS segments
 - Strike payment webhooks
-- Decryption key distribution
+- Decryption key distribution via NIP-44
 
 ## Development
 
@@ -398,5 +412,6 @@ docker-compose exec web ls -la /usr/share/nginx/html/admin
 - [NOSTR Protocol](https://github.com/nostr-protocol/nostr)
 - [nostr-rs-relay](https://github.com/scsibug/nostr-rs-relay)
 - [IPFS/Kubo](https://github.com/ipfs/kubo)
-- [Onboarding Documentation](./orchestrator/ONBOARDING.md)
-- [IPFS Documentation](./ipfs/IPFS.md)
+- [Onboarding Documentation](./ONBOARDING.md)
+- [Orchestrator API](./ORCHESTRATOR.md)
+- [IPFS Documentation](./IPFS.md)
