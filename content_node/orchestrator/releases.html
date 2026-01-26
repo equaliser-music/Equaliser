@@ -847,7 +847,7 @@
                 duration: parseInt(tags.duration) || 0,
                 manifestCid: tags.ipfs_manifest_cid || '',
                 previewCid: tags.ipfs_preview_cid || '',
-                priceSats: parseInt(tags.price_sats) || 100,
+                priceSats: tags.price_sats !== undefined ? parseInt(tags.price_sats) : 100,
                 releaseDate: tags.release_date || '',
                 coverArtCid: tags.cover_art_cid || '',
                 releaseId: tags.release_id || '',
@@ -857,6 +857,7 @@
 
         // Group tracks into releases based on album name (handles both drafts and released)
         function groupTracksIntoReleases() {
+            console.log('Grouping tracks: drafts=', allDrafts.length, 'released=', allTracks.length);
             const releaseMap = new Map();
 
             // Helper to add track to release
@@ -921,6 +922,11 @@
                     // Then by date (newest first)
                     return b.createdAt - a.createdAt;
                 });
+
+            // Debug: log release track counts
+            releases.forEach(r => {
+                console.log(`Release "${r.title}" (${r.status}): ${r.tracks.length} tracks`);
+            });
         }
 
         function renderReleases() {

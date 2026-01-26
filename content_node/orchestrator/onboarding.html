@@ -735,12 +735,15 @@
                 </div>
 
                 <div class="btn-group" style="margin-top: 32px;">
-                    <button class="btn btn-primary" onclick="downloadBackup()">
-                        Download Backup File
+                    <button class="btn btn-primary" onclick="goToDashboard()">
+                        Go to Dashboard
+                    </button>
+                    <button class="btn btn-secondary" onclick="downloadBackup()">
+                        Download Backup
                     </button>
                 </div>
                 <p class="form-hint" style="margin-top: 12px;">
-                    Save this backup file securely. It contains your keys and profile information.
+                    You're now logged in. Download a backup file to save your keys securely.
                 </p>
             </div>
         </div>
@@ -748,6 +751,7 @@
 
     <!-- nostr-tools via CDN -->
     <script src="https://unpkg.com/nostr-tools@2.1.4/lib/nostr.bundle.js"></script>
+    <script src="js/session.js"></script>
 
     <script>
         // State
@@ -1220,7 +1224,11 @@
                 return;
             }
 
-            // Success - show results
+            // Success - establish session so user is logged in
+            SessionManager.init();
+            SessionManager.createSessionFromNsec(nsec);
+
+            // Show results
             document.getElementById('final-npub').textContent = npub;
 
             const resultsHtml = results.map(r => `
@@ -1278,6 +1286,11 @@
                 console.error('Download failed:', err);
                 alert('Failed to download backup: ' + err.message);
             }
+        }
+
+        // Go to dashboard
+        function goToDashboard() {
+            window.location.href = 'dashboard.html';
         }
 
         // Navigation

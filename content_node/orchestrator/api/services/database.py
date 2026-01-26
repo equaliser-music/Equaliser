@@ -223,26 +223,22 @@ async def mark_released(
     draft_id: str,
     nostr_event_id: str,
     nostr_d_tag: str
-) -> Optional[DraftTrack]:
-    """Mark a draft as released after NOSTR publication."""
-    now = datetime.utcnow().isoformat()
+) -> bool:
+    """Delete a draft after successful NOSTR publication.
 
+    We delete rather than mark as 'released' because released tracks
+    are now sourced from the NOSTR relay, not the database. This avoids
+    sync issues between DB and NOSTR.
+
+    Returns True if deleted, False if not found.
+    """
     async with aiosqlite.connect(DATABASE_PATH) as db:
-        await db.execute(
-            """
-            UPDATE draft_tracks
-            SET status = 'released',
-                nostr_event_id = ?,
-                nostr_d_tag = ?,
-                released_at = ?,
-                updated_at = ?
-            WHERE id = ?
-            """,
-            (nostr_event_id, nostr_d_tag, now, now, draft_id)
+        cursor = await db.execute(
+            "DELETE FROM draft_tracks WHERE id = ?",
+            (draft_id,)
         )
         await db.commit()
-
-    return await get_draft(draft_id)
+        return cursor.rowcount > 0
 
 
 async def delete_draft(draft_id: str, artist_pubkey: str) -> bool:
