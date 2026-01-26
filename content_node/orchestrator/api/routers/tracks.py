@@ -194,7 +194,8 @@ async def publish_track_event(request: SignedEventRequest):
     Used when client-side signing is preferred (non-custodial).
     The event must be a valid signed Kind 30050 track event.
 
-    If draft_id is provided, the draft's status will be updated to 'released'.
+    If draft_id is provided, the draft will be deleted from the database
+    (released tracks are sourced from NOSTR, not the database).
     """
     event = request.signed_event
 
@@ -214,9 +215,10 @@ async def publish_track_event(request: SignedEventRequest):
     try:
         event_id = await publish_signed_event(event)
 
-        # Update draft status if draft_id provided
+        # Delete draft from database if draft_id provided
+        # (released tracks are now sourced from NOSTR relay)
         if request.draft_id:
-            # Extract d-tag from event
+            # Extract d-tag from event (for logging/debugging)
             d_tag = None
             for tag in event.get("tags", []):
                 if tag[0] == "d" and len(tag) > 1:
