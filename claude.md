@@ -15,6 +15,10 @@ Documentation exists in the 'docs' folder. Please read in the following order at
 10. PROFILE.md
 11. contributor email summary.md
 
+## Important Rules
+
+- **Never commit without explicit permission**: Do not run `git commit` or use the commit tool unless the user specifically asks you to commit changes. Always wait for explicit instructions like "commit this", "please commit", or "push the changes".
+
 ## Tools
 
 Development tools are available in the `tools/` folder. **Use these tools when the user requests the corresponding actions.**
