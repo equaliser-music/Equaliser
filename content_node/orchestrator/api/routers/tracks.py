@@ -23,6 +23,7 @@ from pydantic import BaseModel
 from services.hls import encode_to_hls, get_audio_duration
 from services.ipfs import upload_directory_to_ipfs, upload_file_to_ipfs
 from services.nostr import create_track_event, publish_event, publish_signed_event
+from services.database import DraftTrack, create_draft, mark_released
 
 router = APIRouter()
 
@@ -44,16 +45,15 @@ class TrackMetadata(BaseModel):
 
 
 class TrackUploadResponse(BaseModel):
-    """Response after successful track upload."""
+    """Response after successful track upload (now saved as draft)."""
     track_id: str
+    draft_id: str  # Database draft ID
     title: str
     artist: str
     duration: int
     ipfs_manifest_cid: str
     ipfs_preview_cid: str
-    nostr_event_id: Optional[str] = None
-    unsigned_nostr_event: Optional[dict] = None  # For client-side signing
-    status: str
+    status: str  # "draft" for new uploads
 
 
 class UploadStatus(BaseModel):
@@ -177,6 +177,7 @@ async def list_tracks():
 class SignedEventRequest(BaseModel):
     """Request to publish a signed NOSTR event."""
     signed_event: dict
+    draft_id: Optional[str] = None  # Optional: to update draft status after publish
 
 
 class PublishEventResponse(BaseModel):
@@ -192,6 +193,8 @@ async def publish_track_event(request: SignedEventRequest):
 
     Used when client-side signing is preferred (non-custodial).
     The event must be a valid signed Kind 30050 track event.
+
+    If draft_id is provided, the draft's status will be updated to 'released'.
     """
     event = request.signed_event
 
@@ -210,6 +213,17 @@ async def publish_track_event(request: SignedEventRequest):
 
     try:
         event_id = await publish_signed_event(event)
+
+        # Update draft status if draft_id provided
+        if request.draft_id:
+            # Extract d-tag from event
+            d_tag = None
+            for tag in event.get("tags", []):
+                if tag[0] == "d" and len(tag) > 1:
+                    d_tag = tag[1]
+                    break
+            await mark_released(request.draft_id, event_id, d_tag or "")
+
         return PublishEventResponse(event_id=event_id, success=True)
     except Exception as e:
         raise HTTPException(
@@ -291,7 +305,7 @@ async def process_track(
     1. Get audio duration
     2. Encode to HLS segments
     3. Upload to IPFS
-    4. Create and publish NOSTR event
+    4. Save as draft in database (NOSTR publication deferred until release)
     """
     try:
         # Step 1: Get duration
@@ -319,52 +333,45 @@ async def process_track(
         # Upload preview separately
         preview_cid = await upload_directory_to_ipfs(preview_dir)
 
-        update_status(track_id, "publishing", 80, "Creating NOSTR event...")
+        update_status(track_id, "saving", 80, "Saving draft...")
 
-        # Step 4: Create NOSTR event
-        event = create_track_event(
+        # Step 4: Save as draft in database (instead of creating NOSTR event)
+        draft = DraftTrack(
+            id=track_id,
+            artist_pubkey=artist_pubkey,
             title=metadata.title,
-            artist=metadata.artist,
+            artist_name=metadata.artist,
             album=metadata.album,
             genre=metadata.genre,
-            duration=duration,
-            manifest_cid=manifest_cid,
-            preview_cid=preview_cid,
             price_sats=metadata.price_sats,
             release_date=metadata.release_date,
-            pubkey=artist_pubkey,
-            release_type=metadata.release_type,
-            cover_art_cid=metadata.cover_art_cid
+            release_type=metadata.release_type or "single",
+            cover_art_cid=metadata.cover_art_cid,
+            ipfs_manifest_cid=manifest_cid,
+            ipfs_preview_cid=preview_cid,
+            duration=duration,
+            status="draft",
         )
 
-        event_id = None
-        unsigned_event = None
+        await create_draft(draft)
 
-        if artist_privkey:
-            # Server-side signing (custodial)
-            event_id = await publish_event(event, artist_privkey)
-        else:
-            # Return unsigned event for client-side signing
-            unsigned_event = event
-
-        # Complete
+        # Complete - track is now a draft, not published to NOSTR
         result = TrackUploadResponse(
             track_id=track_id,
+            draft_id=track_id,
             title=metadata.title,
             artist=metadata.artist,
             duration=duration,
             ipfs_manifest_cid=manifest_cid,
             ipfs_preview_cid=preview_cid,
-            nostr_event_id=event_id,
-            unsigned_nostr_event=unsigned_event,
-            status="complete"
+            status="draft"
         )
 
         upload_status[track_id] = UploadStatus(
             track_id=track_id,
             status="complete",
             progress=100,
-            message="Track processed successfully",
+            message="Track saved as draft",
             result=result
         )
 

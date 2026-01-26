@@ -651,7 +651,7 @@
             <div class="header">
                 <div>
                     <h1 class="page-title">Upload Music</h1>
-                    <p class="page-description">Upload your tracks to IPFS and publish to NOSTR</p>
+                    <p class="page-description">Upload tracks to IPFS and save as drafts for review before release</p>
                 </div>
             </div>
 
@@ -794,7 +794,7 @@
                 <svg fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
                 </svg>
-                Upload All Tracks
+                Save as Drafts
             </button>
         </div>
     </div>
@@ -1036,7 +1036,7 @@
                             ${track.result ? `
                                 <div class="result-info">
                                     IPFS: <code>${track.result.ipfs_manifest_cid.slice(0, 20)}...</code>
-                                    ${track.result.nostr_event_id ? `<br>NOSTR: <code>${track.result.nostr_event_id.slice(0, 16)}...</code>` : ''}
+                                    <br>Status: <span style="color: #fbbf24;">Draft (not yet released)</span>
                                 </div>
                             ` : ''}
                             ${track.error ? `
@@ -1230,7 +1230,7 @@
             } else if (isUploading) {
                 summary.innerHTML = `<strong>${completeTracks}/${tracks.length}</strong> tracks uploaded (${processingTracks} processing...)`;
             } else if (completeTracks === tracks.length) {
-                summary.innerHTML = `<strong>${completeTracks}</strong> tracks uploaded successfully!`;
+                summary.innerHTML = `<strong>${completeTracks}</strong> tracks saved as drafts! <a href="releases.html" style="color: #a855f7;">Go to Releases</a>`;
             } else {
                 summary.innerHTML = `<strong>${pendingTracks}</strong> track${pendingTracks !== 1 ? 's' : ''} ready for upload`;
             }
@@ -1238,13 +1238,13 @@
             uploadBtn.disabled = pendingTracks === 0 || isUploading;
 
             if (isUploading) {
-                uploadBtn.innerHTML = '<span class="loading"></span> Uploading...';
+                uploadBtn.innerHTML = '<span class="loading"></span> Saving...';
             } else {
                 uploadBtn.innerHTML = `
                     <svg fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
                     </svg>
-                    Upload All Tracks
+                    Save as Drafts
                 `;
             }
         }
@@ -1292,9 +1292,9 @@
             const failedTracks = tracks.filter(t => t.status === 'error').length;
 
             if (failedTracks === 0) {
-                showNotification(`Successfully uploaded ${completeTracks} track${completeTracks !== 1 ? 's' : ''}!`, 'success');
+                showNotification(`${completeTracks} track${completeTracks !== 1 ? 's' : ''} saved as draft${completeTracks !== 1 ? 's' : ''}! Go to Releases to review and publish.`, 'success');
             } else {
-                showNotification(`Uploaded ${completeTracks}, failed ${failedTracks}`, 'error');
+                showNotification(`Saved ${completeTracks} as drafts, failed ${failedTracks}`, 'error');
             }
         }
 
@@ -1349,8 +1349,6 @@
 
         // Poll for track processing status
         async function pollTrackStatus(track, trackId) {
-            const session = SessionManager.getSession();
-
             return new Promise((resolve) => {
                 const interval = setInterval(async () => {
                     try {
@@ -1364,25 +1362,7 @@
                         if (status.status === 'complete') {
                             clearInterval(interval);
                             track.result = status.result;
-
-                            // Sign and publish NOSTR event if unsigned event returned
-                            if (status.result.unsigned_nostr_event && session) {
-                                try {
-                                    track.progress = 90;
-                                    updateTrackDisplay(track.id);
-
-                                    const eventId = await signAndPublishEvent(
-                                        status.result.unsigned_nostr_event,
-                                        session
-                                    );
-                                    track.result.nostr_event_id = eventId;
-                                } catch (e) {
-                                    console.error('Failed to publish NOSTR event:', e);
-                                    // Don't fail the whole upload if NOSTR publish fails
-                                    track.error = 'IPFS OK, NOSTR failed: ' + e.message;
-                                }
-                            }
-
+                            // Track is now saved as draft - no NOSTR signing needed here
                             track.status = 'complete';
                             track.progress = 100;
                             updateTrackDisplay(track.id);
