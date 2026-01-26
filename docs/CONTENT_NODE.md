@@ -14,13 +14,15 @@ content_node/
 │   ├── api/                # FastAPI backend
 │   │   ├── Dockerfile
 │   │   ├── main.py
-│   │   ├── routers/        # API endpoints
-│   │   └── services/       # HLS, IPFS, NOSTR services
+│   │   ├── routers/        # API endpoints (tracks, drafts)
+│   │   └── services/       # HLS, IPFS, NOSTR, database services
 │   ├── login.html          # Login gateway
 │   ├── dashboard.html      # Artist home page (default for /admin)
 │   ├── onboarding.html     # Artist onboarding wizard
 │   ├── profile.html        # Profile editor
-│   ├── upload.html         # Track upload interface
+│   ├── upload.html         # Track upload interface (saves as drafts)
+│   ├── releases.html       # View drafts and released tracks
+│   ├── edit-release.html   # Edit draft or release metadata
 │   ├── settings.html       # Relay and account settings
 │   └── js/
 │       ├── session.js      # Session manager
@@ -138,7 +140,9 @@ Once running:
 | http://localhost/admin/onboarding.html | Artist onboarding wizard |
 | http://localhost/admin/profile.html | Artist profile editor |
 | http://localhost/admin/settings.html | Relay and account settings |
-| http://localhost/admin/upload.html | Track upload interface |
+| http://localhost/admin/upload.html | Track upload interface (saves as drafts) |
+| http://localhost/admin/releases.html | View drafts and released tracks |
+| http://localhost/admin/edit-release.html | Edit draft or release metadata |
 | ws://localhost/relay | NOSTR relay WebSocket |
 | http://localhost/ipfs/{CID} | IPFS content gateway |
 | http://localhost/health | Health check |
@@ -195,6 +199,26 @@ The artist home page, displayed after login:
 - **Quick Actions**: Upload new track, edit profile links
 
 Navigating to `/admin` redirects to the dashboard (or login if not authenticated).
+
+### Releases (`/admin/releases.html`)
+
+Manages all tracks - both drafts and released:
+
+- **Drafts Tab**: Shows unreleased tracks saved in the database
+- **Released Tab**: Shows published tracks from NOSTR relay
+- **Status Badges**: Orange "DRAFT" or green "RELEASED" indicators
+- **Release Button**: Publish drafts to NOSTR with client-side signing
+- **Edit Button**: Navigate to edit page for metadata changes
+- **Track Preview**: Play 30-second previews directly
+
+### Edit Release (`/admin/edit-release.html`)
+
+Edit metadata for drafts or released tracks:
+
+- **Draft Mode**: Edit metadata in database, then release to NOSTR
+- **Released Mode**: Edit and republish to NOSTR (creates new event)
+- **Cover Art**: Upload or update cover image
+- **Track Management**: Reorder tracks, adjust pricing
 
 ### Profile Editor (`/admin/profile.html`)
 
@@ -340,11 +364,19 @@ The orchestrator is a FastAPI backend that handles content processing:
 - **Track Upload**: Accept audio files and metadata
 - **HLS Encoding**: Convert to streaming format with FFmpeg
 - **IPFS Integration**: Upload segments and get CIDs
-- **NOSTR Publishing**: Create Kind 30050 track events
+- **Draft Management**: SQLite database for unreleased tracks
+- **NOSTR Publishing**: Create and publish Kind 30050 track events
 
-Access the upload UI at `/admin/upload.html`.
+Access the upload UI at `/admin/upload.html`. Tracks are saved as drafts and can be reviewed at `/admin/releases.html` before publishing to NOSTR.
 
 See [ORCHESTRATOR.md](./ORCHESTRATOR.md) for full API documentation.
+
+### Data Persistence
+
+| Volume | Path | Purpose |
+|--------|------|---------|
+| `drafts-data` | `/data` | SQLite database for draft tracks |
+| `orchestrator-uploads` | `/tmp/equaliser/uploads` | Temporary upload storage |
 
 ### Future Enhancements
 

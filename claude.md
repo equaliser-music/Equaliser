@@ -100,7 +100,16 @@ Browse and inspect the Equaliser IPFS node. **Use when user asks to "check IPFS"
 - [x] **IPFS Gateway Configuration**: Automatic path-style URL setup
   - `configure-gateway.sh` runs on container startup
   - Sets `UseSubdomains: false` to prevent redirect issues
+  - Sets `Addresses.API` to `0.0.0.0:5001` for inter-container communication
   - Fixes avatar/banner images not loading through nginx proxy
+
+- [x] **Draft Workflow**: Hold releases before publishing to NOSTR
+  - Uploads automatically save as drafts in SQLite database
+  - `/admin/releases.html` shows drafts and released tracks
+  - `/admin/edit-release.html` for editing metadata
+  - "Release" button signs and publishes to NOSTR
+  - Released drafts marked as 'released' with event ID for history
+  - See [ORCHESTRATOR.md](docs/ORCHESTRATOR.md) for API documentation
 
 - [ ] **Track Upload API (Phase 2)**: Add encryption and payment
   - Generate AES-256 encryption key per track
@@ -108,6 +117,14 @@ Browse and inspect the Equaliser IPFS node. **Use when user asks to "check IPFS"
   - Store encryption keys in SQLite
   - Payment webhook to release keys via NIP-44
   - See Technical Specification sections 4.3-4.4
+
+- [ ] **Explore Blossom as IPFS Alternative**: Evaluate Blossom for media storage
+  - NOSTR-native media hosting protocol using BUD servers
+  - Content addressed by SHA-256 hash, tied to npub
+  - Growing adoption in NOSTR music apps (Wavlake)
+  - Simpler architecture (no separate daemon)
+  - Compare redundancy, gateway availability, and ecosystem maturity
+  - See https://github.com/hzrd149/blossom
 
 - [ ] **Label Multi-Artist Management**: Support labels managing multiple artist identities
   - Use NIP-06 / BIP-32 hierarchical key derivation from label master seed
@@ -118,6 +135,18 @@ Browse and inspect the Equaliser IPFS node. **Use when user asks to "check IPFS"
   - Handle artist departure: key export + profile migration documentation
   - Consider PostgreSQL for label nodes (higher concurrency than SQLite)
 
+- [ ] **Operational Considerations**: Production readiness improvements
+  - Backup and restore procedures for IPFS data, NOSTR relay, and SQLite database
+  - Monitoring and alerting (container health, disk usage, relay connectivity)
+  - Log aggregation and retention policies
+  - Failure recovery documentation (what to do when containers crash)
+  - Data migration strategy between content node versions
+  - Security hardening (rate limiting, input validation, container isolation)
 
-
-
+- [ ] **Multi-Node Architecture**: Scaling beyond single content node
+  - Federation between content nodes (mutual content pinning)
+  - Load balancing for high-traffic artists/labels
+  - Geographic distribution for lower latency
+  - Shared relay infrastructure vs dedicated relays
+  - Database scaling (PostgreSQL for labels, read replicas)
+  - CDN integration for mainstream traffic levels

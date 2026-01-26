@@ -58,8 +58,10 @@ services:
     environment:
       - IPFS_API_URL=http://ipfs:5001
       - NOSTR_RELAY_URL=ws://nostr-relay:8080
+      - DATABASE_PATH=/data/drafts.db
     volumes:
       - orchestrator-uploads:/tmp/equaliser/uploads
+      - drafts-data:/data
     depends_on:
       - ipfs
       - nostr-relay
@@ -77,4 +79,6 @@ volumes:
   ipfs-data:
     driver: local
   orchestrator-uploads:
+    driver: local
+  drafts-data:
     driver: local
