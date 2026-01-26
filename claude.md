@@ -77,6 +77,7 @@ Commit and push changes to origin. **Use when user asks to "commit", "push chang
 ```bash
 ./tools/commit.sh "Commit message"   # Commit with message and push
 ./tools/commit.sh -m "Message"       # Same, using -m flag
+./tools/commit.sh --auto             # Auto-generate message from changes
 ./tools/commit.sh                    # Interactive (prompts for message)
 ./tools/commit.sh -h                 # Show help
 ```
@@ -84,6 +85,7 @@ Commit and push changes to origin. **Use when user asks to "commit", "push chang
 This script:
 - Shows current changes before committing
 - Stages all changes automatically
+- Auto-generates commit message when `--auto` flag is used (analyzes changed files)
 - Adds Claude co-authorship to commit message
 - Pushes to origin on the current branch
 
