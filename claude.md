@@ -71,6 +71,22 @@ Browse and inspect the Equaliser IPFS node. **Use when user asks to "check IPFS"
 ./tools/ipfs-browse.sh gateway <CID> # Show gateway URLs for CID
 ```
 
+### commit.sh
+Commit and push changes to origin. **Use when user asks to "commit", "push changes", or "sync to origin".**
+
+```bash
+./tools/commit.sh "Commit message"   # Commit with message and push
+./tools/commit.sh -m "Message"       # Same, using -m flag
+./tools/commit.sh                    # Interactive (prompts for message)
+./tools/commit.sh -h                 # Show help
+```
+
+This script:
+- Shows current changes before committing
+- Stages all changes automatically
+- Adds Claude co-authorship to commit message
+- Pushes to origin on the current branch
+
 ## TODO
 
 - [ ] **IPFS Resilience**: Implement reliable public content availability
