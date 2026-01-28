@@ -13,7 +13,10 @@ Documentation exists in the 'docs' folder. Please read in the following order at
 8. ONBOARDING.md
 9. SESSION_MANAGEMENT_FUNCTIONAL.md
 10. PROFILE.md
-11. contributor email summary.md
+11. SOCIAL.md
+12. DEPLOYMENT_OPTIONS.md
+13. SCALING.md
+14. contributor email summary.md
 
 ## Important Rules
 
@@ -133,6 +136,12 @@ This script:
   - Released drafts marked as 'released' with event ID for history
   - See [ORCHESTRATOR.md](docs/ORCHESTRATOR.md) for API documentation
 
+- [ ] **Onboarding to Dashboard Flow**: After completing onboarding, show "Go to Dashboard" button
+  - User completes onboarding and profile is published to relays
+  - Session is already established (keys in memory)
+  - Add "Go to Dashboard" button on success screen
+  - Preserve session so user doesn't need to log in again
+
 - [ ] **Track Upload API (Phase 2)**: Add encryption and payment
   - Generate AES-256 encryption key per track
   - Encrypt HLS segments (except 30s preview)
@@ -140,12 +149,17 @@ This script:
   - Payment webhook to release keys via NIP-44
   - See Technical Specification sections 4.3-4.4
 
-- [ ] **Explore Blossom as IPFS Alternative**: Evaluate Blossom for media storage
+- [ ] **Explore Blossom for Streaming**: Evaluate hybrid IPFS + Blossom architecture
   - NOSTR-native media hosting protocol using BUD servers
   - Content addressed by SHA-256 hash, tied to npub
   - Growing adoption in NOSTR music apps (Wavlake)
-  - Simpler architecture (no separate daemon)
-  - Compare redundancy, gateway availability, and ecosystem maturity
+  - **Hybrid approach:** IPFS for storage/resilience, Blossom for streaming delivery
+    - Upload stores on IPFS (canonical, content-addressed, resilient)
+    - Content also pushed to Blossom server (fast HTTP delivery)
+    - Player fetches from Blossom (low latency, CDN-friendly)
+    - Fallback to IPFS gateway if Blossom unavailable
+  - Blossom advantages for streaming: direct HTTP, no DHT lookup, predictable latency
+  - Content node could run both IPFS daemon and Blossom server
   - See https://github.com/hzrd149/blossom
 
 - [ ] **Label Multi-Artist Management**: Support labels managing multiple artist identities
@@ -172,3 +186,11 @@ This script:
   - Shared relay infrastructure vs dedicated relays
   - Database scaling (PostgreSQL for labels, read replicas)
   - CDN integration for mainstream traffic levels
+
+- [ ] **Social Features**: Artist-fan interaction via NOSTR
+  - **Feed**: Standard NOSTR feed showing mentions, comments on tracks, reactions (Kind 1, 7, 6)
+  - **Message Board**: Threaded discussions using Kind 1 replies with topic/hashtag filtering
+  - **Blogging**: Long-form content using Kind 30023 (NIP-23) for artist updates, announcements
+  - Admin UI to view mentions, reply to fans, post updates
+  - Moderation tools (mute, block lists)
+  - See NIP-01, NIP-23 for protocol details

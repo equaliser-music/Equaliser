@@ -631,11 +631,8 @@
                     const name = profile.name || 'Artist';
                     document.getElementById('artist-name-display').textContent = name;
 
-                    // Update sidebar
-                    const avatarUrl = profile.equaliser?.picture_cid
-                        ? `${localIpfsGateway}${profile.equaliser.picture_cid}`
-                        : profile.picture;
-                    AdminSidebar.updateArtistDisplay(name, avatarUrl);
+                    // Update sidebar (use profile.picture directly for browser compatibility)
+                    AdminSidebar.updateArtistDisplay(name, profile.picture);
                 }
             } catch (error) {
                 console.error('Failed to load profile:', error);
@@ -690,15 +687,11 @@
             if (!session) return;
 
             try {
-                const releases = await fetchReleases(session.publicKey);
-                displayReleases(releases);
+                const tracks = await fetchReleases(session.publicKey);
+                displayReleases(tracks);
 
-                // Update total tracks count
-                const totalTracks = releases.reduce((sum, r) => {
-                    const trackCount = r.tags.filter(t => t[0] === 'track').length;
-                    return sum + (trackCount || 1);
-                }, 0);
-                document.getElementById('total-tracks').textContent = totalTracks;
+                // Update total tracks count (each Kind 30050 event is one track)
+                document.getElementById('total-tracks').textContent = tracks.length;
             } catch (error) {
                 console.error('Failed to load releases:', error);
                 document.getElementById('releases-list').innerHTML = `
@@ -753,11 +746,51 @@
             });
         }
 
+        // Group tracks into releases (albums, EPs, singles)
+        function groupTracksIntoReleases(tracks) {
+            const groups = {};
+
+            tracks.forEach(track => {
+                const releaseType = getTagValue(track.tags, 'release_type') || 'single';
+                const album = getTagValue(track.tags, 'album') || '';
+
+                // For singles, each track is its own release
+                // For albums/EPs, group by album name
+                const groupKey = releaseType === 'single'
+                    ? `single-${getTagValue(track.tags, 'd')}`
+                    : `${releaseType}-${album}`;
+
+                if (!groups[groupKey]) {
+                    groups[groupKey] = {
+                        title: releaseType === 'single' ? getTagValue(track.tags, 'title') : album,
+                        releaseType,
+                        coverCid: getTagValue(track.tags, 'cover_art_cid'),
+                        releaseDate: getTagValue(track.tags, 'release_date'),
+                        createdAt: track.created_at,
+                        tracks: []
+                    };
+                }
+
+                groups[groupKey].tracks.push(track);
+                // Use the most recent created_at for the group
+                if (track.created_at > groups[groupKey].createdAt) {
+                    groups[groupKey].createdAt = track.created_at;
+                }
+                // Use cover from any track if not set
+                if (!groups[groupKey].coverCid) {
+                    groups[groupKey].coverCid = getTagValue(track.tags, 'cover_art_cid');
+                }
+            });
+
+            // Convert to array and sort by most recent
+            return Object.values(groups).sort((a, b) => b.createdAt - a.createdAt);
+        }
+
         // Display releases in the UI
-        function displayReleases(releases) {
+        function displayReleases(tracks) {
             const container = document.getElementById('releases-list');
 
-            if (releases.length === 0) {
+            if (tracks.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
                         <svg fill="currentColor" viewBox="0 0 20 20">
@@ -770,15 +803,18 @@
                 return;
             }
 
+            // Group tracks into releases
+            const releases = groupTracksIntoReleases(tracks);
+
             // Show up to 5 recent releases
             const recentReleases = releases.slice(0, 5);
             container.innerHTML = recentReleases.map(release => {
-                const title = getTagValue(release.tags, 'title') || 'Untitled';
-                const releaseType = getTagValue(release.tags, 'release_type') || 'single';
-                const coverCid = getTagValue(release.tags, 'cover');
-                const trackCount = release.tags.filter(t => t[0] === 'track').length;
-                const date = new Date(release.created_at * 1000);
-                const year = date.getFullYear();
+                const title = release.title || 'Untitled';
+                const releaseType = release.releaseType;
+                const coverCid = release.coverCid;
+                const trackCount = release.tracks.length;
+                const releaseDate = release.releaseDate;
+                const year = releaseDate ? releaseDate.split('-')[0] : new Date(release.createdAt * 1000).getFullYear();
 
                 const coverHtml = coverCid
                     ? `<img src="${localIpfsGateway}${coverCid}" alt="${title}">`
@@ -786,9 +822,14 @@
                         <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/>
                        </svg>`;
 
-                const meta = releaseType === 'single'
-                    ? `Single - ${year}`
-                    : `${capitalize(releaseType)} - ${trackCount} tracks - ${year}`;
+                let meta;
+                if (releaseType === 'single') {
+                    meta = `Single · ${year}`;
+                } else if (releaseType === 'ep') {
+                    meta = `EP · ${trackCount} track${trackCount !== 1 ? 's' : ''} · ${year}`;
+                } else {
+                    meta = `Album · ${trackCount} track${trackCount !== 1 ? 's' : ''} · ${year}`;
+                }
 
                 return `
                     <div class="release-item">
