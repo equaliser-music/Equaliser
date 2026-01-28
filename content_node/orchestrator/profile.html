@@ -788,16 +788,16 @@
             document.getElementById('lud16').value = profile.lud16 || '';
 
             // Load existing images if they exist
-            // Use local gateway for display (faster, content is on local node)
+            // Try local gateway first (fast), fall back to public gateway (for Brave compatibility)
             if (profile.picture) {
                 const cid = profile.equaliser?.picture_cid || extractCidFromUrl(profile.picture);
-                const pictureUrl = cid ? getLocalGatewayUrl(cid) : profile.picture;
-                showImagePreview('avatar-preview', pictureUrl);
+                const localUrl = cid ? getLocalGatewayUrl(cid) : null;
+                showImagePreview('avatar-preview', localUrl || profile.picture, profile.picture);
             }
             if (profile.banner) {
                 const cid = profile.equaliser?.banner_cid || extractCidFromUrl(profile.banner);
-                const bannerUrl = cid ? getLocalGatewayUrl(cid) : profile.banner;
-                showImagePreview('banner-preview', bannerUrl);
+                const localUrl = cid ? getLocalGatewayUrl(cid) : null;
+                showImagePreview('banner-preview', localUrl || profile.banner, profile.banner);
             }
 
             // Equaliser-specific fields
@@ -813,20 +813,30 @@
         // Update sidebar display
         function updateSidebarDisplay() {
             const name = existingProfile?.name || 'New Artist';
-            // Use local gateway for display (faster)
-            let avatarUrl = null;
-            const cid = existingProfile?.equaliser?.picture_cid || extractCidFromUrl(existingProfile?.picture);
-            if (cid) {
-                avatarUrl = getLocalGatewayUrl(cid);
-            }
-            AdminSidebar.updateArtistDisplay(name, avatarUrl);
+            // Use profile.picture directly for browser compatibility (Brave blocks localhost)
+            AdminSidebar.updateArtistDisplay(name, existingProfile?.picture);
         }
 
-        // Show image preview
-        function showImagePreview(elementId, url) {
+        // Show image preview with fallback for browsers that block localhost
+        function showImagePreview(elementId, url, fallbackUrl = null) {
             const el = document.getElementById(elementId);
-            el.innerHTML = `<img src="${url}" alt="Preview">`;
-            el.classList.add('has-image');
+            const img = document.createElement('img');
+            img.alt = 'Preview';
+
+            img.onload = () => {
+                el.innerHTML = '';
+                el.appendChild(img);
+                el.classList.add('has-image');
+            };
+
+            img.onerror = () => {
+                if (fallbackUrl && fallbackUrl !== url) {
+                    // Try fallback URL (e.g., public gateway if local fails)
+                    showImagePreview(elementId, fallbackUrl, null);
+                }
+            };
+
+            img.src = url;
         }
 
         // IPFS Image Upload via orchestrator API
