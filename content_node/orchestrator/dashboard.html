@@ -681,17 +681,22 @@
             });
         }
 
-        // Load releases from NOSTR relay
+        // Load releases from NOSTR relay and drafts from API
         async function loadReleases() {
             const session = SessionManager.getSession();
             if (!session) return;
 
             try {
-                const tracks = await fetchReleases(session.publicKey);
-                displayReleases(tracks);
+                // Load both released tracks and drafts in parallel
+                const [releasedTracks, drafts] = await Promise.all([
+                    fetchReleases(session.publicKey),
+                    fetchDrafts(session.publicKey)
+                ]);
 
-                // Update total tracks count (each Kind 30050 event is one track)
-                document.getElementById('total-tracks').textContent = tracks.length;
+                displayReleases(releasedTracks, drafts);
+
+                // Update total tracks count (released + drafts)
+                document.getElementById('total-tracks').textContent = releasedTracks.length + drafts.length;
             } catch (error) {
                 console.error('Failed to load releases:', error);
                 document.getElementById('releases-list').innerHTML = `
@@ -699,6 +704,19 @@
                         <p>Failed to load releases</p>
                     </div>
                 `;
+            }
+        }
+
+        // Fetch drafts from API
+        async function fetchDrafts(pubkeyHex) {
+            try {
+                const response = await fetch(`/api/drafts?pubkey=${pubkeyHex}&status=draft`);
+                if (!response.ok) return [];
+                const data = await response.json();
+                return data.drafts || [];
+            } catch (error) {
+                console.error('Failed to fetch drafts:', error);
+                return [];
             }
         }
 
@@ -747,18 +765,20 @@
         }
 
         // Group tracks into releases (albums, EPs, singles)
-        function groupTracksIntoReleases(tracks) {
+        // Handles both released tracks (from NOSTR) and drafts (from API)
+        function groupTracksIntoReleases(releasedTracks, drafts) {
             const groups = {};
 
-            tracks.forEach(track => {
+            // Process released tracks from NOSTR
+            releasedTracks.forEach(track => {
                 const releaseType = getTagValue(track.tags, 'release_type') || 'single';
                 const album = getTagValue(track.tags, 'album') || '';
 
                 // For singles, each track is its own release
                 // For albums/EPs, group by album name
                 const groupKey = releaseType === 'single'
-                    ? `single-${getTagValue(track.tags, 'd')}`
-                    : `${releaseType}-${album}`;
+                    ? `released-single-${getTagValue(track.tags, 'd')}`
+                    : `released-${releaseType}-${album}`;
 
                 if (!groups[groupKey]) {
                     groups[groupKey] = {
@@ -767,7 +787,8 @@
                         coverCid: getTagValue(track.tags, 'cover_art_cid'),
                         releaseDate: getTagValue(track.tags, 'release_date'),
                         createdAt: track.created_at,
-                        tracks: []
+                        tracks: [],
+                        status: 'released'
                     };
                 }
 
@@ -782,15 +803,59 @@
                 }
             });
 
-            // Convert to array and sort by most recent
-            return Object.values(groups).sort((a, b) => b.createdAt - a.createdAt);
+            // Process drafts from API
+            drafts.forEach(draft => {
+                const releaseType = draft.release_type || 'single';
+                const album = draft.album || '';
+
+                // For singles, each track is its own release
+                // For albums/EPs, group by album name
+                const groupKey = releaseType === 'single'
+                    ? `draft-single-${draft.id}`
+                    : `draft-${releaseType}-${album}`;
+
+                const createdAtTimestamp = new Date(draft.created_at).getTime() / 1000;
+
+                if (!groups[groupKey]) {
+                    groups[groupKey] = {
+                        title: releaseType === 'single' ? draft.title : album,
+                        releaseType,
+                        coverCid: draft.cover_art_cid,
+                        releaseDate: draft.release_date,
+                        createdAt: createdAtTimestamp,
+                        tracks: [],
+                        status: 'draft',
+                        draftId: draft.id
+                    };
+                }
+
+                groups[groupKey].tracks.push(draft);
+                // Use the most recent created_at for the group
+                if (createdAtTimestamp > groups[groupKey].createdAt) {
+                    groups[groupKey].createdAt = createdAtTimestamp;
+                }
+                // Use cover from any track if not set
+                if (!groups[groupKey].coverCid && draft.cover_art_cid) {
+                    groups[groupKey].coverCid = draft.cover_art_cid;
+                }
+            });
+
+            // Convert to array and sort: drafts first, then by most recent
+            return Object.values(groups).sort((a, b) => {
+                // Drafts come first
+                if (a.status !== b.status) {
+                    return a.status === 'draft' ? -1 : 1;
+                }
+                // Then by date (newest first)
+                return b.createdAt - a.createdAt;
+            });
         }
 
         // Display releases in the UI
-        function displayReleases(tracks) {
+        function displayReleases(releasedTracks, drafts) {
             const container = document.getElementById('releases-list');
 
-            if (tracks.length === 0) {
+            if (releasedTracks.length === 0 && drafts.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
                         <svg fill="currentColor" viewBox="0 0 20 20">
@@ -803,8 +868,8 @@
                 return;
             }
 
-            // Group tracks into releases
-            const releases = groupTracksIntoReleases(tracks);
+            // Group tracks into releases (handles both released and drafts)
+            const releases = groupTracksIntoReleases(releasedTracks, drafts);
 
             // Show up to 5 recent releases
             const recentReleases = releases.slice(0, 5);
@@ -815,6 +880,7 @@
                 const trackCount = release.tracks.length;
                 const releaseDate = release.releaseDate;
                 const year = releaseDate ? releaseDate.split('-')[0] : new Date(release.createdAt * 1000).getFullYear();
+                const isDraft = release.status === 'draft';
 
                 const coverHtml = coverCid
                     ? `<img src="${localIpfsGateway}${coverCid}" alt="${title}">`
@@ -831,16 +897,25 @@
                     meta = `Album · ${trackCount} track${trackCount !== 1 ? 's' : ''} · ${year}`;
                 }
 
+                // Add draft indicator
+                const statusBadge = isDraft
+                    ? `<span style="display: inline-block; padding: 2px 8px; background: rgba(251, 191, 36, 0.2); border-radius: 4px; font-size: 10px; color: #fbbf24; text-transform: uppercase; margin-left: 8px;">Draft</span>`
+                    : '';
+
+                // Different stats display for drafts
+                const statsHtml = isDraft
+                    ? `<a href="edit-release.html?draft=true&id=${release.draftId}" style="font-size: 12px; color: #a855f7; text-decoration: none;">Edit</a>`
+                    : `<div class="release-plays">-</div><div class="release-plays-label">plays</div>`;
+
                 return `
                     <div class="release-item">
                         <div class="release-cover">${coverHtml}</div>
                         <div class="release-info">
-                            <div class="release-title">${escapeHtml(title)}</div>
+                            <div class="release-title">${escapeHtml(title)}${statusBadge}</div>
                             <div class="release-meta">${meta}</div>
                         </div>
                         <div class="release-stats">
-                            <div class="release-plays">-</div>
-                            <div class="release-plays-label">plays</div>
+                            ${statsHtml}
                         </div>
                     </div>
                 `;
