@@ -16,7 +16,8 @@ Documentation exists in the 'docs' folder. Please read in the following order at
 11. SOCIAL.md
 12. DEPLOYMENT_OPTIONS.md
 13. SCALING.md
-14. contributor email summary.md
+14. ARTIST_PACKAGE.md
+15. contributor email summary.md
 
 ## Important Rules
 
@@ -95,6 +96,46 @@ This script:
 - Auto-generates commit message when `--auto` flag is used (analyzes changed files)
 - Adds Claude co-authorship to commit message
 - Pushes to origin on the current branch
+
+### Artist Package Tools
+
+Tools for bulk importing/exporting artist content. See [ARTIST_PACKAGE.md](docs/ARTIST_PACKAGE.md) for format specification.
+
+#### convert-mockup.sh
+Convert mockups/content artist folders to Artist Package format. **Use when preparing test data.**
+
+```bash
+./tools/convert-mockup.sh shibuya-crossings    # Convert single artist
+./tools/convert-mockup.sh --all                # Convert all mockup artists
+./tools/convert-mockup.sh --all --output ./backups/  # Custom output dir
+```
+
+#### import-artist.sh
+Import an Artist Package into the content node. **Use when user asks to "import artist", "load test data", or "bulk import".**
+
+```bash
+./tools/import-artist.sh ./packages/shibuya-crossings.artist-package           # Fresh import (new identity)
+./tools/import-artist.sh ./packages/shibuya-crossings.artist-package --restore # Use existing keys
+./tools/import-artist.sh ./packages/shibuya-crossings.artist-package --dry-run # Preview only
+```
+
+This script:
+- Generates new NOSTR identity (or restores from backup)
+- Uploads avatar/banner to IPFS
+- Publishes Kind 0 profile to relay
+- Imports all releases as drafts
+- Saves identity backup for dashboard login
+
+#### export-artist.sh
+Export an existing artist from the content node. **Use when user asks to "backup artist", "export content", or "create package".**
+
+```bash
+./tools/export-artist.sh --npub npub1...                  # Export profile + releases
+./tools/export-artist.sh --npub npub1... --include-keys   # Include identity (prompts for nsec)
+./tools/export-artist.sh --npub npub1... --releases-only  # Releases only
+```
+
+Note: Audio files are not included in exports (content is HLS-encoded on IPFS).
 
 ## TODO
 

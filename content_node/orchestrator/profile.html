@@ -559,6 +559,16 @@
                         <p class="form-hint">For receiving zaps/tips</p>
                     </div>
                 </div>
+
+                <div class="button-group" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.05);">
+                    <button class="btn btn-secondary" onclick="downloadBackup()">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                        Backup Identity
+                    </button>
+                    <p class="form-hint" style="margin: 0; align-self: center;">Save your keys securely. Required to restore your identity.</p>
+                </div>
             </div>
 
             <!-- Save Section -->
@@ -1163,6 +1173,79 @@
                     resolve({ url: relayUrl, success: false, error: 'Connection failed' });
                 };
             });
+        }
+
+        // Download identity backup
+        function downloadBackup() {
+            try {
+                const session = SessionManager.getSession();
+                if (!session) {
+                    alert('No active session. Please log in first.');
+                    return;
+                }
+
+                // Get the private key for backup
+                const privateKey = SessionManager.getPrivateKey();
+                if (!privateKey) {
+                    alert('Cannot backup: This session uses a browser extension. Your keys are managed by the extension.');
+                    return;
+                }
+
+                // Convert private key bytes to hex
+                const privateKeyHex = Array.from(privateKey).map(b => b.toString(16).padStart(2, '0')).join('');
+
+                // Get nsec from session storage
+                let nsec = null;
+                try {
+                    const stored = sessionStorage.getItem('equaliser_session');
+                    if (stored) {
+                        const data = JSON.parse(stored);
+                        nsec = data.nsec;
+                    }
+                } catch (e) {
+                    console.warn('Could not retrieve nsec from storage');
+                }
+
+                // If nsec not in storage, encode it
+                if (!nsec) {
+                    nsec = NostrTools.nip19.nsecEncode(privateKey);
+                }
+
+                // Get current profile data from form
+                const name = document.getElementById('name').value.trim() || 'artist';
+                const bio = document.getElementById('about').value.trim();
+                const location = document.getElementById('location').value.trim();
+
+                const backup = {
+                    version: 1,
+                    created: new Date().toISOString(),
+                    keys: {
+                        nsec: nsec,
+                        npub: session.npub,
+                        privateKeyHex: privateKeyHex,
+                        publicKeyHex: session.publicKey
+                    },
+                    profile: {
+                        name: name,
+                        bio: bio,
+                        location: location,
+                        genres: [...genres]
+                    }
+                };
+
+                const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `equaliser-backup-${name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error('Backup download failed:', err);
+                alert('Failed to download backup: ' + err.message);
+            }
         }
     </script>
 </body>
