@@ -63,7 +63,7 @@ Each track is stored in a folder named by its unique track ID (e.g., `midnight-d
 - **metadata.json** - Track information
 - **preview.mp3** - 30-second preview (free access)
 - **full.mp3** - Complete track (requires payment)
-- **cover.jpg** - Track/single artwork (recommended: 1000x1000px)
+- **cover.jpg** - Track/single artwork (recommended: 1000x1000px). For album tracks, this can be a copy of the album cover.
 
 **metadata.json structure:**
 ```json

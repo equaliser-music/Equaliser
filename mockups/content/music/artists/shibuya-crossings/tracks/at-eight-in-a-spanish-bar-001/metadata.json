@@ -1,0 +1,16 @@
+{
+  "trackId": "at-eight-in-a-spanish-bar-001",
+  "title": "At Eight in a Spanish Bar",
+  "artist": "Shibuya Crossings",
+  "albumId": "doya-depend-on-your-alter-ego-2011",
+  "trackNumber": 1,
+  "duration": 225,
+  "genre": "Electronic",
+  "priceSats": 210,
+  "releaseDate": "2011-03-24",
+  "previewStart": 30,
+  "previewDuration": 30,
+  "fileFormat": "mp3",
+  "bitrate": 320,
+  "tags": ["electronic", "atmospheric", "evening"]
+}

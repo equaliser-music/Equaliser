@@ -1,0 +1,16 @@
+{
+  "trackId": "leaving-004",
+  "title": "Leaving",
+  "artist": "Language of Flowers",
+  "albumId": "songs-about-you-2024",
+  "trackNumber": 4,
+  "duration": 220,
+  "genre": "Indie Pop",
+  "priceSats": 210,
+  "releaseDate": "2024-06-19",
+  "previewStart": 45,
+  "previewDuration": 30,
+  "fileFormat": "mp3",
+  "bitrate": 320,
+  "tags": ["indie", "pop", "departure", "emotional"]
+}

@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equaliser - Settings</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 240px;
+            padding: 32px;
+            padding-bottom: 100px;
+            max-width: 900px;
+        }
+
+        .header {
+            margin-bottom: 32px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .page-description {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+        }
+
+        /* Settings Sections */
+        .settings-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title svg {
+            width: 20px;
+            height: 20px;
+            color: #a855f7;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #a855f7;
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 6px;
+        }
+
+        /* Relay Management */
+        .relay-list {
+            margin-bottom: 16px;
+        }
+
+        .relay-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .relay-url {
+            flex: 1;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .relay-status {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .relay-status.local {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+        }
+
+        .relay-status.public {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .relay-status.read {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
+        .relay-status.write {
+            background: rgba(168, 85, 247, 0.2);
+            color: #a855f7;
+        }
+
+        .relay-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .relay-action-btn {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            padding: 4px;
+            transition: color 0.2s;
+        }
+
+        .relay-action-btn:hover {
+            color: #ffffff;
+        }
+
+        .relay-action-btn.delete:hover {
+            color: #ef4444;
+        }
+
+        .add-relay-form {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .add-relay-form .form-input {
+            flex: 1;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            color: #ffffff;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        /* Success Box */
+        .success-box {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success-box.visible {
+            display: block;
+        }
+
+        .success-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #22c55e;
+            margin-bottom: 8px;
+        }
+
+        .success-text {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.6;
+        }
+
+        /* Error Box */
+        .error-box {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error-box.visible {
+            display: block;
+        }
+
+        .error-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #ef4444;
+        }
+
+        /* Info Box */
+        .info-box {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .info-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #3b82f6;
+            margin-bottom: 8px;
+        }
+
+        .info-text {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.6;
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Publish Status */
+        .publish-status {
+            margin-top: 16px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+        }
+
+        .publish-status-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+            font-size: 14px;
+        }
+
+        .publish-status-item .status-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .publish-status-item.pending .status-icon {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .publish-status-item.connecting .status-icon {
+            color: #fbbf24;
+        }
+
+        .publish-status-item.success .status-icon {
+            color: #22c55e;
+        }
+
+        .publish-status-item.error .status-icon {
+            color: #ef4444;
+        }
+
+        .publish-status-item .status-text {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                margin-left: 0;
+                padding: 16px;
+            }
+            .add-relay-form {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar (injected by admin-sidebar.js) -->
+        <div class="sidebar"></div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1 class="page-title">Settings</h1>
+                <p class="page-description">Manage your relay configuration and account preferences</p>
+            </div>
+
+            <!-- Relay Management Section -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5.05 3.636a1 1 0 010 1.414 7 7 0 000 9.9 1 1 0 11-1.414 1.414 9 9 0 010-12.728 1 1 0 011.414 0zm9.9 0a1 1 0 011.414 0 9 9 0 010 12.728 1 1 0 11-1.414-1.414 7 7 0 000-9.9 1 1 0 010-1.414zM7.879 6.464a1 1 0 010 1.414 3 3 0 000 4.243 1 1 0 11-1.414 1.414 5 5 0 010-7.07 1 1 0 011.414 0zm4.242 0a1 1 0 011.414 0 5 5 0 010 7.072 1 1 0 01-1.414-1.414 3 3 0 000-4.243 1 1 0 010-1.414zM10 9a1 1 0 011 1v.01a1 1 0 11-2 0V10a1 1 0 011-1z" clip-rule="evenodd"/>
+                        </svg>
+                        NOSTR Relay Configuration
+                    </h2>
+                </div>
+
+                <div class="info-box">
+                    <div class="info-title">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                        About Relay Lists (NIP-65)
+                    </div>
+                    <p class="info-text">
+                        Your relay list tells other NOSTR clients where to find your content and where to send messages to you.
+                        This list is published as a Kind 10002 event according to NIP-65.
+                    </p>
+                </div>
+
+                <p style="color: rgba(255,255,255,0.5); font-size: 14px; margin-bottom: 16px;">
+                    Manage the relays in your NOSTR profile. Toggle read/write permissions for each relay.
+                </p>
+
+                <div class="relay-list" id="relay-list">
+                    <!-- Populated by JS -->
+                </div>
+
+                <div class="add-relay-form">
+                    <input type="text" class="form-input" id="new-relay-input" placeholder="wss://relay.example.com">
+                    <button class="btn btn-secondary btn-small" onclick="addRelay()">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                        </svg>
+                        Add Relay
+                    </button>
+                </div>
+
+                <div id="relay-success" class="success-box">
+                    <div class="success-title">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        Relay List Updated
+                    </div>
+                    <p class="success-text" id="relay-success-text">Your relay configuration has been published.</p>
+                </div>
+
+                <div id="relay-error" class="error-box">
+                    <div class="error-title">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        <span id="relay-error-text">Error</span>
+                    </div>
+                </div>
+
+                <div id="publish-status" class="publish-status" style="display: none;">
+                    <!-- Populated by JS during publishing -->
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-primary" id="save-relays-btn" onclick="publishRelayList()">
+                        Save Relay Configuration
+                    </button>
+                </div>
+            </div>
+
+            <!-- NOSTR Identity Section -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z"/>
+                        </svg>
+                        NOSTR Identity
+                    </h2>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Your Public Key (npub)</label>
+                    <input type="text" class="form-input" id="user-npub-display" readonly style="background: rgba(255,255,255,0.02); cursor: default;">
+                    <p class="form-hint">Share this to let others find you on NOSTR</p>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Hex Public Key</label>
+                    <input type="text" class="form-input" id="user-hex-display" readonly style="background: rgba(255,255,255,0.02); cursor: default; font-family: monospace; font-size: 12px;">
+                    <p class="form-hint">Your public key in hexadecimal format</p>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Session Type</label>
+                    <input type="text" class="form-input" id="session-type-display" readonly style="background: rgba(255,255,255,0.02); cursor: default;">
+                    <p class="form-hint">How you're authenticated (NIP-07 Extension or manual nsec)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- nostr-tools via CDN -->
+    <script src="https://unpkg.com/nostr-tools@2.1.4/lib/nostr.bundle.js"></script>
+    <!-- Session Manager -->
+    <script src="js/session.js"></script>
+    <!-- Admin Sidebar -->
+    <script src="js/admin-sidebar.js"></script>
+
+    <script>
+        // Relay configuration
+        // Each relay has: url, read (boolean), write (boolean)
+        let userRelays = [];
+
+        // Configuration
+        const localRelayUrl = 'ws://' + window.location.host + '/relay';
+
+        // Relay list is published to local relay only
+        const publishRelays = [localRelayUrl];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Initialize session manager
+            SessionManager.init();
+
+            // Require authentication - redirects to login if not authenticated
+            if (!SessionManager.requireSession()) {
+                return;
+            }
+
+            // Initialize sidebar
+            AdminSidebar.init();
+
+            // Get session info
+            const session = SessionManager.getSession();
+
+            // Update identity displays
+            document.getElementById('user-npub-display').value = session.npub;
+            document.getElementById('user-hex-display').value = session.publicKey;
+            document.getElementById('session-type-display').value = session.type === 'extension' ? 'NIP-07 Browser Extension' : 'Manual (nsec)';
+
+            // Fetch existing relay list
+            await fetchExistingRelayList(session.publicKey);
+
+            // Render relay list
+            renderRelays();
+
+            // Fetch and update artist profile in sidebar
+            await loadArtistProfile(session.publicKey);
+
+            // Handle Enter key on add relay
+            document.getElementById('new-relay-input').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    addRelay();
+                }
+            });
+        });
+
+        // Fetch artist profile for sidebar display
+        async function loadArtistProfile(pubkeyHex) {
+            const relaysToCheck = [localRelayUrl];
+
+            for (const relayUrl of relaysToCheck) {
+                try {
+                    const profile = await new Promise((resolve) => {
+                        const ws = new WebSocket(relayUrl);
+                        let profileData = null;
+
+                        const timeout = setTimeout(() => {
+                            ws.close();
+                            resolve(null);
+                        }, 5000);
+
+                        ws.onopen = () => {
+                            ws.send(JSON.stringify(['REQ', 'profile-fetch', {
+                                kinds: [0],
+                                authors: [pubkeyHex],
+                                limit: 1
+                            }]));
+                        };
+
+                        ws.onmessage = (e) => {
+                            const data = JSON.parse(e.data);
+                            if (data[0] === 'EVENT') {
+                                try {
+                                    profileData = JSON.parse(data[2].content);
+                                } catch (err) {
+                                    console.error('Error parsing profile:', err);
+                                }
+                            }
+                            if (data[0] === 'EOSE') {
+                                clearTimeout(timeout);
+                                ws.close();
+                                resolve(profileData);
+                            }
+                        };
+
+                        ws.onerror = () => {
+                            clearTimeout(timeout);
+                            resolve(null);
+                        };
+                    });
+
+                    if (profile) {
+                        AdminSidebar.updateArtistDisplay(profile.name, profile.picture);
+                        return;
+                    }
+                } catch (err) {
+                    console.log('Failed to fetch from', relayUrl, err);
+                }
+            }
+        }
+
+        // Fetch existing relay list (NIP-65 Kind 10002)
+        async function fetchExistingRelayList(pubkeyHex) {
+            const relaysToCheck = [localRelayUrl];
+
+            for (const relayUrl of relaysToCheck) {
+                try {
+                    const relayList = await new Promise((resolve) => {
+                        const ws = new WebSocket(relayUrl);
+                        let relays = null;
+
+                        const timeout = setTimeout(() => {
+                            ws.close();
+                            resolve(null);
+                        }, 5000);
+
+                        ws.onopen = () => {
+                            ws.send(JSON.stringify(['REQ', 'relay-list-fetch', {
+                                kinds: [10002],
+                                authors: [pubkeyHex],
+                                limit: 1
+                            }]));
+                        };
+
+                        ws.onmessage = (e) => {
+                            const data = JSON.parse(e.data);
+                            if (data[0] === 'EVENT') {
+                                const event = data[2];
+                                relays = parseRelayListEvent(event);
+                            }
+                            if (data[0] === 'EOSE') {
+                                clearTimeout(timeout);
+                                ws.close();
+                                resolve(relays);
+                            }
+                        };
+
+                        ws.onerror = () => {
+                            clearTimeout(timeout);
+                            resolve(null);
+                        };
+                    });
+
+                    if (relayList && relayList.length > 0) {
+                        userRelays = relayList;
+                        return;
+                    }
+                } catch (err) {
+                    console.log('Failed to fetch from', relayUrl, err);
+                }
+            }
+
+            // If no relay list found, default to local relay only
+            userRelays = [
+                { url: localRelayUrl, read: true, write: true }
+            ];
+        }
+
+        // Parse NIP-65 relay list event
+        function parseRelayListEvent(event) {
+            const relays = [];
+            for (const tag of event.tags) {
+                if (tag[0] === 'r') {
+                    const url = tag[1];
+                    const marker = tag[2];
+
+                    if (marker === 'read') {
+                        relays.push({ url, read: true, write: false });
+                    } else if (marker === 'write') {
+                        relays.push({ url, read: false, write: true });
+                    } else {
+                        // No marker means both read and write
+                        relays.push({ url, read: true, write: true });
+                    }
+                }
+            }
+            return relays;
+        }
+
+        // Render relay list
+        function renderRelays() {
+            const container = document.getElementById('relay-list');
+            container.innerHTML = userRelays.map((relay, i) => `
+                <div class="relay-item">
+                    <span class="relay-url">${relay.url}</span>
+                    <span class="relay-status ${relay.read && relay.write ? 'public' : relay.read ? 'read' : 'write'}">
+                        ${relay.read && relay.write ? 'Read/Write' : relay.read ? 'Read' : 'Write'}
+                    </span>
+                    <div class="relay-actions">
+                        <button class="relay-action-btn" onclick="toggleRelayMode(${i})" title="Toggle read/write">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                        <button class="relay-action-btn delete" onclick="removeRelay(${i})" title="Remove relay">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Toggle relay read/write mode
+        function toggleRelayMode(index) {
+            const relay = userRelays[index];
+
+            // Cycle through: read+write -> read only -> write only -> read+write
+            if (relay.read && relay.write) {
+                relay.read = true;
+                relay.write = false;
+            } else if (relay.read && !relay.write) {
+                relay.read = false;
+                relay.write = true;
+            } else {
+                relay.read = true;
+                relay.write = true;
+            }
+
+            renderRelays();
+        }
+
+        // Remove relay
+        function removeRelay(index) {
+            userRelays.splice(index, 1);
+            renderRelays();
+        }
+
+        // Add new relay
+        function addRelay() {
+            const input = document.getElementById('new-relay-input');
+            let url = input.value.trim();
+
+            if (!url) return;
+
+            // Normalize URL
+            if (!url.startsWith('ws://') && !url.startsWith('wss://')) {
+                url = 'wss://' + url;
+            }
+
+            // Check if already exists
+            if (userRelays.some(r => r.url === url)) {
+                alert('This relay is already in your list');
+                return;
+            }
+
+            // Add relay
+            userRelays.push({ url, read: true, write: true });
+            renderRelays();
+            input.value = '';
+        }
+
+        // Build NIP-65 relay list event tags
+        function buildRelayListTags() {
+            const tags = [];
+
+            for (const relay of userRelays) {
+                if (relay.read && relay.write) {
+                    // Both read and write - no marker needed
+                    tags.push(['r', relay.url]);
+                } else if (relay.read) {
+                    tags.push(['r', relay.url, 'read']);
+                } else if (relay.write) {
+                    tags.push(['r', relay.url, 'write']);
+                }
+            }
+
+            return tags;
+        }
+
+        // Publish relay list (NIP-65 Kind 10002)
+        async function publishRelayList() {
+            if (userRelays.length === 0) {
+                alert('Please add at least one relay');
+                return;
+            }
+
+            // Hide previous status messages
+            document.getElementById('relay-success').classList.remove('visible');
+            document.getElementById('relay-error').classList.remove('visible');
+
+            // Disable save button
+            const saveBtn = document.getElementById('save-relays-btn');
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="loading"></span> Publishing...';
+
+            // Show publish status container
+            const statusContainer = document.getElementById('publish-status');
+            statusContainer.style.display = 'block';
+            statusContainer.innerHTML = publishRelays.map((relay, i) => `
+                <div class="publish-status-item pending" id="publish-status-${i}">
+                    <span class="status-icon">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                            <circle cx="10" cy="10" r="6" fill="currentColor" opacity="0.3"/>
+                        </svg>
+                    </span>
+                    <span class="relay-url">${relay}</span>
+                    <span class="status-text">Waiting...</span>
+                </div>
+            `).join('');
+
+            // Create Kind 10002 event
+            const event = {
+                kind: 10002,
+                created_at: Math.floor(Date.now() / 1000),
+                tags: buildRelayListTags(),
+                content: ''
+            };
+
+            // Sign the event using SessionManager
+            let signedEvent;
+            try {
+                signedEvent = await SessionManager.signEvent(event);
+            } catch (error) {
+                console.error('Failed to sign event:', error);
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = 'Save Relay Configuration';
+                document.getElementById('relay-error-text').textContent = 'Failed to sign event: ' + error.message;
+                document.getElementById('relay-error').classList.add('visible');
+                statusContainer.style.display = 'none';
+                return;
+            }
+
+            // Publish to each relay
+            const results = [];
+
+            for (let i = 0; i < publishRelays.length; i++) {
+                const relay = publishRelays[i];
+                const statusEl = document.getElementById(`publish-status-${i}`);
+
+                // Update to connecting state
+                statusEl.className = 'publish-status-item connecting';
+                statusEl.querySelector('.status-icon').innerHTML = '<span class="loading"></span>';
+                statusEl.querySelector('.status-text').textContent = 'Connecting...';
+
+                try {
+                    const result = await publishToRelay(relay, signedEvent);
+                    results.push(result);
+
+                    // Update status based on result
+                    if (result.success) {
+                        statusEl.className = 'publish-status-item success';
+                        statusEl.querySelector('.status-icon').innerHTML = `
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>`;
+                        statusEl.querySelector('.status-text').textContent = 'Published';
+                    } else {
+                        statusEl.className = 'publish-status-item error';
+                        statusEl.querySelector('.status-icon').innerHTML = `
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                            </svg>`;
+                        statusEl.querySelector('.status-text').textContent = result.error;
+                    }
+
+                } catch (err) {
+                    results.push({ url: relay, success: false, error: err.message });
+                    statusEl.className = 'publish-status-item error';
+                    statusEl.querySelector('.status-icon').innerHTML = `
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>`;
+                    statusEl.querySelector('.status-text').textContent = err.message;
+                }
+            }
+
+            // Check results
+            const successCount = results.filter(r => r.success).length;
+
+            if (successCount === 0) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = 'Retry Save';
+                document.getElementById('relay-error-text').textContent = 'Failed to publish to any relay. Please check your connection and try again.';
+                document.getElementById('relay-error').classList.add('visible');
+            } else {
+                document.getElementById('relay-success-text').textContent = `Relay list published to ${successCount}/${results.length} relays!`;
+                document.getElementById('relay-success').classList.add('visible');
+
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = 'Save Relay Configuration';
+            }
+        }
+
+        async function publishToRelay(relayUrl, signedEvent) {
+            return new Promise((resolve) => {
+                const ws = new WebSocket(relayUrl);
+
+                const timeout = setTimeout(() => {
+                    ws.close();
+                    resolve({ url: relayUrl, success: false, error: 'Timeout' });
+                }, 8000);
+
+                ws.onopen = () => {
+                    ws.send(JSON.stringify(['EVENT', signedEvent]));
+                };
+
+                ws.onmessage = (e) => {
+                    const data = JSON.parse(e.data);
+                    if (data[0] === 'OK') {
+                        clearTimeout(timeout);
+                        ws.close();
+                        resolve({
+                            url: relayUrl,
+                            success: data[2],
+                            error: data[2] ? null : data[3]
+                        });
+                    }
+                };
+
+                ws.onerror = () => {
+                    clearTimeout(timeout);
+                    resolve({ url: relayUrl, success: false, error: 'Connection failed' });
+                };
+            });
+        }
+    </script>
+</body>
+</html>
