@@ -1,0 +1,16 @@
+{
+  "trackId": "take-it-out-on-me-002",
+  "title": "Take it Out On Me",
+  "artist": "Shibuya Crossings",
+  "albumId": "doya-depend-on-your-alter-ego-2011",
+  "trackNumber": 2,
+  "duration": 239,
+  "genre": "Electronic",
+  "priceSats": 210,
+  "releaseDate": "2011-03-24",
+  "previewStart": 45,
+  "previewDuration": 30,
+  "fileFormat": "mp3",
+  "bitrate": 320,
+  "tags": ["electronic", "emotional", "alternative"]
+}

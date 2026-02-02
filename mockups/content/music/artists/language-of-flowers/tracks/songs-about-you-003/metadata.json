@@ -1,0 +1,16 @@
+{
+  "trackId": "songs-about-you-003",
+  "title": "Songs About You",
+  "artist": "Language of Flowers",
+  "albumId": "songs-about-you-2024",
+  "trackNumber": 3,
+  "duration": 192,
+  "genre": "Indie Pop",
+  "priceSats": 210,
+  "releaseDate": "2024-06-19",
+  "previewStart": 30,
+  "previewDuration": 30,
+  "fileFormat": "mp3",
+  "bitrate": 320,
+  "tags": ["indie", "pop", "title-track", "reflective"]
+}

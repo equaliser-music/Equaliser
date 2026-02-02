@@ -1,0 +1,8 @@
+{
+  "lightningAddress": "shibuyacrossings@getalby.com",
+  "lnurlPay": "",
+  "nodePublicKey": "",
+  "description": "Support Shibuya Crossings directly via Lightning Network",
+  "minSats": 1,
+  "maxSats": 1000000
+}

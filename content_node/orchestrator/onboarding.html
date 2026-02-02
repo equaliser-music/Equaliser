@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equaliser - Artist Onboarding</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 640px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo h1 {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo p {
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 8px;
+        }
+
+        /* Progress Steps */
+        .progress {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 40px;
+        }
+
+        .progress-step {
+            width: 40px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            transition: background 0.3s;
+        }
+
+        .progress-step.active {
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+        }
+
+        .progress-step.completed {
+            background: #22c55e;
+        }
+
+        /* Card */
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .card-description {
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        /* Steps */
+        .step {
+            display: none;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        textarea.form-input {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 6px;
+        }
+
+        /* Key Display */
+        .key-display {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .key-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 8px;
+        }
+
+        .key-value {
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 13px;
+            word-break: break-all;
+            line-height: 1.5;
+            color: #a855f7;
+        }
+
+        .key-value.private {
+            color: #f97316;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .copy-btn.copied {
+            background: #22c55e;
+        }
+
+        /* Warning Box */
+        .warning {
+            background: rgba(249, 115, 22, 0.1);
+            border: 1px solid rgba(249, 115, 22, 0.3);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .warning-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #f97316;
+            margin-bottom: 8px;
+        }
+
+        .warning-text {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.6;
+        }
+
+        /* Checkbox */
+        .checkbox-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+            margin-bottom: 16px;
+            cursor: pointer;
+        }
+
+        .checkbox-group input {
+            width: 20px;
+            height: 20px;
+            accent-color: #8b5cf6;
+            cursor: pointer;
+        }
+
+        .checkbox-label {
+            font-size: 14px;
+            line-height: 1.5;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            color: #ffffff;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn-group .btn {
+            flex: 1;
+        }
+
+        /* Relay Config */
+        .relay-list {
+            margin-bottom: 16px;
+        }
+
+        .relay-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .relay-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #8b5cf6;
+        }
+
+        .relay-url {
+            flex: 1;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .relay-status {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .relay-status.connected {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .relay-status.disconnected {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        /* Success State */
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(34, 197, 94, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+        }
+
+        .success-icon svg {
+            width: 40px;
+            height: 40px;
+            color: #22c55e;
+        }
+
+        /* Genre Tags */
+        .genre-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .genre-tag {
+            padding: 6px 12px;
+            background: rgba(139, 92, 246, 0.2);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .genre-tag:hover {
+            background: rgba(139, 92, 246, 0.3);
+        }
+
+        .genre-tag.selected {
+            background: #8b5cf6;
+            border-color: #8b5cf6;
+        }
+
+        .genre-tag .remove {
+            margin-left: 6px;
+            opacity: 0.7;
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Divider */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 28px 0;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .divider span {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Login Section */
+        .login-section {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .login-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .login-description {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        /* File Upload */
+        .file-upload-btn {
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .file-upload-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Publishing Status */
+        .publish-status {
+            margin-top: 16px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+        }
+
+        .publish-status-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+            font-size: 14px;
+        }
+
+        .publish-status-item .status-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .publish-status-item.pending .status-icon {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .publish-status-item.connecting .status-icon {
+            color: #fbbf24;
+        }
+
+        .publish-status-item.success .status-icon {
+            color: #22c55e;
+        }
+
+        .publish-status-item.error .status-icon {
+            color: #ef4444;
+        }
+
+        .publish-status-item .relay-url {
+            flex: 1;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .publish-status-item .status-text {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .btn-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>Equaliser</h1>
+            <p>Artist Onboarding</p>
+        </div>
+
+        <div class="progress">
+            <div class="progress-step active" data-step="1"></div>
+            <div class="progress-step" data-step="2"></div>
+            <div class="progress-step" data-step="3"></div>
+            <div class="progress-step" data-step="4"></div>
+            <div class="progress-step" data-step="5"></div>
+        </div>
+
+        <!-- Step 1: Generate Keys -->
+        <div class="step active" id="step-1">
+            <div class="card">
+                <h2 class="card-title">Create Your NOSTR Identity</h2>
+                <p class="card-description">
+                    Your NOSTR identity is a cryptographic key pair that proves you are you.
+                    It's portable across all NOSTR apps and gives you true ownership of your profile.
+                </p>
+
+                <div class="warning">
+                    <div class="warning-title">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        Important
+                    </div>
+                    <p class="warning-text">
+                        Your keys will be generated in your browser and never sent to any server.
+                        You must save your private key (nsec) securely - if you lose it, you lose access to your identity forever.
+                    </p>
+                </div>
+
+                <button class="btn btn-primary" onclick="generateKeys()">
+                    Generate My Keys
+                </button>
+
+                <div class="divider">
+                    <span>or</span>
+                </div>
+
+                <div class="login-section">
+                    <h3 class="login-title">Already have a NOSTR identity?</h3>
+                    <p class="login-description">
+                        Load from a backup file or enter your private key manually.
+                    </p>
+
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label class="file-upload-btn btn btn-secondary" style="margin-bottom: 12px;">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20" style="margin-right: 8px;">
+                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            Load Backup File
+                            <input type="file" id="backup-file-input" accept=".json" onchange="loadBackupFile(event)" style="display: none;">
+                        </label>
+                        <p class="form-hint">Load an equaliser-backup-*.json file</p>
+                    </div>
+
+                    <div class="divider" style="margin: 20px 0;">
+                        <span>or enter manually</span>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <input type="password" class="form-input" id="existing-nsec" placeholder="nsec1...">
+                        <p class="form-hint">Your nsec is never sent to any server - it stays in your browser</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="loginWithNsec()">
+                        Continue with Existing Key
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Save Keys -->
+        <div class="step" id="step-2">
+            <div class="card">
+                <h2 class="card-title">Save Your Keys</h2>
+                <p class="card-description">
+                    Your keys have been generated. Save them now before continuing.
+                </p>
+
+                <div class="warning">
+                    <div class="warning-title">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        Critical: Save Your Private Key
+                    </div>
+                    <p class="warning-text">
+                        Your private key (nsec) is the ONLY way to access your identity. Store it in a password manager,
+                        write it down, or save it somewhere extremely secure. Never share it with anyone.
+                    </p>
+                </div>
+
+                <div class="key-display">
+                    <div class="key-label">Private Key (nsec) - Keep Secret!</div>
+                    <div class="key-value private" id="nsec-display"></div>
+                    <button class="copy-btn" onclick="copyKey('nsec')">Copy</button>
+                </div>
+
+                <div class="key-display">
+                    <div class="key-label">Public Key (npub) - Safe to Share</div>
+                    <div class="key-value" id="npub-display"></div>
+                    <button class="copy-btn" onclick="copyKey('npub')">Copy</button>
+                </div>
+
+                <label class="checkbox-group">
+                    <input type="checkbox" id="saved-keys-check" onchange="updateStep2Button()">
+                    <span class="checkbox-label">
+                        I have securely saved my private key (nsec) and understand that losing it means losing access to my identity forever.
+                    </span>
+                </label>
+
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="goToStep(1)">Back</button>
+                    <button class="btn btn-primary" id="step-2-next" disabled onclick="goToStep(3)">Continue</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Profile Info -->
+        <div class="step" id="step-3">
+            <div class="card">
+                <h2 class="card-title">Your Artist Profile</h2>
+                <p class="card-description">
+                    Tell fans about yourself. This information will be published to NOSTR and visible across all compatible apps.
+                </p>
+
+                <div class="form-group">
+                    <label class="form-label">Artist / Project Name *</label>
+                    <input type="text" class="form-input" id="artist-name" placeholder="e.g. Shibuya Crossings" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Bio</label>
+                    <textarea class="form-input" id="artist-bio" placeholder="Tell your story..."></textarea>
+                    <p class="form-hint">A short description of you and your music</p>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Location</label>
+                    <input type="text" class="form-input" id="artist-location" placeholder="e.g. Tokyo, Japan">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Genres</label>
+                    <input type="text" class="form-input" id="genre-input" placeholder="Type a genre and press Enter">
+                    <div class="genre-tags" id="genre-tags"></div>
+                    <p class="form-hint">Add genres that describe your music</p>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="goToStep(2)">Back</button>
+                    <button class="btn btn-primary" onclick="goToStep(4)">Continue</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Configure Relays -->
+        <div class="step" id="step-4">
+            <div class="card">
+                <h2 class="card-title">Choose Relays</h2>
+                <p class="card-description">
+                    Your profile will be published to these NOSTR relays. More relays = better redundancy and discoverability.
+                </p>
+
+                <div class="relay-list" id="relay-list">
+                    <!-- Populated by JS -->
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Add Custom Relay</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" class="form-input" id="custom-relay" placeholder="wss://relay.example.com" style="flex: 1;">
+                        <button class="btn btn-secondary" onclick="addRelay()" style="width: auto; padding: 12px 20px;">Add</button>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="goToStep(3)">Back</button>
+                    <button class="btn btn-primary" onclick="publishProfile()">
+                        Publish Profile
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 5: Success -->
+        <div class="step" id="step-5">
+            <div class="card" style="text-align: center;">
+                <div class="success-icon">
+                    <svg fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <h2 class="card-title">Welcome to Equaliser!</h2>
+                <p class="card-description">
+                    Your artist profile has been published to NOSTR. You now have a decentralized identity that you truly own.
+                </p>
+
+                <div class="key-display" style="text-align: left;">
+                    <div class="key-label">Your Public Key (npub)</div>
+                    <div class="key-value" id="final-npub"></div>
+                    <button class="copy-btn" onclick="copyKey('final-npub')">Copy</button>
+                </div>
+
+                <div id="publish-results" style="text-align: left; margin-top: 20px;">
+                    <!-- Populated by JS -->
+                </div>
+
+                <div class="btn-group" style="margin-top: 32px;">
+                    <button class="btn btn-primary" onclick="goToDashboard()">
+                        Go to Dashboard
+                    </button>
+                    <button class="btn btn-secondary" onclick="downloadBackup()">
+                        Download Backup
+                    </button>
+                </div>
+                <p class="form-hint" style="margin-top: 12px;">
+                    You're now logged in. Download a backup file to save your keys securely.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- nostr-tools via CDN -->
+    <script src="https://unpkg.com/nostr-tools@2.1.4/lib/nostr.bundle.js"></script>
+    <script src="js/session.js"></script>
+
+    <script>
+        // State
+        let privateKey = null;
+        let publicKey = null;
+        let nsec = null;
+        let npub = null;
+        let genres = [];
+
+        // Configuration
+        const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        const localRelayUrl = 'ws://' + window.location.host + '/relay';
+
+        // In development: only local relay enabled by default
+        // In production: public relays enabled, local relay available but not default
+        const defaultRelays = isLocalDev
+            ? [
+                { url: localRelayUrl, enabled: true, local: true }
+              ]
+            : [
+                { url: localRelayUrl, enabled: false, local: true },
+                { url: 'wss://relay.damus.io', enabled: true, local: false },
+                { url: 'wss://nos.lol', enabled: true, local: false },
+                { url: 'wss://relay.nostr.band', enabled: true, local: false }
+              ];
+
+        let relays = [...defaultRelays];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            renderRelays();
+            setupGenreInput();
+        });
+
+        // Key Generation
+        function generateKeys() {
+            try {
+                // Generate random private key
+                privateKey = NostrTools.generateSecretKey();
+                publicKey = NostrTools.getPublicKey(privateKey);
+
+                // Convert to bech32 format
+                nsec = NostrTools.nip19.nsecEncode(privateKey);
+                npub = NostrTools.nip19.npubEncode(publicKey);
+
+                // Display keys
+                document.getElementById('nsec-display').textContent = nsec;
+                document.getElementById('npub-display').textContent = npub;
+
+                goToStep(2);
+            } catch (error) {
+                console.error('Key generation failed:', error);
+                alert('Failed to generate keys. Please try again.');
+            }
+        }
+
+        // Login with existing nsec
+        async function loginWithNsec() {
+            const nsecInput = document.getElementById('existing-nsec').value.trim();
+
+            if (!nsecInput) {
+                alert('Please enter your nsec');
+                return;
+            }
+
+            try {
+                // Decode the nsec
+                const decoded = NostrTools.nip19.decode(nsecInput);
+
+                if (decoded.type !== 'nsec') {
+                    throw new Error('Invalid nsec format. Expected nsec1...');
+                }
+
+                // Set the keys
+                privateKey = decoded.data;
+                publicKey = NostrTools.getPublicKey(privateKey);
+                nsec = nsecInput;
+                npub = NostrTools.nip19.npubEncode(publicKey);
+
+                // Try to fetch existing profile from relays
+                const existingProfile = await fetchExistingProfile(publicKey);
+
+                if (existingProfile) {
+                    // Pre-fill profile fields
+                    document.getElementById('artist-name').value = existingProfile.name || '';
+                    document.getElementById('artist-bio').value = existingProfile.about || '';
+
+                    // Handle location and genres from equaliser-specific fields
+                    if (existingProfile.equaliser) {
+                        document.getElementById('artist-location').value = existingProfile.equaliser.location || '';
+                        if (existingProfile.equaliser.genres) {
+                            genres = [...existingProfile.equaliser.genres];
+                            renderGenres();
+                        }
+                    }
+                }
+
+                // Skip to step 3 (profile) since they already have keys
+                goToStep(3);
+
+            } catch (error) {
+                console.error('Login failed:', error);
+                alert('Invalid nsec: ' + error.message);
+            }
+        }
+
+        // Load from backup file
+        function loadBackupFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const backup = JSON.parse(e.target.result);
+
+                    // Validate backup structure
+                    if (!backup.keys || !backup.keys.nsec) {
+                        throw new Error('Invalid backup file: missing keys');
+                    }
+
+                    // Decode the nsec
+                    const decoded = NostrTools.nip19.decode(backup.keys.nsec);
+                    if (decoded.type !== 'nsec') {
+                        throw new Error('Invalid nsec in backup file');
+                    }
+
+                    // Set the keys
+                    privateKey = decoded.data;
+                    publicKey = NostrTools.getPublicKey(privateKey);
+                    nsec = backup.keys.nsec;
+                    npub = backup.keys.npub || NostrTools.nip19.npubEncode(publicKey);
+
+                    // Pre-fill profile from backup
+                    if (backup.profile) {
+                        document.getElementById('artist-name').value = backup.profile.name || '';
+                        document.getElementById('artist-bio').value = backup.profile.bio || '';
+                        document.getElementById('artist-location').value = backup.profile.location || '';
+
+                        if (backup.profile.genres && Array.isArray(backup.profile.genres)) {
+                            genres = [...backup.profile.genres];
+                            renderGenres();
+                        }
+                    }
+
+                    // Go to step 3 (profile)
+                    goToStep(3);
+
+                } catch (error) {
+                    console.error('Failed to load backup:', error);
+                    alert('Failed to load backup file: ' + error.message);
+                }
+            };
+
+            reader.onerror = function() {
+                alert('Failed to read file');
+            };
+
+            reader.readAsText(file);
+
+            // Reset the input so the same file can be selected again
+            event.target.value = '';
+        }
+
+        // Fetch existing profile from relays
+        async function fetchExistingProfile(pubkeyHex) {
+            // Use local relay in dev, public relays in production
+            const relaysToCheck = isLocalDev
+                ? [localRelayUrl]
+                : ['wss://relay.damus.io', 'wss://nos.lol', 'wss://relay.nostr.band'];
+
+            for (const relayUrl of relaysToCheck) {
+                try {
+                    const profile = await new Promise((resolve, reject) => {
+                        const ws = new WebSocket(relayUrl);
+                        let profileData = null;
+
+                        const timeout = setTimeout(() => {
+                            ws.close();
+                            resolve(null);
+                        }, 5000);
+
+                        ws.onopen = () => {
+                            const subId = 'profile-' + Date.now();
+                            ws.send(JSON.stringify(['REQ', subId, {
+                                kinds: [0],
+                                authors: [pubkeyHex],
+                                limit: 1
+                            }]));
+                        };
+
+                        ws.onmessage = (e) => {
+                            const data = JSON.parse(e.data);
+                            if (data[0] === 'EVENT') {
+                                try {
+                                    profileData = JSON.parse(data[2].content);
+                                } catch (err) {
+                                    console.error('Error parsing profile:', err);
+                                }
+                            }
+                            if (data[0] === 'EOSE') {
+                                clearTimeout(timeout);
+                                ws.close();
+                                resolve(profileData);
+                            }
+                        };
+
+                        ws.onerror = () => {
+                            clearTimeout(timeout);
+                            resolve(null);
+                        };
+                    });
+
+                    if (profile) {
+                        return profile;
+                    }
+                } catch (err) {
+                    console.log('Failed to fetch from', relayUrl, err);
+                }
+            }
+
+            return null;
+        }
+
+        // Copy to clipboard
+        async function copyKey(type) {
+            let text;
+            let btn;
+
+            if (type === 'nsec') {
+                text = nsec;
+                btn = document.querySelector('#step-2 .key-display:first-of-type .copy-btn');
+            } else if (type === 'npub') {
+                text = npub;
+                btn = document.querySelector('#step-2 .key-display:last-of-type .copy-btn');
+            } else if (type === 'final-npub') {
+                text = npub;
+                btn = document.querySelector('#step-5 .copy-btn');
+            }
+
+            try {
+                await navigator.clipboard.writeText(text);
+                btn.textContent = 'Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = 'Copy';
+                    btn.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                console.error('Copy failed:', err);
+            }
+        }
+
+        // Step 2 checkbox
+        function updateStep2Button() {
+            const checkbox = document.getElementById('saved-keys-check');
+            const button = document.getElementById('step-2-next');
+            button.disabled = !checkbox.checked;
+        }
+
+        // Genre tags
+        function setupGenreInput() {
+            const input = document.getElementById('genre-input');
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const genre = input.value.trim();
+                    if (genre && !genres.includes(genre)) {
+                        genres.push(genre);
+                        renderGenres();
+                    }
+                    input.value = '';
+                }
+            });
+        }
+
+        function renderGenres() {
+            const container = document.getElementById('genre-tags');
+            container.innerHTML = genres.map((genre, i) => `
+                <span class="genre-tag selected">
+                    ${genre}
+                    <span class="remove" onclick="removeGenre(${i})">×</span>
+                </span>
+            `).join('');
+        }
+
+        function removeGenre(index) {
+            genres.splice(index, 1);
+            renderGenres();
+        }
+
+        // Relays
+        function renderRelays() {
+            const container = document.getElementById('relay-list');
+            container.innerHTML = relays.map((relay, i) => `
+                <div class="relay-item">
+                    <input type="checkbox" ${relay.enabled ? 'checked' : ''} onchange="toggleRelay(${i})">
+                    <span class="relay-url">${relay.url}</span>
+                    <span class="relay-status" id="relay-status-${i}">
+                        ${relay.local ? 'Local' : 'Public'}
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        function toggleRelay(index) {
+            relays[index].enabled = !relays[index].enabled;
+        }
+
+        function addRelay() {
+            const input = document.getElementById('custom-relay');
+            const url = input.value.trim();
+
+            if (url && (url.startsWith('ws://') || url.startsWith('wss://'))) {
+                if (!relays.find(r => r.url === url)) {
+                    relays.push({ url, enabled: true, local: false });
+                    renderRelays();
+                }
+                input.value = '';
+            } else {
+                alert('Please enter a valid WebSocket URL (ws:// or wss://)');
+            }
+        }
+
+        // Publish Profile
+        async function publishProfile() {
+            const name = document.getElementById('artist-name').value.trim();
+
+            if (!name) {
+                alert('Please enter your artist name');
+                return;
+            }
+
+            const enabledRelays = relays.filter(r => r.enabled);
+            if (enabledRelays.length === 0) {
+                alert('Please select at least one relay');
+                return;
+            }
+
+            // Disable the publish button and show status
+            const publishBtn = document.querySelector('#step-4 .btn-primary');
+            publishBtn.disabled = true;
+            publishBtn.innerHTML = '<span class="loading"></span> Publishing...';
+
+            // Create status display
+            const statusContainer = document.getElementById('relay-list');
+            statusContainer.innerHTML = enabledRelays.map((relay, i) => `
+                <div class="publish-status-item pending" id="publish-status-${i}">
+                    <span class="status-icon">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                            <circle cx="10" cy="10" r="6" fill="currentColor" opacity="0.3"/>
+                        </svg>
+                    </span>
+                    <span class="relay-url">${relay.url}</span>
+                    <span class="status-text">Waiting...</span>
+                </div>
+            `).join('');
+
+            // Build profile metadata
+            const profileContent = {
+                name: name,
+                about: document.getElementById('artist-bio').value.trim(),
+                picture: '',
+                banner: '',
+                website: '',
+                nip05: '',
+                lud16: ''
+            };
+
+            // Add Equaliser-specific fields
+            const location = document.getElementById('artist-location').value.trim();
+            if (location || genres.length > 0) {
+                profileContent.equaliser = {};
+                if (location) profileContent.equaliser.location = location;
+                if (genres.length > 0) profileContent.equaliser.genres = genres;
+                profileContent.equaliser.joinedDate = new Date().toISOString().split('T')[0];
+            }
+
+            // Create Kind 0 event
+            const event = {
+                kind: 0,
+                created_at: Math.floor(Date.now() / 1000),
+                tags: [],
+                content: JSON.stringify(profileContent)
+            };
+
+            // Sign the event
+            const signedEvent = NostrTools.finalizeEvent(event, privateKey);
+
+            // Publish to relays with real-time status updates
+            const results = [];
+
+            for (let i = 0; i < enabledRelays.length; i++) {
+                const relay = enabledRelays[i];
+                const statusEl = document.getElementById(`publish-status-${i}`);
+
+                // Update to connecting state
+                statusEl.className = 'publish-status-item connecting';
+                statusEl.querySelector('.status-icon').innerHTML = '<span class="loading"></span>';
+                statusEl.querySelector('.status-text').textContent = 'Connecting...';
+
+                try {
+                    const result = await new Promise((resolve) => {
+                        const ws = new WebSocket(relay.url);
+
+                        const timeout = setTimeout(() => {
+                            ws.close();
+                            resolve({ url: relay.url, success: false, error: 'Timeout' });
+                        }, 8000);
+
+                        ws.onopen = () => {
+                            statusEl.querySelector('.status-text').textContent = 'Publishing...';
+                            const msg = JSON.stringify(['EVENT', signedEvent]);
+                            ws.send(msg);
+                        };
+
+                        ws.onmessage = (e) => {
+                            const data = JSON.parse(e.data);
+                            if (data[0] === 'OK') {
+                                clearTimeout(timeout);
+                                ws.close();
+                                resolve({ url: relay.url, success: data[2], error: data[2] ? null : data[3] });
+                            }
+                        };
+
+                        ws.onerror = () => {
+                            clearTimeout(timeout);
+                            resolve({ url: relay.url, success: false, error: 'Connection failed' });
+                        };
+                    });
+
+                    results.push(result);
+
+                    // Update status based on result
+                    if (result.success) {
+                        statusEl.className = 'publish-status-item success';
+                        statusEl.querySelector('.status-icon').innerHTML = `
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>`;
+                        statusEl.querySelector('.status-text').textContent = 'Published';
+                    } else {
+                        statusEl.className = 'publish-status-item error';
+                        statusEl.querySelector('.status-icon').innerHTML = `
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                            </svg>`;
+                        statusEl.querySelector('.status-text').textContent = result.error;
+                    }
+
+                } catch (err) {
+                    results.push({ url: relay.url, success: false, error: err.message });
+                    statusEl.className = 'publish-status-item error';
+                    statusEl.querySelector('.status-icon').innerHTML = `
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>`;
+                    statusEl.querySelector('.status-text').textContent = err.message;
+                }
+            }
+
+            // Check if at least one relay succeeded
+            const successCount = results.filter(r => r.success).length;
+
+            if (successCount === 0) {
+                // No relays succeeded - show error and allow retry
+                publishBtn.disabled = false;
+                publishBtn.innerHTML = 'Retry Publish';
+                alert('Failed to publish to any relay. Please check your connection and try again.');
+                return;
+            }
+
+            // Success - establish session so user is logged in
+            SessionManager.init();
+            SessionManager.createSessionFromNsec(nsec);
+
+            // Show results
+            document.getElementById('final-npub').textContent = npub;
+
+            const resultsHtml = results.map(r => `
+                <div class="relay-item">
+                    <span class="relay-url">${r.url}</span>
+                    <span class="relay-status ${r.success ? 'connected' : 'disconnected'}">
+                        ${r.success ? 'Published' : r.error}
+                    </span>
+                </div>
+            `).join('');
+
+            document.getElementById('publish-results').innerHTML = `
+                <div class="key-label" style="margin-bottom: 12px;">Publish Results (${successCount}/${results.length} successful)</div>
+                ${resultsHtml}
+            `;
+
+            goToStep(5);
+        }
+
+        // Helper to convert bytes to hex
+        function bytesToHex(bytes) {
+            return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Download backup
+        function downloadBackup() {
+            try {
+                const backup = {
+                    version: 1,
+                    created: new Date().toISOString(),
+                    keys: {
+                        nsec: nsec,
+                        npub: npub,
+                        privateKeyHex: bytesToHex(privateKey),
+                        publicKeyHex: publicKey
+                    },
+                    profile: {
+                        name: document.getElementById('artist-name').value.trim(),
+                        bio: document.getElementById('artist-bio').value.trim(),
+                        location: document.getElementById('artist-location').value.trim(),
+                        genres: genres
+                    }
+                };
+
+                const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `equaliser-backup-${(backup.profile.name || 'artist').toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error('Download failed:', err);
+                alert('Failed to download backup: ' + err.message);
+            }
+        }
+
+        // Go to dashboard
+        function goToDashboard() {
+            window.location.href = 'dashboard.html';
+        }
+
+        // Navigation
+        function goToStep(step) {
+            // Update progress
+            document.querySelectorAll('.progress-step').forEach((el, i) => {
+                el.classList.remove('active', 'completed');
+                if (i + 1 < step) el.classList.add('completed');
+                if (i + 1 === step) el.classList.add('active');
+            });
+
+            // Show step
+            document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+            document.getElementById(`step-${step}`).classList.add('active');
+        }
+    </script>
+</body>
+</html>

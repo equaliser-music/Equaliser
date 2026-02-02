@@ -1,0 +1,16 @@
+{
+  "trackId": "ill-meet-you-at-the-station-004",
+  "title": "I'll Meet You at the Station",
+  "artist": "Shibuya Crossings",
+  "albumId": "doya-depend-on-your-alter-ego-2011",
+  "trackNumber": 4,
+  "duration": 245,
+  "genre": "Electronic",
+  "priceSats": 210,
+  "releaseDate": "2011-03-24",
+  "previewStart": 60,
+  "previewDuration": 30,
+  "fileFormat": "mp3",
+  "bitrate": 320,
+  "tags": ["electronic", "journey", "nostalgic"]
+}

@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artist - Equaliser</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 240px;
+            background: rgba(15, 15, 25, 0.8);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            padding: 24px 16px;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .logo {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 40px;
+            padding: 0 8px;
+        }
+
+        .logo-main {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-main img {
+            width: 180px;
+            height: auto;
+        }
+
+        .nav-section {
+            margin-bottom: 32px;
+        }
+
+        .nav-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 12px;
+            padding: 0 12px;
+            font-weight: 600;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 4px;
+            text-decoration: none;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+        }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(168, 85, 247, 0.15));
+            color: #ffffff;
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            opacity: 0.8;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 240px;
+            margin-right: 320px;
+            padding-bottom: 100px;
+        }
+
+        /* Banner */
+        .artist-banner {
+            width: 100%;
+            height: 300px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(168, 85, 247, 0.2));
+            position: relative;
+            overflow: hidden;
+        }
+
+        .artist-banner img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .artist-banner::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 150px;
+            background: linear-gradient(transparent, rgba(10, 10, 15, 1));
+        }
+
+        /* Artist Header */
+        .artist-header {
+            padding: 0 32px;
+            margin-top: -80px;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            gap: 24px;
+            align-items: flex-end;
+        }
+
+        .artist-avatar {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            border: 4px solid rgba(10, 10, 15, 1);
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .artist-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .artist-info {
+            padding-bottom: 16px;
+        }
+
+        .artist-name {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #ffffff, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .artist-meta {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+        }
+
+        .artist-meta span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .genre-tag {
+            background: rgba(139, 92, 246, 0.2);
+            color: #a855f7;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* Artist Actions */
+        .artist-actions {
+            padding: 24px 32px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 12px 32px;
+            border-radius: 24px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            border: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.05);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        /* Bio Section */
+        .artist-bio {
+            padding: 0 32px 32px;
+        }
+
+        .bio-text {
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.7;
+            font-size: 15px;
+            max-width: 800px;
+        }
+
+        /* Section Headers */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding: 0 32px;
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        /* Albums Grid */
+        .albums-section {
+            padding: 0 32px 32px;
+        }
+
+        .album-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+        }
+
+        .album-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .album-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            transform: translateY(-4px);
+        }
+
+        .album-cover {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+        }
+
+        .album-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .album-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .album-year {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Track List */
+        .tracks-section {
+            padding: 0 32px 32px;
+        }
+
+        .track-list {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .track-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .track-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .track-item.playing {
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .track-number {
+            width: 24px;
+            text-align: center;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .track-cover {
+            width: 44px;
+            height: 44px;
+            border-radius: 6px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .track-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .track-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .track-title {
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .track-album {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .track-duration {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .track-price {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            color: #a855f7;
+            font-weight: 600;
+        }
+
+        /* Right Sidebar - Artist Nostr Feed */
+        .nostr-sidebar {
+            width: 320px;
+            background: rgba(15, 15, 25, 0.8);
+            backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: fixed;
+            right: 0;
+            top: 0;
+            height: 100vh;
+        }
+
+        .nostr-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            flex-shrink: 0;
+        }
+
+        .nostr-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .nostr-title svg {
+            color: #9333ea;
+        }
+
+        .nostr-subtitle {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .nostr-feed {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            margin-bottom: 80px;
+        }
+
+        .nostr-feed::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .nostr-feed::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .nostr-feed::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .nostr-post {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+        }
+
+        .nostr-post:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .nostr-post-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .nostr-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .nostr-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .nostr-user-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .nostr-username {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .nostr-handle {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .nostr-time {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .nostr-content {
+            font-size: 13px;
+            line-height: 1.5;
+            color: rgba(255, 255, 255, 0.85);
+            margin-bottom: 12px;
+        }
+
+        .nostr-content .mention {
+            color: #a855f7;
+        }
+
+        .nostr-content .hashtag {
+            color: #60a5fa;
+        }
+
+        .nostr-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .nostr-action {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .nostr-action:hover {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .nostr-action.zap:hover {
+            color: #fbbf24;
+        }
+
+        .nostr-action.zap svg {
+            color: #fbbf24;
+        }
+
+        .nostr-action svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .zap-amount {
+            color: #fbbf24;
+            font-weight: 600;
+        }
+
+        /* Player Bar */
+        .player-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(15, 15, 25, 0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            z-index: 100;
+        }
+
+        .now-playing {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .now-playing-cover {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            border-radius: 8px;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .now-playing-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .now-playing-info {
+            min-width: 0;
+        }
+
+        .now-playing-title {
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .now-playing-artist {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .player-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            flex: 2;
+        }
+
+        .control-buttons {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .control-btn {
+            width: 32px;
+            height: 32px;
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-btn:hover {
+            color: #ffffff;
+            transform: scale(1.1);
+        }
+
+        .control-btn.play {
+            width: 40px;
+            height: 40px;
+            background: #ffffff;
+            border-radius: 50%;
+            color: #000000;
+        }
+
+        .progress-bar {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .time {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            min-width: 40px;
+        }
+
+        .progress {
+            flex: 1;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .progress-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #8b5cf6, #a855f7);
+            border-radius: 2px;
+        }
+
+        .player-extras {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex: 1;
+            justify-content: flex-end;
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 60px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .nostr-sidebar {
+                display: none;
+            }
+            .main-content {
+                margin-right: 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 80px;
+            }
+            .main-content {
+                margin-left: 80px;
+            }
+            .artist-header {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+            .artist-avatar {
+                width: 120px;
+                height: 120px;
+            }
+            .artist-name {
+                font-size: 32px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <a href="home.html" class="logo">
+                <div class="logo-main">
+                    <img src="/images/equaliser-logo.png" alt="Equaliser - Music Lives Here">
+                </div>
+            </a>
+
+            <div class="nav-section">
+                <div class="nav-title">Menu</div>
+                <a href="home.html" class="nav-item">
+                    <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                    </svg>
+                    <span>Home</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
+                    </svg>
+                    <span>Discover</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/>
+                    </svg>
+                    <span>Library</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-title">Playlists</div>
+                <a href="#" class="nav-item">
+                    <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"/>
+                    </svg>
+                    <span>Favorites</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                    </svg>
+                    <span>Recent</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Banner -->
+            <div class="artist-banner" id="artist-banner">
+                <img src="" alt="Artist Banner" id="banner-img" style="display: none;">
+            </div>
+
+            <!-- Artist Header -->
+            <div class="artist-header">
+                <div class="artist-avatar" id="artist-avatar">
+                    <img src="" alt="Artist Avatar" id="avatar-img" style="display: none;">
+                </div>
+                <div class="artist-info">
+                    <h1 class="artist-name" id="artist-name">Loading...</h1>
+                    <div class="artist-meta">
+                        <span id="artist-location">
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+                            </svg>
+                            <span></span>
+                        </span>
+                        <div id="artist-genres"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="artist-actions">
+                <button class="btn btn-primary" id="play-all-btn">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
+                    </svg>
+                    Play All
+                </button>
+                <button class="btn btn-secondary">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"/>
+                    </svg>
+                    Follow
+                </button>
+                <button class="btn btn-secondary" id="tip-btn">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/>
+                    </svg>
+                    Tip Artist
+                </button>
+            </div>
+
+            <!-- Bio -->
+            <div class="artist-bio">
+                <p class="bio-text" id="artist-bio">Loading...</p>
+            </div>
+
+            <!-- Albums -->
+            <div class="albums-section">
+                <div class="section-header">
+                    <h2 class="section-title">Albums</h2>
+                </div>
+                <div class="album-grid" id="album-grid">
+                    <div class="loading">Loading albums...</div>
+                </div>
+            </div>
+
+            <!-- All Tracks -->
+            <div class="tracks-section">
+                <div class="section-header">
+                    <h2 class="section-title">All Tracks</h2>
+                </div>
+                <div class="track-list" id="track-list">
+                    <div class="loading">Loading tracks...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Nostr Feed Sidebar -->
+        <div class="nostr-sidebar">
+            <div class="nostr-header">
+                <div class="nostr-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                    </svg>
+                    Artist Feed
+                </div>
+                <div class="nostr-subtitle" id="nostr-subtitle">Loading...</div>
+            </div>
+            <div class="nostr-feed" id="nostr-feed">
+                <div class="loading">Loading feed...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Player Bar -->
+    <div class="player-bar">
+        <div class="now-playing">
+            <div class="now-playing-cover">
+                <img src="" alt="Album Cover" id="player-cover" style="display: none;">
+            </div>
+            <div class="now-playing-info">
+                <div class="now-playing-title" id="player-title">Select a track</div>
+                <div class="now-playing-artist" id="player-artist">-</div>
+            </div>
+        </div>
+
+        <div class="player-controls">
+            <div class="control-buttons">
+                <button class="control-btn" id="prev-btn">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M8.445 14.832A1 1 0 0010 14v-2.798l5.445 3.63A1 1 0 0017 14V6a1 1 0 00-1.555-.832L10 8.798V6a1 1 0 00-1.555-.832l-6 4a1 1 0 000 1.664l6 4z"/>
+                    </svg>
+                </button>
+                <button class="control-btn play" id="play-btn">
+                    <svg width="24" height="24" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+                <button class="control-btn" id="next-btn">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M4.555 5.168A1 1 0 003 6v8a1 1 0 001.555.832L10 11.202V14a1 1 0 001.555.832l6-4a1 1 0 000-1.664l-6-4A1 1 0 0010 6v2.798l-5.445-3.63z"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="progress-bar">
+                <span class="time" id="current-time">0:00</span>
+                <div class="progress" id="progress">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <span class="time" id="total-time">0:00</span>
+            </div>
+        </div>
+
+        <div class="player-extras">
+            <button class="control-btn">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clip-rule="evenodd"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Hidden Audio Element -->
+    <audio id="audio-player" preload="metadata"></audio>
+
+    <script>
+        // Get artist slug from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const artistSlug = urlParams.get('artist');
+
+        if (!artistSlug) {
+            window.location.href = 'home.html';
+        }
+
+        // State
+        let artistData = null;
+        let allTracks = [];
+        let currentTrackIndex = -1;
+        let isPlaying = false;
+        const audioPlayer = document.getElementById('audio-player');
+
+        // Format time
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Load artist data
+        async function loadArtist() {
+            try {
+                const response = await fetch(`/api/artist/${artistSlug}`);
+                if (!response.ok) throw new Error('Artist not found');
+
+                artistData = await response.json();
+                renderArtist();
+                renderAlbums();
+                renderTracks();
+                renderNostrFeed();
+            } catch (error) {
+                console.error('Error loading artist:', error);
+                document.getElementById('artist-name').textContent = 'Artist not found';
+            }
+        }
+
+        // Render artist profile
+        function renderArtist() {
+            document.title = `${artistData.profile.name} - Equaliser`;
+            document.getElementById('artist-name').textContent = artistData.profile.name;
+            document.getElementById('artist-bio').textContent = artistData.profile.bio || 'No bio available.';
+
+            // Location
+            const locationEl = document.getElementById('artist-location');
+            if (artistData.profile.location) {
+                locationEl.querySelector('span').textContent = artistData.profile.location;
+            } else {
+                locationEl.style.display = 'none';
+            }
+
+            // Genres
+            const genresEl = document.getElementById('artist-genres');
+            if (artistData.profile.genres && artistData.profile.genres.length > 0) {
+                genresEl.innerHTML = artistData.profile.genres.map(g =>
+                    `<span class="genre-tag">${g}</span>`
+                ).join('');
+            }
+
+            // Avatar
+            if (artistData.avatarPath) {
+                const avatarImg = document.getElementById('avatar-img');
+                avatarImg.src = artistData.avatarPath;
+                avatarImg.style.display = 'block';
+            }
+
+            // Banner
+            if (artistData.bannerPath) {
+                const bannerImg = document.getElementById('banner-img');
+                bannerImg.src = artistData.bannerPath;
+                bannerImg.style.display = 'block';
+            }
+        }
+
+        // Render albums
+        function renderAlbums() {
+            const albumGrid = document.getElementById('album-grid');
+
+            if (!artistData.albums || artistData.albums.length === 0) {
+                albumGrid.innerHTML = '<div class="loading">No albums yet</div>';
+                return;
+            }
+
+            albumGrid.innerHTML = artistData.albums.map(album => `
+                <div class="album-card" data-album-id="${album.albumId}">
+                    <div class="album-cover">
+                        ${album.coverPath ? `<img src="${album.coverPath}" alt="${album.title}">` : ''}
+                    </div>
+                    <div class="album-title">${album.title}</div>
+                    <div class="album-year">${album.releaseDate ? album.releaseDate.split('-')[0] : ''}</div>
+                </div>
+            `).join('');
+        }
+
+        // Render tracks
+        function renderTracks() {
+            const trackList = document.getElementById('track-list');
+
+            // Collect all tracks from all albums
+            allTracks = [];
+            if (artistData.albums) {
+                artistData.albums.forEach(album => {
+                    if (album.tracks) {
+                        album.tracks.forEach(track => {
+                            allTracks.push({
+                                ...track,
+                                albumTitle: album.title,
+                                albumCover: album.coverPath
+                            });
+                        });
+                    }
+                });
+            }
+
+            if (allTracks.length === 0) {
+                trackList.innerHTML = '<div class="loading">No tracks yet</div>';
+                return;
+            }
+
+            trackList.innerHTML = allTracks.map((track, index) => `
+                <div class="track-item" data-track-index="${index}">
+                    <div class="track-number">${index + 1}</div>
+                    <div class="track-cover">
+                        <img src="${track.coverPath || track.albumCover || ''}" alt="${track.title}">
+                    </div>
+                    <div class="track-info">
+                        <div class="track-title">${track.title}</div>
+                        <div class="track-album">${track.albumTitle || ''}</div>
+                    </div>
+                    <div class="track-duration">${formatTime(track.duration || 0)}</div>
+                    <div class="track-price">
+                        <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                        </svg>
+                        ${track.priceSats || 210} sats
+                    </div>
+                </div>
+            `).join('');
+
+            // Add click handlers
+            trackList.querySelectorAll('.track-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const index = parseInt(this.dataset.trackIndex);
+                    playTrack(index);
+                });
+            });
+        }
+
+        // Render Nostr feed (mock data specific to artist)
+        function renderNostrFeed() {
+            const feed = document.getElementById('nostr-feed');
+            const subtitle = document.getElementById('nostr-subtitle');
+
+            subtitle.textContent = `Posts from @${artistSlug.replace(/-/g, '_')}`;
+
+            // Generate artist-specific mock posts
+            const artistName = artistData.profile.name;
+            const handle = artistSlug.replace(/-/g, '_');
+            const initials = artistName.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+
+            const mockPosts = [
+                {
+                    content: `Thank you all for the incredible support! Our latest tracks on <span class="mention">@equaliser</span> have been receiving so much love. <span class="hashtag">#grateful</span>`,
+                    time: '2m',
+                    comments: 23,
+                    saves: 15,
+                    zaps: '1.2k'
+                },
+                {
+                    content: `Studio session today working on some new material. Can't wait to share what we've been cooking up! <span class="hashtag">#newmusic</span> <span class="hashtag">#studiolife</span>`,
+                    time: '1h',
+                    comments: 45,
+                    saves: 32,
+                    zaps: '2.8k'
+                },
+                {
+                    content: `Huge shoutout to everyone who's been streaming our music. Your support means everything to us as independent artists. <span class="hashtag">#indiemusic</span>`,
+                    time: '3h',
+                    comments: 67,
+                    saves: 48,
+                    zaps: '4.5k'
+                },
+                {
+                    content: `Behind the scenes from our last recording session. The creative process is always an adventure! <span class="hashtag">#behindthescenes</span> <span class="hashtag">#musicmaking</span>`,
+                    time: '8h',
+                    comments: 34,
+                    saves: 21,
+                    zaps: '1.8k'
+                },
+                {
+                    content: `We love hearing from our fans! Drop a comment and let us know which track is your favorite. <span class="hashtag">#fanappreciation</span>`,
+                    time: '1d',
+                    comments: 156,
+                    saves: 89,
+                    zaps: '8.2k'
+                }
+            ];
+
+            feed.innerHTML = mockPosts.map(post => `
+                <div class="nostr-post">
+                    <div class="nostr-post-header">
+                        <div class="nostr-avatar">${initials}</div>
+                        <div class="nostr-user-info">
+                            <div class="nostr-username">${artistName}</div>
+                            <div class="nostr-handle">@${handle}</div>
+                        </div>
+                        <div class="nostr-time">${post.time}</div>
+                    </div>
+                    <div class="nostr-content">${post.content}</div>
+                    <div class="nostr-actions">
+                        <div class="nostr-action">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"/></svg>
+                            ${post.comments}
+                        </div>
+                        <div class="nostr-action">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"/></svg>
+                            ${post.saves}
+                        </div>
+                        <div class="nostr-action zap">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/></svg>
+                            <span class="zap-amount">${post.zaps} sats</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Play track
+        function playTrack(index) {
+            if (index < 0 || index >= allTracks.length) return;
+
+            const track = allTracks[index];
+            currentTrackIndex = index;
+
+            audioPlayer.src = track.fullPath;
+            audioPlayer.play().then(() => {
+                isPlaying = true;
+                updatePlayButton();
+            }).catch(err => console.error('Playback error:', err));
+
+            // Update player bar
+            document.getElementById('player-title').textContent = track.title;
+            document.getElementById('player-artist').textContent = artistData.profile.name;
+
+            const playerCover = document.getElementById('player-cover');
+            if (track.coverPath || track.albumCover) {
+                playerCover.src = track.coverPath || track.albumCover;
+                playerCover.style.display = 'block';
+            }
+
+            // Update track list highlighting
+            document.querySelectorAll('.track-item').forEach((item, i) => {
+                item.classList.toggle('playing', i === index);
+            });
+        }
+
+        // Update play button icon
+        function updatePlayButton() {
+            const playBtn = document.getElementById('play-btn');
+            if (isPlaying) {
+                playBtn.innerHTML = `
+                    <svg width="24" height="24" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>`;
+            } else {
+                playBtn.innerHTML = `
+                    <svg width="24" height="24" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/>
+                    </svg>`;
+            }
+        }
+
+        // Toggle play/pause
+        function togglePlayPause() {
+            if (isPlaying) {
+                audioPlayer.pause();
+                isPlaying = false;
+            } else {
+                if (currentTrackIndex === -1 && allTracks.length > 0) {
+                    playTrack(0);
+                    return;
+                }
+                audioPlayer.play();
+                isPlaying = true;
+            }
+            updatePlayButton();
+        }
+
+        // Play next/previous
+        function playNext() {
+            if (allTracks.length === 0) return;
+            const nextIndex = (currentTrackIndex + 1) % allTracks.length;
+            playTrack(nextIndex);
+        }
+
+        function playPrevious() {
+            if (allTracks.length === 0) return;
+            const prevIndex = currentTrackIndex <= 0 ? allTracks.length - 1 : currentTrackIndex - 1;
+            playTrack(prevIndex);
+        }
+
+        // Update progress
+        function updateProgress() {
+            if (audioPlayer.duration) {
+                const progress = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+                document.getElementById('progress-fill').style.width = `${progress}%`;
+                document.getElementById('current-time').textContent = formatTime(audioPlayer.currentTime);
+                document.getElementById('total-time').textContent = formatTime(audioPlayer.duration);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('play-btn').addEventListener('click', togglePlayPause);
+        document.getElementById('prev-btn').addEventListener('click', playPrevious);
+        document.getElementById('next-btn').addEventListener('click', playNext);
+        document.getElementById('play-all-btn').addEventListener('click', () => playTrack(0));
+
+        document.getElementById('progress').addEventListener('click', function(e) {
+            if (audioPlayer.duration) {
+                const rect = this.getBoundingClientRect();
+                const percent = (e.clientX - rect.left) / rect.width;
+                audioPlayer.currentTime = percent * audioPlayer.duration;
+            }
+        });
+
+        audioPlayer.addEventListener('timeupdate', updateProgress);
+        audioPlayer.addEventListener('ended', playNext);
+        audioPlayer.addEventListener('pause', () => { isPlaying = false; updatePlayButton(); });
+        audioPlayer.addEventListener('play', () => { isPlaying = true; updatePlayButton(); });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space' && e.target.tagName !== 'INPUT') {
+                e.preventDefault();
+                togglePlayPause();
+            }
+            if (e.code === 'ArrowRight') playNext();
+            if (e.code === 'ArrowLeft') playPrevious();
+        });
+
+        // Initialize
+        loadArtist();
+    </script>
+</body>
+</html>
