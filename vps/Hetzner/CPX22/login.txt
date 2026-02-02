@@ -1,0 +1,1 @@
+sh -i ~/.ssh/Hetzner_CPX22 root@77.42.68.194
