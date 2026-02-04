@@ -107,13 +107,19 @@ cd /root/vps-config
 sudo bash setup.sh
 ```
 
-This installs nginx, certbot, ufw firewall, and configures site vhosts.
+This installs:
+- Docker and Docker Compose
+- nginx (host-level reverse proxy)
+- certbot (Let's Encrypt SSL)
+- ufw firewall (ports 22, 80, 443, 4001)
+- jq, python3, python3-venv
+- Python venv at `/root/Equaliser-1/.venv` with `coincurve` and `websocket-client` (needed by import/export tools)
 
 ### 5. Set up SSL certificates
 
 Only run after DNS has propagated:
 ```bash
-sudo bash setup-ssl.sh --email your@email.com
+sudo bash setup-ssl.sh --email equaliser-music@proton.me
 ```
 
 ### 6. Start the content node
@@ -124,6 +130,67 @@ docker compose up -d --build
 ```
 
 The override file is already in place (deployed in step 2), so Docker will use port 8080 automatically.
+
+## Using Tools on the VPS
+
+The `tools/` directory is part of the repo clone, so all tools are available on the VPS. The import/export tools require Python dependencies which `setup.sh` installs automatically.
+
+### Importing artist packages
+
+Artist packages are directories (e.g. `shibuya-crossings.artist-package/`). Copy them from your local machine:
+
+```bash
+# From local machine — create packages dir and copy
+ssh -i ~/.ssh/Hetzner_CPX22 root@77.42.68.194 "mkdir -p /root/Equaliser-1/packages"
+scp -r -i ~/.ssh/Hetzner_CPX22 ./packages/shibuya-crossings.artist-package root@77.42.68.194:/root/Equaliser-1/packages/
+```
+
+Then on the VPS:
+
+```bash
+cd /root/Equaliser-1
+
+# Fresh import (generates new NOSTR identity)
+./tools/import-artist.sh ./packages/shibuya-crossings.artist-package --base-url http://localhost:8080
+
+# Restore import (uses existing identity from backup.json)
+./tools/import-artist.sh ./packages/shibuya-crossings.artist-package --restore --base-url http://localhost:8080
+
+# Dry run (preview only)
+./tools/import-artist.sh ./packages/shibuya-crossings.artist-package --dry-run --base-url http://localhost:8080
+```
+
+**Important:** Use `--base-url http://localhost:8080` on the VPS because the content node listens on port 8080 (host nginx is on 80). The default `http://localhost` would hit host nginx instead.
+
+**Restore mode** requires an `identity/backup.json` file in the package. This is created during a fresh import. To use the same identity on the VPS as your local machine, copy the backup from your local packages:
+
+```bash
+# From local machine
+scp -i ~/.ssh/Hetzner_CPX22 \
+    ./packages/shibuya-crossings.artist-package/identity/backup.json \
+    root@77.42.68.194:/root/Equaliser-1/packages/shibuya-crossings.artist-package/identity/
+```
+
+### Other tools
+
+All tools work on the VPS with the same syntax as local. Note `--base-url` where applicable:
+
+```bash
+# Browse NOSTR events
+./tools/nostr-browse.sh
+
+# Browse IPFS content
+./tools/ipfs-browse.sh
+
+# Check drafts
+./tools/check-drafts.sh
+
+# Export artist
+./tools/export-artist.sh --npub npub1...
+
+# Reset node (wipes all data)
+./tools/reset-node.sh --force
+```
 
 ## VPS Directory Layout
 

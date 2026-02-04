@@ -3,5 +3,5 @@
 # Docker Compose automatically merges this with docker-compose.yml
 services:
   web:
-    ports:
+    ports: !override
       - "8080:80"

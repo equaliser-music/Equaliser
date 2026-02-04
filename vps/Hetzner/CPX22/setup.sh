@@ -4,6 +4,7 @@
 # Hetzner CPX22 - Ubuntu/Debian
 #
 # Installs and configures:
+#   - Docker and Docker Compose
 #   - nginx (host-level reverse proxy)
 #   - certbot (Let's Encrypt SSL)
 #   - ufw firewall
@@ -11,7 +12,6 @@
 #
 # Prerequisites:
 #   - Fresh Ubuntu 22.04/24.04 or Debian 12 server
-#   - Docker and Docker Compose already installed
 #   - DNS A records pointing to this server:
 #       equaliser.app       → 77.42.68.194
 #       www.equaliser.app   → 77.42.68.194
@@ -46,6 +46,45 @@ log "Starting VPS setup..."
 log "Updating system packages..."
 apt-get update -qq
 apt-get upgrade -y -qq
+
+# --- Install Docker -----------------------------------------------------------
+
+if command -v docker &>/dev/null; then
+    log "Docker already installed: $(docker --version)"
+else
+    log "Installing Docker..."
+    apt-get install -y -qq ca-certificates curl
+    install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+    chmod a+r /etc/apt/keyrings/docker.asc
+
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+      tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    apt-get update -qq
+    apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+    systemctl enable docker
+    systemctl start docker
+    log "Docker installed: $(docker --version)"
+fi
+
+# --- Install tools dependencies -----------------------------------------------
+
+log "Installing tool dependencies (jq, python3, venv)..."
+apt-get install -y -qq jq python3 python3-pip python3-venv
+
+# Create Python venv with coincurve (needed for NOSTR key generation in import tool)
+VENV_PATH="/root/Equaliser-1/.venv"
+if [ ! -d "$VENV_PATH" ]; then
+    python3 -m venv "$VENV_PATH"
+    "$VENV_PATH/bin/pip" install -q coincurve websocket-client
+    log "Python venv created with coincurve"
+else
+    log "Python venv already exists"
+fi
 
 # --- Install nginx ------------------------------------------------------------
 
