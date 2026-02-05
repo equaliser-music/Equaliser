@@ -351,6 +351,7 @@ main() {
         local manifest_cid=$(echo "$tags" | jq -r '.[] | select(.[0]=="manifest") | .[1]' | head -1)
         local preview_cid=$(echo "$tags" | jq -r '.[] | select(.[0]=="preview") | .[1]' | head -1)
         local price=$(echo "$tags" | jq -r '.[] | select(.[0]=="price") | .[1]' | head -1)
+        local price_currency=$(echo "$tags" | jq -r '.[] | select(.[0]=="price_currency") | .[1]' | head -1)
         local cover_cid=$(echo "$content" | jq -r '.cover // empty')
 
         # Download cover art if present
@@ -374,7 +375,8 @@ main() {
   "track_number": $(echo "$content" | jq '.trackNumber // null'),
   "duration": $(echo "$content" | jq '.duration // null'),
   "genre": $(echo "$content" | jq '.genre // null'),
-  "price_sats": ${price:-100},
+  "price_amount": ${price:-0.05},
+  "price_currency": "${price_currency:-USD}",
   "release_date": $(echo "$content" | jq '.releaseDate // null'),
   "release_type": $(echo "$content" | jq '.releaseType // "single"'),
   "tags": $(echo "$content" | jq '.tags // []'),

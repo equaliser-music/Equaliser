@@ -62,7 +62,8 @@ Store **both** a public gateway URL for compatibility and the **raw CID** for re
     ["ipfs_manifest_cid", "QmManifest..."],
     ["ipfs_preview_cid", "QmPreview..."],
     ["cover_art_cid", "QmCover..."],
-    ["price_sats", "100"]
+    ["price", "0.05"],
+    ["price_currency", "USD"]
   ]
 }
 ```
