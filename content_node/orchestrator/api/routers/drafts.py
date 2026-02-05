@@ -33,7 +33,8 @@ class DraftResponse(BaseModel):
     artist_name: str
     album: Optional[str]
     genre: Optional[str]
-    price_sats: int
+    price_amount: float
+    price_currency: str
     release_date: Optional[str]
     release_type: str
     track_number: Optional[int]
@@ -65,7 +66,8 @@ class DraftUpdateRequest(BaseModel):
     artist_name: Optional[str] = None
     album: Optional[str] = None
     genre: Optional[str] = None
-    price_sats: Optional[int] = None
+    price_amount: Optional[float] = None
+    price_currency: Optional[str] = None
     release_date: Optional[str] = None
     release_type: Optional[str] = None
     track_number: Optional[int] = None
@@ -184,7 +186,8 @@ async def prepare_release(
         duration=draft.duration,
         manifest_cid=draft.ipfs_manifest_cid,
         preview_cid=draft.ipfs_preview_cid,
-        price_sats=draft.price_sats,
+        price_amount=draft.price_amount,
+        price_currency=draft.price_currency,
         release_date=draft.release_date,
         pubkey=pubkey,
         release_type=draft.release_type,
@@ -227,7 +230,8 @@ async def prepare_album_release(request: AlbumReleaseRequest):
             duration=draft.duration,
             manifest_cid=draft.ipfs_manifest_cid,
             preview_cid=draft.ipfs_preview_cid,
-            price_sats=draft.price_sats,
+            price_amount=draft.price_amount,
+        price_currency=draft.price_currency,
             release_date=draft.release_date,
             pubkey=request.pubkey,
             release_type=draft.release_type,

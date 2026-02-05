@@ -176,7 +176,8 @@ All Equaliser events include `["app", "Equaliser"]` tag for filtering.
     ["duration", "245"],
     ["ipfs_manifest_cid", "QmManifest..."],
     ["ipfs_preview_cid", "QmPreview..."],
-    ["price_sats", "100"],
+    ["price", "0.05"],
+    ["price_currency", "USD"],
     ["release_date", "2026-01-15"],
     ["cover_art_cid", "QmCover..."]
   ]
@@ -391,22 +392,25 @@ class StrikeWallet {
 ### 5.3 Auto-Payment Flow
 
 ```typescript
-async function handlePreviewEnd(trackId: string, priceSats: number) {
-  // 1. Check monthly budget
+async function handlePreviewEnd(trackId: string, priceAmount: number, priceCurrency: string) {
+  // 1. Convert price to sats using live exchange rate
+  const priceSats = priceCurrency === 'SAT' ? priceAmount : await convertToSats(priceAmount, priceCurrency);
+
+  // 2. Check monthly budget
   const canPay = await budgetService.checkBudget(priceSats);
   if (!canPay) {
     showNotification('Monthly budget exhausted');
     return false;
   }
-  
-  // 2. Request invoice from artist node
+
+  // 3. Request invoice from artist node (sats amount)
   const invoice = await requestInvoice(trackId, priceSats);
-  
-  // 3. Auto-pay via Strike
+
+  // 4. Auto-pay via Strike
   const success = await strikeWallet.payInvoice(invoice.id);
-  
+
   if (success) {
-    // 4. Record payment for budget tracking
+    // 5. Record payment for budget tracking
     await budgetService.recordPayment(priceSats, trackId);
     
     // 5. Wait for decryption key from NOSTR
@@ -550,7 +554,7 @@ async function swapBTCForCashu(amountSats: number) {
   return tokens;
 }
 
-// Pay with Cashu for complete anonymity
+// Pay with Cashu for complete anonymity (priceSats already converted from fiat)
 async function payCashuForStream(trackId: string, priceSats: number) {
   const wallet = new Wallet({ mintUrl: ARTIST_MINT_URL });
   const tokens = JSON.parse(localStorage.getItem('cashu_tokens'));

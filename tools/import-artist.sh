@@ -440,7 +440,8 @@ import_release() {
     local artist=$(jq -r '.artist' "$metadata_file")
     local album=$(jq -r '.album // empty' "$metadata_file")
     local genre=$(jq -r '.genre // empty' "$metadata_file")
-    local price_sats=$(jq -r '.price_sats // 100' "$metadata_file")
+    local price_amount=$(jq -r '.price_amount // 0.05' "$metadata_file")
+    local price_currency=$(jq -r '.price_currency // "USD"' "$metadata_file")
     local release_date=$(jq -r '.release_date // empty' "$metadata_file")
     local release_type=$(jq -r '.release_type // "single"' "$metadata_file")
     local audio_file=$(jq -r '.audio_file' "$metadata_file")
@@ -477,7 +478,8 @@ import_release() {
         -F "file=@$audio_path;type=$mime_type"
         -F "title=$title"
         -F "artist=$artist"
-        -F "price_sats=$price_sats"
+        -F "price_amount=$price_amount"
+        -F "price_currency=$price_currency"
         -F "artist_pubkey=$GENERATED_PUBKEY_HEX"
     )
 

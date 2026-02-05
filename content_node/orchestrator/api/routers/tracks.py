@@ -39,7 +39,8 @@ class TrackMetadata(BaseModel):
     album: Optional[str] = None
     genre: Optional[str] = None
     release_date: Optional[str] = None
-    price_sats: int = 100  # Default price per stream
+    price_amount: float = 0.05  # Default price per stream
+    price_currency: str = "USD"  # ISO 4217 code or SAT
     release_type: Optional[str] = None  # single, album, ep
     cover_art_cid: Optional[str] = None  # IPFS CID of cover art
 
@@ -78,7 +79,8 @@ async def upload_track(
     album: Optional[str] = Form(None),
     genre: Optional[str] = Form(None),
     release_date: Optional[str] = Form(None),
-    price_sats: int = Form(100),
+    price_amount: float = Form(0.05),
+    price_currency: str = Form("USD"),
     release_type: Optional[str] = Form(None),  # single, album, ep
     cover_art_cid: Optional[str] = Form(None),  # IPFS CID of cover art
     artist_pubkey: str = Form(...),
@@ -136,7 +138,8 @@ async def upload_track(
         album=album,
         genre=genre,
         release_date=release_date,
-        price_sats=price_sats,
+        price_amount=price_amount,
+        price_currency=price_currency,
         release_type=release_type,
         cover_art_cid=cover_art_cid
     )
@@ -345,7 +348,8 @@ async def process_track(
             artist_name=metadata.artist,
             album=metadata.album,
             genre=metadata.genre,
-            price_sats=metadata.price_sats,
+            price_amount=metadata.price_amount,
+            price_currency=metadata.price_currency,
             release_date=metadata.release_date,
             release_type=metadata.release_type or "single",
             cover_art_cid=metadata.cover_art_cid,

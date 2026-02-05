@@ -712,8 +712,17 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Price per Stream (sats)</label>
-                        <input type="number" class="form-input" id="default-price" value="100" min="0">
+                        <label class="form-label">Price per Stream</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="number" class="form-input" id="default-price" value="0.05" min="0" step="any" style="flex: 1;">
+                            <select class="form-input" id="default-price-currency" style="width: 100px;">
+                                <option value="USD">USD</option>
+                                <option value="GBP">GBP</option>
+                                <option value="EUR">EUR</option>
+                                <option value="JPY">JPY</option>
+                                <option value="SAT">SAT</option>
+                            </select>
+                        </div>
                         <p class="form-hint">0 for free streaming</p>
                     </div>
                     <div class="form-group">
@@ -885,6 +894,15 @@
                             if (profile.name) {
                                 document.getElementById('default-artist').value = profile.name;
                             }
+                            // Load pricing preferences from profile
+                            if (profile.equaliser) {
+                                if (profile.equaliser.price_currency) {
+                                    document.getElementById('default-price-currency').value = profile.equaliser.price_currency;
+                                }
+                                if (profile.equaliser.default_track_price !== undefined) {
+                                    document.getElementById('default-price').value = profile.equaliser.default_track_price;
+                                }
+                            }
                             // Update sidebar
                             const avatarUrl = profile.picture || null;
                             AdminSidebar.updateArtistDisplay(profile.name, avatarUrl);
@@ -980,7 +998,8 @@
                 album: albumName,
                 releaseType: releaseType,
                 genre: document.getElementById('default-genre').value || '',
-                price: parseInt(document.getElementById('default-price').value) || 100,
+                priceAmount: parseFloat(document.getElementById('default-price').value) || 0.05,
+                priceCurrency: document.getElementById('default-price-currency').value || 'USD',
                 releaseDate: document.getElementById('default-release-date').value || '',
                 duration: 0,
                 status: 'pending',
@@ -1100,8 +1119,8 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Price (sats)</label>
-                                <input type="number" class="form-input" value="${track.price}" min="0" onchange="updateTrackMeta('${track.id}', 'price', parseInt(this.value))">
+                                <label class="form-label">Price (${track.priceCurrency})</label>
+                                <input type="number" class="form-input" value="${track.priceAmount}" min="0" step="any" onchange="updateTrackMeta('${track.id}', 'priceAmount', parseFloat(this.value))">
                             </div>
                         </div>
                     </div>
@@ -1315,7 +1334,8 @@
                 formData.append('album', track.album);
                 formData.append('genre', track.genre);
                 formData.append('release_date', track.releaseDate);
-                formData.append('price_sats', track.price.toString());
+                formData.append('price_amount', track.priceAmount.toString());
+                formData.append('price_currency', track.priceCurrency);
                 formData.append('release_type', track.releaseType || 'single');
                 if (coverArtCid) {
                     formData.append('cover_art_cid', coverArtCid);

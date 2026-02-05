@@ -530,6 +530,42 @@
                 </div>
             </div>
 
+            <!-- Pricing Section -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
+                        </svg>
+                        Pricing
+                    </h2>
+                </div>
+
+                <p style="color: rgba(255,255,255,0.5); font-size: 14px; margin-bottom: 20px;">
+                    Set your preferred currency and default price for new track uploads. Payments are settled via Bitcoin Lightning.
+                </p>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Preferred Currency</label>
+                        <select class="form-input" id="price-currency">
+                            <option value="USD">USD - US Dollar</option>
+                            <option value="GBP">GBP - British Pound</option>
+                            <option value="EUR">EUR - Euro</option>
+                            <option value="JPY">JPY - Japanese Yen</option>
+                            <option value="SAT">SAT - Satoshis</option>
+                        </select>
+                        <p class="form-hint">Currency used to denominate your stream prices</p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Default Track Price</label>
+                        <input type="number" class="form-input" id="default-track-price" step="any" min="0" placeholder="0.05">
+                        <p class="form-hint" id="price-hint">Price per stream in your chosen currency</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- NOSTR Identity Section -->
             <div class="settings-section">
                 <div class="section-header">
@@ -817,6 +853,13 @@
                     genres = [...profile.equaliser.genres];
                     renderGenres();
                 }
+                // Pricing preferences
+                if (profile.equaliser.price_currency) {
+                    document.getElementById('price-currency').value = profile.equaliser.price_currency;
+                }
+                if (profile.equaliser.default_track_price !== undefined) {
+                    document.getElementById('default-track-price').value = profile.equaliser.default_track_price;
+                }
             }
         }
 
@@ -1014,6 +1057,13 @@
             if (location) profile.equaliser.location = location;
             // Always save genres array (even if empty, to clear old values)
             profile.equaliser.genres = [...genres];
+
+            // Pricing preferences
+            profile.equaliser.price_currency = document.getElementById('price-currency').value;
+            const defaultPrice = parseFloat(document.getElementById('default-track-price').value);
+            if (!isNaN(defaultPrice) && defaultPrice >= 0) {
+                profile.equaliser.default_track_price = defaultPrice;
+            }
 
             // Preserve joinedDate if it exists, otherwise set it
             if (!profile.equaliser.joinedDate) {

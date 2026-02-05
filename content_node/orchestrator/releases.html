@@ -774,7 +774,8 @@
                     duration: draft.duration,
                     manifestCid: draft.ipfs_manifest_cid,
                     previewCid: draft.ipfs_preview_cid,
-                    priceSats: draft.price_sats,
+                    priceAmount: draft.price_amount,
+                    priceCurrency: draft.price_currency || 'USD',
                     releaseDate: draft.release_date || '',
                     coverArtCid: draft.cover_art_cid || '',
                     trackNumber: draft.track_number || 0,
@@ -847,7 +848,8 @@
                 duration: parseInt(tags.duration) || 0,
                 manifestCid: tags.ipfs_manifest_cid || '',
                 previewCid: tags.ipfs_preview_cid || '',
-                priceSats: tags.price_sats !== undefined ? parseInt(tags.price_sats) : 100,
+                priceAmount: tags.price !== undefined ? parseFloat(tags.price) : 0.05,
+                priceCurrency: tags.price_currency || 'USD',
                 releaseDate: tags.release_date || '',
                 coverArtCid: tags.cover_art_cid || '',
                 releaseId: tags.release_id || '',
@@ -888,7 +890,7 @@
                 const release = releaseMap.get(albumKey);
                 release.tracks.push(track);
                 release.totalDuration += track.duration;
-                release.totalPrice += track.priceSats;
+                release.totalPrice += track.priceAmount;
 
                 // Use latest cover art
                 if (track.coverArtCid && !release.coverArtCid) {
@@ -1102,7 +1104,7 @@
                         <div class="track-cid">${track.manifestCid ? track.manifestCid.slice(0, 16) + '...' : 'No CID'}</div>
                     </div>
                     <span class="track-duration">${formatDuration(track.duration)}</span>
-                    <span class="track-price">${track.priceSats} sats</span>
+                    <span class="track-price">${track.priceAmount} ${track.priceCurrency}</span>
                     <div class="track-actions-col">
                         <button class="track-btn" onclick="playPreview('${track.previewCid}')" title="Preview">
                             <svg fill="currentColor" viewBox="0 0 20 20">

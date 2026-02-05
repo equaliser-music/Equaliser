@@ -918,7 +918,8 @@
                             duration: d.duration,
                             manifestCid: d.ipfs_manifest_cid,
                             previewCid: d.ipfs_preview_cid,
-                            priceSats: d.price_sats,
+                            priceAmount: d.price_amount,
+                            priceCurrency: d.price_currency || 'USD',
                             trackNumber: d.track_number || 1
                         }));
                     }
@@ -934,7 +935,8 @@
                         duration: draftData.duration,
                         manifestCid: draftData.ipfs_manifest_cid,
                         previewCid: draftData.ipfs_preview_cid,
-                        priceSats: draftData.price_sats,
+                        priceAmount: draftData.price_amount,
+                        priceCurrency: draftData.price_currency || 'USD',
                         trackNumber: draftData.track_number || 1
                     }];
                 }
@@ -1019,7 +1021,8 @@
                 duration: parseInt(tags.duration) || 0,
                 manifestCid: tags.ipfs_manifest_cid || '',
                 previewCid: tags.ipfs_preview_cid || '',
-                priceSats: parseInt(tags.price_sats) || 100,
+                priceAmount: parseFloat(tags.price) || 0.05,
+                priceCurrency: tags.price_currency || 'USD',
                 releaseDate: tags.release_date || '',
                 coverArtCid: tags.cover_art_cid || '',
                 trackNumber: parseInt(tags.track_number) || 0
@@ -1282,9 +1285,9 @@
                     </div>
                     <span class="col-duration">${formatDuration(track.duration)}</span>
                     <div class="col-price">
-                        <input type="number" class="price-input" value="${track.priceSats}" min="0"
-                               onchange="updateTrackField('${track.d}', 'priceSats', parseInt(this.value) || 0)">
-                        <span class="price-label">sats</span>
+                        <input type="number" class="price-input" value="${track.priceAmount}" min="0" step="any"
+                               onchange="updateTrackField('${track.d}', 'priceAmount', parseFloat(this.value) || 0)">
+                        <span class="price-label">${track.priceCurrency}</span>
                     </div>
                     <div class="col-actions">
                         <button type="button" class="remove-btn" onclick="removeTrack('${track.d}')" title="Remove from release">
@@ -1407,7 +1410,7 @@
                      onclick="toggleTrackSelection('${track.d}')">
                     <div class="add-track-info">
                         <div class="add-track-title">${escapeHtml(track.title)}</div>
-                        <div class="add-track-meta">${formatDuration(track.duration)} · ${track.priceSats} sats</div>
+                        <div class="add-track-meta">${formatDuration(track.duration)} · ${track.priceAmount} ${track.priceCurrency}</div>
                     </div>
                     <div class="add-track-check">
                         <svg fill="currentColor" viewBox="0 0 20 20">
@@ -1519,7 +1522,8 @@
                         ['duration', track.duration.toString()],
                         ['ipfs_manifest_cid', track.manifestCid],
                         ['ipfs_preview_cid', track.previewCid],
-                        ['price_sats', track.priceSats.toString()],
+                        ['price', track.priceAmount.toString()],
+                        ['price_currency', track.priceCurrency],
                         ['release_type', newType],
                         ['track_number', (i + 1).toString()]
                     ];
@@ -1544,7 +1548,8 @@
                         ['duration', track.duration.toString()],
                         ['ipfs_manifest_cid', track.manifestCid],
                         ['ipfs_preview_cid', track.previewCid],
-                        ['price_sats', track.priceSats.toString()],
+                        ['price', track.priceAmount.toString()],
+                        ['price_currency', track.priceCurrency],
                         ['release_type', 'single']
                     ];
 
@@ -1633,7 +1638,8 @@
                             genre: newGenre || null,
                             release_date: newDate || null,
                             cover_art_cid: newCoverCid || null,
-                            price_sats: track.priceSats,
+                            price_amount: track.priceAmount,
+                            price_currency: track.priceCurrency,
                             track_number: i + 1  // Update track order
                         })
                     });

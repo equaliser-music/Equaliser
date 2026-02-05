@@ -131,7 +131,8 @@ Release metadata that maps to a Kind 30050 NOSTR event.
   "track_number": 1,
   "duration": null,
   "genre": "Electronic",
-  "price_sats": 210,
+  "price_amount": 0.05,
+  "price_currency": "USD",
   "release_date": "2011-03-24",
   "release_type": "album",
   "tags": ["electronic", "atmospheric", "evening"],
@@ -150,7 +151,8 @@ Release metadata that maps to a Kind 30050 NOSTR event.
 | `track_number` | No | Position in album |
 | `duration` | No | Duration in seconds (calculated during import if null) |
 | `genre` | No | Primary genre |
-| `price_sats` | Yes | Price in satoshis |
+| `price_amount` | Yes | Price per stream |
+| `price_currency` | Yes | ISO 4217 currency code (USD, GBP, EUR, JPY) or SAT |
 | `release_date` | No | Original release date |
 | `release_type` | No | `single`, `album`, or `ep` |
 | `tags` | No | Array of tags |
