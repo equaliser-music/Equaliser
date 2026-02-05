@@ -394,9 +394,9 @@
 
         .track-list-header .track-num { width: 50px; }
         .track-list-header .track-title { flex: 1; }
-        .track-list-header .track-duration { width: 80px; text-align: right; }
-        .track-list-header .track-price { width: 80px; text-align: right; }
-        .track-list-header .track-actions { width: 100px; }
+        .track-list-header .track-duration { width: 80px; text-align: right; font-size: inherit; }
+        .track-list-header .track-price { width: 80px; text-align: right; font-size: inherit; }
+        .track-list-header .track-actions { width: 100px; text-align: right; font-size: inherit; }
 
         .track-row {
             display: flex;
@@ -774,7 +774,7 @@
                     duration: draft.duration,
                     manifestCid: draft.ipfs_manifest_cid,
                     previewCid: draft.ipfs_preview_cid,
-                    priceAmount: draft.price_amount,
+                    priceAmount: draft.price_amount != null ? draft.price_amount : 0.05,
                     priceCurrency: draft.price_currency || 'USD',
                     releaseDate: draft.release_date || '',
                     coverArtCid: draft.cover_art_cid || '',
@@ -1104,7 +1104,7 @@
                         <div class="track-cid">${track.manifestCid ? track.manifestCid.slice(0, 16) + '...' : 'No CID'}</div>
                     </div>
                     <span class="track-duration">${formatDuration(track.duration)}</span>
-                    <span class="track-price">${track.priceAmount} ${track.priceCurrency}</span>
+                    <span class="track-price">${track.priceAmount != null ? track.priceAmount : '0.05'} ${track.priceCurrency || 'USD'}</span>
                     <div class="track-actions-col">
                         <button class="track-btn" onclick="playPreview('${track.previewCid}')" title="Preview">
                             <svg fill="currentColor" viewBox="0 0 20 20">
