@@ -18,10 +18,23 @@ Documentation exists in the 'docs' folder. Please read in the following order at
 13. SCALING.md
 14. ARTIST_PACKAGE.md
 15. contributor email summary.md
+16. PRICING_CURRENCY.md
 
 ## Important Rules
 
 - **Never commit without explicit permission**: Do not run `git commit` or use the commit tool unless the user specifically asks you to commit changes. Always wait for explicit instructions like "commit this", "please commit", or "push the changes".
+
+## Development Workflow
+
+All changes follow a **local-first** workflow:
+
+1. **Develop locally** - Make code changes on the local machine
+2. **Test locally** - Start the local content node (`./tools/start-node.sh`) and verify changes work
+3. **User confirms** - Wait for the user to say they are happy with the local test
+4. **Ask about VPS deploy** - When the user confirms local testing is good, ask: *"Do you want to deploy this to the VPS?"*
+5. **Deploy to VPS** - If the user says yes, commit and push changes (using `./tools/commit.sh`), then run `./tools/deploy-vps.sh` to deploy
+
+**Never deploy to VPS without the user explicitly confirming they want to.** Always test locally first.
 
 ## Tools
 
@@ -96,6 +109,25 @@ This script:
 - Auto-generates commit message when `--auto` flag is used (analyzes changed files)
 - Adds Claude co-authorship to commit message
 - Pushes to origin on the current branch
+
+### deploy-vps.sh
+Deploy committed changes to the VPS content node. **Use when user confirms they want to deploy to VPS after successful local testing.**
+
+```bash
+./tools/deploy-vps.sh              # Full deploy: git pull + configs + rebuild containers
+./tools/deploy-vps.sh --restart    # Just restart containers (no code update)
+./tools/deploy-vps.sh --status     # Check VPS container status
+./tools/deploy-vps.sh -h           # Show help
+```
+
+This script:
+- Checks all changes are committed and pushed before deploying
+- Runs `git pull` on the VPS to fetch latest code
+- Syncs VPS configs (nginx, docker-compose override)
+- Rebuilds and restarts Docker containers on the VPS
+- Shows container status after deploy
+
+**Pre-requisites:** Changes must be committed and pushed to origin. The script will refuse to deploy if there are uncommitted or unpushed changes.
 
 ### Artist Package Tools
 
@@ -190,18 +222,30 @@ Note: Audio files are not included in exports (content is HLS-encoded on IPFS).
   - Payment webhook to release keys via NIP-44
   - See Technical Specification sections 4.3-4.4
 
-- [ ] **Explore Blossom for Streaming**: Evaluate hybrid IPFS + Blossom architecture
-  - NOSTR-native media hosting protocol using BUD servers
-  - Content addressed by SHA-256 hash, tied to npub
-  - Growing adoption in NOSTR music apps (Wavlake)
-  - **Hybrid approach:** IPFS for storage/resilience, Blossom for streaming delivery
-    - Upload stores on IPFS (canonical, content-addressed, resilient)
-    - Content also pushed to Blossom server (fast HTTP delivery)
-    - Player fetches from Blossom (low latency, CDN-friendly)
-    - Fallback to IPFS gateway if Blossom unavailable
-  - Blossom advantages for streaming: direct HTTP, no DHT lookup, predictable latency
-  - Content node could run both IPFS daemon and Blossom server
-  - See https://github.com/hzrd149/blossom
+- [ ] **Pricing Currency**: Artist-preferred currency for stream pricing
+  - Artists set preferred currency (USD, GBP, EUR, JPY) and default price in profile
+  - Track prices stored as `["price", "0.04"]` + `["price_currency", "GBP"]` in Kind 30050
+  - Content node converts fiat → sats at invoice time using live exchange rate (Strike API)
+  - `SAT` option for artists who prefer to price directly in sats
+  - Update SQLite schema, orchestrator APIs, profile editor, and track upload UI
+  - See [PRICING_CURRENCY.md](docs/PRICING_CURRENCY.md)
+
+- [ ] **Blossom Integration (MVP)**: Use Blossom for images, IPFS for audio
+  - Add Blossom server as Docker Compose service for fast HTTP image serving
+  - Profile images & album art upload to Blossom first (instant URL), background pin to IPFS
+  - Store both Blossom URL and IPFS CID in NOSTR events (`picture` + `picture_ipfs`)
+  - Client fallback logic: try Blossom URL first, fall back to IPFS gateway
+  - Keep IPFS for encrypted HLS audio segments (content-addressing matters, latency less critical)
+  - CDN-friendly: hash-based Blossom URLs are immutable, aggressive caching possible
+  - See [BLOSSOM_INTEGRATION_IDEAS.md](docs/BLOSSOM_INTEGRATION_IDEAS.md)
+
+- [ ] **Blossom Disaster Recovery**: Rebuild content node from NOSTR + IPFS
+  - Authenticate with nsec on fresh node → query relays for artist events
+  - Extract IPFS CIDs from event tags → fetch content from IPFS network
+  - Re-upload to local Blossom server → platform restored
+  - Relies on IPFS cross-pinning (artist community) for content survival
+  - Document recovery path first, automate tooling in later phase
+  - See [BLOSSOM_INTEGRATION_IDEAS.md](docs/BLOSSOM_INTEGRATION_IDEAS.md)
 
 - [ ] **Label Multi-Artist Management**: Support labels managing multiple artist identities
   - Use NIP-06 / BIP-32 hierarchical key derivation from label master seed
