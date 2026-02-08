@@ -40,6 +40,8 @@ def create_track_event(
     release_type: Optional[str] = None,
     release_id: Optional[str] = None,
     track_number: Optional[int] = None,
+    blossom_audio_hash: Optional[str] = None,
+    blossom_cover_hash: Optional[str] = None,
 ) -> dict:
     """
     Create a NOSTR Kind 30050 track metadata event.
@@ -101,6 +103,10 @@ def create_track_event(
         tags.append(["release_id", release_id])
     if track_number is not None:
         tags.append(["track_number", str(track_number)])
+    if blossom_audio_hash:
+        tags.append(["blossom_audio_hash", blossom_audio_hash])
+    if blossom_cover_hash:
+        tags.append(["blossom_cover_hash", blossom_cover_hash])
 
     event = {
         "kind": TRACK_EVENT_KIND,

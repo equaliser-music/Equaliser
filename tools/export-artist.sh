@@ -1,17 +1,22 @@
 #!/bin/bash
 #
-# Export an artist from the content node to an Equaliser Artist Package
+# Export an artist's releases from the content node
+#
+# Creates .eqpkg.zip release packages using the export API.
+# Requires the artist's nsec for signing the package.
 #
 # Usage:
-#   ./tools/export-artist.sh --npub npub1...
-#   ./tools/export-artist.sh --npub npub1... --include-keys
-#   ./tools/export-artist.sh --npub npub1... --output ./backups/
+#   ./tools/export-artist.sh --npub npub1... --album "Album Name"
+#   ./tools/export-artist.sh --npub npub1... --all-albums
+#   ./tools/export-artist.sh --npub npub1... --all-albums --include-keys
 #
 # Options:
 #   --npub          Artist's npub (required)
-#   --include-keys  Include identity backup (nsec) - requires manual input
+#   --album NAME    Export a specific album/release
+#   --all-albums    Export all albums
+#   --source        Source: "draft" or "nostr" (default: draft)
+#   --include-keys  Include identity backup (prompts for nsec)
 #   --output        Output directory (default: ./packages/)
-#   --releases-only Export releases without profile/media
 #   --base-url      Content node URL (default: http://localhost)
 #   -h, --help      Show this help message
 #
@@ -19,6 +24,7 @@
 #   - Content node running (./tools/start-node.sh)
 #   - jq installed
 #   - curl installed
+#   - python3 with coincurve (for signing)
 
 set -e
 
@@ -45,26 +51,32 @@ BASE_URL="http://localhost"
 RELAY_URL="ws://localhost/relay"
 OUTPUT_DIR="$PROJECT_ROOT/packages"
 NPUB=""
+ALBUM_NAME=""
+ALL_ALBUMS=false
 INCLUDE_KEYS=false
-RELEASES_ONLY=false
+SOURCE="draft"
 
 show_help() {
-    echo "Export an artist from the content node to an Artist Package"
+    echo "Export an artist's releases from the content node"
     echo ""
     echo "Usage:"
-    echo "  $0 --npub npub1... [options]"
+    echo "  $0 --npub npub1... --album \"Album Name\""
+    echo "  $0 --npub npub1... --all-albums"
     echo ""
     echo "Options:"
     echo "  --npub NPUB       Artist's npub (required)"
-    echo "  --include-keys    Include identity backup (will prompt for nsec)"
+    echo "  --album NAME      Export a specific album/release"
+    echo "  --all-albums      Export all albums"
+    echo "  --source SOURCE   Source: draft or nostr (default: draft)"
+    echo "  --include-keys    Include identity backup (prompts for nsec)"
     echo "  --output DIR      Output directory (default: ./packages/)"
-    echo "  --releases-only   Export releases without profile/media"
     echo "  --base-url URL    Content node URL (default: http://localhost)"
     echo "  -h, --help        Show this help message"
     echo ""
     echo "Examples:"
-    echo "  $0 --npub npub1abc..."
-    echo "  $0 --npub npub1abc... --include-keys --output ./backups/"
+    echo "  $0 --npub npub1abc... --album \"Neon Dreams\""
+    echo "  $0 --npub npub1abc... --all-albums --include-keys"
+    echo "  $0 --npub npub1abc... --album \"Singles\" --source nostr"
 }
 
 # Parse arguments
@@ -78,6 +90,18 @@ while [[ $# -gt 0 ]]; do
             NPUB="$2"
             shift 2
             ;;
+        --album)
+            ALBUM_NAME="$2"
+            shift 2
+            ;;
+        --all-albums)
+            ALL_ALBUMS=true
+            shift
+            ;;
+        --source)
+            SOURCE="$2"
+            shift 2
+            ;;
         --include-keys)
             INCLUDE_KEYS=true
             shift
@@ -85,10 +109,6 @@ while [[ $# -gt 0 ]]; do
         --output)
             OUTPUT_DIR="$2"
             shift 2
-            ;;
-        --releases-only)
-            RELEASES_ONLY=true
-            shift
             ;;
         --base-url)
             BASE_URL="$2"
@@ -111,6 +131,12 @@ fi
 
 if [[ ! "$NPUB" =~ ^npub1 ]]; then
     echo -e "${RED}Error: Invalid npub format (should start with npub1)${NC}"
+    exit 1
+fi
+
+if [[ -z "$ALBUM_NAME" && "$ALL_ALBUMS" == "false" ]]; then
+    echo -e "${RED}Error: Specify --album NAME or --all-albums${NC}"
+    show_help
     exit 1
 fi
 
@@ -191,221 +217,51 @@ if hrp == "npub":
 PYTHON
 }
 
-# Query NOSTR relay for events
-query_relay() {
-    local filter="$1"
+# Sign a NOSTR event using Python
+sign_event() {
+    local event_json="$1"
+    local privkey_hex="$2"
+
     python3 << PYTHON
 import json
-import websocket
-
-relay_url = "$RELAY_URL"
-filter_json = '''$filter'''
-filter_obj = json.loads(filter_json)
+import hashlib
+import sys
 
 try:
-    ws = websocket.create_connection(relay_url, timeout=10)
-    sub_id = "export-query"
-    ws.send(json.dumps(["REQ", sub_id, filter_obj]))
+    from coincurve import PrivateKey
+except ImportError:
+    print("ERROR: coincurve required for signing. Install: pip install coincurve", file=sys.stderr)
+    sys.exit(1)
 
-    events = []
-    while True:
-        response = ws.recv()
-        msg = json.loads(response)
-        if msg[0] == "EVENT":
-            events.append(msg[2])
-        elif msg[0] == "EOSE":
-            break
+event = json.loads('''$event_json''')
+privkey_hex = "$privkey_hex"
 
-    ws.close()
-    print(json.dumps(events))
-except Exception as e:
-    print(json.dumps([]))
+# Calculate event ID
+serialized = json.dumps([
+    0,
+    event["pubkey"],
+    event["created_at"],
+    event["kind"],
+    event["tags"],
+    event["content"]
+], separators=(',', ':'), ensure_ascii=False)
+
+event_id = hashlib.sha256(serialized.encode()).hexdigest()
+event["id"] = event_id
+
+# Schnorr sign
+pk = PrivateKey(bytes.fromhex(privkey_hex))
+sig = pk.sign_schnorr(bytes.fromhex(event_id))
+event["sig"] = sig.hex()
+
+print(json.dumps(event))
 PYTHON
 }
 
-# Download file from IPFS
-download_ipfs() {
-    local cid="$1"
-    local output_path="$2"
-
-    # Extract CID from URL if needed
-    if [[ "$cid" == *"/ipfs/"* ]]; then
-        cid="${cid##*/ipfs/}"
-    fi
-
-    curl -s -o "$output_path" "$BASE_URL/ipfs/$cid" 2>/dev/null
-    [[ -f "$output_path" && -s "$output_path" ]]
-}
-
-# Main execution
-main() {
-    echo -e "${BLUE}========================================${NC}"
-    echo -e "${BLUE}Equaliser Artist Package Exporter${NC}"
-    echo -e "${BLUE}========================================${NC}"
-    echo ""
-
-    check_deps
-
-    # Convert npub to hex
-    echo -e "${BLUE}Looking up artist...${NC}"
-    local pubkey_hex=$(npub_to_hex "$NPUB")
-
-    if [[ -z "$pubkey_hex" ]]; then
-        echo -e "${RED}Error: Failed to decode npub${NC}"
-        exit 1
-    fi
-
-    echo -e "  npub: ${CYAN}$NPUB${NC}"
-    echo -e "  pubkey: $pubkey_hex"
-    echo ""
-
-    # Query for Kind 0 (profile)
-    echo -e "${BLUE}Fetching profile...${NC}"
-    local profile_events=$(query_relay "{\"kinds\":[0],\"authors\":[\"$pubkey_hex\"],\"limit\":1}")
-    local profile_event=$(echo "$profile_events" | jq '.[0] // empty')
-
-    if [[ -z "$profile_event" || "$profile_event" == "null" ]]; then
-        echo -e "${YELLOW}Warning: No profile found for this npub${NC}"
-        local artist_name="unknown-artist"
-        local artist_slug="unknown-artist"
-    else
-        local profile_content=$(echo "$profile_event" | jq -r '.content')
-        artist_name=$(echo "$profile_content" | jq -r '.name // "unknown"')
-        artist_slug=$(echo "$artist_name" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd 'a-z0-9-')
-        echo -e "  ${GREEN}✓ Found profile: $artist_name${NC}"
-    fi
-
-    # Query for Kind 30050 (tracks)
-    echo -e "${BLUE}Fetching releases...${NC}"
-    local track_events=$(query_relay "{\"kinds\":[30050],\"authors\":[\"$pubkey_hex\"]}")
-    local track_count=$(echo "$track_events" | jq 'length')
-    echo -e "  ${GREEN}✓ Found $track_count releases${NC}"
-    echo ""
-
-    # Create package directory
-    local package_dir="$OUTPUT_DIR/$artist_slug.artist-package"
-    echo -e "${BLUE}Creating package: $package_dir${NC}"
-
-    rm -rf "$package_dir"
-    mkdir -p "$package_dir/identity"
-    mkdir -p "$package_dir/media"
-    mkdir -p "$package_dir/releases"
-
-    # Export profile
-    if [[ "$RELEASES_ONLY" != "true" && -n "$profile_event" && "$profile_event" != "null" ]]; then
-        echo -e "  Exporting profile..."
-
-        # Parse profile content
-        local profile_json=$(echo "$profile_event" | jq -r '.content')
-
-        # Download avatar if present
-        local picture_url=$(echo "$profile_json" | jq -r '.picture // empty')
-        if [[ -n "$picture_url" && "$picture_url" != "null" ]]; then
-            echo -e "    Downloading avatar..."
-            if download_ipfs "$picture_url" "$package_dir/media/avatar.jpg"; then
-                echo -e "    ${GREEN}✓ Avatar saved${NC}"
-            fi
-        fi
-
-        # Download banner if present
-        local banner_url=$(echo "$profile_json" | jq -r '.banner // empty')
-        if [[ -n "$banner_url" && "$banner_url" != "null" ]]; then
-            echo -e "    Downloading banner..."
-            if download_ipfs "$banner_url" "$package_dir/media/banner.jpg"; then
-                echo -e "    ${GREEN}✓ Banner saved${NC}"
-            fi
-        fi
-
-        # Create profile.json (without picture/banner URLs - will be re-uploaded on import)
-        echo "$profile_json" | jq '{
-            name: .name,
-            about: .about,
-            picture: null,
-            banner: null,
-            website: .website,
-            nip05: .nip05,
-            lud16: .lud16,
-            equaliser: .equaliser
-        }' > "$package_dir/identity/profile.json"
-        echo -e "    ${GREEN}✓ Profile saved${NC}"
-    fi
-
-    # Export releases
-    echo -e "  Exporting releases..."
-    echo "$track_events" | jq -c '.[]' | while read -r event; do
-        local content=$(echo "$event" | jq -r '.content')
-        local tags=$(echo "$event" | jq -c '.tags')
-
-        # Extract d-tag (release ID)
-        local d_tag=$(echo "$tags" | jq -r '.[] | select(.[0]=="d") | .[1]' | head -1)
-        [[ -z "$d_tag" || "$d_tag" == "null" ]] && d_tag="release-$(echo "$event" | jq -r '.id[:8]')"
-
-        local release_dir="$package_dir/releases/$d_tag"
-        mkdir -p "$release_dir"
-
-        # Parse content
-        local title=$(echo "$content" | jq -r '.title // "Untitled"')
-        echo -e "    ${CYAN}$title${NC}"
-
-        # Extract metadata from content and tags
-        local manifest_cid=$(echo "$tags" | jq -r '.[] | select(.[0]=="manifest") | .[1]' | head -1)
-        local preview_cid=$(echo "$tags" | jq -r '.[] | select(.[0]=="preview") | .[1]' | head -1)
-        local price=$(echo "$tags" | jq -r '.[] | select(.[0]=="price") | .[1]' | head -1)
-        local price_currency=$(echo "$tags" | jq -r '.[] | select(.[0]=="price_currency") | .[1]' | head -1)
-        local cover_cid=$(echo "$content" | jq -r '.cover // empty')
-
-        # Download cover art if present
-        local cover_file=""
-        if [[ -n "$cover_cid" && "$cover_cid" != "null" ]]; then
-            if download_ipfs "$cover_cid" "$release_dir/cover.jpg"; then
-                cover_file="cover.jpg"
-            fi
-        fi
-
-        # Create release metadata
-        # Note: We can't export the original audio file as it's HLS-encoded on IPFS
-        # The metadata references the IPFS CIDs for the encoded content
-        cat > "$release_dir/metadata.json" << EOF
-{
-  "id": "$d_tag",
-  "title": $(echo "$content" | jq '.title'),
-  "artist": $(echo "$content" | jq '.artist // "$artist_name"'),
-  "album": $(echo "$content" | jq '.album // null'),
-  "album_id": $(echo "$content" | jq '.albumId // null'),
-  "track_number": $(echo "$content" | jq '.trackNumber // null'),
-  "duration": $(echo "$content" | jq '.duration // null'),
-  "genre": $(echo "$content" | jq '.genre // null'),
-  "price_amount": ${price:-0.05},
-  "price_currency": "${price_currency:-USD}",
-  "release_date": $(echo "$content" | jq '.releaseDate // null'),
-  "release_type": $(echo "$content" | jq '.releaseType // "single"'),
-  "tags": $(echo "$content" | jq '.tags // []'),
-  "audio_file": null,
-  "cover_file": $(if [[ -n "$cover_file" ]]; then echo "\"$cover_file\""; else echo "null"; fi),
-  "_ipfs": {
-    "manifest_cid": "$manifest_cid",
-    "preview_cid": "$preview_cid"
-  },
-  "_note": "Audio file not included - content is HLS-encoded on IPFS. Use CIDs for playback."
-}
-EOF
-
-        echo -e "      ${GREEN}✓ Metadata saved${NC}"
-    done
-
-    # Handle --include-keys
-    local has_identity=false
-    if [[ "$INCLUDE_KEYS" == "true" ]]; then
-        echo ""
-        echo -e "${YELLOW}Including identity backup${NC}"
-        echo -e "Enter the nsec for this artist (will be saved to backup.json):"
-        echo -e "${RED}WARNING: This is sensitive data. Only include for backup/migration purposes.${NC}"
-        read -s -p "nsec: " nsec_input
-        echo ""
-
-        if [[ -n "$nsec_input" && "$nsec_input" =~ ^nsec1 ]]; then
-            # Decode nsec to get private key hex
-            local privkey_hex=$(python3 << PYTHON
+# Decode nsec to hex private key
+nsec_to_hex() {
+    local nsec="$1"
+    python3 << PYTHON
 CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 
 def bech32_polymod(values):
@@ -449,22 +305,178 @@ def convertbits(data, frombits, tobits, pad=True):
             ret.append((acc << (tobits - bits)) & maxv)
     return ret
 
-hrp, data = bech32_decode("$nsec_input")
+hrp, data = bech32_decode("$nsec")
 if hrp == "nsec":
     decoded = convertbits(data, 5, 8, False)
     if decoded:
         print(bytes(decoded).hex())
 PYTHON
-)
+}
 
-            if [[ -n "$privkey_hex" ]]; then
-                # Get profile data for backup
-                local profile_data=$(cat "$package_dir/identity/profile.json" 2>/dev/null || echo '{}')
-                local bio=$(echo "$profile_data" | jq -r '.about // ""')
-                local location=$(echo "$profile_data" | jq -r '.equaliser.location // ""')
-                local genres=$(echo "$profile_data" | jq -c '.equaliser.genres // []')
+# Get list of albums from drafts
+get_draft_albums() {
+    local pubkey="$1"
+    local response=$(curl -s "$BASE_URL/api/drafts?pubkey=$pubkey")
+    echo "$response" | jq -r '.drafts[].album // empty' | sort -u | grep -v '^$'
+}
 
-                cat > "$package_dir/identity/backup.json" << EOF
+# Export a single album as .eqpkg.zip
+export_album() {
+    local album="$1"
+    local pubkey_hex="$2"
+    local privkey_hex="$3"
+
+    echo -e "  ${CYAN}$album${NC}"
+
+    # Step 1: Prepare export (get manifest + unsigned event)
+    echo -e "    Preparing manifest..."
+    local prepare_response=$(curl -s -w "\n%{http_code}" -X POST \
+        "$BASE_URL/api/releases/export-prepare" \
+        -H "Content-Type: application/json" \
+        -d "{\"album\": \"$album\", \"pubkey\": \"$pubkey_hex\", \"source\": \"$SOURCE\"}")
+
+    local http_code=$(echo "$prepare_response" | tail -1)
+    local body=$(echo "$prepare_response" | sed '$d')
+
+    if [[ "$http_code" -lt 200 || "$http_code" -ge 300 ]]; then
+        local detail=$(echo "$body" | jq -r '.detail // "Unknown error"')
+        echo -e "    ${RED}✗ Prepare failed ($http_code): $detail${NC}"
+        return 1
+    fi
+
+    local manifest=$(echo "$body" | jq '.manifest')
+    local unsigned_event=$(echo "$body" | jq '.unsigned_event')
+    local track_count=$(echo "$manifest" | jq '.tracks | length')
+
+    echo -e "    ${GREEN}✓ Manifest ready ($track_count tracks)${NC}"
+
+    # Step 2: Sign the event
+    echo -e "    Signing package..."
+    local signed_event=$(sign_event "$unsigned_event" "$privkey_hex")
+
+    if [[ -z "$signed_event" || "$signed_event" == "null" ]]; then
+        echo -e "    ${RED}✗ Signing failed${NC}"
+        return 1
+    fi
+
+    echo -e "    ${GREEN}✓ Event signed${NC}"
+
+    # Step 3: Download the .eqpkg.zip
+    echo -e "    Downloading package..."
+    local download_body=$(jq -n --argjson manifest "$manifest" --argjson signed_event "$signed_event" \
+        '{manifest: $manifest, signed_event: $signed_event}')
+
+    local safe_name=$(echo "$album" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd 'a-z0-9-')
+    local output_file="$OUTPUT_DIR/${safe_name}.eqpkg.zip"
+
+    local dl_code=$(curl -s -w "%{http_code}" -o "$output_file" -X POST \
+        "$BASE_URL/api/releases/export-download" \
+        -H "Content-Type: application/json" \
+        -d "$download_body")
+
+    if [[ "$dl_code" -ge 200 && "$dl_code" -lt 300 ]]; then
+        local file_size=$(ls -lh "$output_file" | awk '{print $5}')
+        echo -e "    ${GREEN}✓ Saved: $output_file ($file_size)${NC}"
+        return 0
+    else
+        echo -e "    ${RED}✗ Download failed ($dl_code)${NC}"
+        rm -f "$output_file"
+        return 1
+    fi
+}
+
+# Main execution
+main() {
+    echo -e "${BLUE}========================================${NC}"
+    echo -e "${BLUE}Equaliser Release Package Exporter${NC}"
+    echo -e "${BLUE}========================================${NC}"
+    echo ""
+
+    check_deps
+
+    # Convert npub to hex
+    echo -e "${BLUE}Looking up artist...${NC}"
+    local pubkey_hex=$(npub_to_hex "$NPUB")
+
+    if [[ -z "$pubkey_hex" ]]; then
+        echo -e "${RED}Error: Failed to decode npub${NC}"
+        exit 1
+    fi
+
+    echo -e "  npub: ${CYAN}$NPUB${NC}"
+    echo -e "  pubkey: $pubkey_hex"
+    echo ""
+
+    # Prompt for nsec (required for signing packages)
+    echo -e "${BLUE}Package signing requires the artist's nsec.${NC}"
+    read -s -p "Enter nsec: " nsec_input
+    echo ""
+
+    if [[ -z "$nsec_input" || ! "$nsec_input" =~ ^nsec1 ]]; then
+        echo -e "${RED}Error: Valid nsec required for signing export packages${NC}"
+        exit 1
+    fi
+
+    local privkey_hex=$(nsec_to_hex "$nsec_input")
+    if [[ -z "$privkey_hex" ]]; then
+        echo -e "${RED}Error: Failed to decode nsec${NC}"
+        exit 1
+    fi
+
+    echo -e "${GREEN}  ✓ Identity loaded${NC}"
+    echo ""
+
+    # Create output directory
+    mkdir -p "$OUTPUT_DIR"
+
+    # Determine which albums to export
+    local albums=()
+
+    if [[ "$ALL_ALBUMS" == "true" ]]; then
+        echo -e "${BLUE}Finding albums...${NC}"
+        while IFS= read -r album; do
+            [[ -n "$album" ]] && albums+=("$album")
+        done < <(get_draft_albums "$pubkey_hex")
+
+        if [[ ${#albums[@]} -eq 0 ]]; then
+            echo -e "${YELLOW}No albums found for this artist.${NC}"
+            exit 0
+        fi
+
+        echo -e "  Found ${#albums[@]} album(s)"
+        echo ""
+    else
+        albums=("$ALBUM_NAME")
+    fi
+
+    # Export each album
+    echo -e "${BLUE}Exporting releases...${NC}"
+    local success_count=0
+    local fail_count=0
+
+    for album in "${albums[@]}"; do
+        if export_album "$album" "$pubkey_hex" "$privkey_hex"; then
+            ((success_count++))
+        else
+            ((fail_count++))
+        fi
+    done
+
+    echo ""
+
+    # Handle --include-keys (save identity backup)
+    if [[ "$INCLUDE_KEYS" == "true" ]]; then
+        echo -e "${BLUE}Saving identity backup...${NC}"
+
+        # Get artist name from profile
+        local artist_name="unknown"
+        local profile_response=$(curl -s "$BASE_URL/api/drafts?pubkey=$pubkey_hex&status=draft")
+        artist_name=$(echo "$profile_response" | jq -r '.drafts[0].artist_name // "unknown"')
+        local artist_slug=$(echo "$artist_name" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd 'a-z0-9-')
+
+        local backup_file="$OUTPUT_DIR/equaliser-backup-${artist_slug}-$(date +%s).json"
+
+        cat > "$backup_file" << EOF
 {
   "version": 1,
   "created": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
@@ -475,66 +487,27 @@ PYTHON
     "publicKeyHex": "$pubkey_hex"
   },
   "profile": {
-    "name": "$artist_name",
-    "bio": "$bio",
-    "location": "$location",
-    "genres": $genres
+    "name": "$artist_name"
   }
 }
 EOF
-                has_identity=true
-                echo -e "${GREEN}✓ Identity backup saved${NC}"
-            else
-                echo -e "${RED}Failed to decode nsec${NC}"
-            fi
-        else
-            echo -e "${YELLOW}Invalid or empty nsec - skipping identity backup${NC}"
-        fi
+
+        echo -e "${GREEN}  ✓ Identity backup saved: $backup_file${NC}"
+        echo ""
     fi
 
-    # Create manifest.json
-    local has_media=false
-    [[ -f "$package_dir/media/avatar.jpg" || -f "$package_dir/media/banner.jpg" ]] && has_media=true
-
-    cat > "$package_dir/manifest.json" << EOF
-{
-  "format": "equaliser-artist-package",
-  "version": "1.0",
-  "created_at": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
-  "artist": {
-    "name": "$artist_name",
-    "slug": "$artist_slug"
-  },
-  "contents": {
-    "has_identity": $has_identity,
-    "has_media": $has_media,
-    "release_count": $track_count
-  },
-  "source": {
-    "type": "export",
-    "node_url": "$BASE_URL",
-    "exported_at": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-  }
-}
-EOF
-
-    echo ""
     echo -e "${GREEN}========================================${NC}"
     echo -e "${GREEN}Export complete!${NC}"
     echo -e "${GREEN}========================================${NC}"
     echo ""
-    echo -e "Package created: ${CYAN}$package_dir${NC}"
+    echo -e "Results:"
+    echo -e "  ${GREEN}✓ Exported: $success_count${NC}"
+    [[ $fail_count -gt 0 ]] && echo -e "  ${RED}✗ Failed: $fail_count${NC}"
     echo ""
-    echo -e "Contents:"
-    echo -e "  Profile: $(if [[ -f "$package_dir/identity/profile.json" ]]; then echo "✓"; else echo "✗"; fi)"
-    echo -e "  Identity: $(if [[ "$has_identity" == "true" ]]; then echo "✓"; else echo "✗"; fi)"
-    echo -e "  Avatar: $(if [[ -f "$package_dir/media/avatar.jpg" ]]; then echo "✓"; else echo "✗"; fi)"
-    echo -e "  Banner: $(if [[ -f "$package_dir/media/banner.jpg" ]]; then echo "✓"; else echo "✗"; fi)"
-    echo -e "  Releases: $track_count"
+    echo -e "Packages saved in: ${CYAN}$OUTPUT_DIR${NC}"
     echo ""
-    echo -e "${YELLOW}Note: Audio files are not included in exports.${NC}"
-    echo -e "Releases contain IPFS CIDs for HLS-encoded streams."
-    echo -e "For full backup, ensure IPFS content is pinned elsewhere."
+    echo -e "To import on another node:"
+    echo -e "  ./tools/import-artist.sh $OUTPUT_DIR/<album>.eqpkg.zip"
 }
 
 main

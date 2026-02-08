@@ -4,7 +4,7 @@
 #
 # This script wipes all data and recreates the environment:
 # - Stops all containers
-# - Removes Docker volumes (IPFS data, NOSTR relay data, uploads)
+# - Removes Docker volumes (IPFS data, NOSTR relay data, Blossom blobs, uploads)
 # - Rebuilds and starts containers with fresh volumes
 #
 # WARNING: This is destructive! All uploaded tracks, NOSTR events,
@@ -46,9 +46,10 @@ for arg in "$@"; do
             echo "  $0 --force -d   Force reset and start detached"
             echo ""
             echo "What gets wiped:"
-            echo "  - All IPFS content (uploaded tracks, cover art)"
+            echo "  - All IPFS content (HLS segments, cover art)"
+            echo "  - All Blossom blobs (original audio files, images)"
             echo "  - All NOSTR events (track metadata, artist profiles)"
-            echo "  - Upload processing queue"
+            echo "  - Draft database and upload processing queue"
             echo ""
             echo "After reset, you'll need to:"
             echo "  1. Create a new artist profile at /admin/onboarding.html"
@@ -66,9 +67,10 @@ echo "  Equaliser Content Node Reset"
 echo "=========================================="
 echo ""
 echo "WARNING: This will permanently delete:"
-echo "  - All IPFS content (tracks, cover art)"
+echo "  - All IPFS content (HLS segments, cover art)"
+echo "  - All Blossom blobs (original audio files, images)"
 echo "  - All NOSTR events (metadata, profiles)"
-echo "  - All upload history"
+echo "  - Draft database and upload history"
 echo ""
 
 if [ "$FORCE" = false ]; then

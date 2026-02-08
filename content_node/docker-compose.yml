@@ -34,6 +34,7 @@ services:
       - nostr-relay
       - ipfs
       - orchestrator
+      - blossom
     restart: unless-stopped
 
   # NOSTR relay
@@ -51,6 +52,21 @@ services:
       retries: 3
       start_period: 10s
 
+  # Blossom binary storage - hash-addressed HTTP file server
+  blossom:
+    image: ghcr.io/hzrd149/blossom-server:master
+    container_name: equaliser-blossom
+    volumes:
+      - blossom-data:/app/data
+      - ./config/blossom/config.yml:/app/config.yml:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
   # Orchestrator API - handles track uploads, encoding, and NOSTR publishing
   orchestrator:
     build: ./orchestrator/api
@@ -58,6 +74,7 @@ services:
     environment:
       - IPFS_API_URL=http://ipfs:5001
       - NOSTR_RELAY_URL=ws://nostr-relay:8080
+      - BLOSSOM_URL=http://blossom:3000
       - DATABASE_PATH=/data/drafts.db
     volumes:
       - orchestrator-uploads:/tmp/equaliser/uploads
@@ -65,6 +82,7 @@ services:
     depends_on:
       - ipfs
       - nostr-relay
+      - blossom
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -81,4 +99,6 @@ volumes:
   orchestrator-uploads:
     driver: local
   drafts-data:
+    driver: local
+  blossom-data:
     driver: local

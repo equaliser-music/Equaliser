@@ -17,8 +17,9 @@ Documentation exists in the 'docs' folder. Please read in the following order at
 12. DEPLOYMENT_OPTIONS.md
 13. SCALING.md
 14. ARTIST_PACKAGE.md
-15. contributor email summary.md
-16. PRICING_CURRENCY.md
+15. BLOSSOM.md
+16. contributor email summary.md
+17. PRICING_CURRENCY.md
 
 ## Important Rules
 
@@ -131,43 +132,42 @@ This script:
 
 ### Artist Package Tools
 
-Tools for bulk importing/exporting artist content. See [ARTIST_PACKAGE.md](docs/ARTIST_PACKAGE.md) for format specification.
+Tools for importing/exporting artist content as `.eqpkg.zip` release packages. See [ARTIST_PACKAGE.md](docs/ARTIST_PACKAGE.md) for format specification.
 
 #### convert-mockup.sh
-Convert mockups/content artist folders to Artist Package format. **Use when preparing test data.**
+Convert mockups/content artist folders to `.eqpkg.zip` packages. **Use when preparing test data.**
 
 ```bash
 ./tools/convert-mockup.sh shibuya-crossings    # Convert single artist
 ./tools/convert-mockup.sh --all                # Convert all mockup artists
-./tools/convert-mockup.sh --all --output ./backups/  # Custom output dir
+./tools/convert-mockup.sh --all --legacy       # Also create legacy .artist-package
 ```
 
 #### import-artist.sh
-Import an Artist Package into the content node. **Use when user asks to "import artist", "load test data", or "bulk import".**
+Import a package into the content node. **Use when user asks to "import artist", "load test data", or "bulk import".**
+
+Supports both `.eqpkg.zip` (release packages) and legacy `.artist-package` directories.
 
 ```bash
-./tools/import-artist.sh ./packages/shibuya-crossings.artist-package           # Fresh import (new identity)
-./tools/import-artist.sh ./packages/shibuya-crossings.artist-package --restore # Use existing keys
-./tools/import-artist.sh ./packages/shibuya-crossings.artist-package --dry-run # Preview only
+./tools/import-artist.sh ./packages/release.eqpkg.zip                    # Fresh import (.eqpkg.zip)
+./tools/import-artist.sh ./packages/release.eqpkg.zip --restore backup.json  # Restore identity
+./tools/import-artist.sh ./packages/artist.artist-package                # Legacy format
+./tools/import-artist.sh ./packages/artist.artist-package --restore      # Legacy restore
 ```
 
-This script:
-- Generates new NOSTR identity (or restores from backup)
-- Uploads avatar/banner to IPFS
-- Publishes Kind 0 profile to relay
-- Imports all releases as drafts
-- Saves identity backup for dashboard login
+For `.eqpkg.zip`: generates identity, imports releases via API, saves backup.
+For `.artist-package`: generates identity, publishes profile, imports releases as drafts.
 
 #### export-artist.sh
-Export an existing artist from the content node. **Use when user asks to "backup artist", "export content", or "create package".**
+Export releases as signed `.eqpkg.zip` packages. **Use when user asks to "backup artist", "export content", or "create package".**
 
 ```bash
-./tools/export-artist.sh --npub npub1...                  # Export profile + releases
-./tools/export-artist.sh --npub npub1... --include-keys   # Include identity (prompts for nsec)
-./tools/export-artist.sh --npub npub1... --releases-only  # Releases only
+./tools/export-artist.sh --npub npub1... --album "Album Name"    # Export specific album
+./tools/export-artist.sh --npub npub1... --all-albums             # Export all albums
+./tools/export-artist.sh --npub npub1... --all-albums --include-keys  # With identity backup
 ```
 
-Note: Audio files are not included in exports (content is HLS-encoded on IPFS).
+Requires nsec for signing packages. Original audio must be on Blossom (tracks uploaded after Blossom integration).
 
 ## TODO
 
@@ -230,14 +230,24 @@ Note: Audio files are not included in exports (content is HLS-encoded on IPFS).
   - Update SQLite schema, orchestrator APIs, profile editor, and track upload UI
   - See [PRICING_CURRENCY.md](docs/PRICING_CURRENCY.md)
 
-- [ ] **Blossom Integration (MVP)**: Use Blossom for images, IPFS for audio
-  - Add Blossom server as Docker Compose service for fast HTTP image serving
-  - Profile images & album art upload to Blossom first (instant URL), background pin to IPFS
-  - Store both Blossom URL and IPFS CID in NOSTR events (`picture` + `picture_ipfs`)
-  - Client fallback logic: try Blossom URL first, fall back to IPFS gateway
-  - Keep IPFS for encrypted HLS audio segments (content-addressing matters, latency less critical)
-  - CDN-friendly: hash-based Blossom URLs are immutable, aggressive caching possible
-  - See [BLOSSOM_INTEGRATION_IDEAS.md](docs/BLOSSOM_INTEGRATION_IDEAS.md)
+- [x] **Blossom Integration (MVP)**: Blossom server for original audio + images
+  - Blossom Docker service with BUD-03 auth (node identity keypair)
+  - Original audio preserved on Blossom during track upload
+  - Cover art uploaded to Blossom (primary) + IPFS (fallback)
+  - NOSTR events include `blossom_audio_hash` and `blossom_cover_hash` tags
+  - See [BLOSSOM.md](docs/BLOSSOM.md)
+
+- [x] **Release Package System**: Export/import releases as signed `.eqpkg.zip`
+  - Export from admin UI or CLI (`export-artist.sh`)
+  - Import via admin UI or CLI (`import-artist.sh`)
+  - Packages contain manifest + original audio + signed NOSTR event
+  - SHA-256 integrity verification, no private keys in packages
+  - See [ARTIST_PACKAGE.md](docs/ARTIST_PACKAGE.md)
+
+- [ ] **Blossom: Profile Images**: Migrate avatar/banner uploads to Blossom primary
+  - Update profile editor image upload to use Blossom first
+  - Store both Blossom URL and IPFS CID in Kind 0 events
+  - Client fallback: Blossom URL first, IPFS gateway fallback
 
 - [ ] **Blossom Disaster Recovery**: Rebuild content node from NOSTR + IPFS
   - Authenticate with nsec on fresh node → query relays for artist events
