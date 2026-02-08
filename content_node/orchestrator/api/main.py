@@ -12,13 +12,16 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from routers import tracks
 from routers import drafts
+from routers import packages
 from services.database import init_db
+from services.node_identity import init_node_identity
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize database on startup."""
+    """Initialize database and node identity on startup."""
     await init_db()
+    await init_node_identity()
     yield
 
 
@@ -41,6 +44,7 @@ app.add_middleware(
 # Include routers
 app.include_router(tracks.router, prefix="/api/tracks", tags=["tracks"])
 app.include_router(drafts.router, prefix="/api/drafts", tags=["drafts"])
+app.include_router(packages.router, prefix="/api/releases", tags=["packages"])
 
 
 @app.get("/health")

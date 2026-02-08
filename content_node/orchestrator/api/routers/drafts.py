@@ -42,6 +42,9 @@ class DraftResponse(BaseModel):
     ipfs_manifest_cid: str
     ipfs_preview_cid: str
     duration: int
+    blossom_audio_hash: Optional[str] = None
+    blossom_cover_hash: Optional[str] = None
+    original_filename: Optional[str] = None
     status: str
     nostr_event_id: Optional[str]
     nostr_d_tag: Optional[str]
@@ -193,6 +196,8 @@ async def prepare_release(
         release_type=draft.release_type,
         cover_art_cid=draft.cover_art_cid,
         track_number=draft.track_number,
+        blossom_audio_hash=draft.blossom_audio_hash,
+        blossom_cover_hash=draft.blossom_cover_hash,
     )
 
     return ReleaseResponse(
@@ -231,12 +236,14 @@ async def prepare_album_release(request: AlbumReleaseRequest):
             manifest_cid=draft.ipfs_manifest_cid,
             preview_cid=draft.ipfs_preview_cid,
             price_amount=draft.price_amount,
-        price_currency=draft.price_currency,
+            price_currency=draft.price_currency,
             release_date=draft.release_date,
             pubkey=request.pubkey,
             release_type=draft.release_type,
             cover_art_cid=draft.cover_art_cid,
             track_number=track_num,
+            blossom_audio_hash=draft.blossom_audio_hash,
+            blossom_cover_hash=draft.blossom_cover_hash,
         )
 
         tracks.append(ReleaseResponse(

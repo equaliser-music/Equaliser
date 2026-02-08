@@ -1,0 +1,48 @@
+# Equaliser Content Node - Blossom Server Configuration
+# Stores original audio files and cover art by SHA-256 hash
+
+databasePath: data/sqlite.db
+
+dashboard:
+  enabled: true
+  username: admin
+
+storage:
+  backend: local
+  local:
+    dir: ./data/blobs
+  # No expiration rules - we want to keep all content permanently
+  removeWhenNoOwners: false
+  rules:
+    - type: "audio/*"
+    - type: "image/*"
+    - type: "application/octet-stream"
+
+upload:
+  enabled: true
+  # BUD-03 NOSTR event auth for uploads
+  requireAuth: true
+  requirePubkeyInRule: false
+  # Rules: allow audio and image uploads (no expiration = keep forever)
+  rules:
+    - type: "audio/*"
+    - type: "image/*"
+    - type: "application/octet-stream"
+
+# Media optimization for images (cover art thumbnails)
+media:
+  enabled: true
+  requireAuth: false
+  image:
+    quality: 90
+    progressive: true
+    maxWidth: 1920
+    maxHeight: 1080
+    outputFormat: "webp"
+    maintainAspectRatio: true
+    keepExif: false
+
+# Allow anonymous blob listing and retrieval
+list:
+  requireAuth: false
+  allowListOthers: true
