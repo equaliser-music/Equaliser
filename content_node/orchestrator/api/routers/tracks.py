@@ -48,6 +48,7 @@ class TrackMetadata(BaseModel):
     price_currency: str = "USD"  # ISO 4217 code or SAT
     release_type: Optional[str] = None  # single, album, ep
     cover_art_cid: Optional[str] = None  # IPFS CID of cover art
+    blossom_cover_hash: Optional[str] = None  # SHA-256 hash on Blossom
 
 
 class TrackUploadResponse(BaseModel):
@@ -89,6 +90,7 @@ async def upload_track(
     price_currency: str = Form("USD"),
     release_type: Optional[str] = Form(None),  # single, album, ep
     cover_art_cid: Optional[str] = Form(None),  # IPFS CID of cover art
+    blossom_cover_hash: Optional[str] = Form(None),  # SHA-256 hash on Blossom
     artist_pubkey: str = Form(...),
     artist_privkey: Optional[str] = Form(None),  # Optional: for server-side signing
 ):
@@ -147,7 +149,8 @@ async def upload_track(
         price_amount=price_amount,
         price_currency=price_currency,
         release_type=release_type,
-        cover_art_cid=cover_art_cid
+        cover_art_cid=cover_art_cid,
+        blossom_cover_hash=blossom_cover_hash
     )
 
     # Start background processing
@@ -396,6 +399,7 @@ async def process_track(
             release_date=metadata.release_date,
             release_type=metadata.release_type or "single",
             cover_art_cid=metadata.cover_art_cid,
+            blossom_cover_hash=metadata.blossom_cover_hash,
             ipfs_manifest_cid=manifest_cid,
             ipfs_preview_cid=preview_cid,
             duration=duration,

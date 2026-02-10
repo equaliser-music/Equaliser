@@ -933,6 +933,7 @@
                     priceCurrency: draft.price_currency || 'USD',
                     releaseDate: draft.release_date || '',
                     coverArtCid: draft.cover_art_cid || '',
+                    blossomCoverHash: draft.blossom_cover_hash || '',
                     trackNumber: draft.track_number || 0,
                     createdAt: new Date(draft.created_at).getTime() / 1000
                 }));
@@ -1007,6 +1008,7 @@
                 priceCurrency: tags.price_currency || 'USD',
                 releaseDate: tags.release_date || '',
                 coverArtCid: tags.cover_art_cid || '',
+                blossomCoverHash: tags.blossom_cover_hash || '',
                 releaseId: tags.release_id || '',
                 trackNumber: parseInt(tags.track_number) || 0
             };
@@ -1034,6 +1036,7 @@
                         genre: track.genre,
                         releaseDate: track.releaseDate,
                         coverArtCid: track.coverArtCid,
+                        blossomCoverHash: track.blossomCoverHash,
                         tracks: [],
                         totalDuration: 0,
                         totalPrice: 0,
@@ -1050,6 +1053,9 @@
                 // Use latest cover art
                 if (track.coverArtCid && !release.coverArtCid) {
                     release.coverArtCid = track.coverArtCid;
+                }
+                if (track.blossomCoverHash && !release.blossomCoverHash) {
+                    release.blossomCoverHash = track.blossomCoverHash;
                 }
 
                 // Use earliest date
@@ -1173,15 +1179,19 @@
                 <div class="release-card ${isExpanded ? 'expanded' : ''}" id="release-${encodeId(release.id)}">
                     <div class="release-header" onclick="toggleRelease('${encodeId(release.id)}')">
                         <div class="release-cover">
-                            ${release.coverArtCid
-                                ? `<img src="/ipfs/${release.coverArtCid}" alt="${escapeHtml(release.title)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                                   <svg fill="currentColor" viewBox="0 0 20 20" style="display:none; width:40px; height:40px; color:rgba(255,255,255,0.3);">
-                                       <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/>
-                                   </svg>`
-                                : `<svg fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/>
-                                </svg>`
-                            }
+                            ${(() => {
+                                const coverUrl = release.blossomCoverHash
+                                    ? `/blossom/${release.blossomCoverHash}`
+                                    : release.coverArtCid ? `/ipfs/${release.coverArtCid}` : null;
+                                return coverUrl
+                                    ? `<img src="${coverUrl}" alt="${escapeHtml(release.title)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                       <svg fill="currentColor" viewBox="0 0 20 20" style="display:none; width:40px; height:40px; color:rgba(255,255,255,0.3);">
+                                           <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/>
+                                       </svg>`
+                                    : `<svg fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/>
+                                    </svg>`;
+                            })()}
                             <span class="release-type-badge">${type}</span>
                         </div>
                         <div class="release-info">
@@ -1536,16 +1546,31 @@
                 // Step 4: Trigger browser download
                 const blob = await downloadResponse.blob();
                 const url = URL.createObjectURL(blob);
+                const safeName = release.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || 'release';
+                const filename = `${safeName}.eqpkg.zip`;
+
+                // Try programmatic download (may fail in some browsers after async work)
                 const a = document.createElement('a');
-                const safeName = release.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
                 a.href = url;
-                a.download = `${safeName}.eqpkg.zip`;
+                a.download = filename;
+                a.style.display = 'none';
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
-                URL.revokeObjectURL(url);
 
-                showNotification(`Exported "${release.title}" successfully!`, 'success');
+                // Show notification with clickable download link as fallback
+                const notification = document.getElementById('notification');
+                const text = document.getElementById('notification-text');
+                notification.className = 'notification success';
+                text.innerHTML = `Package ready: <a href="${url}" download="${filename}" style="color: inherit; text-decoration: underline; font-weight: 600;">Download ${filename}</a>`;
+                const icon = notification.querySelector('.notification-icon');
+                icon.innerHTML = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>';
+                notification.classList.add('show');
+                // Keep notification visible longer and revoke blob URL after
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    URL.revokeObjectURL(url);
+                }, 15000);
             } catch (error) {
                 console.error('Export error:', error);
                 showNotification('Export failed: ' + error.message, 'error');
