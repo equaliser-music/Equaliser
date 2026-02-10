@@ -950,6 +950,7 @@
                     genre: draftData.genre || '',
                     releaseDate: draftData.release_date || '',
                     coverArtCid: draftData.cover_art_cid || '',
+                    blossomCoverHash: draftData.blossom_cover_hash || '',
                     tracks: tracks,
                     status: 'draft'
                 };
@@ -1025,6 +1026,7 @@
                 priceCurrency: tags.price_currency || 'USD',
                 releaseDate: tags.release_date || '',
                 coverArtCid: tags.cover_art_cid || '',
+                blossomCoverHash: tags.blossom_cover_hash || '',
                 trackNumber: parseInt(tags.track_number) || 0
             };
         }
@@ -1047,6 +1049,7 @@
                         genre: track.genre,
                         releaseDate: track.releaseDate,
                         coverArtCid: track.coverArtCid,
+                        blossomCoverHash: track.blossomCoverHash,
                         tracks: [],
                         createdAt: track.createdAt
                     });
@@ -1056,6 +1059,9 @@
                 release.tracks.push(track);
                 if (track.coverArtCid && !release.coverArtCid) {
                     release.coverArtCid = track.coverArtCid;
+                }
+                if (track.blossomCoverHash && !release.blossomCoverHash) {
+                    release.blossomCoverHash = track.blossomCoverHash;
                 }
             });
 
@@ -1144,13 +1150,18 @@
 
                     <div class="cover-section">
                         <div class="cover-preview" id="cover-preview" onclick="document.getElementById('cover-input').click()">
-                            ${editingRelease.coverArtCid
-                                ? `<img src="/ipfs/${editingRelease.coverArtCid}" alt="Cover">`
-                                : `<svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg>`
-                            }
+                            ${(() => {
+                                const coverUrl = editingRelease.blossomCoverHash
+                                    ? `/blossom/${editingRelease.blossomCoverHash}`
+                                    : editingRelease.coverArtCid ? `/ipfs/${editingRelease.coverArtCid}` : null;
+                                return coverUrl
+                                    ? `<img src="${coverUrl}" alt="Cover">`
+                                    : `<svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg>`;
+                            })()}
                         </div>
                         <input type="file" id="cover-input" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleCoverUpload(event)">
                         <input type="hidden" id="cover-cid" value="${editingRelease.coverArtCid || ''}">
+                        <input type="hidden" id="cover-blossom-hash" value="${editingRelease.blossomCoverHash || ''}">
                         <div class="cover-info">
                             <h4>Cover Art</h4>
                             <p>Click to upload a new cover image. Recommended size: 1000x1000px. Formats: JPEG, PNG, WebP.</p>
@@ -1474,8 +1485,12 @@
                 if (!response.ok) throw new Error('Upload failed');
 
                 const result = await response.json();
-                preview.innerHTML = `<img src="/ipfs/${result.cid}" alt="Cover">`;
+                const coverUrl = result.blossom_hash
+                    ? `/blossom/${result.blossom_hash}`
+                    : `/ipfs/${result.cid}`;
+                preview.innerHTML = `<img src="${coverUrl}" alt="Cover">`;
                 document.getElementById('cover-cid').value = result.cid;
+                document.getElementById('cover-blossom-hash').value = result.blossom_hash || '';
                 showNotification('Cover art uploaded', 'success');
 
             } catch (error) {
@@ -1500,6 +1515,7 @@
             const newGenre = document.getElementById('release-genre').value;
             const newDate = document.getElementById('release-date').value;
             const newCoverCid = document.getElementById('cover-cid').value;
+            const newBlossomCoverHash = document.getElementById('cover-blossom-hash').value;
 
             if (!newTitle || !newArtist) {
                 showNotification('Title and artist are required', 'error');
@@ -1534,6 +1550,7 @@
                     if (newGenre) tags.push(['genre', newGenre]);
                     if (newDate) tags.push(['release_date', newDate]);
                     if (newCoverCid) tags.push(['cover_art_cid', newCoverCid]);
+                    if (newBlossomCoverHash) tags.push(['blossom_cover_hash', newBlossomCoverHash]);
 
                     await publishTrackEvent(session, tags);
                 }
@@ -1612,6 +1629,7 @@
             const newGenre = document.getElementById('release-genre').value;
             const newDate = document.getElementById('release-date').value;
             const newCoverCid = document.getElementById('cover-cid').value;
+            const newBlossomCoverHash = document.getElementById('cover-blossom-hash').value;
 
             if (!newTitle || !newArtist) {
                 showNotification('Title and artist are required', 'error');
@@ -1627,21 +1645,25 @@
                 let savedCount = 0;
                 for (let i = 0; i < editingTracks.length; i++) {
                     const track = editingTracks[i];
+                    const updateData = {
+                        title: track.title,
+                        artist_name: newArtist,
+                        album: newType !== 'single' ? newTitle : null,
+                        release_type: newType,
+                        genre: newGenre || null,
+                        release_date: newDate || null,
+                        cover_art_cid: newCoverCid || null,
+                        price_amount: track.priceAmount,
+                        price_currency: track.priceCurrency,
+                        track_number: i + 1  // Update track order
+                    };
+                    if (newBlossomCoverHash) {
+                        updateData.blossom_cover_hash = newBlossomCoverHash;
+                    }
                     const response = await fetch(`/api/drafts/${track.id}?pubkey=${session.publicKey}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            title: track.title,
-                            artist_name: newArtist,
-                            album: newType !== 'single' ? newTitle : null,
-                            release_type: newType,
-                            genre: newGenre || null,
-                            release_date: newDate || null,
-                            cover_art_cid: newCoverCid || null,
-                            price_amount: track.priceAmount,
-                            price_currency: track.priceCurrency,
-                            track_number: i + 1  // Update track order
-                        })
+                        body: JSON.stringify(updateData)
                     });
 
                     if (response.ok) {

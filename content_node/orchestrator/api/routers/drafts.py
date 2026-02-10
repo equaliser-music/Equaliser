@@ -75,6 +75,7 @@ class DraftUpdateRequest(BaseModel):
     release_type: Optional[str] = None
     track_number: Optional[int] = None
     cover_art_cid: Optional[str] = None
+    blossom_cover_hash: Optional[str] = None
 
 
 class ReleaseResponse(BaseModel):
