@@ -12,6 +12,17 @@ server {
 
     # Certbot will add redirect to HTTPS here
 
+    # NIP-05 identity verification (NOSTR)
+    location /.well-known/nostr.json {
+        add_header 'Access-Control-Allow-Origin' '*' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, OPTIONS' always;
+        add_header 'Content-Type' 'application/json' always;
+
+        if ($request_method = 'OPTIONS') {
+            return 204;
+        }
+    }
+
     location / {
         try_files $uri $uri/ =404;
     }
