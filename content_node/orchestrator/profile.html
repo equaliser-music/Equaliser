@@ -522,6 +522,19 @@
                     </div>
                 </div>
 
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">NIP-05 Address</label>
+                        <input type="text" class="form-input" id="nip05" placeholder="you@yourdomain.com">
+                        <p class="form-hint">For identity verification — configure in <a href="settings.html" class="link">Settings</a></p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Lightning Address</label>
+                        <input type="text" class="form-input" id="lud16" placeholder="you@getalby.com">
+                        <p class="form-hint">For receiving zaps and tips</p>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label class="form-label">Genres</label>
                     <input type="text" class="form-input" id="genre-input" placeholder="Type a genre and press Enter">
@@ -563,47 +576,6 @@
                         <input type="number" class="form-input" id="default-track-price" step="any" min="0" placeholder="0.05">
                         <p class="form-hint" id="price-hint">Price per stream in your chosen currency</p>
                     </div>
-                </div>
-            </div>
-
-            <!-- NOSTR Identity Section -->
-            <div class="settings-section">
-                <div class="section-header">
-                    <h2 class="section-title">
-                        <svg fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z"/>
-                        </svg>
-                        NOSTR Identity
-                    </h2>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Your Public Key (npub)</label>
-                    <input type="text" class="form-input" id="user-npub-display" readonly style="background: rgba(255,255,255,0.02); cursor: default;">
-                    <p class="form-hint">Share this to let others find you on NOSTR</p>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">NIP-05 Address</label>
-                        <input type="text" class="form-input" id="nip05" placeholder="you@yourdomain.com">
-                        <p class="form-hint">For identity verification</p>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Lightning Address</label>
-                        <input type="text" class="form-input" id="lud16" placeholder="you@getalby.com">
-                        <p class="form-hint">For receiving zaps/tips</p>
-                    </div>
-                </div>
-
-                <div class="button-group" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.05);">
-                    <button class="btn btn-secondary" onclick="downloadBackup()">
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                        </svg>
-                        Backup Identity
-                    </button>
-                    <p class="form-hint" style="margin: 0; align-self: center;">Save your keys securely. Required to restore your identity.</p>
                 </div>
             </div>
 
@@ -695,9 +667,6 @@
         async function loadProfileData() {
             const session = SessionManager.getSession();
             if (!session) return;
-
-            // Update npub display
-            document.getElementById('user-npub-display').value = session.npub;
 
             // Check for backup profile data (from login with backup file)
             const backupProfileData = checkForBackupProfile();
@@ -1225,78 +1194,6 @@
             });
         }
 
-        // Download identity backup
-        function downloadBackup() {
-            try {
-                const session = SessionManager.getSession();
-                if (!session) {
-                    alert('No active session. Please log in first.');
-                    return;
-                }
-
-                // Get the private key for backup
-                const privateKey = SessionManager.getPrivateKey();
-                if (!privateKey) {
-                    alert('Cannot backup: This session uses a browser extension. Your keys are managed by the extension.');
-                    return;
-                }
-
-                // Convert private key bytes to hex
-                const privateKeyHex = Array.from(privateKey).map(b => b.toString(16).padStart(2, '0')).join('');
-
-                // Get nsec from session storage
-                let nsec = null;
-                try {
-                    const stored = sessionStorage.getItem('equaliser_session');
-                    if (stored) {
-                        const data = JSON.parse(stored);
-                        nsec = data.nsec;
-                    }
-                } catch (e) {
-                    console.warn('Could not retrieve nsec from storage');
-                }
-
-                // If nsec not in storage, encode it
-                if (!nsec) {
-                    nsec = NostrTools.nip19.nsecEncode(privateKey);
-                }
-
-                // Get current profile data from form
-                const name = document.getElementById('name').value.trim() || 'artist';
-                const bio = document.getElementById('about').value.trim();
-                const location = document.getElementById('location').value.trim();
-
-                const backup = {
-                    version: 1,
-                    created: new Date().toISOString(),
-                    keys: {
-                        nsec: nsec,
-                        npub: session.npub,
-                        privateKeyHex: privateKeyHex,
-                        publicKeyHex: session.publicKey
-                    },
-                    profile: {
-                        name: name,
-                        bio: bio,
-                        location: location,
-                        genres: [...genres]
-                    }
-                };
-
-                const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `equaliser-backup-${name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            } catch (err) {
-                console.error('Backup download failed:', err);
-                alert('Failed to download backup: ' + err.message);
-            }
-        }
     </script>
 </body>
 </html>
