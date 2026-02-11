@@ -257,6 +257,14 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - Document recovery path first, automate tooling in later phase
   - See [BLOSSOM_INTEGRATION_IDEAS.md](docs/BLOSSOM_INTEGRATION_IDEAS.md)
 
+- [ ] **Relay Access Control**: Restrict nostr-rs-relay to Equaliser-relevant traffic
+  - Add `event_kind_allowlist` to config.toml (Kinds 0, 1, 7, 10002, 30050, 30051, 30052)
+  - Configure rate limiting (`messages_per_sec`, `subscriptions_per_min`)
+  - Relay must stay open for cross-node publishing (artists publish to each other's relays for decentralisation)
+  - nostr-rs-relay has no native read ACL — reads are open by design (public music metadata)
+  - Consider `pubkey_whitelist` later if spam becomes an issue (requires relay restart for new artists)
+  - NIP-42 AUTH available for write authentication if needed
+
 - [ ] **Label Multi-Artist Management**: Support labels managing multiple artist identities
   - Use NIP-06 / BIP-32 hierarchical key derivation from label master seed
   - Derivation path: `m/44'/1237'/{artist_index}'/0/0` (NIP-06 standard with artist as account index)
