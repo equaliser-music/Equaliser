@@ -209,25 +209,25 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - Released drafts marked as 'released' with event ID for history
   - See [ORCHESTRATOR.md](docs/ORCHESTRATOR.md) for API documentation
 
-- [ ] **Onboarding to Dashboard Flow**: After completing onboarding, show "Go to Dashboard" button
+- [x] **Onboarding to Dashboard Flow**: After completing onboarding, show "Go to Dashboard" button
   - User completes onboarding and profile is published to relays
   - Session is already established (keys in memory)
-  - Add "Go to Dashboard" button on success screen
-  - Preserve session so user doesn't need to log in again
+  - "Go to Dashboard" button on success screen
+  - Session preserved so user doesn't need to log in again
 
 - [ ] **Track Upload API (Phase 2)**: Add encryption and payment
   - Generate AES-256 encryption key per track
   - Encrypt HLS segments (except 30s preview)
   - Store encryption keys in SQLite
   - Payment webhook to release keys via NIP-44
+  - Fiat → sats conversion at invoice time using live exchange rate (Strike API)
   - See Technical Specification sections 4.3-4.4
 
-- [ ] **Pricing Currency**: Artist-preferred currency for stream pricing
-  - Artists set preferred currency (USD, GBP, EUR, JPY) and default price in profile
+- [x] **Pricing Currency**: Artist-preferred currency for stream pricing
+  - Currency selector (USD, GBP, EUR, JPY, SAT) in profile editor and track upload UI
   - Track prices stored as `["price", "0.04"]` + `["price_currency", "GBP"]` in Kind 30050
-  - Content node converts fiat → sats at invoice time using live exchange rate (Strike API)
-  - `SAT` option for artists who prefer to price directly in sats
-  - Update SQLite schema, orchestrator APIs, profile editor, and track upload UI
+  - SQLite schema, orchestrator APIs, profile editor, and track upload UI all updated
+  - Fiat → sats conversion at invoice time deferred to Track Upload Phase 2 (payment system)
   - See [PRICING_CURRENCY.md](docs/PRICING_CURRENCY.md)
 
 - [x] **Blossom Integration (MVP)**: Blossom server for original audio + images
