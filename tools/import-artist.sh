@@ -580,7 +580,7 @@ save_identity_backup() {
     local genres="[]"
 
     if [[ -f "$profile_file" ]]; then
-        bio=$(jq -r '.about // ""' "$profile_file")
+        bio=$(jq '.about // ""' "$profile_file")
         location=$(jq -r '.equaliser.location // ""' "$profile_file")
         genres=$(jq -c '.equaliser.genres // []' "$profile_file")
     fi
@@ -600,7 +600,7 @@ save_identity_backup() {
   },
   "profile": {
     "name": "$artist_name",
-    "bio": "$bio",
+    "bio": $bio,
     "location": "$location",
     "genres": $genres
   }

@@ -23,81 +23,6 @@
             min-height: 100vh;
         }
 
-        /* Sidebar */
-        .sidebar {
-            width: 240px;
-            background: rgba(15, 15, 25, 0.8);
-            backdrop-filter: blur(20px);
-            border-right: 1px solid rgba(255, 255, 255, 0.05);
-            display: flex;
-            flex-direction: column;
-            padding: 24px 16px;
-            position: fixed;
-            height: 100vh;
-            overflow-y: auto;
-        }
-
-        .logo {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-bottom: 40px;
-            padding: 0 8px;
-            text-decoration: none;
-        }
-
-        .logo h1 {
-            font-size: 24px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #8b5cf6, #a855f7);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .nav-section {
-            margin-bottom: 32px;
-        }
-
-        .nav-title {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: rgba(255, 255, 255, 0.4);
-            margin-bottom: 12px;
-            padding: 0 12px;
-            font-weight: 600;
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            color: rgba(255, 255, 255, 0.7);
-            margin-bottom: 4px;
-            text-decoration: none;
-        }
-
-        .nav-item:hover {
-            background: rgba(255, 255, 255, 0.05);
-            color: #ffffff;
-        }
-
-        .nav-item.active {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(168, 85, 247, 0.15));
-            color: #ffffff;
-        }
-
-        .nav-icon {
-            width: 20px;
-            height: 20px;
-            opacity: 0.8;
-        }
-
         /* Main Content */
         .main-content {
             flex: 1;
@@ -408,12 +333,6 @@
 
         /* Responsive */
         @media (max-width: 768px) {
-            .sidebar {
-                display: none;
-            }
-            .main-content {
-                margin-left: 0;
-            }
             .artist-header {
                 flex-direction: column;
                 align-items: center;
@@ -435,28 +354,8 @@
 </head>
 <body>
     <div class="container">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <a href="#" class="logo">
-                <h1>Equaliser</h1>
-            </a>
-
-            <div class="nav-section">
-                <div class="nav-title">Menu</div>
-                <a href="#" class="nav-item">
-                    <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
-                    </svg>
-                    <span>Home</span>
-                </a>
-                <a href="#" class="nav-item active">
-                    <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
-                    </svg>
-                    <span>Artist</span>
-                </a>
-            </div>
-        </div>
+        <!-- Sidebar injected by ClientSidebar.init() -->
+        <div class="sidebar"></div>
 
         <!-- Main Content -->
         <div class="main-content" id="main-content">
@@ -472,8 +371,10 @@
         </div>
     </div>
 
-    <!-- nostr-tools via CDN -->
+    <!-- Dependencies -->
     <script src="https://unpkg.com/nostr-tools@2.1.4/lib/nostr.bundle.js"></script>
+    <script src="/js/session.js"></script>
+    <script src="/js/sidebar.js"></script>
 
     <script>
         // Configuration
@@ -495,6 +396,9 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
+            SessionManager.init();
+            ClientSidebar.init();
+
             // Check URL for npub parameter
             const urlParams = new URLSearchParams(window.location.search);
             const npub = urlParams.get('npub');

@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equaliser - Settings</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 240px;
+            padding: 32px;
+            padding-bottom: 100px;
+            max-width: 800px;
+        }
+
+        .header {
+            margin-bottom: 32px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .page-description {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+        }
+
+        /* Settings Sections */
+        .settings-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title svg {
+            width: 20px;
+            height: 20px;
+            color: #a855f7;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        textarea.form-input {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 6px;
+            line-height: 1.5;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            color: #ffffff;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+
+        /* Relay List */
+        .relay-list {
+            margin-bottom: 16px;
+        }
+
+        .relay-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .relay-item .relay-url {
+            flex: 1;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .relay-item .relay-badge {
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .relay-badge.local {
+            background: rgba(139, 92, 246, 0.2);
+            color: #a855f7;
+        }
+
+        .relay-badge.public {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .relay-remove-btn {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            padding: 4px;
+            transition: color 0.2s;
+        }
+
+        .relay-remove-btn:hover {
+            color: #ef4444;
+        }
+
+        .add-relay-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .add-relay-row .form-input {
+            flex: 1;
+        }
+
+        /* Key Display */
+        .key-display {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .key-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 8px;
+        }
+
+        .key-value {
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 13px;
+            word-break: break-all;
+            line-height: 1.5;
+            color: #a855f7;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .copy-btn.copied {
+            background: #22c55e;
+        }
+
+        /* Status Messages */
+        .status-msg {
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-top: 12px;
+            display: none;
+        }
+
+        .status-msg.success {
+            display: block;
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #22c55e;
+        }
+
+        .status-msg.error {
+            display: block;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+        }
+
+        /* NIP-05 Instructions */
+        .instructions {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 12px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .instructions code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 12px;
+            color: #a855f7;
+        }
+
+        .instructions ol {
+            padding-left: 20px;
+            margin-top: 8px;
+        }
+
+        .instructions li {
+            margin-bottom: 6px;
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                margin-left: 64px;
+                padding: 20px;
+            }
+
+            .add-relay-row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-content">
+            <div class="header">
+                <h1 class="page-title">Settings</h1>
+                <p class="page-description">Manage your profile, relays, and account</p>
+            </div>
+
+            <!-- Edit Profile -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <div class="section-title">
+                        <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+                        Edit Profile
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Display Name</label>
+                    <input type="text" class="form-input" id="edit-name" placeholder="Your display name">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">About</label>
+                    <textarea class="form-input" id="edit-bio" placeholder="Tell us about yourself..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Website</label>
+                    <input type="text" class="form-input" id="edit-website" placeholder="https://yoursite.com">
+                </div>
+
+                <button class="btn btn-primary" id="save-profile-btn" onclick="saveProfile()">
+                    Save Profile
+                </button>
+                <div class="status-msg" id="profile-status"></div>
+            </div>
+
+            <!-- Lightning Wallet -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <div class="section-title">
+                        <svg fill="currentColor" viewBox="0 0 20 20"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/></svg>
+                        Lightning Wallet
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Lightning Address (lud16)</label>
+                    <input type="text" class="form-input" id="edit-lud16" placeholder="you@getalby.com">
+                    <p class="form-hint">Your Lightning address for receiving zaps from artists and fans. Get one from Alby, Wallet of Satoshi, or your Lightning wallet provider.</p>
+                </div>
+
+                <button class="btn btn-primary btn-sm" onclick="saveProfile()">Save</button>
+                <div class="status-msg" id="lightning-status"></div>
+            </div>
+
+            <!-- NIP-05 Verification -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <div class="section-title">
+                        <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                        NIP-05 Verification
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">NIP-05 Identifier</label>
+                    <input type="text" class="form-input" id="edit-nip05" placeholder="you@yourdomain.com">
+                    <p class="form-hint">A verified identifier that proves you own a domain. Shows a checkmark next to your name.</p>
+                </div>
+
+                <div class="instructions">
+                    <strong>How to set up NIP-05:</strong>
+                    <ol>
+                        <li>Choose a domain you own (e.g. <code>yourdomain.com</code>)</li>
+                        <li>Create a file at <code>https://yourdomain.com/.well-known/nostr.json</code></li>
+                        <li>Add your public key to the JSON: <code>{"names":{"you":"<span id="nip05-pubkey-hint">your-hex-pubkey</span>"}}</code></li>
+                        <li>Enter <code>you@yourdomain.com</code> above and save</li>
+                    </ol>
+                </div>
+
+                <div style="margin-top: 12px;">
+                    <button class="btn btn-primary btn-sm" onclick="saveProfile()">Save</button>
+                    <button class="btn btn-secondary btn-sm" onclick="verifyNip05()" style="margin-left: 8px;">Verify</button>
+                </div>
+                <div class="status-msg" id="nip05-status"></div>
+            </div>
+
+            <!-- Relay Management -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <div class="section-title">
+                        <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clip-rule="evenodd"/></svg>
+                        Relays
+                    </div>
+                </div>
+
+                <p class="form-hint" style="margin-bottom: 16px;">Relays store and distribute your NOSTR data. More relays = better redundancy.</p>
+
+                <div class="relay-list" id="relay-list">
+                    <p style="color: rgba(255,255,255,0.4); font-size: 13px;">Loading relays...</p>
+                </div>
+
+                <div class="add-relay-row">
+                    <input type="text" class="form-input" id="new-relay-url" placeholder="wss://relay.example.com">
+                    <button class="btn btn-secondary btn-sm" onclick="addRelay()">Add</button>
+                </div>
+
+                <div style="margin-top: 16px;">
+                    <button class="btn btn-primary btn-sm" onclick="saveRelays()">Save Relay List</button>
+                </div>
+                <div class="status-msg" id="relay-status"></div>
+            </div>
+
+            <!-- Account -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <div class="section-title">
+                        <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"/></svg>
+                        Account
+                    </div>
+                </div>
+
+                <div class="key-display">
+                    <div class="key-label">Your Public Key (npub)</div>
+                    <div class="key-value" id="account-npub"></div>
+                    <button class="copy-btn" onclick="copyKey('account-npub')">Copy</button>
+                </div>
+
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <button class="btn btn-secondary" onclick="downloadBackup()">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                        Download Backup
+                    </button>
+                    <button class="btn btn-danger" onclick="handleLogout()">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                        Log Out
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/nostr-tools@2.1.4/lib/nostr.bundle.js"></script>
+    <script src="/js/session.js"></script>
+    <script src="/js/sidebar.js"></script>
+
+    <script>
+        // Config
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const relayUrl = `${wsProtocol}//${window.location.host}/relay`;
+        const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        const localRelayUrl = `${wsProtocol}//${window.location.host}/relay`;
+
+        // State
+        let currentProfile = {};
+        let relays = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            SessionManager.init();
+
+            if (!SessionManager.hasSession()) {
+                window.location.href = '/login.html?return=' + encodeURIComponent(window.location.href);
+                return;
+            }
+
+            ClientSidebar.init();
+
+            const session = SessionManager.getSession();
+            document.getElementById('account-npub').textContent = session.npub;
+            document.getElementById('nip05-pubkey-hint').textContent = session.publicKey;
+
+            // Load existing profile and relay list
+            await Promise.all([loadProfile(), loadRelayList()]);
+        });
+
+        // ===== Load Profile =====
+
+        async function loadProfile() {
+            const session = SessionManager.getSession();
+
+            return new Promise((resolve) => {
+                const ws = new WebSocket(relayUrl);
+                const subId = 'settings-profile-' + Math.random().toString(36).substring(7);
+
+                const timeout = setTimeout(() => { try { ws.close(); } catch(e) {} resolve(); }, 8000);
+
+                ws.onopen = () => {
+                    ws.send(JSON.stringify(['REQ', subId, {
+                        kinds: [0],
+                        authors: [session.publicKey],
+                        limit: 1
+                    }]));
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const msg = JSON.parse(event.data);
+                        if (msg[0] === 'EVENT' && msg[1] === subId && msg[2]) {
+                            currentProfile = JSON.parse(msg[2].content);
+                            populateProfileForm(currentProfile);
+                        }
+                        if (msg[0] === 'EOSE') {
+                            clearTimeout(timeout);
+                            ws.close();
+                            resolve();
+                        }
+                    } catch (e) {}
+                };
+
+                ws.onerror = () => { clearTimeout(timeout); resolve(); };
+            });
+        }
+
+        function populateProfileForm(profile) {
+            document.getElementById('edit-name').value = profile.display_name || profile.name || '';
+            document.getElementById('edit-bio').value = profile.about || '';
+            document.getElementById('edit-website').value = profile.website || '';
+            document.getElementById('edit-lud16').value = profile.lud16 || '';
+            document.getElementById('edit-nip05').value = profile.nip05 || '';
+        }
+
+        // ===== Save Profile =====
+
+        async function saveProfile() {
+            const btn = document.getElementById('save-profile-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Saving...';
+
+            const session = SessionManager.getSession();
+
+            // Merge with existing profile to preserve fields we don't edit
+            const updatedProfile = {
+                ...currentProfile,
+                name: document.getElementById('edit-name').value.trim(),
+                display_name: document.getElementById('edit-name').value.trim(),
+                about: document.getElementById('edit-bio').value.trim(),
+                website: document.getElementById('edit-website').value.trim(),
+                lud16: document.getElementById('edit-lud16').value.trim(),
+                nip05: document.getElementById('edit-nip05').value.trim()
+            };
+
+            const event = {
+                kind: 0,
+                created_at: Math.floor(Date.now() / 1000),
+                tags: [],
+                content: JSON.stringify(updatedProfile)
+            };
+
+            try {
+                const signedEvent = await SessionManager.signEvent(event);
+                const success = await publishEvent(signedEvent);
+
+                if (success) {
+                    currentProfile = updatedProfile;
+                    showStatus('profile-status', 'Profile saved successfully', 'success');
+                    // Update sidebar display
+                    ClientSidebar.updateUserDisplay(updatedProfile.name, updatedProfile.picture);
+                } else {
+                    showStatus('profile-status', 'Failed to publish to relay', 'error');
+                }
+            } catch (e) {
+                showStatus('profile-status', 'Failed to save: ' + e.message, 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = 'Save Profile';
+        }
+
+        // ===== Load Relay List =====
+
+        async function loadRelayList() {
+            const session = SessionManager.getSession();
+
+            return new Promise((resolve) => {
+                const ws = new WebSocket(relayUrl);
+                const subId = 'relays-' + Math.random().toString(36).substring(7);
+
+                const timeout = setTimeout(() => { try { ws.close(); } catch(e) {} renderRelayDefaults(); resolve(); }, 8000);
+
+                ws.onopen = () => {
+                    ws.send(JSON.stringify(['REQ', subId, {
+                        kinds: [10002],
+                        authors: [session.publicKey],
+                        limit: 1
+                    }]));
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const msg = JSON.parse(event.data);
+                        if (msg[0] === 'EVENT' && msg[1] === subId && msg[2]) {
+                            relays = msg[2].tags
+                                .filter(t => t[0] === 'r')
+                                .map(t => t[1]);
+                        }
+                        if (msg[0] === 'EOSE') {
+                            clearTimeout(timeout);
+                            ws.close();
+                            if (relays.length === 0) {
+                                renderRelayDefaults();
+                            } else {
+                                renderRelays();
+                            }
+                            resolve();
+                        }
+                    } catch (e) {}
+                };
+
+                ws.onerror = () => { clearTimeout(timeout); renderRelayDefaults(); resolve(); };
+            });
+        }
+
+        function renderRelayDefaults() {
+            relays = [localRelayUrl];
+            if (!isLocalDev) {
+                relays.push('wss://relay.damus.io', 'wss://nos.lol');
+            }
+            renderRelays();
+        }
+
+        function renderRelays() {
+            const container = document.getElementById('relay-list');
+            if (relays.length === 0) {
+                container.innerHTML = '<p style="color: rgba(255,255,255,0.4); font-size: 13px;">No relays configured</p>';
+                return;
+            }
+
+            container.innerHTML = relays.map((url, i) => {
+                const isLocal = url.includes(window.location.host);
+                return `
+                    <div class="relay-item">
+                        <span class="relay-url">${url}</span>
+                        <span class="relay-badge ${isLocal ? 'local' : 'public'}">${isLocal ? 'Local' : 'Public'}</span>
+                        <button class="relay-remove-btn" onclick="removeRelay(${i})" title="Remove">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function addRelay() {
+            const input = document.getElementById('new-relay-url');
+            const url = input.value.trim();
+
+            if (!url || (!url.startsWith('ws://') && !url.startsWith('wss://'))) {
+                alert('Please enter a valid WebSocket URL (ws:// or wss://)');
+                return;
+            }
+
+            if (relays.includes(url)) {
+                alert('This relay is already in your list');
+                return;
+            }
+
+            relays.push(url);
+            renderRelays();
+            input.value = '';
+        }
+
+        function removeRelay(index) {
+            relays.splice(index, 1);
+            renderRelays();
+        }
+
+        async function saveRelays() {
+            const session = SessionManager.getSession();
+
+            const event = {
+                kind: 10002,
+                created_at: Math.floor(Date.now() / 1000),
+                tags: relays.map(url => ['r', url]),
+                content: ''
+            };
+
+            try {
+                const signedEvent = await SessionManager.signEvent(event);
+                const success = await publishEvent(signedEvent);
+
+                if (success) {
+                    showStatus('relay-status', 'Relay list saved', 'success');
+                } else {
+                    showStatus('relay-status', 'Failed to publish relay list', 'error');
+                }
+            } catch (e) {
+                showStatus('relay-status', 'Failed to save: ' + e.message, 'error');
+            }
+        }
+
+        // ===== NIP-05 Verification =====
+
+        async function verifyNip05() {
+            const nip05 = document.getElementById('edit-nip05').value.trim();
+            if (!nip05 || !nip05.includes('@')) {
+                showStatus('nip05-status', 'Enter a valid NIP-05 identifier (user@domain.com)', 'error');
+                return;
+            }
+
+            const [name, domain] = nip05.split('@');
+            const session = SessionManager.getSession();
+
+            try {
+                const url = `https://${domain}/.well-known/nostr.json?name=${encodeURIComponent(name)}`;
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const data = await response.json();
+                if (data.names && data.names[name] === session.publicKey) {
+                    showStatus('nip05-status', 'Verified! Your NIP-05 identifier is valid.', 'success');
+                } else {
+                    showStatus('nip05-status', 'Verification failed: public key does not match. Check your nostr.json file.', 'error');
+                }
+            } catch (e) {
+                showStatus('nip05-status', 'Could not verify: ' + e.message, 'error');
+            }
+        }
+
+        // ===== Publish Event =====
+
+        function publishEvent(signedEvent) {
+            return new Promise((resolve) => {
+                const ws = new WebSocket(relayUrl);
+
+                const timeout = setTimeout(() => {
+                    try { ws.close(); } catch(e) {}
+                    resolve(false);
+                }, 10000);
+
+                ws.onopen = () => {
+                    ws.send(JSON.stringify(['EVENT', signedEvent]));
+                };
+
+                ws.onmessage = (e) => {
+                    const data = JSON.parse(e.data);
+                    if (data[0] === 'OK') {
+                        clearTimeout(timeout);
+                        ws.close();
+                        resolve(data[2] === true);
+                    }
+                };
+
+                ws.onerror = () => {
+                    clearTimeout(timeout);
+                    resolve(false);
+                };
+            });
+        }
+
+        // ===== Helpers =====
+
+        function showStatus(elementId, message, type) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.className = `status-msg ${type}`;
+            setTimeout(() => { el.className = 'status-msg'; }, 5000);
+        }
+
+        async function copyKey(elementId) {
+            const el = document.getElementById(elementId);
+            const btn = el.parentElement.querySelector('.copy-btn');
+            try {
+                await navigator.clipboard.writeText(el.textContent);
+                btn.textContent = 'Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+            } catch (e) {}
+        }
+
+        function downloadBackup() {
+            const session = SessionManager.getSession();
+            const privateKey = SessionManager.getPrivateKey();
+
+            const backup = {
+                version: 1,
+                created: new Date().toISOString(),
+                keys: {
+                    npub: session.npub,
+                    publicKeyHex: session.publicKey
+                },
+                profile: {
+                    name: document.getElementById('edit-name').value.trim(),
+                    bio: document.getElementById('edit-bio').value.trim()
+                }
+            };
+
+            // Only include private key if available (nsec session, not extension)
+            if (privateKey) {
+                const nsec = NostrTools.nip19.nsecEncode(privateKey);
+                backup.keys.nsec = nsec;
+                backup.keys.privateKeyHex = Array.from(privateKey).map(b => b.toString(16).padStart(2, '0')).join('');
+            }
+
+            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `equaliser-backup-${(backup.profile.name || 'user').toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function handleLogout() {
+            SessionManager.logout();
+            window.location.href = '/home.html';
+        }
+    </script>
+</body>
+</html>
