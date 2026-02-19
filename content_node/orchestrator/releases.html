@@ -1526,7 +1526,7 @@
                     content: unsigned_event.content
                 });
 
-                showNotification('Downloading package...', 'success');
+                showNotification('Building package (this may take a while for large albums)...', 'success', 120000);
 
                 // Step 3: Download the package
                 const downloadResponse = await fetch('/api/releases/export-download', {
@@ -1558,7 +1558,11 @@
                 a.click();
                 document.body.removeChild(a);
 
-                // Show notification with clickable download link as fallback
+                // Show notification with clickable download link
+                if (_notificationTimer) {
+                    clearTimeout(_notificationTimer);
+                    _notificationTimer = null;
+                }
                 const notification = document.getElementById('notification');
                 const text = document.getElementById('notification-text');
                 notification.className = 'notification success';
@@ -1566,11 +1570,11 @@
                 const icon = notification.querySelector('.notification-icon');
                 icon.innerHTML = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>';
                 notification.classList.add('show');
-                // Keep notification visible longer and revoke blob URL after
-                setTimeout(() => {
+                // Keep visible for 30s so user can click the link
+                _notificationTimer = setTimeout(() => {
                     notification.classList.remove('show');
                     URL.revokeObjectURL(url);
-                }, 15000);
+                }, 30000);
             } catch (error) {
                 console.error('Export error:', error);
                 showNotification('Export failed: ' + error.message, 'error');
@@ -1701,9 +1705,16 @@
 
         // --- Notification ---
 
-        function showNotification(message, type = 'success') {
+        let _notificationTimer = null;
+        function showNotification(message, type = 'success', duration = 4000) {
             const notification = document.getElementById('notification');
             const text = document.getElementById('notification-text');
+
+            // Clear any previous hide timer
+            if (_notificationTimer) {
+                clearTimeout(_notificationTimer);
+                _notificationTimer = null;
+            }
 
             notification.className = `notification ${type}`;
             text.textContent = message;
@@ -1716,7 +1727,7 @@
             }
 
             notification.classList.add('show');
-            setTimeout(() => notification.classList.remove('show'), 4000);
+            _notificationTimer = setTimeout(() => notification.classList.remove('show'), duration);
         }
     </script>
 </body>

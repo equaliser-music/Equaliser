@@ -1033,12 +1033,13 @@
 
         function loadRelease(releaseId) {
             // Group tracks into release
+            // Keys match releases.html format: "released:single:id" or "released:album:name"
             const releaseMap = new Map();
 
             allTracks.forEach(track => {
                 const key = track.releaseType === 'single' || !track.album
-                    ? `single:${track.d}`
-                    : `${track.releaseType}:${track.album}`;
+                    ? `released:single:${track.d}`
+                    : `released:${track.releaseType}:${track.album}`;
 
                 if (!releaseMap.has(key)) {
                     releaseMap.set(key, {

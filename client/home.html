@@ -23,86 +23,6 @@
             height: 100vh;
         }
 
-        /* Sidebar */
-        .sidebar {
-            width: 240px;
-            background: rgba(15, 15, 25, 0.8);
-            backdrop-filter: blur(20px);
-            border-right: 1px solid rgba(255, 255, 255, 0.05);
-            display: flex;
-            flex-direction: column;
-            padding: 24px 16px;
-        }
-
-        .logo {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-bottom: 40px;
-            padding: 0 8px;
-        }
-
-        .logo-main {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .logo-main img {
-            width: 180px;
-            height: auto;
-        }
-
-        .logo-text {
-            display: none;
-        }
-
-        .logo-slogan {
-            display: none;
-        }
-
-        .nav-section {
-            margin-bottom: 32px;
-        }
-
-        .nav-title {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: rgba(255, 255, 255, 0.4);
-            margin-bottom: 12px;
-            padding: 0 12px;
-            font-weight: 600;
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            color: rgba(255, 255, 255, 0.7);
-            margin-bottom: 4px;
-        }
-
-        .nav-item:hover {
-            background: rgba(255, 255, 255, 0.05);
-            color: #ffffff;
-        }
-
-        .nav-item.active {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(168, 85, 247, 0.15));
-            color: #ffffff;
-        }
-
-        .nav-icon {
-            width: 20px;
-            height: 20px;
-            opacity: 0.8;
-        }
-
         /* Main Content */
         .main-content {
             flex: 1;
@@ -147,38 +67,6 @@
             top: 50%;
             transform: translateY(-50%);
             opacity: 0.5;
-        }
-
-        .user-section {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .wallet-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            background: linear-gradient(135deg, #8b5cf6, #a855f7);
-            border: none;
-            border-radius: 10px;
-            color: #ffffff;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-
-        .wallet-btn:hover {
-            transform: translateY(-2px);
-        }
-
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #8b5cf6, #a855f7);
-            cursor: pointer;
         }
 
         /* Hero Section */
@@ -980,14 +868,6 @@
         }
 
         @media (max-width: 768px) {
-            .sidebar {
-                width: 80px;
-            }
-
-            .logo-text, .logo-slogan, .nav-title, .nav-item span {
-                display: none;
-            }
-
             .album-grid {
                 grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
             }
@@ -1009,52 +889,8 @@
 </head>
 <body>
     <div class="container">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="logo">
-                <div class="logo-main">
-                    <img src="/images/equaliser-logo.png" alt="Equaliser - Music Lives Here">
-                </div>
-            </div>
-
-            <div class="nav-section">
-                <div class="nav-title">Menu</div>
-                <div class="nav-item active">
-                    <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
-                    </svg>
-                    <span>Home</span>
-                </div>
-                <div class="nav-item">
-                    <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
-                    </svg>
-                    <span>Discover</span>
-                </div>
-                <div class="nav-item">
-                    <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/>
-                    </svg>
-                    <span>Library</span>
-                </div>
-            </div>
-
-            <div class="nav-section">
-                <div class="nav-title">Playlists</div>
-                <div class="nav-item">
-                    <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"/>
-                    </svg>
-                    <span>Favorites</span>
-                </div>
-                <div class="nav-item">
-                    <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
-                    </svg>
-                    <span>Recent</span>
-                </div>
-            </div>
-        </div>
+        <!-- Sidebar injected by ClientSidebar.init() -->
+        <div class="sidebar"></div>
 
         <!-- Main Content -->
         <div class="main-content">
@@ -1064,15 +900,6 @@
                         <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
                     </svg>
                     <input type="text" placeholder="Search artists, tracks, albums..." id="search-input">
-                </div>
-                <div class="user-section">
-                    <button class="wallet-btn">
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
-                        </svg>
-                        Connect Wallet
-                    </button>
-                    <div class="user-avatar"></div>
                 </div>
             </div>
 
@@ -1427,6 +1254,8 @@
     <!-- Dependencies -->
     <script src="https://unpkg.com/nostr-tools@2.1.4/lib/nostr.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7"></script>
+    <script src="/js/session.js"></script>
+    <script src="/js/sidebar.js"></script>
 
     <script>
         // ===== Configuration =====
@@ -2034,11 +1863,6 @@
             filterAlbums(e.target.value.trim());
         });
 
-        // Wallet button
-        document.querySelector('.wallet-btn').addEventListener('click', function() {
-            alert('Wallet connection coming soon! This will integrate with Lightning wallets.');
-        });
-
         // Keyboard shortcuts
         document.addEventListener('keydown', function(e) {
             if (e.target.tagName === 'INPUT') return;
@@ -2055,6 +1879,8 @@
         });
 
         // Start
+        SessionManager.init();
+        ClientSidebar.init();
         init();
     </script>
 </body>
