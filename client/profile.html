@@ -247,6 +247,168 @@
             color: rgba(255, 255, 255, 0.3);
         }
 
+        /* Feed Items */
+        .feed-items {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .feed-item {
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .feed-item:last-child {
+            border-bottom: none;
+        }
+
+        .feed-item-context {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.35);
+            margin-bottom: 10px;
+            padding-left: 48px;
+        }
+
+        .feed-item-context svg {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+        }
+
+        .feed-item-context a {
+            color: rgba(255, 255, 255, 0.5);
+            text-decoration: none;
+        }
+
+        .feed-item-context a:hover {
+            text-decoration: underline;
+        }
+
+        .feed-item-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .feed-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            overflow: hidden;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .feed-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .feed-author-name {
+            font-size: 14px;
+            font-weight: 600;
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .feed-author-name a {
+            color: #ffffff;
+            text-decoration: none;
+        }
+
+        .feed-author-name a:hover {
+            text-decoration: underline;
+        }
+
+        .feed-time {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.3);
+            flex-shrink: 0;
+        }
+
+        .feed-item-content {
+            font-size: 14px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.85);
+            word-break: break-word;
+            white-space: pre-wrap;
+            padding-left: 46px;
+        }
+
+        .feed-item-content a {
+            color: #a855f7;
+            text-decoration: none;
+        }
+
+        .feed-item-content a:hover {
+            text-decoration: underline;
+        }
+
+        .feed-actions {
+            display: flex;
+            gap: 4px;
+            margin-top: 10px;
+            padding-left: 46px;
+        }
+
+        .feed-action-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 12px;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .feed-action-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .feed-action-btn svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        .feed-action-btn.like-btn:hover,
+        .feed-action-btn.like-btn.liked {
+            color: #ef4444;
+        }
+
+        .feed-action-btn.like-btn.liked svg {
+            fill: #ef4444;
+        }
+
+        .feed-action-btn.repost-btn:hover,
+        .feed-action-btn.repost-btn.reposted {
+            color: #22c55e;
+        }
+
+        .feed-loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 13px;
+        }
+
         /* Loading State */
         .loading-state {
             display: flex;
@@ -352,8 +514,8 @@
                 </div>
 
                 <div class="profile-tabs">
-                    <div class="profile-tab active">Posts</div>
-                    <div class="profile-tab">Likes</div>
+                    <div class="profile-tab active" data-tab="posts">Posts</div>
+                    <div class="profile-tab" data-tab="likes">Likes</div>
                 </div>
 
                 <div class="profile-feed" id="profile-feed">
@@ -382,6 +544,15 @@
         let profilePubkey = null;
         let isOwnProfile = false;
         let fullNpub = null;
+        let profileData = null; // Kind 0 profile object
+        let activeTab = 'posts';
+
+        // Feed data
+        let postsData = null;   // { items, loaded }
+        let likesData = null;
+
+        // Profile cache: pubkey -> { name, picture }
+        const profileCache = {};
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
@@ -393,7 +564,6 @@
             const npubParam = urlParams.get('npub');
 
             if (npubParam) {
-                // Viewing someone else's (or own) profile via npub
                 try {
                     const decoded = NostrTools.nip19.decode(npubParam);
                     if (decoded.type !== 'npub') throw new Error('Invalid npub');
@@ -405,31 +575,31 @@
                     return;
                 }
 
-                // Check if this is the logged-in user's own profile
                 const session = SessionManager.getSession();
                 if (session && session.publicKey === profilePubkey) {
                     isOwnProfile = true;
                 }
             } else if (SessionManager.hasSession()) {
-                // No npub param + logged in = own profile
                 const session = SessionManager.getSession();
                 profilePubkey = session.publicKey;
                 fullNpub = session.npub;
                 isOwnProfile = true;
             } else {
-                // Not logged in, no npub = redirect to login
                 window.location.href = '/login.html?return=' + encodeURIComponent(window.location.href);
                 return;
             }
 
-            // Show edit button for own profile
             if (isOwnProfile) {
                 document.getElementById('edit-btn').style.display = '';
             }
 
-            // Set npub display
             document.getElementById('profile-npub').textContent =
                 fullNpub.substring(0, 16) + '...' + fullNpub.substring(fullNpub.length - 8);
+
+            // Wire up tabs
+            document.querySelectorAll('.profile-tab').forEach(tab => {
+                tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+            });
 
             // Fetch profile data
             await loadProfile();
@@ -438,9 +608,442 @@
             // Show content
             document.getElementById('loading-state').style.display = 'none';
             document.getElementById('profile-content').style.display = '';
+
+            // Load posts feed
+            loadPostsTab();
         });
 
-        // Fetch Kind 0 profile
+        // ==================== Tab Switching ====================
+
+        function switchTab(tabName) {
+            activeTab = tabName;
+
+            document.querySelectorAll('.profile-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.tab === tabName);
+            });
+
+            if (tabName === 'posts') {
+                loadPostsTab();
+            } else if (tabName === 'likes') {
+                loadLikesTab();
+            }
+        }
+
+        // ==================== Posts Tab ====================
+
+        async function loadPostsTab() {
+            const feed = document.getElementById('profile-feed');
+
+            if (postsData) {
+                renderPostsFeed(postsData);
+                return;
+            }
+
+            feed.innerHTML = '<div class="feed-loading">Loading posts...</div>';
+
+            // Fetch Kind 1 (notes) and Kind 6 (reposts) from this user
+            const events = await fetchEventsFromRelay({
+                kinds: [1, 6],
+                authors: [profilePubkey],
+                limit: 100
+            });
+
+            // Separate posts and reposts
+            const ownNotes = events.filter(e => e.kind === 1);
+            const reposts = events.filter(e => e.kind === 6);
+
+            // Build feed items
+            const items = [];
+
+            // Own notes
+            for (const note of ownNotes) {
+                items.push({
+                    type: 'post',
+                    timestamp: note.created_at,
+                    noteId: note.id,
+                    authorPubkey: note.pubkey,
+                    content: note.content
+                });
+            }
+
+            // Reposts — resolve original notes
+            for (const repost of reposts) {
+                let originalNote = null;
+
+                // Try to parse embedded original note from content
+                if (repost.content) {
+                    try {
+                        originalNote = JSON.parse(repost.content);
+                    } catch (e) {}
+                }
+
+                // Fallback: fetch original note from relay via e tag
+                if (!originalNote) {
+                    const eTag = repost.tags.find(t => t[0] === 'e');
+                    if (eTag) {
+                        const fetched = await fetchEventsFromRelay({
+                            ids: [eTag[1]],
+                            limit: 1
+                        });
+                        if (fetched.length > 0) originalNote = fetched[0];
+                    }
+                }
+
+                if (originalNote) {
+                    items.push({
+                        type: 'repost',
+                        timestamp: repost.created_at,
+                        noteId: originalNote.id,
+                        authorPubkey: originalNote.pubkey,
+                        content: originalNote.content,
+                        repostedBy: repost.pubkey
+                    });
+                }
+            }
+
+            // Sort newest first
+            items.sort((a, b) => b.timestamp - a.timestamp);
+
+            postsData = items;
+
+            // Fetch profiles for all unique authors
+            const authorPubkeys = [...new Set(items.map(i => i.authorPubkey))];
+            await fetchProfiles(authorPubkeys);
+
+            renderPostsFeed(items);
+        }
+
+        function renderPostsFeed(items) {
+            const feed = document.getElementById('profile-feed');
+
+            if (items.length === 0) {
+                feed.innerHTML = `
+                    <div class="empty-feed">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"/>
+                        </svg>
+                        <p>No posts yet</p>
+                        <p class="sub">Posts and reposts will appear here</p>
+                    </div>`;
+                return;
+            }
+
+            feed.innerHTML = `<div class="feed-items">
+                ${items.map(item => renderFeedItem(item)).join('')}
+            </div>`;
+        }
+
+        // ==================== Likes Tab ====================
+
+        async function loadLikesTab() {
+            const feed = document.getElementById('profile-feed');
+
+            if (likesData) {
+                renderLikesFeed(likesData);
+                return;
+            }
+
+            feed.innerHTML = '<div class="feed-loading">Loading likes...</div>';
+
+            // Fetch Kind 7 reactions by this user
+            const reactions = await fetchEventsFromRelay({
+                kinds: [7],
+                authors: [profilePubkey],
+                limit: 100
+            });
+
+            // Filter to positive reactions only
+            const likes = reactions.filter(r => r.content !== '-');
+
+            // Resolve original notes
+            const items = [];
+            const noteIdsToFetch = [];
+
+            for (const like of likes) {
+                const eTag = like.tags.find(t => t[0] === 'e');
+                if (eTag) noteIdsToFetch.push(eTag[1]);
+            }
+
+            // Batch fetch all liked notes
+            const likedNotes = noteIdsToFetch.length > 0
+                ? await fetchEventsFromRelay({ ids: noteIdsToFetch, limit: 200 })
+                : [];
+
+            const noteMap = new Map();
+            likedNotes.forEach(n => noteMap.set(n.id, n));
+
+            for (const like of likes) {
+                const eTag = like.tags.find(t => t[0] === 'e');
+                if (!eTag) continue;
+
+                const note = noteMap.get(eTag[1]);
+                if (note) {
+                    items.push({
+                        type: 'liked',
+                        timestamp: like.created_at,
+                        noteId: note.id,
+                        authorPubkey: note.pubkey,
+                        content: note.content
+                    });
+                }
+            }
+
+            // Sort newest first
+            items.sort((a, b) => b.timestamp - a.timestamp);
+
+            likesData = items;
+
+            // Fetch profiles
+            const authorPubkeys = [...new Set(items.map(i => i.authorPubkey))];
+            await fetchProfiles(authorPubkeys);
+
+            renderLikesFeed(items);
+        }
+
+        function renderLikesFeed(items) {
+            const feed = document.getElementById('profile-feed');
+
+            if (items.length === 0) {
+                feed.innerHTML = `
+                    <div class="empty-feed">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/>
+                        </svg>
+                        <p>No likes yet</p>
+                        <p class="sub">Posts you like will appear here</p>
+                    </div>`;
+                return;
+            }
+
+            feed.innerHTML = `<div class="feed-items">
+                ${items.map(item => renderFeedItem(item)).join('')}
+            </div>`;
+        }
+
+        // ==================== Shared Feed Rendering ====================
+
+        function renderFeedItem(item) {
+            const author = profileCache[item.authorPubkey] || {};
+            const authorName = author.name || 'Unknown';
+            const authorInitial = authorName.charAt(0).toUpperCase();
+            const authorNpub = NostrTools.nip19.npubEncode(item.authorPubkey);
+            const content = linkifyContent(escapeHtml(item.content));
+            const time = relativeTime(item.timestamp);
+
+            let contextHtml = '';
+            if (item.type === 'repost') {
+                const repostedByName = profileCache[item.repostedBy]?.name || 'You';
+                contextHtml = `
+                    <div class="feed-item-context">
+                        <svg fill="currentColor" viewBox="0 0 20 20"><path d="M7 16V4m0 0L3 8m4-4l4 4M13 4v12m0 0l4-4m-4 4l-4-4"/></svg>
+                        ${escapeHtml(repostedByName)} reposted
+                    </div>`;
+            } else if (item.type === 'liked') {
+                contextHtml = `
+                    <div class="feed-item-context">
+                        <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/></svg>
+                        You liked
+                    </div>`;
+            }
+
+            return `
+                <div class="feed-item" data-note-id="${item.noteId}">
+                    ${contextHtml}
+                    <div class="feed-item-header">
+                        <div class="feed-avatar">
+                            ${author.picture
+                                ? `<img src="${escapeHtml(author.picture)}" alt="" onerror="this.style.display='none';this.parentElement.textContent='${authorInitial}'">`
+                                : authorInitial
+                            }
+                        </div>
+                        <span class="feed-author-name"><a href="/artist.html?npub=${authorNpub}">${escapeHtml(authorName)}</a></span>
+                        <span class="feed-time">${time}</span>
+                    </div>
+                    <div class="feed-item-content">${content}</div>
+                    <div class="feed-actions">
+                        <button class="feed-action-btn like-btn" onclick="handleLike('${item.noteId}', '${item.authorPubkey}', this)">
+                            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
+                            </svg>
+                            <span class="like-count"></span>
+                        </button>
+                        <button class="feed-action-btn repost-btn" onclick="handleRepost('${item.noteId}', '${item.authorPubkey}', this)">
+                            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M7 16V4m0 0L3 8m4-4l4 4M13 4v12m0 0l4-4m-4 4l-4-4"/>
+                            </svg>
+                            <span class="repost-count"></span>
+                        </button>
+                    </div>
+                </div>`;
+        }
+
+        // ==================== Relay Helpers ====================
+
+        function fetchEventsFromRelay(filter) {
+            return new Promise((resolve) => {
+                const ws = new WebSocket(relayUrl);
+                const events = [];
+                const subId = 'q-' + Math.random().toString(36).substring(7);
+
+                const timeout = setTimeout(() => {
+                    try { ws.close(); } catch(e) {}
+                    resolve(events);
+                }, 8000);
+
+                ws.onopen = () => {
+                    ws.send(JSON.stringify(['REQ', subId, filter]));
+                };
+
+                ws.onmessage = (e) => {
+                    try {
+                        const msg = JSON.parse(e.data);
+                        if (msg[0] === 'EVENT' && msg[1] === subId) {
+                            events.push(msg[2]);
+                        }
+                        if (msg[0] === 'EOSE') {
+                            clearTimeout(timeout);
+                            ws.close();
+                            resolve(events);
+                        }
+                    } catch (err) {}
+                };
+
+                ws.onerror = () => {
+                    clearTimeout(timeout);
+                    resolve(events);
+                };
+            });
+        }
+
+        function publishToRelay(event) {
+            return new Promise((resolve) => {
+                const ws = new WebSocket(relayUrl);
+                const timeout = setTimeout(() => {
+                    try { ws.close(); } catch(e) {}
+                    resolve(false);
+                }, 5000);
+
+                ws.onopen = () => {
+                    ws.send(JSON.stringify(['EVENT', event]));
+                };
+
+                ws.onmessage = (e) => {
+                    try {
+                        const msg = JSON.parse(e.data);
+                        if (msg[0] === 'OK') {
+                            clearTimeout(timeout);
+                            ws.close();
+                            resolve(msg[2] === true);
+                        }
+                    } catch (err) {}
+                };
+
+                ws.onerror = () => {
+                    clearTimeout(timeout);
+                    resolve(false);
+                };
+            });
+        }
+
+        // Batch fetch Kind 0 profiles and populate cache
+        async function fetchProfiles(pubkeys) {
+            // Filter out already cached
+            const needed = pubkeys.filter(pk => !profileCache[pk]);
+            if (needed.length === 0) return;
+
+            const events = await fetchEventsFromRelay({
+                kinds: [0],
+                authors: needed,
+                limit: needed.length
+            });
+
+            events.forEach(ev => {
+                try {
+                    const p = JSON.parse(ev.content);
+                    profileCache[ev.pubkey] = {
+                        name: p.display_name || p.name || 'Unknown',
+                        picture: p.picture || null
+                    };
+                } catch (e) {}
+            });
+
+            // Add the profile page's own profile to cache
+            if (profileData && !profileCache[profilePubkey]) {
+                profileCache[profilePubkey] = {
+                    name: profileData.display_name || profileData.name || 'Unknown',
+                    picture: profileData.picture || null
+                };
+            }
+        }
+
+        // ==================== Like / Repost from Profile ====================
+
+        async function handleLike(noteId, authorPubkey, btnEl) {
+            const session = SessionManager.getSession();
+            if (!session) {
+                window.location.href = '/login.html?return=' + encodeURIComponent(window.location.href);
+                return;
+            }
+
+            if (btnEl.classList.contains('liked')) return;
+
+            try {
+                const event = {
+                    kind: 7,
+                    created_at: Math.floor(Date.now() / 1000),
+                    tags: [['e', noteId], ['p', authorPubkey]],
+                    content: '+'
+                };
+
+                const signed = await SessionManager.signEvent(event);
+                await publishToRelay(signed);
+
+                // Update UI
+                btnEl.classList.add('liked');
+                btnEl.querySelector('svg').setAttribute('fill', 'currentColor');
+                const countEl = btnEl.querySelector('.like-count');
+                const current = parseInt(countEl.textContent) || 0;
+                countEl.textContent = current + 1;
+            } catch (err) {
+                console.error('Like failed:', err);
+            }
+        }
+
+        async function handleRepost(noteId, authorPubkey, btnEl) {
+            const session = SessionManager.getSession();
+            if (!session) {
+                window.location.href = '/login.html?return=' + encodeURIComponent(window.location.href);
+                return;
+            }
+
+            if (btnEl.classList.contains('reposted')) return;
+
+            try {
+                const event = {
+                    kind: 6,
+                    created_at: Math.floor(Date.now() / 1000),
+                    tags: [['e', noteId, relayUrl], ['p', authorPubkey]],
+                    content: ''
+                };
+
+                const signed = await SessionManager.signEvent(event);
+                await publishToRelay(signed);
+
+                // Update UI
+                btnEl.classList.add('reposted');
+                const countEl = btnEl.querySelector('.repost-count');
+                const current = parseInt(countEl.textContent) || 0;
+                countEl.textContent = current + 1;
+
+                // Invalidate posts cache so repost shows on refresh
+                postsData = null;
+            } catch (err) {
+                console.error('Repost failed:', err);
+            }
+        }
+
+        // ==================== Profile Loading ====================
+
         async function loadProfile() {
             return new Promise((resolve) => {
                 const ws = new WebSocket(relayUrl);
@@ -464,6 +1067,12 @@
                         const msg = JSON.parse(event.data);
                         if (msg[0] === 'EVENT' && msg[1] === subId && msg[2]) {
                             const profile = JSON.parse(msg[2].content);
+                            profileData = profile;
+                            // Add to cache
+                            profileCache[profilePubkey] = {
+                                name: profile.display_name || profile.name || 'Unknown',
+                                picture: profile.picture || null
+                            };
                             renderProfile(profile);
                         }
                         if (msg[0] === 'EOSE') {
@@ -482,38 +1091,32 @@
         }
 
         function renderProfile(profile) {
-            // Name
             const name = profile.display_name || profile.name || 'Unknown';
             document.getElementById('profile-name').textContent = name;
             document.title = `${name} - Equaliser`;
 
-            // Avatar
             const avatarEl = document.getElementById('profile-avatar');
             if (profile.picture) {
-                avatarEl.innerHTML = `<img src="${profile.picture}" alt="${name}" onerror="this.style.display='none'">`;
+                avatarEl.innerHTML = `<img src="${profile.picture}" alt="${escapeHtml(name)}" onerror="this.style.display='none'">`;
             } else {
                 const initials = name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
                 avatarEl.textContent = initials;
             }
 
-            // Banner
             if (profile.banner) {
                 document.getElementById('profile-banner').innerHTML =
                     `<img src="${profile.banner}" alt="Banner" onerror="this.style.display='none'">`;
             }
 
-            // Bio
             if (profile.about) {
                 document.getElementById('profile-bio').textContent = profile.about;
             }
 
-            // NIP-05
             if (profile.nip05) {
                 document.getElementById('profile-nip05').style.display = '';
                 document.getElementById('nip05-text').textContent = profile.nip05;
             }
 
-            // Lightning
             if (profile.lud16) {
                 document.getElementById('profile-lud16').style.display = '';
                 document.getElementById('lud16-text').textContent = profile.lud16;
@@ -532,7 +1135,6 @@
                 }, 8000);
 
                 ws.onopen = () => {
-                    // Fetch this user's contact list (who they follow)
                     ws.send(JSON.stringify(['REQ', subId, {
                         kinds: [3],
                         authors: [profilePubkey],
@@ -562,7 +1164,35 @@
             });
         }
 
-        // Copy npub
+        // ==================== Utilities ====================
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function linkifyContent(text) {
+            return text.replace(
+                /(https?:\/\/[^\s<]+)/g,
+                '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+            );
+        }
+
+        function relativeTime(unixTimestamp) {
+            const now = Math.floor(Date.now() / 1000);
+            const diff = now - unixTimestamp;
+
+            if (diff < 60) return 'just now';
+            if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+            if (diff < 604800) return `${Math.floor(diff / 86400)}d`;
+            if (diff < 2592000) return `${Math.floor(diff / 604800)}w`;
+
+            const date = new Date(unixTimestamp * 1000);
+            return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        }
+
         async function copyNpub() {
             if (!fullNpub) return;
             try {
