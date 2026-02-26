@@ -463,7 +463,7 @@
         .player-bar {
             position: fixed;
             bottom: 0;
-            left: 0;
+            left: 240px;
             right: 0;
             background: rgba(15, 15, 25, 0.95);
             backdrop-filter: blur(20px);
@@ -490,6 +490,15 @@
             border-radius: 8px;
             flex-shrink: 0;
             overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .now-playing-cover .eq-icon {
+            width: 32px;
+            height: 32px;
+            opacity: 0.6;
         }
 
         .now-playing-info {
@@ -649,9 +658,33 @@
             color: #9333ea;
         }
 
-        .nostr-subtitle {
+        .feed-tabs {
+            display: flex;
+            gap: 0;
+            margin-top: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .feed-tab {
+            flex: 1;
+            padding: 8px 0;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: rgba(255, 255, 255, 0.4);
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.5);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .feed-tab:hover {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .feed-tab.active {
+            color: #a855f7;
+            border-bottom-color: #a855f7;
         }
 
         .nostr-feed {
@@ -795,6 +828,92 @@
             font-weight: 600;
         }
 
+        /* Feed interactive states */
+        .nostr-action.like-btn {
+            cursor: pointer;
+        }
+
+        .nostr-action.like-btn.liked {
+            color: #ef4444;
+        }
+
+        .nostr-action.like-btn.liked svg {
+            color: #ef4444;
+        }
+
+        .nostr-action.repost-btn {
+            cursor: pointer;
+        }
+
+        .nostr-action.repost-btn.reposted {
+            color: #22c55e;
+        }
+
+        .nostr-action.repost-btn.reposted svg {
+            color: #22c55e;
+        }
+
+        .nostr-username a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .nostr-username a:hover {
+            color: #a855f7;
+        }
+
+        .nostr-content a {
+            color: #60a5fa;
+            text-decoration: none;
+        }
+
+        .nostr-content a:hover {
+            text-decoration: underline;
+        }
+
+        .feed-loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 13px;
+        }
+
+        .feed-loading .loading-spinner {
+            margin: 0 auto 12px;
+        }
+
+        .feed-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .feed-empty svg {
+            width: 32px;
+            height: 32px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        .feed-empty p {
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .feed-empty .sub {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .feed-empty a {
+            color: #a855f7;
+            text-decoration: none;
+        }
+
+        .feed-empty a:hover {
+            text-decoration: underline;
+        }
+
         /* Loading & Empty States */
         .loading-placeholder {
             grid-column: 1 / -1;
@@ -884,6 +1003,10 @@
                 flex-direction: column;
                 align-items: flex-start;
             }
+
+            .player-bar {
+                left: 64px;
+            }
         }
     </style>
 </head>
@@ -961,239 +1084,12 @@
                     </svg>
                     Community Feed
                 </div>
-                <div class="nostr-subtitle">Live from Nostr #equaliser</div>
+                <div class="feed-tabs" id="feed-tabs"></div>
             </div>
             <div class="nostr-feed" id="nostr-feed">
-                <!-- Mock Post 1 -->
-                <div class="nostr-post">
-                    <div class="nostr-post-header">
-                        <div class="nostr-avatar">SC</div>
-                        <div class="nostr-user-info">
-                            <div class="nostr-username">Shibuya Crossings</div>
-                            <div class="nostr-handle">@shibuya_xings</div>
-                        </div>
-                        <div class="nostr-time">2m</div>
-                    </div>
-                    <div class="nostr-content">
-                        Just uploaded our new album "DOYA" to <span class="mention">@equaliser</span>! Stream it now and support independent artists directly. <span class="hashtag">#indiemusic</span> <span class="hashtag">#equaliser</span>
-                    </div>
-                    <div class="nostr-actions">
-                        <div class="nostr-action">
-                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"/></svg>
-                            12
-                        </div>
-                        <div class="nostr-action">
-                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"/></svg>
-                            8
-                        </div>
-                        <div class="nostr-action zap">
-                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/></svg>
-                            <span class="zap-amount">2.1k sats</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Mock Post 2 -->
-                <div class="nostr-post">
-                    <div class="nostr-post-header">
-                        <div class="nostr-avatar">MK</div>
-                        <div class="nostr-user-info">
-                            <div class="nostr-username">MusicKing_21</div>
-                            <div class="nostr-handle">@musiclover21</div>
-                        </div>
-                        <div class="nostr-time">5m</div>
-                    </div>
-                    <div class="nostr-content">
-                        Finally! A music platform that actually pays artists fairly. Just zapped <span class="mention">@swansea_sound</span> 500 sats for their amazing new track "Paradise". This is the future!
-                    </div>
-                    <div class="nostr-actions">
-                        <div class="nostr-action">
-                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"/></svg>
-                            24
-                        </div>
-                        <div class="nostr-action">
-                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"/></svg>
-                            15
-                        </div>
-                        <div class="nostr-action zap">
-                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/></svg>
-                            <span class="zap-amount">890 sats</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Mock Post 3 -->
-                <div class="nostr-post">
-                    <div class="nostr-post-header">
-                        <div class="nostr-avatar">LoF</div>
-                        <div class="nostr-user-info">
-                            <div class="nostr-username">Language of Flowers</div>
-                            <div class="nostr-handle">@langofflowers</div>
-                        </div>
-                        <div class="nostr-time">12m</div>
-                    </div>
-                    <div class="nostr-content">
-                        Working on some new tracks in the studio today. Can't wait to share them with you all on <span class="mention">@equaliser</span>! Stay tuned for "Songs About You" dropping next week. <span class="hashtag">#newmusic</span>
-                    </div>
-                    <div class="nostr-actions">
-                        <div class="nostr-action">
-                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"/></svg>
-                            31
-                        </div>
-                        <div class="nostr-action">
-                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"/></svg>
-                            22
-                        </div>
-                        <div class="nostr-action zap">
-                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/></svg>
-                            <span class="zap-amount">1.5k sats</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Mock Post 4 -->
-                <div class="nostr-post">
-                    <div class="nostr-post-header">
-                        <div class="nostr-avatar">RK</div>
-                        <div class="nostr-user-info">
-                            <div class="nostr-username">RecordKollector</div>
-                            <div class="nostr-handle">@vinylhead</div>
-                        </div>
-                        <div class="nostr-time">18m</div>
-                    </div>
-                    <div class="nostr-content">
-                        The sound quality on <span class="mention">@equaliser</span> is incredible - lossless HLS streaming that actually sounds like the artists intended. No more compressed streaming garbage! <span class="hashtag">#audiophile</span> <span class="hashtag">#musicquality</span>
-                    </div>
-                    <div class="nostr-actions">
-                        <div class="nostr-action">
-                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"/></svg>
-                            45
-                        </div>
-                        <div class="nostr-action">
-                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"/></svg>
-                            28
-                        </div>
-                        <div class="nostr-action zap">
-                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/></svg>
-                            <span class="zap-amount">3.2k sats</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Mock Post 5 -->
-                <div class="nostr-post">
-                    <div class="nostr-post-header">
-                        <div class="nostr-avatar">SS</div>
-                        <div class="nostr-user-info">
-                            <div class="nostr-username">Swansea Sound</div>
-                            <div class="nostr-handle">@swansea_sound</div>
-                        </div>
-                        <div class="nostr-time">25m</div>
-                    </div>
-                    <div class="nostr-content">
-                        Thrilled to announce "Twentieth Century" is now streaming on <span class="mention">@equaliser</span>! 12 tracks of sparkling pop-punk goodness. Thank you for all the zaps! <span class="hashtag">#indiepop</span>
-                    </div>
-                    <div class="nostr-actions">
-                        <div class="nostr-action">
-                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"/></svg>
-                            67
-                        </div>
-                        <div class="nostr-action">
-                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"/></svg>
-                            41
-                        </div>
-                        <div class="nostr-action zap">
-                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/></svg>
-                            <span class="zap-amount">5.8k sats</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Mock Post 6 -->
-                <div class="nostr-post">
-                    <div class="nostr-post-header">
-                        <div class="nostr-avatar">DJ</div>
-                        <div class="nostr-user-info">
-                            <div class="nostr-username">DJ_Crypto</div>
-                            <div class="nostr-handle">@djcrypto</div>
-                        </div>
-                        <div class="nostr-time">32m</div>
-                    </div>
-                    <div class="nostr-content">
-                        Spinning some tracks from <span class="mention">@shibuya_xings</span> tonight at my set. Crowd is loving it! The future of music is decentralized. <span class="hashtag">#djlife</span> <span class="hashtag">#equaliser</span>
-                    </div>
-                    <div class="nostr-actions">
-                        <div class="nostr-action">
-                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"/></svg>
-                            89
-                        </div>
-                        <div class="nostr-action">
-                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"/></svg>
-                            52
-                        </div>
-                        <div class="nostr-action zap">
-                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/></svg>
-                            <span class="zap-amount">4.1k sats</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Mock Post 7 -->
-                <div class="nostr-post">
-                    <div class="nostr-post-header">
-                        <div class="nostr-avatar">AM</div>
-                        <div class="nostr-user-info">
-                            <div class="nostr-username">ArtistMike</div>
-                            <div class="nostr-handle">@artistmike</div>
-                        </div>
-                        <div class="nostr-time">45m</div>
-                    </div>
-                    <div class="nostr-content">
-                        As an independent artist, <span class="mention">@equaliser</span> has been a game changer. No middlemen, just direct connection with fans. Finally a platform that respects creators! <span class="hashtag">#indieartist</span> <span class="hashtag">#musiccommunity</span>
-                    </div>
-                    <div class="nostr-actions">
-                        <div class="nostr-action">
-                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"/></svg>
-                            156
-                        </div>
-                        <div class="nostr-action">
-                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"/></svg>
-                            98
-                        </div>
-                        <div class="nostr-action zap">
-                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/></svg>
-                            <span class="zap-amount">12k sats</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Mock Post 8 -->
-                <div class="nostr-post">
-                    <div class="nostr-post-header">
-                        <div class="nostr-avatar">PL</div>
-                        <div class="nostr-user-info">
-                            <div class="nostr-username">PlaylistPete</div>
-                            <div class="nostr-handle">@playlistpete</div>
-                        </div>
-                        <div class="nostr-time">1h</div>
-                    </div>
-                    <div class="nostr-content">
-                        Just discovered <span class="mention">@langofflowers</span> through <span class="mention">@equaliser</span> and I'm obsessed! Their dreamy sound is exactly what my playlist needed. Support indie artists, people! <span class="hashtag">#newmusicdiscovery</span>
-                    </div>
-                    <div class="nostr-actions">
-                        <div class="nostr-action">
-                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"/></svg>
-                            203
-                        </div>
-                        <div class="nostr-action">
-                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"/></svg>
-                            145
-                        </div>
-                        <div class="nostr-action zap">
-                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/></svg>
-                            <span class="zap-amount">21k sats</span>
-                        </div>
-                    </div>
+                <div class="feed-loading">
+                    <div class="loading-spinner"></div>
+                    <div>Loading feed...</div>
                 </div>
             </div>
         </div>
@@ -1202,7 +1098,16 @@
     <!-- Player Bar -->
     <div class="player-bar">
         <div class="now-playing">
-            <div class="now-playing-cover"></div>
+            <div class="now-playing-cover">
+                        <svg class="eq-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="2" y="12" width="3" height="10" rx="1.5" fill="white"/>
+                            <rect x="7" y="8" width="3" height="16" rx="1.5" fill="white"/>
+                            <rect x="12" y="4" width="3" height="24" rx="1.5" fill="white"/>
+                            <rect x="17" y="6" width="3" height="20" rx="1.5" fill="white"/>
+                            <rect x="22" y="10" width="3" height="14" rx="1.5" fill="white"/>
+                            <rect x="27" y="13" width="3" height="8" rx="1.5" fill="white"/>
+                        </svg>
+                    </div>
             <div class="now-playing-info">
                 <div class="now-playing-title-row">
                     <div class="now-playing-title">Select a track</div>
@@ -1256,6 +1161,7 @@
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7"></script>
     <script src="/js/session.js"></script>
     <script src="/js/sidebar.js"></script>
+    <script src="/js/nostr-social.js"></script>
 
     <script>
         // ===== Configuration =====
@@ -1272,13 +1178,15 @@
         let selectedAlbumIndex = -1;
         const profileCache = new Map();
 
+        // Feed state
+        let feedNotes = [];
+        let feedReactionData = { likes: {}, reposts: {}, userLiked: new Set(), userReposted: new Set() };
+        let currentFeedTab = SessionManager.hasSession() ? 'following' : 'equaliser';
+        const feedCache = { following: null, equaliser: null };
+
         // ===== Helpers =====
 
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+        const escapeHtml = NostrSocial.escapeHtml;
 
         function formatTime(seconds) {
             if (!seconds || isNaN(seconds)) return '0:00';
@@ -1412,6 +1320,238 @@
                     resolve();
                 };
             });
+        }
+
+        // ===== Community Feed =====
+
+        async function loadCommunityFeed(tab) {
+            tab = tab || currentFeedTab;
+            const feedEl = document.getElementById('nostr-feed');
+
+            feedEl.innerHTML = `
+                <div class="feed-loading">
+                    <div class="loading-spinner"></div>
+                    <div>Loading feed...</div>
+                </div>
+            `;
+
+            let filter;
+            let emptyMessage;
+            let clientFilter = null;
+
+            if (tab === 'equaliser') {
+                filter = { kinds: [1], limit: 200 };
+                clientFilter = (note) => note.tags && note.tags.some(t => t[0] === 'app' && t[1] === 'Equaliser');
+                emptyMessage = `
+                    <p>No Equaliser posts yet</p>
+                    <p class="sub">Posts from the Equaliser app will appear here</p>
+                `;
+            } else {
+                const followedPubkeys = await NostrSocial.fetchContactList();
+                if (followedPubkeys.length > 0) {
+                    filter = { kinds: [1], authors: followedPubkeys, limit: 50 };
+                    emptyMessage = `
+                        <p>No posts yet</p>
+                        <p class="sub">People you follow haven't posted yet</p>
+                    `;
+                } else {
+                    const session = SessionManager.getSession();
+                    filter = { kinds: [1], limit: 30 };
+                    emptyMessage = session
+                        ? `<p>Your feed is empty</p><p class="sub">Follow some artists to see their posts here</p>`
+                        : `<p>Log in to see your feed</p><p class="sub">Or switch to Global Feed to see community posts</p>`;
+                }
+            }
+
+            let allNotes = await NostrSocial.fetchNotes(filter);
+
+            if (clientFilter) {
+                allNotes = allNotes.filter(clientFilter);
+            }
+
+            feedCache[tab] = allNotes;
+
+            if (allNotes.length === 0) {
+                feedEl.innerHTML = `
+                    <div class="feed-empty">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"/>
+                        </svg>
+                        ${emptyMessage}
+                    </div>
+                `;
+                return;
+            }
+
+            feedNotes = allNotes;
+
+            const authorPubkeys = [...new Set(allNotes.map(n => n.pubkey))];
+            const feedProfiles = await NostrSocial.fetchProfiles(authorPubkeys);
+
+            renderCommunityFeed(allNotes, feedProfiles);
+
+            feedReactionData = { likes: {}, reposts: {}, userLiked: new Set(), userReposted: new Set() };
+            loadFeedReactions(allNotes.map(n => n.id));
+        }
+
+        function switchFeedTab(tab) {
+            if (tab === currentFeedTab) return;
+            currentFeedTab = tab;
+
+            document.querySelectorAll('.feed-tab').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tab);
+            });
+
+            loadCommunityFeed(tab).catch(err => {
+                console.error('Failed to load feed:', err);
+                const feedEl = document.getElementById('nostr-feed');
+                if (feedEl) {
+                    feedEl.innerHTML = `
+                        <div class="feed-empty">
+                            <p>Could not load feed</p>
+                            <p class="sub"><a href="#" onclick="loadCommunityFeed('${tab}'); return false;">Retry</a></p>
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        function renderCommunityFeed(notes, profiles) {
+            const feedEl = document.getElementById('nostr-feed');
+
+            feedEl.innerHTML = notes.map(note => {
+                const profile = profiles.get(note.pubkey) || {};
+                const name = profile.name || 'Nostr User';
+                const initial = name.charAt(0).toUpperCase();
+                const time = NostrSocial.relativeTime(note.created_at);
+                const content = NostrSocial.linkifyContent(escapeHtml(note.content));
+                const likeCount = feedReactionData.likes[note.id] || 0;
+                const repostCount = feedReactionData.reposts[note.id] || 0;
+                const userLiked = feedReactionData.userLiked.has(note.id);
+                const userReposted = feedReactionData.userReposted.has(note.id);
+
+                let npub = '';
+                try { npub = window.NostrTools.nip19.npubEncode(note.pubkey); } catch (e) {}
+
+                return `
+                    <div class="nostr-post" data-note-id="${note.id}">
+                        <div class="nostr-post-header">
+                            <div class="nostr-avatar">
+                                ${profile.picture
+                                    ? `<img src="${escapeHtml(profile.picture)}" alt="" onerror="this.style.display='none';this.parentElement.textContent='${initial}'">`
+                                    : initial
+                                }
+                            </div>
+                            <div class="nostr-user-info">
+                                <div class="nostr-username">${npub ? `<a href="artist.html?npub=${npub}">${escapeHtml(name)}</a>` : escapeHtml(name)}</div>
+                                <div class="nostr-handle">${npub ? npub.substring(0, 16) + '...' : ''}</div>
+                            </div>
+                            <div class="nostr-time">${time}</div>
+                        </div>
+                        <div class="nostr-content">${content}</div>
+                        <div class="nostr-actions">
+                            <div class="nostr-action like-btn${userLiked ? ' liked' : ''}" onclick="handleFeedLike('${note.id}', '${note.pubkey}')">
+                                <svg width="14" height="14" viewBox="0 0 20 20" fill="${userLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
+                                </svg>
+                                <span class="like-count">${likeCount || ''}</span>
+                            </div>
+                            <div class="nostr-action repost-btn${userReposted ? ' reposted' : ''}" onclick="handleFeedRepost('${note.id}', '${note.pubkey}')">
+                                <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M7 16V4m0 0L3 8m4-4l4 4M13 4v12m0 0l4-4m-4 4l-4-4"/>
+                                </svg>
+                                <span class="repost-count">${repostCount || ''}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ===== Feed Reactions & Interactions =====
+
+        async function loadFeedReactions(noteIds) {
+            if (noteIds.length === 0) return;
+            feedReactionData = await NostrSocial.fetchReactions(noteIds);
+            updateFeedReactionUI();
+        }
+
+        function updateFeedReactionUI() {
+            document.querySelectorAll('#nostr-feed .nostr-post').forEach(post => {
+                const noteId = post.dataset.noteId;
+                if (!noteId) return;
+
+                const likeBtn = post.querySelector('.like-btn');
+                const repostBtn = post.querySelector('.repost-btn');
+
+                if (likeBtn) {
+                    const count = feedReactionData.likes[noteId] || 0;
+                    likeBtn.querySelector('.like-count').textContent = count || '';
+                    const liked = feedReactionData.userLiked.has(noteId);
+                    likeBtn.classList.toggle('liked', liked);
+                    const svg = likeBtn.querySelector('svg');
+                    svg.setAttribute('fill', liked ? 'currentColor' : 'none');
+                }
+
+                if (repostBtn) {
+                    const count = feedReactionData.reposts[noteId] || 0;
+                    repostBtn.querySelector('.repost-count').textContent = count || '';
+                    repostBtn.classList.toggle('reposted', feedReactionData.userReposted.has(noteId));
+                }
+            });
+        }
+
+        async function handleFeedLike(noteId, authorPubkey) {
+            const session = SessionManager.getSession();
+            if (!session) {
+                window.location.href = `/login.html?return=${encodeURIComponent(window.location.href)}`;
+                return;
+            }
+            if (feedReactionData.userLiked.has(noteId)) return;
+
+            try {
+                const event = {
+                    kind: 7,
+                    created_at: Math.floor(Date.now() / 1000),
+                    tags: [['e', noteId], ['p', authorPubkey]],
+                    content: '+'
+                };
+                const signedEvent = await SessionManager.signEvent(event);
+                await NostrSocial.publishEvent(signedEvent);
+
+                feedReactionData.likes[noteId] = (feedReactionData.likes[noteId] || 0) + 1;
+                feedReactionData.userLiked.add(noteId);
+                updateFeedReactionUI();
+            } catch (error) {
+                console.error('Like failed:', error);
+            }
+        }
+
+        async function handleFeedRepost(noteId, authorPubkey) {
+            const session = SessionManager.getSession();
+            if (!session) {
+                window.location.href = `/login.html?return=${encodeURIComponent(window.location.href)}`;
+                return;
+            }
+            if (feedReactionData.userReposted.has(noteId)) return;
+
+            try {
+                const originalNote = feedNotes.find(n => n.id === noteId);
+                const event = {
+                    kind: 6,
+                    created_at: Math.floor(Date.now() / 1000),
+                    tags: [['e', noteId, NostrSocial.DEFAULT_RELAYS[0]], ['p', authorPubkey]],
+                    content: originalNote ? JSON.stringify(originalNote) : ''
+                };
+                const signedEvent = await SessionManager.signEvent(event);
+                await NostrSocial.publishEvent(signedEvent);
+
+                feedReactionData.reposts[noteId] = (feedReactionData.reposts[noteId] || 0) + 1;
+                feedReactionData.userReposted.add(noteId);
+                updateFeedReactionUI();
+            } catch (error) {
+                console.error('Repost failed:', error);
+            }
         }
 
         // ===== Album Grouping =====
@@ -1688,8 +1828,6 @@
             const coverEl = document.querySelector('.now-playing-cover');
             if (coverUrl) {
                 coverEl.innerHTML = `<img src="${coverUrl}" alt="${escapeHtml(track.title)}">`;
-            } else {
-                coverEl.innerHTML = '';
             }
 
             // Update playing state in track list
@@ -1811,6 +1949,33 @@
                     </div>
                 `;
             }
+
+            // Render feed tabs based on login state
+            const feedTabsEl = document.getElementById('feed-tabs');
+            if (SessionManager.hasSession()) {
+                feedTabsEl.innerHTML = `
+                    <button class="feed-tab active" data-tab="following" onclick="switchFeedTab('following')">Your Feed</button>
+                    <button class="feed-tab" data-tab="equaliser" onclick="switchFeedTab('equaliser')">Global Feed</button>
+                `;
+            } else {
+                feedTabsEl.innerHTML = `
+                    <button class="feed-tab active" data-tab="equaliser">Global Feed</button>
+                `;
+            }
+
+            // Load community feed (non-blocking — don't await)
+            loadCommunityFeed().catch(err => {
+                console.error('Failed to load community feed:', err);
+                const feedEl = document.getElementById('nostr-feed');
+                if (feedEl) {
+                    feedEl.innerHTML = `
+                        <div class="feed-empty">
+                            <p>Could not load feed</p>
+                            <p class="sub"><a href="#" onclick="loadCommunityFeed(); return false;">Retry</a></p>
+                        </div>
+                    `;
+                }
+            });
         }
 
         // ===== Event Listeners =====

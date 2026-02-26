@@ -817,21 +817,11 @@
     <script src="https://unpkg.com/nostr-tools@2.1.4/lib/nostr.bundle.js"></script>
     <script src="/js/session.js"></script>
     <script src="/js/sidebar.js"></script>
+    <script src="/js/nostr-social.js"></script>
 
     <script>
-        // Configuration
-        const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-
-        // Relay configuration
-        const LOCAL_RELAY = 'ws://' + window.location.host + '/relay';
-        const PUBLIC_RELAYS = [
-            'wss://relay.damus.io',
-            'wss://nos.lol',
-            'wss://relay.nostr.band'
-        ];
-
-        // Use local relay for development, public relays for production
-        const DEFAULT_RELAYS = isLocalDev ? [LOCAL_RELAY] : PUBLIC_RELAYS;
+        // Configuration — use shared relay list from NostrSocial
+        const DEFAULT_RELAYS = NostrSocial.DEFAULT_RELAYS;
 
         // State
         let artistProfile = null;
@@ -1192,12 +1182,7 @@
             }
         }
 
-        // Escape HTML to prevent XSS
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+        const escapeHtml = NostrSocial.escapeHtml;
 
         // ==================== Discography ====================
 
@@ -1461,44 +1446,6 @@
 
         // ==================== Feed ====================
 
-        function fetchArtistNotes(relayUrl, pubkeyHex) {
-            return new Promise((resolve) => {
-                const ws = new WebSocket(relayUrl);
-                const notes = [];
-
-                const timeout = setTimeout(() => {
-                    ws.close();
-                    resolve(notes);
-                }, 8000);
-
-                ws.onopen = () => {
-                    const subId = 'feed-' + Date.now();
-                    ws.send(JSON.stringify(['REQ', subId, {
-                        kinds: [1],
-                        authors: [pubkeyHex],
-                        limit: 50
-                    }]));
-                };
-
-                ws.onmessage = (e) => {
-                    const data = JSON.parse(e.data);
-                    if (data[0] === 'EVENT') {
-                        notes.push(data[2]);
-                    }
-                    if (data[0] === 'EOSE') {
-                        clearTimeout(timeout);
-                        ws.close();
-                        resolve(notes);
-                    }
-                };
-
-                ws.onerror = () => {
-                    clearTimeout(timeout);
-                    resolve(notes);
-                };
-            });
-        }
-
         // Feed state
         let feedNotes = []; // Raw note events for repost content
         let reactionData = { likes: {}, reposts: {}, userLiked: new Set(), userReposted: new Set() };
@@ -1507,23 +1454,7 @@
             const container = document.getElementById('feed-content');
             if (!container) return;
 
-            const allResults = await Promise.all(
-                DEFAULT_RELAYS.map(relay => fetchArtistNotes(relay, pubkeyHex))
-            );
-
-            // Deduplicate by event id and sort newest first
-            const seen = new Set();
-            const allNotes = [];
-            for (const notes of allResults) {
-                for (const note of notes) {
-                    if (!seen.has(note.id)) {
-                        seen.add(note.id);
-                        allNotes.push(note);
-                    }
-                }
-            }
-
-            allNotes.sort((a, b) => b.created_at - a.created_at);
+            const allNotes = await NostrSocial.fetchNotes({ kinds: [1], authors: [pubkeyHex], limit: 50 });
 
             if (allNotes.length === 0) {
                 container.innerHTML = `
@@ -1554,8 +1485,8 @@
 
             container.innerHTML = `<div class="feed-items">
                 ${notes.map(note => {
-                    const content = linkifyContent(escapeHtml(note.content));
-                    const time = relativeTime(note.created_at);
+                    const content = NostrSocial.linkifyContent(escapeHtml(note.content));
+                    const time = NostrSocial.relativeTime(note.created_at);
                     const likeCount = reactionData.likes[note.id] || 0;
                     const repostCount = reactionData.reposts[note.id] || 0;
                     const userLiked = reactionData.userLiked.has(note.id);
@@ -1594,89 +1525,9 @@
             </div>`;
         }
 
-        // Fetch Kind 7 (reactions) and Kind 6 (reposts) for a batch of note IDs
-        function fetchReactionsFromRelay(relayUrl, noteIds) {
-            return new Promise((resolve) => {
-                const ws = new WebSocket(relayUrl);
-                const events = [];
-
-                const timeout = setTimeout(() => {
-                    ws.close();
-                    resolve(events);
-                }, 6000);
-
-                ws.onopen = () => {
-                    const subId = 'reactions-' + Date.now();
-                    ws.send(JSON.stringify(['REQ', subId, {
-                        kinds: [7, 6],
-                        '#e': noteIds,
-                        limit: 500
-                    }]));
-                };
-
-                ws.onmessage = (e) => {
-                    const data = JSON.parse(e.data);
-                    if (data[0] === 'EVENT') {
-                        events.push(data[2]);
-                    }
-                    if (data[0] === 'EOSE') {
-                        clearTimeout(timeout);
-                        ws.close();
-                        resolve(events);
-                    }
-                };
-
-                ws.onerror = () => {
-                    clearTimeout(timeout);
-                    resolve(events);
-                };
-            });
-        }
-
         async function loadReactions(noteIds) {
             if (noteIds.length === 0) return;
-
-            const allResults = await Promise.all(
-                DEFAULT_RELAYS.map(relay => fetchReactionsFromRelay(relay, noteIds))
-            );
-
-            // Deduplicate
-            const seen = new Set();
-            const allEvents = [];
-            for (const events of allResults) {
-                for (const ev of events) {
-                    if (!seen.has(ev.id)) {
-                        seen.add(ev.id);
-                        allEvents.push(ev);
-                    }
-                }
-            }
-
-            // Count likes and reposts per note
-            const likes = {};
-            const reposts = {};
-            const session = SessionManager.getSession();
-            const userPubkey = session ? session.publicKey : null;
-            const userLiked = new Set();
-            const userReposted = new Set();
-
-            allEvents.forEach(ev => {
-                const eTag = ev.tags.find(t => t[0] === 'e');
-                if (!eTag) return;
-                const noteId = eTag[1];
-
-                if (ev.kind === 7 && ev.content !== '-') {
-                    likes[noteId] = (likes[noteId] || 0) + 1;
-                    if (ev.pubkey === userPubkey) userLiked.add(noteId);
-                } else if (ev.kind === 6) {
-                    reposts[noteId] = (reposts[noteId] || 0) + 1;
-                    if (ev.pubkey === userPubkey) userReposted.add(noteId);
-                }
-            });
-
-            reactionData = { likes, reposts, userLiked, userReposted };
-
-            // Update the UI with counts
+            reactionData = await NostrSocial.fetchReactions(noteIds);
             updateReactionUI();
         }
 
@@ -1728,9 +1579,8 @@
                 };
 
                 const signedEvent = await SessionManager.signEvent(event);
-                await publishToRelays(signedEvent);
+                await NostrSocial.publishEvent(signedEvent);
 
-                // Update local state immediately
                 reactionData.likes[noteId] = (reactionData.likes[noteId] || 0) + 1;
                 reactionData.userLiked.add(noteId);
                 updateReactionUI();
@@ -1747,55 +1597,26 @@
                 return;
             }
 
-            // Already reposted — do nothing
             if (reactionData.userReposted.has(noteId)) return;
 
             try {
-                // Find the original note for the content field
                 const originalNote = feedNotes.find(n => n.id === noteId);
-
                 const event = {
                     kind: 6,
                     created_at: Math.floor(Date.now() / 1000),
-                    tags: [
-                        ['e', noteId, DEFAULT_RELAYS[0]],
-                        ['p', authorPubkey]
-                    ],
+                    tags: [['e', noteId, DEFAULT_RELAYS[0]], ['p', authorPubkey]],
                     content: originalNote ? JSON.stringify(originalNote) : ''
                 };
 
                 const signedEvent = await SessionManager.signEvent(event);
-                await publishToRelays(signedEvent);
+                await NostrSocial.publishEvent(signedEvent);
 
-                // Update local state immediately
                 reactionData.reposts[noteId] = (reactionData.reposts[noteId] || 0) + 1;
                 reactionData.userReposted.add(noteId);
                 updateReactionUI();
             } catch (error) {
                 console.error('Repost failed:', error);
             }
-        }
-
-        function relativeTime(unixTimestamp) {
-            const now = Math.floor(Date.now() / 1000);
-            const diff = now - unixTimestamp;
-
-            if (diff < 60) return 'just now';
-            if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-            if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-            if (diff < 604800) return `${Math.floor(diff / 86400)}d`;
-            if (diff < 2592000) return `${Math.floor(diff / 604800)}w`;
-
-            const date = new Date(unixTimestamp * 1000);
-            return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-        }
-
-        function linkifyContent(text) {
-            // Convert URLs to clickable links
-            return text.replace(
-                /(https?:\/\/[^\s<]+)/g,
-                '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
-            );
         }
 
         // ==================== Follow System ====================
@@ -1835,55 +1656,12 @@
             if (btn) btn.disabled = false;
         }
 
-        // Fetch contact list (Kind 3) from relays
-        function fetchContactListFromRelay(relayUrl, pubkeyHex) {
-            return new Promise((resolve) => {
-                const ws = new WebSocket(relayUrl);
-
-                const timeout = setTimeout(() => {
-                    ws.close();
-                    resolve(null);
-                }, 5000);
-
-                ws.onopen = () => {
-                    const subId = 'contacts-' + Date.now();
-                    ws.send(JSON.stringify(['REQ', subId, {
-                        kinds: [3],
-                        authors: [pubkeyHex],
-                        limit: 1
-                    }]));
-                };
-
-                ws.onmessage = (e) => {
-                    const data = JSON.parse(e.data);
-                    if (data[0] === 'EVENT') {
-                        const event = data[2];
-                        resolve({ tags: event.tags || [], content: event.content || '' });
-                    }
-                    if (data[0] === 'EOSE') {
-                        clearTimeout(timeout);
-                        ws.close();
-                        // If we got here without an EVENT, resolve empty
-                        resolve(null);
-                    }
-                };
-
-                ws.onerror = () => {
-                    clearTimeout(timeout);
-                    resolve(null);
-                };
-            });
-        }
-
+        // Fetch contact list as raw event (needed for follow toggle to preserve tags/content)
         async function fetchContactList(pubkeyHex) {
-            const results = await Promise.all(
-                DEFAULT_RELAYS.map(relay => fetchContactListFromRelay(relay, pubkeyHex))
-            );
-
-            for (const result of results) {
-                if (result) return result;
+            const events = await NostrSocial.fetchNotes({ kinds: [3], authors: [pubkeyHex], limit: 1 });
+            if (events.length > 0) {
+                return { tags: events[0].tags || [], content: events[0].content || '' };
             }
-
             return { tags: [], content: '' };
         }
 
@@ -1916,9 +1694,7 @@
                 };
 
                 const signedEvent = await SessionManager.signEvent(event);
-
-                // Publish to all relays
-                await publishToRelays(signedEvent);
+                await NostrSocial.publishEvent(signedEvent);
 
                 isFollowing = !isFollowing;
                 updateFollowButton();
@@ -1927,46 +1703,6 @@
                 alert('Failed to update follow: ' + error.message);
             } finally {
                 if (btn) btn.disabled = false;
-            }
-        }
-
-        // Publish event to relay
-        function publishToSingleRelay(relayUrl, event) {
-            return new Promise((resolve) => {
-                const ws = new WebSocket(relayUrl);
-
-                const timeout = setTimeout(() => {
-                    ws.close();
-                    resolve(false);
-                }, 5000);
-
-                ws.onopen = () => {
-                    ws.send(JSON.stringify(['EVENT', event]));
-                };
-
-                ws.onmessage = (e) => {
-                    const data = JSON.parse(e.data);
-                    if (data[0] === 'OK') {
-                        clearTimeout(timeout);
-                        ws.close();
-                        resolve(data[2] === true);
-                    }
-                };
-
-                ws.onerror = () => {
-                    clearTimeout(timeout);
-                    resolve(false);
-                };
-            });
-        }
-
-        async function publishToRelays(event) {
-            const results = await Promise.all(
-                DEFAULT_RELAYS.map(relay => publishToSingleRelay(relay, event))
-            );
-
-            if (!results.some(r => r)) {
-                throw new Error('Failed to publish to any relay');
             }
         }
 
