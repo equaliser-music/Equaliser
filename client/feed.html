@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feed - Equaliser</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            justify-content: center;
+        }
+
+        .feed-column {
+            width: 100%;
+            max-width: 640px;
+            padding: 0;
+        }
+
+        /* Page Header */
+        .feed-page-header {
+            padding: 24px 20px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .feed-page-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        /* Tabs */
+        .feed-tabs {
+            display: flex;
+            gap: 0;
+        }
+
+        .feed-tab {
+            flex: 1;
+            padding: 12px 0;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .feed-tab:hover {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .feed-tab.active {
+            color: #a855f7;
+            border-bottom-color: #a855f7;
+        }
+
+        /* Composer */
+        .composer {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .composer-inner {
+            display: flex;
+            gap: 12px;
+        }
+
+        .composer-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 600;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .composer-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .composer-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .composer textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 15px;
+            font-family: inherit;
+            line-height: 1.5;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .composer textarea::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .composer textarea:focus {
+            border-color: rgba(168, 85, 247, 0.4);
+        }
+
+        .composer-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .char-count {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .char-count.warn {
+            color: #fbbf24;
+        }
+
+        .char-count.over {
+            color: #ef4444;
+        }
+
+        .post-btn {
+            padding: 8px 24px;
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            border: none;
+            border-radius: 20px;
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .post-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
+        }
+
+        .post-btn:disabled {
+            opacity: 0.4;
+            cursor: default;
+        }
+
+        .composer-login {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+        }
+
+        .composer-login a {
+            color: #a855f7;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .composer-login a:hover {
+            text-decoration: underline;
+        }
+
+        /* Feed */
+        .feed-list {
+            padding: 0;
+        }
+
+        .feed-post {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: background 0.2s;
+        }
+
+        .feed-post:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .feed-post-inner {
+            display: flex;
+            gap: 12px;
+        }
+
+        .feed-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 600;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .feed-avatar a {
+            display: contents;
+        }
+
+        .feed-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .feed-post-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .feed-post-header {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 4px;
+            flex-wrap: wrap;
+        }
+
+        .feed-display-name {
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .feed-display-name a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .feed-display-name a:hover {
+            color: #a855f7;
+        }
+
+        .feed-handle {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .feed-time {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-left: auto;
+        }
+
+        .feed-content {
+            font-size: 15px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 12px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .feed-content a {
+            color: #60a5fa;
+            text-decoration: none;
+        }
+
+        .feed-content a:hover {
+            text-decoration: underline;
+        }
+
+        .feed-actions {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin-left: -6px;
+        }
+
+        .feed-action {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 20px;
+            transition: all 0.2s;
+        }
+
+        .feed-action:hover {
+            color: rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .feed-action svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .feed-action.like-btn.liked {
+            color: #ef4444;
+        }
+
+        .feed-action.like-btn.liked svg {
+            color: #ef4444;
+        }
+
+        .feed-action.repost-btn.reposted {
+            color: #22c55e;
+        }
+
+        .feed-action.repost-btn.reposted svg {
+            color: #22c55e;
+        }
+
+        /* Loading & Empty */
+        .feed-loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            border: 3px solid rgba(139, 92, 246, 0.3);
+            border-top-color: #a855f7;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .feed-empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .feed-empty svg {
+            width: 40px;
+            height: 40px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        .feed-empty p {
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+
+        .feed-empty .sub {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .feed-empty a {
+            color: #a855f7;
+            text-decoration: none;
+        }
+
+        .feed-empty a:hover {
+            text-decoration: underline;
+        }
+
+        .post-success {
+            color: #22c55e;
+            font-size: 13px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .post-success.show {
+            opacity: 1;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .feed-column {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar injected by ClientSidebar.init() -->
+        <div class="sidebar"></div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="feed-column">
+                <!-- Page Header + Tabs -->
+                <div class="feed-page-header">
+                    <h1 class="feed-page-title">Feed</h1>
+                    <div class="feed-tabs" id="feed-tabs"></div>
+                </div>
+
+                <!-- Composer (logged in) -->
+                <div class="composer" id="composer" style="display: none;">
+                    <div class="composer-inner">
+                        <div class="composer-avatar" id="composer-avatar">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <div class="composer-body">
+                            <textarea id="compose-text" placeholder="What's on your mind?" maxlength="1000"></textarea>
+                            <div class="composer-footer">
+                                <div>
+                                    <span class="char-count" id="char-count">0 / 1000</span>
+                                    <span class="post-success" id="post-success">Posted!</span>
+                                </div>
+                                <button class="post-btn" id="post-btn" disabled>Post</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Composer (guest) -->
+                <div class="composer-login" id="composer-guest" style="display: none;">
+                    <a href="/login.html?return=/feed.html">Log in</a> to post notes and interact with the community
+                </div>
+
+                <!-- Feed -->
+                <div class="feed-list" id="feed-list">
+                    <div class="feed-loading">
+                        <div class="loading-spinner"></div>
+                        <div>Loading feed...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dependencies -->
+    <script src="https://unpkg.com/nostr-tools@2.1.4/lib/nostr.bundle.js"></script>
+    <script src="/js/session.js"></script>
+    <script src="/js/sidebar.js"></script>
+    <script src="/js/nostr-social.js"></script>
+
+    <script>
+        // ===== State =====
+        let feedNotes = [];
+        let feedReactionData = { likes: {}, reposts: {}, userLiked: new Set(), userReposted: new Set() };
+        let currentTab = SessionManager.hasSession() ? 'following' : 'equaliser';
+        let feedProfiles = new Map();
+        let isPosting = false;
+
+        const escapeHtml = NostrSocial.escapeHtml;
+
+        // ===== Composer =====
+
+        function initComposer() {
+            const session = SessionManager.getSession();
+            if (session) {
+                document.getElementById('composer').style.display = 'block';
+                document.getElementById('composer-guest').style.display = 'none';
+
+                // Fetch profile for avatar
+                NostrSocial.fetchProfiles([session.publicKey]).then(profiles => {
+                    const p = profiles.get(session.publicKey);
+                    if (p && p.picture) {
+                        const el = document.getElementById('composer-avatar');
+                        el.innerHTML = `<img src="${escapeHtml(p.picture)}" alt="" onerror="this.style.display='none'">`;
+                    } else if (p && p.name) {
+                        const initials = p.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+                        document.getElementById('composer-avatar').textContent = initials;
+                    }
+                });
+            } else {
+                document.getElementById('composer').style.display = 'none';
+                document.getElementById('composer-guest').style.display = 'block';
+            }
+        }
+
+        function setupComposerEvents() {
+            const textarea = document.getElementById('compose-text');
+            const charCount = document.getElementById('char-count');
+            const postBtn = document.getElementById('post-btn');
+
+            textarea.addEventListener('input', () => {
+                const len = textarea.value.length;
+                charCount.textContent = `${len} / 1000`;
+                charCount.className = 'char-count' + (len > 900 ? (len > 1000 ? ' over' : ' warn') : '');
+                postBtn.disabled = len === 0 || len > 1000 || isPosting;
+            });
+
+            postBtn.addEventListener('click', submitPost);
+
+            // Ctrl/Cmd+Enter to post
+            textarea.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    if (!postBtn.disabled) submitPost();
+                }
+            });
+        }
+
+        async function submitPost() {
+            const textarea = document.getElementById('compose-text');
+            const postBtn = document.getElementById('post-btn');
+            const content = textarea.value.trim();
+            if (!content || isPosting) return;
+
+            const session = SessionManager.getSession();
+            if (!session) return;
+
+            isPosting = true;
+            postBtn.disabled = true;
+            postBtn.textContent = 'Posting...';
+
+            try {
+                const event = {
+                    kind: 1,
+                    created_at: Math.floor(Date.now() / 1000),
+                    tags: [['app', 'Equaliser']],
+                    content: content
+                };
+
+                const signedEvent = await SessionManager.signEvent(event);
+                await NostrSocial.publishEvent(signedEvent);
+
+                // Clear composer
+                textarea.value = '';
+                document.getElementById('char-count').textContent = '0 / 1000';
+                document.getElementById('char-count').className = 'char-count';
+
+                // Show success flash
+                const successEl = document.getElementById('post-success');
+                successEl.classList.add('show');
+                setTimeout(() => successEl.classList.remove('show'), 2000);
+
+                // Prepend new note to the feed
+                feedNotes.unshift(signedEvent);
+
+                // Fetch our profile if not cached
+                if (!feedProfiles.has(signedEvent.pubkey)) {
+                    const profiles = await NostrSocial.fetchProfiles([signedEvent.pubkey]);
+                    profiles.forEach((v, k) => feedProfiles.set(k, v));
+                }
+
+                renderFeed();
+
+            } catch (error) {
+                console.error('Post failed:', error);
+                alert('Failed to post. Please try again.');
+            } finally {
+                isPosting = false;
+                postBtn.disabled = textarea.value.trim().length === 0;
+                postBtn.textContent = 'Post';
+            }
+        }
+
+        // ===== Feed Loading =====
+
+        async function loadFeed(tab) {
+            tab = tab || currentTab;
+            const feedEl = document.getElementById('feed-list');
+
+            feedEl.innerHTML = `
+                <div class="feed-loading">
+                    <div class="loading-spinner"></div>
+                    <div>Loading feed...</div>
+                </div>
+            `;
+
+            let filter;
+            let emptyMessage;
+            let clientFilter = null;
+
+            if (tab === 'equaliser') {
+                filter = { kinds: [1], limit: 200 };
+                clientFilter = (note) => note.tags && note.tags.some(t => t[0] === 'app' && t[1] === 'Equaliser');
+                emptyMessage = `
+                    <p>No Equaliser posts yet</p>
+                    <p class="sub">Posts from the Equaliser community will appear here</p>
+                `;
+            } else {
+                const followedPubkeys = await NostrSocial.fetchContactList();
+                if (followedPubkeys.length > 0) {
+                    filter = { kinds: [1], authors: followedPubkeys, limit: 50 };
+                    emptyMessage = `
+                        <p>No posts yet</p>
+                        <p class="sub">People you follow haven't posted yet</p>
+                    `;
+                } else {
+                    const session = SessionManager.getSession();
+                    filter = { kinds: [1], limit: 30 };
+                    emptyMessage = session
+                        ? `<p>Your feed is empty</p><p class="sub">Follow some artists to see their posts here</p>`
+                        : `<p>Log in to see your feed</p><p class="sub">Or switch to Global Feed to see community posts</p>`;
+                }
+            }
+
+            let allNotes = await NostrSocial.fetchNotes(filter);
+
+            if (clientFilter) {
+                allNotes = allNotes.filter(clientFilter);
+            }
+
+            if (allNotes.length === 0) {
+                feedEl.innerHTML = `
+                    <div class="feed-empty">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"/>
+                        </svg>
+                        ${emptyMessage}
+                    </div>
+                `;
+                feedNotes = [];
+                return;
+            }
+
+            feedNotes = allNotes;
+
+            // Fetch profiles
+            const authorPubkeys = [...new Set(allNotes.map(n => n.pubkey))];
+            feedProfiles = await NostrSocial.fetchProfiles(authorPubkeys);
+
+            renderFeed();
+
+            // Load reactions non-blocking
+            feedReactionData = { likes: {}, reposts: {}, userLiked: new Set(), userReposted: new Set() };
+            loadReactions(allNotes.map(n => n.id));
+        }
+
+        function switchTab(tab) {
+            if (tab === currentTab) return;
+            currentTab = tab;
+
+            document.querySelectorAll('.feed-tab').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tab);
+            });
+
+            loadFeed(tab).catch(err => {
+                console.error('Failed to load feed:', err);
+                document.getElementById('feed-list').innerHTML = `
+                    <div class="feed-empty">
+                        <p>Could not load feed</p>
+                        <p class="sub"><a href="#" onclick="loadFeed('${tab}'); return false;">Retry</a></p>
+                    </div>
+                `;
+            });
+        }
+
+        // ===== Feed Rendering =====
+
+        function renderFeed() {
+            const feedEl = document.getElementById('feed-list');
+
+            feedEl.innerHTML = feedNotes.map(note => {
+                const profile = feedProfiles.get(note.pubkey) || {};
+                const name = profile.name || 'Nostr User';
+                const initial = name.charAt(0).toUpperCase();
+                const time = NostrSocial.relativeTime(note.created_at);
+                const content = NostrSocial.linkifyContent(escapeHtml(note.content));
+                const likeCount = feedReactionData.likes[note.id] || 0;
+                const repostCount = feedReactionData.reposts[note.id] || 0;
+                const userLiked = feedReactionData.userLiked.has(note.id);
+                const userReposted = feedReactionData.userReposted.has(note.id);
+
+                let npub = '';
+                try { npub = window.NostrTools.nip19.npubEncode(note.pubkey); } catch (e) {}
+
+                const avatarLink = npub ? `<a href="artist.html?npub=${npub}">` : '';
+                const avatarLinkEnd = npub ? '</a>' : '';
+
+                return `
+                    <div class="feed-post" data-note-id="${note.id}">
+                        <div class="feed-post-inner">
+                            <div class="feed-avatar">
+                                ${avatarLink}
+                                ${profile.picture
+                                    ? `<img src="${escapeHtml(profile.picture)}" alt="" onerror="this.style.display='none';this.parentElement.textContent='${initial}'">`
+                                    : initial
+                                }
+                                ${avatarLinkEnd}
+                            </div>
+                            <div class="feed-post-body">
+                                <div class="feed-post-header">
+                                    <span class="feed-display-name">${npub ? `<a href="artist.html?npub=${npub}">${escapeHtml(name)}</a>` : escapeHtml(name)}</span>
+                                    <span class="feed-handle">${npub ? npub.substring(0, 16) + '...' : ''}</span>
+                                    <span class="feed-time">${time}</span>
+                                </div>
+                                <div class="feed-content">${content}</div>
+                                <div class="feed-actions">
+                                    <div class="feed-action like-btn${userLiked ? ' liked' : ''}" onclick="handleLike('${note.id}', '${note.pubkey}')">
+                                        <svg viewBox="0 0 20 20" fill="${userLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.5">
+                                            <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
+                                        </svg>
+                                        <span class="like-count">${likeCount || ''}</span>
+                                    </div>
+                                    <div class="feed-action repost-btn${userReposted ? ' reposted' : ''}" onclick="handleRepost('${note.id}', '${note.pubkey}')">
+                                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <path d="M7 16V4m0 0L3 8m4-4l4 4M13 4v12m0 0l4-4m-4 4l-4-4"/>
+                                        </svg>
+                                        <span class="repost-count">${repostCount || ''}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ===== Reactions =====
+
+        async function loadReactions(noteIds) {
+            if (noteIds.length === 0) return;
+            feedReactionData = await NostrSocial.fetchReactions(noteIds);
+            updateReactionUI();
+        }
+
+        function updateReactionUI() {
+            document.querySelectorAll('#feed-list .feed-post').forEach(post => {
+                const noteId = post.dataset.noteId;
+                if (!noteId) return;
+
+                const likeBtn = post.querySelector('.like-btn');
+                const repostBtn = post.querySelector('.repost-btn');
+
+                if (likeBtn) {
+                    const count = feedReactionData.likes[noteId] || 0;
+                    likeBtn.querySelector('.like-count').textContent = count || '';
+                    const liked = feedReactionData.userLiked.has(noteId);
+                    likeBtn.classList.toggle('liked', liked);
+                    likeBtn.querySelector('svg').setAttribute('fill', liked ? 'currentColor' : 'none');
+                }
+
+                if (repostBtn) {
+                    const count = feedReactionData.reposts[noteId] || 0;
+                    repostBtn.querySelector('.repost-count').textContent = count || '';
+                    repostBtn.classList.toggle('reposted', feedReactionData.userReposted.has(noteId));
+                }
+            });
+        }
+
+        async function handleLike(noteId, authorPubkey) {
+            const session = SessionManager.getSession();
+            if (!session) {
+                window.location.href = `/login.html?return=${encodeURIComponent(window.location.href)}`;
+                return;
+            }
+            if (feedReactionData.userLiked.has(noteId)) return;
+
+            try {
+                const event = {
+                    kind: 7,
+                    created_at: Math.floor(Date.now() / 1000),
+                    tags: [['e', noteId], ['p', authorPubkey]],
+                    content: '+'
+                };
+                const signedEvent = await SessionManager.signEvent(event);
+                await NostrSocial.publishEvent(signedEvent);
+
+                feedReactionData.likes[noteId] = (feedReactionData.likes[noteId] || 0) + 1;
+                feedReactionData.userLiked.add(noteId);
+                updateReactionUI();
+            } catch (error) {
+                console.error('Like failed:', error);
+            }
+        }
+
+        async function handleRepost(noteId, authorPubkey) {
+            const session = SessionManager.getSession();
+            if (!session) {
+                window.location.href = `/login.html?return=${encodeURIComponent(window.location.href)}`;
+                return;
+            }
+            if (feedReactionData.userReposted.has(noteId)) return;
+
+            try {
+                const originalNote = feedNotes.find(n => n.id === noteId);
+                const event = {
+                    kind: 6,
+                    created_at: Math.floor(Date.now() / 1000),
+                    tags: [['e', noteId, NostrSocial.DEFAULT_RELAYS[0]], ['p', authorPubkey]],
+                    content: originalNote ? JSON.stringify(originalNote) : ''
+                };
+                const signedEvent = await SessionManager.signEvent(event);
+                await NostrSocial.publishEvent(signedEvent);
+
+                feedReactionData.reposts[noteId] = (feedReactionData.reposts[noteId] || 0) + 1;
+                feedReactionData.userReposted.add(noteId);
+                updateReactionUI();
+            } catch (error) {
+                console.error('Repost failed:', error);
+            }
+        }
+
+        // ===== Init =====
+
+        SessionManager.init();
+        ClientSidebar.init();
+        initComposer();
+        setupComposerEvents();
+
+        // Render feed tabs based on login state
+        const feedTabsEl = document.getElementById('feed-tabs');
+        if (SessionManager.hasSession()) {
+            feedTabsEl.innerHTML = `
+                <button class="feed-tab active" data-tab="following" onclick="switchTab('following')">Your Feed</button>
+                <button class="feed-tab" data-tab="equaliser" onclick="switchTab('equaliser')">Global Feed</button>
+            `;
+        } else {
+            feedTabsEl.innerHTML = `
+                <button class="feed-tab active" data-tab="equaliser">Global Feed</button>
+            `;
+        }
+
+        loadFeed().catch(err => {
+            console.error('Failed to load feed:', err);
+            document.getElementById('feed-list').innerHTML = `
+                <div class="feed-empty">
+                    <p>Could not load feed</p>
+                    <p class="sub"><a href="#" onclick="loadFeed(); return false;">Retry</a></p>
+                </div>
+            `;
+        });
+    </script>
+</body>
+</html>

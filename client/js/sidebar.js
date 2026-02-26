@@ -153,6 +153,12 @@ const ClientSidebar = {
                     </svg>
                     <span>Home</span>
                 </a>
+                <a href="/feed.html" class="nav-item ${currentPage === 'feed' ? 'active' : ''}">
+                    <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"/>
+                    </svg>
+                    <span>Feed</span>
+                </a>
                 <a href="#" class="nav-item disabled">
                     <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
@@ -268,7 +274,7 @@ const ClientSidebar = {
                 border-right: 1px solid rgba(255, 255, 255, 0.05);
                 display: flex;
                 flex-direction: column;
-                padding: 24px 16px 100px;
+                padding: 24px 16px 24px;
                 position: fixed;
                 height: 100vh;
                 overflow-y: auto;
@@ -434,10 +440,11 @@ const ClientSidebar = {
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                padding: 12px;
-                background: linear-gradient(135deg, #8b5cf6, #a855f7);
+                padding: 11px;
+                background: rgba(255, 255, 255, 0.06);
+                border: 1px solid rgba(255, 255, 255, 0.12);
                 border-radius: 10px;
-                color: #ffffff;
+                color: rgba(255, 255, 255, 0.85);
                 font-weight: 600;
                 font-size: 14px;
                 text-decoration: none;
@@ -445,8 +452,9 @@ const ClientSidebar = {
             }
 
             .sidebar .sidebar-signup-btn:hover {
-                transform: translateY(-1px);
-                box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
+                background: rgba(255, 255, 255, 0.1);
+                border-color: rgba(255, 255, 255, 0.2);
+                color: #ffffff;
             }
 
             .sidebar .sidebar-login-link {
@@ -454,14 +462,14 @@ const ClientSidebar = {
                 align-items: center;
                 justify-content: center;
                 padding: 10px;
-                color: rgba(255, 255, 255, 0.6);
+                color: rgba(255, 255, 255, 0.45);
                 font-size: 13px;
                 text-decoration: none;
                 transition: color 0.2s;
             }
 
             .sidebar .sidebar-login-link:hover {
-                color: #a855f7;
+                color: rgba(255, 255, 255, 0.8);
             }
 
             .sidebar .logout-btn {
