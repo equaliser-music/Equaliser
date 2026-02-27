@@ -8,15 +8,9 @@
  */
 const NostrSocial = (() => {
     // Relay configuration
-    const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname);
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const LOCAL_RELAY = `${wsProtocol}//${window.location.host}/relay`;
-    const PUBLIC_RELAYS = [
-        'wss://relay.damus.io',
-        'wss://nos.lol',
-        'wss://relay.nostr.band'
-    ];
-    const DEFAULT_RELAYS = isLocalDev ? [LOCAL_RELAY] : PUBLIC_RELAYS;
+    const DEFAULT_RELAYS = [LOCAL_RELAY];
 
     // ===== Utilities =====
 
