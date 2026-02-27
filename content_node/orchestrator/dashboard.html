@@ -597,7 +597,7 @@
 
     <script>
         // Local relay URL
-        const localRelayUrl = `ws://${window.location.host}/relay`;
+        const localRelayUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/relay`;
         const localIpfsGateway = `${window.location.origin}/ipfs/`;
 
         // Initialize on page load
