@@ -641,7 +641,7 @@
         let bannerCID = null;
 
         // Configuration
-        const localRelayUrl = 'ws://' + window.location.host + '/relay';
+        const localRelayUrl = (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/relay';
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {

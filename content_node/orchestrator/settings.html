@@ -886,7 +886,7 @@
         let userRelays = [];
 
         // Configuration
-        const localRelayUrl = 'ws://' + window.location.host + '/relay';
+        const localRelayUrl = (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/relay';
 
         // Relay list is published to local relay only
         const publishRelays = [localRelayUrl];
