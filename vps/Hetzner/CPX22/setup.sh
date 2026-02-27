@@ -145,6 +145,18 @@ nginx -t || err "nginx config test failed"
 systemctl reload nginx
 log "nginx configured and reloaded"
 
+# --- Re-apply SSL certs if they exist ----------------------------------------
+
+if [ -d /etc/letsencrypt/live/equaliser.app ]; then
+    log "Existing SSL certs found - re-deploying to nginx configs..."
+    certbot install --nginx --cert-name equaliser.app --redirect --non-interactive 2>/dev/null || warn "Failed to deploy equaliser.app cert"
+    certbot install --nginx --cert-name shibuyacrossings.com --redirect --non-interactive 2>/dev/null || warn "Failed to deploy shibuyacrossings.com cert"
+    systemctl reload nginx
+    log "SSL certs re-deployed"
+else
+    log "No SSL certs found - run setup-ssl.sh after DNS is configured"
+fi
+
 # --- Summary ------------------------------------------------------------------
 
 echo ""
