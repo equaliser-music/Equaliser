@@ -1357,18 +1357,53 @@
             renderTracklist();
         }
 
-        // Move track up or down
+        // Move track up or down by swapping DOM rows in place
         function moveTrack(index, direction) {
             const newIndex = index + direction;
             if (newIndex < 0 || newIndex >= editingTracks.length) return;
+
+            const container = document.getElementById('tracklist-editor');
+            const rows = container.children;
+            const movingRow = rows[index];
+            const swapRow = rows[newIndex];
+
+            // Swap in the data array
             const track = editingTracks[index];
             activeTrackD = track.d;
             editingTracks.splice(index, 1);
             editingTracks.splice(newIndex, 0, track);
-            renderTracklist();
-            // Keep the moved row visible
-            const row = document.querySelector(`.tracklist-row[data-d="${track.d}"]`);
-            if (row) row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+            // Swap DOM nodes - insert the moving row before or after the swap row
+            if (direction === -1) {
+                container.insertBefore(movingRow, swapRow);
+            } else {
+                container.insertBefore(movingRow, swapRow.nextSibling);
+            }
+
+            // Update track numbers and button states for just the two swapped rows
+            updateRowState(movingRow, newIndex);
+            updateRowState(swapRow, index);
+
+            // Update highlight
+            movingRow.classList.add('active-track');
+            swapRow.classList.remove('active-track');
+
+            movingRow.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+
+        // Update a row's track number and button disabled states after a swap
+        function updateRowState(row, index) {
+            row.dataset.index = index;
+            row.querySelector('.col-num').textContent = index + 1;
+
+            const buttons = row.querySelectorAll('.move-btn');
+            const upBtn = buttons[0];
+            const downBtn = buttons[1];
+
+            upBtn.disabled = (index === 0);
+            upBtn.onclick = () => moveTrack(index, -1);
+            downBtn.disabled = (index === editingTracks.length - 1);
+            downBtn.onclick = () => moveTrack(index, 1);
         }
 
         // Click anywhere outside move buttons to deselect
