@@ -330,7 +330,7 @@
             border-bottom: none;
         }
 
-        .tracklist-header .col-drag { width: 40px; }
+        .tracklist-header .col-move { width: 60px; }
         .tracklist-header .col-num { width: 40px; text-align: center; }
         .tracklist-header .col-title { flex: 1; }
         .tracklist-header .col-duration { width: 70px; text-align: right; }
@@ -362,31 +362,41 @@
             background: rgba(255, 255, 255, 0.03);
         }
 
-        .tracklist-row.dragging {
-            opacity: 0.5;
-            background: rgba(139, 92, 246, 0.1);
+        .col-move {
+            width: 60px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
-        .tracklist-row.drag-over {
-            border-top: 2px solid #a855f7;
-        }
-
-        .col-drag {
-            width: 40px;
-            cursor: grab;
-            color: rgba(255, 255, 255, 0.3);
+        .move-btn {
+            background: none;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            padding: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: all 0.15s;
         }
 
-        .col-drag:active {
-            cursor: grabbing;
+        .move-btn:hover {
+            color: #a855f7;
+            border-color: rgba(168, 85, 247, 0.4);
+            background: rgba(168, 85, 247, 0.1);
         }
 
-        .col-drag svg {
-            width: 16px;
-            height: 16px;
+        .move-btn:disabled {
+            opacity: 0.2;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .move-btn svg {
+            width: 14px;
+            height: 14px;
         }
 
         .col-num {
@@ -846,7 +856,6 @@
         let removedTracks = [];
         let addedTracks = [];
         let selectedTracksToAdd = [];
-        let draggedTrackIndex = null;
         let isDraftMode = false;  // Editing a draft from the database
         let draftData = null;     // Original draft data from API
 
@@ -1248,7 +1257,7 @@
                     </div>
 
                     <div class="tracklist-header">
-                        <span class="col-drag"></span>
+                        <span class="col-move"></span>
                         <span class="col-num">#</span>
                         <span class="col-title">Title</span>
                         <span class="col-duration">Duration</span>
@@ -1278,17 +1287,14 @@
             }
 
             container.innerHTML = editingTracks.map((track, index) => `
-                <div class="tracklist-row" draggable="true" data-index="${index}"
-                     ondragstart="handleDragStart(event, ${index})"
-                     ondragover="handleDragOver(event)"
-                     ondragenter="handleDragEnter(event)"
-                     ondragleave="handleDragLeave(event)"
-                     ondrop="handleDrop(event, ${index})"
-                     ondragend="handleDragEnd(event)">
-                    <div class="col-drag">
-                        <svg fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/>
-                        </svg>
+                <div class="tracklist-row" data-index="${index}">
+                    <div class="col-move">
+                        <button type="button" class="move-btn" onclick="moveTrack(${index}, -1)" ${index === 0 ? 'disabled' : ''} title="Move up">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+                        </button>
+                        <button type="button" class="move-btn" onclick="moveTrack(${index}, 1)" ${index === editingTracks.length - 1 ? 'disabled' : ''} title="Move down">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                        </button>
                     </div>
                     <span class="col-num">${index + 1}</span>
                     <div class="col-title">
@@ -1339,48 +1345,13 @@
             renderTracklist();
         }
 
-        // Drag and Drop
-        function handleDragStart(e, index) {
-            draggedTrackIndex = index;
-            e.target.classList.add('dragging');
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', index);
-        }
-
-        function handleDragOver(e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-        }
-
-        function handleDragEnter(e) {
-            e.preventDefault();
-            const row = e.target.closest('.tracklist-row');
-            if (row) row.classList.add('drag-over');
-        }
-
-        function handleDragLeave(e) {
-            const row = e.target.closest('.tracklist-row');
-            if (row) row.classList.remove('drag-over');
-        }
-
-        function handleDrop(e, targetIndex) {
-            e.preventDefault();
-            const row = e.target.closest('.tracklist-row');
-            if (row) row.classList.remove('drag-over');
-
-            if (draggedTrackIndex === null || draggedTrackIndex === targetIndex) return;
-
-            const [movedTrack] = editingTracks.splice(draggedTrackIndex, 1);
-            editingTracks.splice(targetIndex, 0, movedTrack);
+        // Move track up or down
+        function moveTrack(index, direction) {
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= editingTracks.length) return;
+            const [track] = editingTracks.splice(index, 1);
+            editingTracks.splice(newIndex, 0, track);
             renderTracklist();
-        }
-
-        function handleDragEnd(e) {
-            e.target.classList.remove('dragging');
-            draggedTrackIndex = null;
-            document.querySelectorAll('.tracklist-row.drag-over').forEach(row => {
-                row.classList.remove('drag-over');
-            });
         }
 
         // Add Track Modal
