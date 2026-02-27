@@ -399,6 +399,17 @@
             height: 14px;
         }
 
+        .tracklist-row.active-track {
+            background: rgba(168, 85, 247, 0.08);
+            border-left: 3px solid #a855f7;
+            padding-left: 13px;
+        }
+
+        .tracklist-row.active-track .col-num {
+            color: #a855f7;
+            font-weight: 600;
+        }
+
         .col-num {
             width: 40px;
             font-size: 14px;
@@ -856,6 +867,7 @@
         let removedTracks = [];
         let addedTracks = [];
         let selectedTracksToAdd = [];
+        let activeTrackD = null;  // d-tag of the track being moved
         let isDraftMode = false;  // Editing a draft from the database
         let draftData = null;     // Original draft data from API
 
@@ -1287,7 +1299,7 @@
             }
 
             container.innerHTML = editingTracks.map((track, index) => `
-                <div class="tracklist-row" data-index="${index}">
+                <div class="tracklist-row${activeTrackD === track.d ? ' active-track' : ''}" data-index="${index}" data-d="${track.d}">
                     <div class="col-move">
                         <button type="button" class="move-btn" onclick="moveTrack(${index}, -1)" ${index === 0 ? 'disabled' : ''} title="Move up">
                             <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
@@ -1349,10 +1361,23 @@
         function moveTrack(index, direction) {
             const newIndex = index + direction;
             if (newIndex < 0 || newIndex >= editingTracks.length) return;
-            const [track] = editingTracks.splice(index, 1);
+            const track = editingTracks[index];
+            activeTrackD = track.d;
+            editingTracks.splice(index, 1);
             editingTracks.splice(newIndex, 0, track);
             renderTracklist();
+            // Keep the moved row visible
+            const row = document.querySelector(`.tracklist-row[data-d="${track.d}"]`);
+            if (row) row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         }
+
+        // Click anywhere outside move buttons to deselect
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.move-btn') && activeTrackD) {
+                activeTrackD = null;
+                renderTracklist();
+            }
+        });
 
         // Add Track Modal
         function openAddTrackModal() {
