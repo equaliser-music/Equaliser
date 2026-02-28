@@ -1181,7 +1181,7 @@
         // Feed state
         let feedNotes = [];
         let feedReactionData = { likes: {}, reposts: {}, userLiked: new Set(), userReposted: new Set() };
-        let currentFeedTab = SessionManager.hasSession() ? 'following' : 'equaliser';
+        let currentFeedTab = 'equaliser'; // Updated after SessionManager.init()
         const feedCache = { following: null, equaliser: null };
 
         // ===== Helpers =====
@@ -2052,6 +2052,7 @@
 
         // Start
         SessionManager.init();
+        currentFeedTab = SessionManager.hasSession() ? 'following' : 'equaliser';
         ClientSidebar.init();
         init();
     </script>
