@@ -477,7 +477,7 @@
         // ===== State =====
         let feedNotes = [];
         let feedReactionData = { likes: {}, reposts: {}, userLiked: new Set(), userReposted: new Set() };
-        let currentTab = SessionManager.hasSession() ? 'following' : 'equaliser';
+        let currentTab = 'equaliser'; // Updated after SessionManager.init()
         let feedProfiles = new Map();
         let isPosting = false;
 
@@ -835,6 +835,7 @@
         // ===== Init =====
 
         SessionManager.init();
+        currentTab = SessionManager.hasSession() ? 'following' : 'equaliser';
         ClientSidebar.init();
         initComposer();
         setupComposerEvents();
