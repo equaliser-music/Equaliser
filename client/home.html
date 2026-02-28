@@ -1231,7 +1231,7 @@
         function getArtistLink(pubkey) {
             try {
                 const npub = window.NostrTools.nip19.npubEncode(pubkey);
-                return `artist.html?npub=${npub}`;
+                return `user.html?npub=${npub}`;
             } catch (e) {
                 return '#';
             }
@@ -1450,7 +1450,7 @@
                                 }
                             </div>
                             <div class="nostr-user-info">
-                                <div class="nostr-username">${npub ? `<a href="artist.html?npub=${npub}">${escapeHtml(name)}</a>` : escapeHtml(name)}</div>
+                                <div class="nostr-username">${npub ? `<a href="user.html?npub=${npub}">${escapeHtml(name)}</a>` : escapeHtml(name)}</div>
                                 <div class="nostr-handle">${npub ? npub.substring(0, 16) + '...' : ''}</div>
                             </div>
                             <div class="nostr-time">${time}</div>
