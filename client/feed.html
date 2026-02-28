@@ -705,7 +705,7 @@
                 let npub = '';
                 try { npub = window.NostrTools.nip19.npubEncode(note.pubkey); } catch (e) {}
 
-                const avatarLink = npub ? `<a href="artist.html?npub=${npub}">` : '';
+                const avatarLink = npub ? `<a href="user.html?npub=${npub}">` : '';
                 const avatarLinkEnd = npub ? '</a>' : '';
 
                 return `
@@ -721,7 +721,7 @@
                             </div>
                             <div class="feed-post-body">
                                 <div class="feed-post-header">
-                                    <span class="feed-display-name">${npub ? `<a href="artist.html?npub=${npub}">${escapeHtml(name)}</a>` : escapeHtml(name)}</span>
+                                    <span class="feed-display-name">${npub ? `<a href="user.html?npub=${npub}">${escapeHtml(name)}</a>` : escapeHtml(name)}</span>
                                     <span class="feed-handle">${npub ? npub.substring(0, 16) + '...' : ''}</span>
                                     <span class="feed-time">${time}</span>
                                 </div>
