@@ -648,9 +648,9 @@
                 limit: 100
             });
 
-            // Separate posts and reposts
-            const ownNotes = events.filter(e => e.kind === 1);
-            const reposts = events.filter(e => e.kind === 6);
+            // Separate posts and reposts - only show Equaliser-tagged events
+            const ownNotes = events.filter(e => e.kind === 1 && NostrSocial.isEqualiiserEvent(e));
+            const reposts = events.filter(e => e.kind === 6 && NostrSocial.isEqualiiserEvent(e));
 
             // Build feed items
             const items = [];

@@ -622,7 +622,10 @@
             const container = document.getElementById('feed-content');
             if (!container) return;
 
-            const allNotes = await NostrSocial.fetchNotes({ kinds: [1], authors: [pubkeyHex], limit: 50 });
+            let allNotes = await NostrSocial.fetchNotes({ kinds: [1], authors: [pubkeyHex], limit: 50 });
+
+            // Only show Equaliser-tagged events
+            allNotes = allNotes.filter(n => NostrSocial.isEqualiiserEvent(n));
 
             if (allNotes.length === 0) {
                 container.innerHTML = `

@@ -1372,6 +1372,9 @@
 
             let allNotes = await NostrSocial.fetchNotes(filter);
 
+            // Only show Equaliser-tagged events
+            allNotes = allNotes.filter(n => NostrSocial.isEqualiiserEvent(n));
+
             if (clientFilter) {
                 allNotes = allNotes.filter(clientFilter);
             }
