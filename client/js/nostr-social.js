@@ -243,6 +243,13 @@ const NostrSocial = (() => {
     }
 
     /**
+     * Check if an event has the Equaliser app tag.
+     */
+    function isEqualiiserEvent(event) {
+        return event.tags && event.tags.some(t => t[0] === 'app' && t[1] === 'Equaliser');
+    }
+
+    /**
      * Publish a signed event to all DEFAULT_RELAYS. Throws if all relays reject.
      */
     async function publishEvent(event) {
@@ -261,6 +268,7 @@ const NostrSocial = (() => {
         escapeHtml,
         relativeTime,
         linkifyContent,
+        isEqualiiserEvent,
         fetchNotes,
         fetchProfiles,
         fetchContactList,
