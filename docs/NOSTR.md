@@ -149,6 +149,18 @@ ports:
   - "7777:7777"
 ```
 
+## App-Tag Filtering & Spam Management
+
+Content node relays are **public** (open read + write) to support decentralisation. Spam defence operates at the application layer using the `["app", "equaliser"]` tag:
+
+- **Tagging**: All events created through Equaliser are tagged with `["app", "equaliser"]` before signing
+- **Filtering**: UI feeds only display events with this tag — untagged events are invisible to users
+- **Cleanup**: `cleanup-relay.sh` periodically removes untagged events from non-protected pubkeys
+
+This approach keeps relays public for cross-node discovery and fan interaction while creating a clean, curated Equaliser experience in the UI. The relay accumulates some junk between cleanups, but the UI never shows it.
+
+See [SOCIAL.md](../docs/SOCIAL.md) for the full two-layer architecture (Equaliser Network vs Wider NOSTR).
+
 ## Production Deployment
 
 For production, you'll need:

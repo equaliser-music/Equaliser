@@ -20,6 +20,7 @@ Documentation exists in the 'docs' folder. Please read in the following order at
 15. BLOSSOM.md
 16. contributor email summary.md
 17. PRICING_CURRENCY.md
+18. COMMUNITY.md
 
 ## Important Rules
 
@@ -129,6 +130,21 @@ This script:
 - Shows container status after deploy
 
 **Pre-requisites:** Changes must be committed and pushed to origin. The script will refuse to deploy if there are uncommitted or unpushed changes.
+
+### cleanup-relay.sh
+Remove non-Equaliser events from the NOSTR relay. **Use when user asks to "clean up the relay", "remove spam", or "clear junk events".**
+
+```bash
+./tools/cleanup-relay.sh              # Dry run — show what would be deleted
+./tools/cleanup-relay.sh --execute    # Actually delete untagged events
+./tools/cleanup-relay.sh --local      # Run against local relay (default is VPS)
+```
+
+This script:
+- Identifies events without the `["app", "Equaliser"]` tag
+- Protects all known Equaliser pubkeys (from backup files and seed data)
+- Shows breakdown by event kind before deleting
+- Dry run by default for safety
 
 ### Artist Package Tools
 
@@ -257,13 +273,13 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - Document recovery path first, automate tooling in later phase
   - See [BLOSSOM_INTEGRATION_IDEAS.md](docs/BLOSSOM_INTEGRATION_IDEAS.md)
 
-- [ ] **Relay Access Control**: Restrict nostr-rs-relay to Equaliser-relevant traffic
-  - Add `event_kind_allowlist` to config.toml (Kinds 0, 1, 7, 10002, 30050, 30051, 30052)
-  - Configure rate limiting (`messages_per_sec`, `subscriptions_per_min`)
-  - Relay must stay open for cross-node publishing (artists publish to each other's relays for decentralisation)
-  - nostr-rs-relay has no native read ACL — reads are open by design (public music metadata)
-  - Consider `pubkey_whitelist` later if spam becomes an issue (requires relay restart for new artists)
-  - NIP-42 AUTH available for write authentication if needed
+- [x] **Relay Spam Management**: App-tag filtering + periodic cleanup
+  - All Equaliser events tagged with `["app", "equaliser"]` before signing
+  - UI feeds filter exclusively on this tag — untagged events are invisible to users
+  - Content node relays remain **public** (open read + write) to support decentralisation
+  - `cleanup-relay.sh` removes untagged events from non-protected pubkeys (storage hygiene)
+  - This creates an application-level overlay network on standard NOSTR relays
+  - Future: consider `event_kind_allowlist`, rate limiting, or NIP-42 AUTH if spam volume warrants relay-level restrictions
 
 - [ ] **Label Multi-Artist Management**: Support labels managing multiple artist identities
   - Use NIP-06 / BIP-32 hierarchical key derivation from label master seed
