@@ -534,6 +534,7 @@
     <script src="https://unpkg.com/nostr-tools@2.1.4/lib/nostr.bundle.js"></script>
     <script src="/js/session.js"></script>
     <script src="/js/sidebar.js"></script>
+    <script src="/js/nostr-social.js"></script>
 
     <script>
         // Config
@@ -649,7 +650,7 @@
             });
 
             // Separate posts and reposts - only show Equaliser-tagged events
-            const ownNotes = events.filter(e => e.kind === 1 && NostrSocial.isEqualiiserEvent(e));
+            const ownNotes = events.filter(e => e.kind === 1 && NostrSocial.isEqualiiserEvent(e) && NostrSocial.isTopLevelPost(e));
             const reposts = events.filter(e => e.kind === 6 && NostrSocial.isEqualiiserEvent(e));
 
             // Build feed items
@@ -859,8 +860,14 @@
                         <span class="feed-author-name"><a href="/user.html?npub=${authorNpub}">${escapeHtml(authorName)}</a></span>
                         <span class="feed-time">${time}</span>
                     </div>
-                    <div class="feed-item-content">${content}</div>
+                    <div class="feed-item-content" style="cursor:pointer" onclick="window.location.href='/thread.html?id=${item.noteId}'">${content}</div>
                     <div class="feed-actions">
+                        <button class="feed-action-btn reply-btn" onclick="window.location.href='/thread.html?id=${item.noteId}'">
+                            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7z"/>
+                            </svg>
+                            <span class="reply-count" data-reply-note-id="${item.noteId}"></span>
+                        </button>
                         <button class="feed-action-btn like-btn" onclick="handleLike('${item.noteId}', '${item.authorPubkey}', this)">
                             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
                                 <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>

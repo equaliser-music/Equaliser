@@ -342,6 +342,14 @@
             color: #22c55e;
         }
 
+        .feed-action.reply-btn:hover {
+            color: #60a5fa;
+        }
+
+        .feed-post-clickable {
+            cursor: pointer;
+        }
+
         /* Loading & Empty */
         .feed-loading {
             text-align: center;
@@ -548,7 +556,7 @@
                 const event = {
                     kind: 1,
                     created_at: Math.floor(Date.now() / 1000),
-                    tags: [['app', 'Equaliser']],
+                    tags: [['app', 'Equaliser'], ['content-type', 'post']],
                     content: content
                 };
 
@@ -637,8 +645,8 @@
 
             let allNotes = await NostrSocial.fetchNotes(filter);
 
-            // Only show Equaliser-tagged events
-            allNotes = allNotes.filter(n => NostrSocial.isEqualiiserEvent(n));
+            // Only show Equaliser-tagged top-level posts (not replies or community content)
+            allNotes = allNotes.filter(n => NostrSocial.isEqualiiserEvent(n) && NostrSocial.isTopLevelPost(n));
 
             if (clientFilter) {
                 allNotes = allNotes.filter(clientFilter);
@@ -665,9 +673,24 @@
 
             renderFeed();
 
-            // Load reactions non-blocking
+            // Load reactions and reply counts non-blocking
             feedReactionData = { likes: {}, reposts: {}, userLiked: new Set(), userReposted: new Set() };
-            loadReactions(allNotes.map(n => n.id));
+            const noteIds = allNotes.map(n => n.id);
+            loadReactions(noteIds);
+            loadReplyCounts(noteIds);
+        }
+
+        function navigateToThread(noteId) {
+            window.location.href = `/thread.html?id=${noteId}`;
+        }
+
+        async function loadReplyCounts(noteIds) {
+            if (noteIds.length === 0) return;
+            const counts = await NostrSocial.fetchReplyCounts(noteIds);
+            counts.forEach((count, noteId) => {
+                const el = document.querySelector(`.reply-count[data-reply-note-id="${noteId}"]`);
+                if (el && count > 0) el.textContent = count;
+            });
         }
 
         function switchTab(tab) {
@@ -728,8 +751,14 @@
                                     <span class="feed-handle">${npub ? npub.substring(0, 16) + '...' : ''}</span>
                                     <span class="feed-time">${time}</span>
                                 </div>
-                                <div class="feed-content">${content}</div>
+                                <div class="feed-content feed-post-clickable" onclick="navigateToThread('${note.id}')">${content}</div>
                                 <div class="feed-actions">
+                                    <div class="feed-action reply-btn" onclick="navigateToThread('${note.id}')">
+                                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7z"/>
+                                        </svg>
+                                        <span class="reply-count" data-reply-note-id="${note.id}"></span>
+                                    </div>
                                     <div class="feed-action like-btn${userLiked ? ' liked' : ''}" onclick="handleLike('${note.id}', '${note.pubkey}')">
                                         <svg viewBox="0 0 20 20" fill="${userLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.5">
                                             <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>

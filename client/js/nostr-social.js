@@ -261,18 +261,170 @@ const NostrSocial = (() => {
         }
     }
 
+    // ===== Threading & Replies =====
+
+    /**
+     * Check if an event is a top-level feed post (not a reply, not a community thread/reply).
+     * Events without a content-type tag are treated as feed posts (backward compat).
+     */
+    function isTopLevelPost(event) {
+        const contentType = event.tags?.find(t => t[0] === 'content-type');
+        if (contentType && (contentType[1] === 'thread' || contentType[1] === 'reply')) {
+            return false;
+        }
+        const hasReplyMarker = event.tags?.some(t =>
+            t[0] === 'e' && (t[3] === 'root' || t[3] === 'reply')
+        );
+        return !hasReplyMarker;
+    }
+
+    /**
+     * Parse NIP-10 threading tags from an event.
+     * Returns { root, reply, mentions, profiles }.
+     */
+    function parseThreadTags(event) {
+        let root = null;
+        let reply = null;
+        const mentions = [];
+        const profiles = [];
+
+        for (const tag of (event.tags || [])) {
+            if (tag[0] === 'e') {
+                if (tag[3] === 'root') root = tag[1];
+                else if (tag[3] === 'reply') reply = tag[1];
+                else if (tag[3] === 'mention') mentions.push(tag[1]);
+            }
+            if (tag[0] === 'p') {
+                profiles.push(tag[1]);
+            }
+        }
+        return { root, reply, mentions, profiles };
+    }
+
+    /**
+     * Fetch reply counts for a set of note IDs.
+     * Returns Map<noteId, replyCount>.
+     */
+    async function fetchReplyCounts(noteIds) {
+        if (noteIds.length === 0) return new Map();
+
+        const allResults = await Promise.all(
+            DEFAULT_RELAYS.map(r => _queryRelay(r, {
+                kinds: [1],
+                '#e': noteIds,
+                limit: 1000
+            }, 8000))
+        );
+
+        const allEvents = _deduplicateEvents(allResults)
+            .filter(ev => isEqualiiserEvent(ev));
+        const counts = new Map();
+
+        for (const ev of allEvents) {
+            for (const tag of ev.tags) {
+                if (tag[0] === 'e' && (tag[3] === 'root' || tag[3] === 'reply')) {
+                    const refId = tag[1];
+                    if (noteIds.includes(refId) && tag[3] === 'root') {
+                        counts.set(refId, (counts.get(refId) || 0) + 1);
+                    }
+                }
+            }
+        }
+        return counts;
+    }
+
+    /**
+     * Fetch a single event by ID.
+     */
+    async function fetchEventById(eventId) {
+        const allResults = await Promise.all(
+            DEFAULT_RELAYS.map(r => _queryRelay(r, {
+                ids: [eventId],
+                limit: 1
+            }, 5000))
+        );
+        const events = _deduplicateEvents(allResults);
+        return events.length > 0 ? events[0] : null;
+    }
+
+    /**
+     * Fetch thread replies for a root event ID, sorted oldest first.
+     */
+    async function fetchThreadReplies(rootEventId) {
+        const allResults = await Promise.all(
+            DEFAULT_RELAYS.map(r => _queryRelay(r, {
+                kinds: [1],
+                '#e': [rootEventId],
+                limit: 500
+            }, 10000))
+        );
+        const events = _deduplicateEvents(allResults)
+            .filter(ev => isEqualiiserEvent(ev));
+        events.sort((a, b) => a.created_at - b.created_at);
+        return events;
+    }
+
+    // ===== Community =====
+
+    /**
+     * Fetch community threads, optionally filtered by board.
+     */
+    async function fetchCommunityThreads(board, limit = 50) {
+        // Relay doesn't index multi-char tags — fetch all Kind 1 and filter client-side
+        const allNotes = await fetchNotes({ kinds: [1], limit: 500 });
+        let threads = allNotes.filter(ev =>
+            isEqualiiserEvent(ev) &&
+            ev.tags.some(t => t[0] === 'content-type' && t[1] === 'thread')
+        );
+        if (board && board !== 'all') {
+            threads = threads.filter(ev =>
+                ev.tags.some(t => t[0] === 'board' && t[1] === board)
+            );
+        }
+        return threads.slice(0, limit);
+    }
+
+    /**
+     * Fetch community replies for a thread root ID, sorted oldest first.
+     */
+    async function fetchCommunityReplies(threadId) {
+        // Relay indexes #e (single-letter) but not #content-type — filter client-side
+        const allResults = await Promise.all(
+            DEFAULT_RELAYS.map(r => _queryRelay(r, {
+                kinds: [1],
+                '#e': [threadId],
+                limit: 500
+            }, 10000))
+        );
+        const events = _deduplicateEvents(allResults)
+            .filter(ev =>
+                isEqualiiserEvent(ev) &&
+                ev.tags.some(t => t[0] === 'content-type' && t[1] === 'reply')
+            );
+        events.sort((a, b) => a.created_at - b.created_at);
+        return events;
+    }
+
     // ===== Expose public API =====
 
     return {
         DEFAULT_RELAYS,
+        LOCAL_RELAY,
         escapeHtml,
         relativeTime,
         linkifyContent,
         isEqualiiserEvent,
+        isTopLevelPost,
+        parseThreadTags,
         fetchNotes,
         fetchProfiles,
         fetchContactList,
         fetchReactions,
+        fetchReplyCounts,
+        fetchEventById,
+        fetchThreadReplies,
+        fetchCommunityThreads,
+        fetchCommunityReplies,
         publishEvent
     };
 })();
