@@ -75,15 +75,23 @@ Because Equaliser uses standard NOSTR protocols, an artist's npub works everywhe
 
 ### Layer 1: Equaliser Network (Internal)
 
-The Equaliser network consists of content stored on artist content node relays and IPFS.
+The Equaliser network consists of content stored on artist content node relays and IPFS. Content node relays are **standard public NOSTR relays** — open for both reading and writing — which is essential for decentralisation (cross-node discovery, fan interaction, artist-to-artist publishing). The Equaliser application layer defines what is "inside" the network using app tagging.
+
+**App-Tag Filtering (Implemented):**
+- All events created through Equaliser are tagged with `["app", "equaliser"]` before signing
+- UI feeds filter exclusively on this tag — only tagged events are displayed
+- This creates an **application-level overlay network** on top of standard NOSTR infrastructure
+- Untagged events (spam, random NOSTR traffic) are stored on the relay but invisible to users
+- `cleanup-relay.sh` periodically removes untagged events from non-protected pubkeys for storage hygiene
+- The relay remains public — spam defence is at the application layer, not the relay layer
 
 **Characteristics:**
 - Content lives on the artist's content node relay
-- Events tagged with `["app", "Equaliser"]` for identification
+- Events tagged with `["app", "equaliser"]` for identification and filtering
 - Media uploaded to IPFS via the content node
 - Tightly integrated with releases, tracks, and artist pages
 - Curated, music-focused experience
-- Artist has full moderation control
+- Artist has full moderation control via app-tag boundary
 
 **Use Cases:**
 - Track and album announcements linking to Kind 30050 events
@@ -93,9 +101,10 @@ The Equaliser network consists of content stored on artist content node relays a
 
 **Benefits:**
 - Fast, local content delivery
-- Artist controls what appears
+- Artist controls what appears (app-tag filtering)
 - Consistent branding and experience
 - Direct integration with music content
+- Relay stays public for decentralisation while UI stays clean
 
 ### Layer 2: Wider NOSTR (External)
 
@@ -187,15 +196,15 @@ The artist admin interface should provide multiple feed views:
 
 ### 1. Equaliser Feed
 
-Shows content from the local content node relay only.
+Shows content from the local content node relay, filtered to Equaliser-tagged events only.
 
 **Includes:**
 - Artist's own Equaliser-tagged posts
-- Fan comments on the artist's content node
-- Reactions to tracks and releases
+- Fan comments tagged with `["app", "equaliser"]`
+- Reactions to tracks and releases (tagged)
 - Content explicitly imported from external relays
 
-**Filter:** `["app", "Equaliser"]` tag present, or stored on local relay
+**Filter (Implemented):** Only events with `["app", "equaliser"]` tag are displayed. This is the primary spam defence — the relay is public but the UI only shows Equaliser ecosystem content.
 
 ### 2. Mentions Feed
 
@@ -451,12 +460,9 @@ Pulling external content into local relay:
 
 ## Future Considerations
 
-### Threaded Discussions / Message Board
+### Community (Message Board) — Specified
 
-- Could use Kind 1 with structured threading
-- Categorisation via hashtags or custom tags
-- Pinned posts for important announcements
-- Potential for NIP-29 groups
+See [COMMUNITY.md](./COMMUNITY.md) for the full specification. Reddit-style threaded discussions using Kind 1 events with `["content-type", "thread"]` tags, organised into boards. Per-artist scope — each content node hosts its own community.
 
 ### Notifications
 
