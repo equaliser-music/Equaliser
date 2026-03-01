@@ -306,10 +306,12 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - Database scaling (PostgreSQL for labels, read replicas)
   - CDN integration for mainstream traffic levels
 
-- [ ] **Social Features**: Artist-fan interaction via NOSTR
-  - **Feed**: Standard NOSTR feed showing mentions, comments on tracks, reactions (Kind 1, 7, 6)
-  - **Message Board**: Threaded discussions using Kind 1 replies with topic/hashtag filtering
-  - **Blogging**: Long-form content using Kind 30023 (NIP-23) for artist updates, announcements
-  - Admin UI to view mentions, reply to fans, post updates
-  - Moderation tools (mute, block lists)
-  - See NIP-01, NIP-23 for protocol details
+- [x] **Social Features**: Artist-fan interaction via NOSTR
+  - **Feed**: Kind 1 posts with `["content-type", "post"]` tag, reply/like/repost actions, clickable posts to thread view
+  - **Threaded Replies**: `thread.html` page showing root post + chronological replies using NIP-10 `e`/`p` tags
+  - **Community Message Boards**: `community.html` with board tabs (general/music/production/gigs), thread list + detail views, `["content-type", "thread"]` and `["content-type", "reply"]` tags
+  - **Direct Messages**: `messages.html` with NIP-04 encrypted DMs (Kind 4), two-panel conversation list + chat UI, `nostr-dm.js` module
+  - **Sidebar Navigation**: Community + Messages links in sidebar
+  - **Relay Tag Filtering**: All multi-char tag filtering done client-side (relay only indexes single-letter tags)
+  - **Seed Data**: `tools/seed-social.sh` populates relay with test posts, threads, DMs, reactions
+  - See [SOCIAL.md](docs/SOCIAL.md), [COMMUNITY.md](docs/COMMUNITY.md)
