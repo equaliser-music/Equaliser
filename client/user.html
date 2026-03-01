@@ -587,6 +587,13 @@
                             </svg>
                             Follow
                         </button>
+                        <button class="btn btn-secondary" onclick="window.location.href='/messages.html?npub=${npub}'">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+                                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+                            </svg>
+                            Message
+                        </button>
                     ` : ''}
                     <button class="btn btn-secondary" onclick="copyNpub('${npub}')">
                         <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
@@ -624,8 +631,8 @@
 
             let allNotes = await NostrSocial.fetchNotes({ kinds: [1], authors: [pubkeyHex], limit: 50 });
 
-            // Only show Equaliser-tagged events
-            allNotes = allNotes.filter(n => NostrSocial.isEqualiiserEvent(n));
+            // Only show Equaliser-tagged top-level posts
+            allNotes = allNotes.filter(n => NostrSocial.isEqualiiserEvent(n) && NostrSocial.isTopLevelPost(n));
 
             if (allNotes.length === 0) {
                 container.innerHTML = `
@@ -644,6 +651,16 @@
 
             const noteIds = allNotes.map(n => n.id);
             loadReactions(noteIds);
+            loadReplyCounts(noteIds);
+        }
+
+        async function loadReplyCounts(noteIds) {
+            if (noteIds.length === 0) return;
+            const counts = await NostrSocial.fetchReplyCounts(noteIds);
+            counts.forEach((count, noteId) => {
+                const el = document.querySelector(`.reply-count[data-reply-note-id="${noteId}"]`);
+                if (el && count > 0) el.textContent = count;
+            });
         }
 
         function renderFeed(notes) {
@@ -673,8 +690,14 @@
                             <span class="feed-author-name">${escapeHtml(profile.name || 'User')}</span>
                             <span class="feed-time">${time}</span>
                         </div>
-                        <div class="feed-content">${content}</div>
+                        <div class="feed-content" style="cursor:pointer" onclick="window.location.href='/thread.html?id=${note.id}'">${content}</div>
                         <div class="feed-actions">
+                            <button class="feed-action-btn reply-btn" onclick="window.location.href='/thread.html?id=${note.id}'">
+                                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7z"/>
+                                </svg>
+                                <span class="reply-count" data-reply-note-id="${note.id}"></span>
+                            </button>
                             <button class="feed-action-btn like-btn${userLiked ? ' liked' : ''}" onclick="handleLike('${note.id}', '${note.pubkey}')">
                                 <svg viewBox="0 0 20 20" fill="${userLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.5">
                                     <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
