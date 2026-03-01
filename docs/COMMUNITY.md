@@ -1,8 +1,8 @@
 # Community — Message Board Specification
 
-**Version:** 1.0
-**Date:** February 2026
-**Status:** Draft
+**Version:** 2.0
+**Date:** March 2026
+**Status:** Implemented
 
 ---
 
@@ -132,71 +132,41 @@ Artists can create custom boards relevant to their community. The board list is 
 
 ### Board Filtering
 
-The community page can filter by board:
-
-```json
-{
-  "kinds": [1],
-  "#app": ["equaliser"],
-  "#content-type": ["thread"],
-  "#board": ["production"]
-}
-```
-
-Or show all threads across all boards (default view).
+The community page filters threads by board. Filtering is done **client-side** after fetching all Kind 1 events from the relay (see Relay Query Limitations below).
 
 ---
 
 ## Relay Queries
 
+### Relay Query Limitations
+
+`nostr-rs-relay` only indexes **single-letter tags** (`e`, `p`, `d`, `t`) for relay-side filtering. Multi-character tags like `app`, `content-type`, and `board` are stored in events but **cannot be queried** via relay filter parameters like `#app` or `#content-type`.
+
+All queries below show the relay filter + the client-side filter that must be applied after fetching.
+
 ### List Threads (Community Home)
 
-Fetch all thread-starting posts, sorted by newest:
+**Relay filter:** `{ "kinds": [1], "limit": 500 }`
 
-```json
-{
-  "kinds": [1],
-  "#app": ["equaliser"],
-  "#content-type": ["thread"],
-  "limit": 50
-}
-```
+**Client-side filter:** Events where `tags` includes `["app", "Equaliser"]` AND `["content-type", "thread"]`
 
 ### List Threads by Board
 
-```json
-{
-  "kinds": [1],
-  "#app": ["equaliser"],
-  "#content-type": ["thread"],
-  "#board": ["production"],
-  "limit": 50
-}
-```
+**Relay filter:** Same as above
+
+**Client-side filter:** Same + `["board", "<board-name>"]`
 
 ### Load Thread Replies
 
-Given a thread's event ID, fetch all replies:
+**Relay filter:** `{ "kinds": [1], "#e": ["<thread-event-id>"], "limit": 500 }`
 
-```json
-{
-  "kinds": [1],
-  "#app": ["equaliser"],
-  "#content-type": ["reply"],
-  "#e": ["<thread-event-id>"]
-}
-```
+**Client-side filter:** Events where `tags` includes `["app", "Equaliser"]` AND `["content-type", "reply"]`
 
 ### Load Reactions for Thread List
 
-To show upvote counts on the thread list:
+**Relay filter:** `{ "kinds": [7], "#e": ["<thread-id-1>", "<thread-id-2>", "..."] }`
 
-```json
-{
-  "kinds": [7],
-  "#e": ["<thread-id-1>", "<thread-id-2>", "..."]
-}
-```
+No additional client-side filter needed — Kind 7 reactions are simple enough.
 
 ---
 
@@ -309,30 +279,32 @@ No separate registration. If you have a NOSTR identity, you can participate in a
 
 ---
 
-## Implementation Phases
+## Implementation Status
 
-### Phase 1: Read-Only Thread Display
-- Display threads and replies from the relay
-- Board filtering
-- Thread detail view with nested replies
-- No posting yet — just prove the data model works
+### Implemented (March 2026)
+- Thread list view with board filter tabs (All | General | Music | Production | Gigs)
+- Thread detail view with opening post and chronological replies
+- New thread composer (board selector, subject, content)
+- Reply composer in thread detail view
+- Reply counts on thread list
+- Author profiles (avatar, name) on threads and replies
+- Board badge colours: general=blue, music=purple, production=green, gigs=amber
+- Browser history support (pushState/popstate) for thread navigation
+- Sidebar navigation link to Community page
+- Client-side filtering for all multi-character tags
+- Seed data script (`tools/seed-social.mjs`) for populating test content
 
-### Phase 2: Thread Creation and Replies
-- New thread composer
-- Reply composer
-- Event signing and publishing to relay
-- Real-time updates via WebSocket subscription
+### Files
+- `client/community.html` — Community page (thread list + thread detail views)
+- `client/js/nostr-social.js` — `fetchCommunityThreads()`, `fetchCommunityReplies()` functions
 
-### Phase 3: Reactions and Sorting
-- Upvote/react to threads and replies
-- Sort by newest, most active, most liked
-- Reply counts and reaction counts on thread list
-
-### Phase 4: Moderation
+### Future
+- Upvote/react to threads and replies (Kind 7)
+- Sort by most active, most liked, latest reply
 - Mute/block pubkeys
-- Delete events
+- Delete events (NIP-09)
 - Pin threads
-- Board management UI
+- Board management UI (add/remove/rename boards)
 
 ---
 

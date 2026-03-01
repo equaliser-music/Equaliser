@@ -1,8 +1,8 @@
 # Social Features Specification
 
-**Version:** 1.0
-**Date:** January 2026
-**Status:** Draft
+**Version:** 2.0
+**Date:** March 2026
+**Status:** Implemented
 
 ---
 
@@ -78,12 +78,18 @@ Because Equaliser uses standard NOSTR protocols, an artist's npub works everywhe
 The Equaliser network consists of content stored on artist content node relays and IPFS. Content node relays are **standard public NOSTR relays** — open for both reading and writing — which is essential for decentralisation (cross-node discovery, fan interaction, artist-to-artist publishing). The Equaliser application layer defines what is "inside" the network using app tagging.
 
 **App-Tag Filtering (Implemented):**
-- All events created through Equaliser are tagged with `["app", "equaliser"]` before signing
+- All events created through Equaliser are tagged with `["app", "Equaliser"]` before signing
 - UI feeds filter exclusively on this tag — only tagged events are displayed
 - This creates an **application-level overlay network** on top of standard NOSTR infrastructure
 - Untagged events (spam, random NOSTR traffic) are stored on the relay but invisible to users
 - `cleanup-relay.sh` periodically removes untagged events from non-protected pubkeys for storage hygiene
 - The relay remains public — spam defence is at the application layer, not the relay layer
+
+**Relay Tag Filtering Limitation:**
+- `nostr-rs-relay` only indexes **single-letter tags** (`e`, `p`, `d`, `t`) for relay-side filtering
+- Multi-character tags like `app`, `content-type`, `board` are stored in events but **cannot be queried** via relay filter parameters (e.g. `#app`, `#content-type`)
+- All filtering on multi-character tags is performed **client-side** after fetching events broadly by `kinds` and single-letter tag filters
+- This is an architectural constraint that applies to all Equaliser queries — code must never rely on relay-side filtering for custom tags
 
 **Characteristics:**
 - Content lives on the artist's content node relay
@@ -144,12 +150,25 @@ The wider NOSTR ecosystem includes public relays and standard NOSTR clients.
 
 | Kind | Name | Purpose |
 |------|------|---------|
-| 0 | Profile | Artist metadata (name, bio, avatar) |
-| 1 | Short Text Note | Posts, replies, comments |
+| 0 | Profile | Artist/user metadata (name, bio, avatar) |
+| 1 | Short Text Note | Posts, replies, community threads |
 | 3 | Contact List | Following/followers |
+| 4 | Encrypted DM | NIP-04 encrypted direct messages |
 | 6 | Repost | Sharing others' content |
 | 7 | Reaction | Likes, emoji reactions |
 | 10002 | Relay List | NIP-65 relay preferences |
+
+### Content-Type Tags (Kind 1 Subtypes)
+
+Kind 1 events are differentiated using a `content-type` tag:
+
+| Content Type | Tag | Description |
+|-------------|-----|-------------|
+| Feed post | `["content-type", "post"]` | Timeline posts (or no tag for backward compat) |
+| Community thread | `["content-type", "thread"]` | Thread-starting post with subject + board |
+| Community reply | `["content-type", "reply"]` | Reply within a community thread |
+
+Events without a `content-type` tag are treated as feed posts for backward compatibility.
 
 ### Long-Form Content (NIP-23)
 
@@ -190,57 +209,92 @@ The wider NOSTR ecosystem includes public relays and standard NOSTR clients.
 
 ---
 
-## Feed Types
+## Implemented Social Features
 
-The artist admin interface should provide multiple feed views:
+### 1. Feed (Implemented)
 
-### 1. Equaliser Feed
+The main timeline showing Equaliser-tagged posts from followed users and artists.
 
-Shows content from the local content node relay, filtered to Equaliser-tagged events only.
+**Pages:** `feed.html` (full feed), `home.html` (sidebar feed), `user.html` (user's posts), `profile.html` (own posts)
 
-**Includes:**
-- Artist's own Equaliser-tagged posts
-- Fan comments tagged with `["app", "equaliser"]`
-- Reactions to tracks and releases (tagged)
-- Content explicitly imported from external relays
+**Behaviour:**
+- Fetches Kind 1 events from relay, filtered client-side for `["app", "Equaliser"]` tag
+- `isTopLevelPost()` excludes replies (NIP-10 `e` tags with `root`/`reply` markers) and community content (`content-type: thread` or `content-type: reply`)
+- New posts are tagged with `["content-type", "post"]`
+- Posts without a `content-type` tag are treated as feed posts (backward compatibility)
+- Each post shows reply count, like button, repost button
+- Clicking a post navigates to `thread.html?id=<eventId>`
 
-**Filter (Implemented):** Only events with `["app", "equaliser"]` tag are displayed. This is the primary spam defence — the relay is public but the UI only shows Equaliser ecosystem content.
+### 2. Threaded Replies (Implemented)
 
-### 2. Mentions Feed
+Twitter/X-style threaded view of a post and its replies.
+
+**Page:** `thread.html?id=<eventId>`
+
+**Behaviour:**
+- Fetches root post by event ID
+- Fetches all replies referencing it via `#e` tag (relay-side filter), then filters client-side for Equaliser events
+- Replies displayed chronologically (flat, no nesting in v1)
+- Reply composer for logged-in users
+- Reply events use NIP-10 tags: `["e", rootEventId, "", "root"]`, `["p", rootAuthorPubkey]`
+
+### 3. Community Message Boards (Implemented)
+
+Reddit-style threaded discussions. See [COMMUNITY.md](./COMMUNITY.md) for full spec.
+
+**Page:** `community.html` (thread list) / `community.html?thread=<eventId>` (thread detail)
+
+**Behaviour:**
+- Board filter tabs: All | General | Music | Production | Gigs
+- Threads use `["content-type", "thread"]`, `["subject", "..."]`, `["board", "..."]` tags
+- Replies use `["content-type", "reply"]` with NIP-10 `e`/`p` tags
+- All tag filtering is client-side (relay doesn't index multi-char tags)
+
+### 4. Direct Messages (Implemented)
+
+NIP-04 encrypted private messaging with two-panel inbox UI.
+
+**Page:** `messages.html` / `messages.html?npub=<npub>`
+**Module:** `client/js/nostr-dm.js`
+
+**Behaviour:**
+- Uses Kind 4 events with NIP-04 encryption (`NostrTools.nip04.encrypt/decrypt`)
+- Falls back to NIP-07 browser extension (`window.nostr.nip04`) when available
+- Two-panel layout: conversation list (left) + chat view (right)
+- Message bubbles: incoming (dark bg, left), outgoing (purple gradient, right)
+- URL parameter `?npub=<npub>` auto-opens a conversation with that user
+- "Message" button on `user.html` profiles (not shown for own profile)
+- `canDM()` check — requires either nsec login or NIP-07 extension with nip04 support
+
+### 5. Sidebar Navigation (Implemented)
+
+Community and Messages links added to sidebar (`client/js/sidebar.js`) between Feed and the disabled Discover/Library items.
+
+### 6. Seed Data (Implemented)
+
+`tools/seed-social.sh` / `tools/seed-social.mjs` populates the relay with test content:
+- 19 feed posts from users and artists
+- 15 threaded replies on popular posts
+- 8 community threads across all boards
+- 27 community replies
+- 34 NIP-04 encrypted DMs (conversations between all users/artists and Decky)
+- 36 reactions (likes)
+
+---
+
+## Feed Types (Future)
+
+Beyond the implemented Equaliser feed, future phases may add:
+
+### Mentions Feed
 
 Shows where the artist is mentioned across NOSTR.
 
-**Sources:**
-- Local relay
-- Configured public relays
+**Query:** `{ kinds: [1, 7, 6, 9735], "#p": ["<artist-pubkey>"] }`
 
-**Query:**
-```json
-{
-  "kinds": [1, 7, 6, 9735],
-  "#p": ["<artist-pubkey>"]
-}
-```
+### All NOSTR Feed
 
-**Includes:**
-- Direct mentions in posts
-- Reactions to artist's content
-- Reposts of artist's content
-- Zaps received
-
-### 3. All NOSTR Feed
-
-Shows the artist's complete NOSTR presence across all relays.
-
-**Sources:**
-- Local relay
-- All configured public relays
-
-**Includes:**
-- Everything from Equaliser Feed
-- Everything from Mentions Feed
-- Artist's posts on external relays
-- Replies and threads
+Shows the artist's complete NOSTR presence across all relays, including external relay content.
 
 ---
 
@@ -460,10 +514,6 @@ Pulling external content into local relay:
 
 ## Future Considerations
 
-### Community (Message Board) — Specified
-
-See [COMMUNITY.md](./COMMUNITY.md) for the full specification. Reddit-style threaded discussions using Kind 1 events with `["content-type", "thread"]` tags, organised into boards. Per-artist scope — each content node hosts its own community.
-
 ### Notifications
 
 - Real-time WebSocket subscriptions
@@ -489,7 +539,10 @@ See [COMMUNITY.md](./COMMUNITY.md) for the full specification. Reddit-style thre
 ## References
 
 - [NIP-01: Basic Protocol](https://github.com/nostr-protocol/nips/blob/master/01.md)
+- [NIP-04: Encrypted Direct Messages](https://github.com/nostr-protocol/nips/blob/master/04.md)
+- [NIP-07: Browser Extension](https://github.com/nostr-protocol/nips/blob/master/07.md) — `window.nostr` for signing and nip04 encryption
 - [NIP-10: Reply Conventions](https://github.com/nostr-protocol/nips/blob/master/10.md)
+- [NIP-14: Subject Tag](https://github.com/nostr-protocol/nips/blob/master/14.md) — Thread subject lines
 - [NIP-23: Long-form Content](https://github.com/nostr-protocol/nips/blob/master/23.md)
 - [NIP-25: Reactions](https://github.com/nostr-protocol/nips/blob/master/25.md)
 - [NIP-51: Lists](https://github.com/nostr-protocol/nips/blob/master/51.md)
