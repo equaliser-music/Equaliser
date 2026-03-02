@@ -311,7 +311,7 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - **Threaded Replies**: `thread.html` page showing root post + chronological replies using NIP-10 `e`/`p` tags
   - **Community Message Boards**: Community tab in `social.html` with board tabs (general/music/production/gigs), thread list + detail views, `["content-type", "thread"]` and `["content-type", "reply"]` tags
   - **Direct Messages**: `messages.html` with NIP-04 encrypted DMs (Kind 4), two-panel conversation list + chat UI, `nostr-dm.js` module
-  - **Unified Social Page**: `social.html` combines Feed + Community as tabs, single "Social" sidebar link. Messages accessible from profile page.
+  - **Unified Social Page**: `social.html` combines Feed + Community as full-width tabs ("Timeline" / "Community Threads"). Single "Social" link in sidebar bottom nav (alongside Profile, Settings). Messages accessible from profile page.
   - **Relay Tag Filtering**: All multi-char tag filtering done client-side (relay only indexes single-letter tags)
   - **Seed Data**: `tools/seed-social.sh` populates relay with test posts, threads, DMs, reactions
   - See [SOCIAL.md](docs/SOCIAL.md), [COMMUNITY.md](docs/COMMUNITY.md)
