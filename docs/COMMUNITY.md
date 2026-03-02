@@ -204,7 +204,7 @@ In a future phase, a fan client could aggregate community threads from multiple 
 
 ## UI Design
 
-### Community Page (`community.html`)
+### Community Page (`social.html?tab=community`)
 
 **Layout:**
 - Board selector (tabs or dropdown): All | General | Music | Production | Gigs
@@ -226,7 +226,7 @@ In a future phase, a fan client could aggregate community threads from multiple 
 - Content area (markdown)
 - Post button
 
-### Thread Detail Page (`community.html?thread=<event-id>`)
+### Thread Detail Page (`social.html?tab=community&thread=<event-id>`)
 
 **Layout:**
 - Thread subject as heading
@@ -295,7 +295,7 @@ No separate registration. If you have a NOSTR identity, you can participate in a
 - Seed data script (`tools/seed-social.mjs`) for populating test content
 
 ### Files
-- `client/community.html` — Community page (thread list + thread detail views)
+- `client/social.html` — Unified social page with Feed + Community tabs (community is the Community tab)
 - `client/js/nostr-social.js` — `fetchCommunityThreads()`, `fetchCommunityReplies()` functions
 
 ### Future
