@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages - Equaliser</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            color: #ffffff; overflow: hidden;
+        }
+        .container { display: flex; height: 100vh; }
+        .main-content { flex: 1; display: flex; overflow: hidden; }
+
+        /* Messages Layout */
+        .messages-layout { display: flex; width: 100%; height: 100%; }
+
+        /* Conversation List */
+        .conv-list {
+            width: 340px; border-right: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex; flex-direction: column; flex-shrink: 0;
+        }
+        .conv-list-header {
+            padding: 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 20px; font-weight: 700;
+        }
+        .conv-list-items { flex: 1; overflow-y: auto; }
+        .conv-item {
+            padding: 14px 20px; display: flex; align-items: center; gap: 12px;
+            cursor: pointer; transition: background 0.2s; border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+        .conv-item:hover { background: rgba(255, 255, 255, 0.03); }
+        .conv-item.active { background: rgba(139, 92, 246, 0.1); }
+        .conv-avatar {
+            width: 44px; height: 44px; border-radius: 50%;
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; font-weight: 600; overflow: hidden; flex-shrink: 0;
+        }
+        .conv-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .conv-info { flex: 1; min-width: 0; }
+        .conv-name { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+        .conv-preview {
+            font-size: 13px; color: rgba(255, 255, 255, 0.4);
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .conv-time { font-size: 11px; color: rgba(255, 255, 255, 0.3); flex-shrink: 0; }
+
+        /* Chat View */
+        .chat-view {
+            flex: 1; display: flex; flex-direction: column;
+        }
+        .chat-header {
+            padding: 16px 24px; border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex; align-items: center; gap: 12px;
+        }
+        .chat-header-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; font-weight: 600; overflow: hidden; flex-shrink: 0;
+        }
+        .chat-header-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .chat-header-name { font-weight: 700; font-size: 15px; }
+        .chat-header-name a { color: inherit; text-decoration: none; }
+        .chat-header-name a:hover { color: #a855f7; }
+        .chat-header-handle { font-size: 12px; color: rgba(255, 255, 255, 0.4); }
+
+        /* Messages */
+        .chat-messages {
+            flex: 1; overflow-y: auto; padding: 24px; display: flex;
+            flex-direction: column; gap: 8px;
+        }
+        .msg-day-divider {
+            text-align: center; font-size: 12px; color: rgba(255, 255, 255, 0.3);
+            margin: 16px 0 8px; position: relative;
+        }
+        .msg-day-divider::before, .msg-day-divider::after {
+            content: ''; position: absolute; top: 50%; width: 30%; height: 1px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .msg-day-divider::before { left: 0; }
+        .msg-day-divider::after { right: 0; }
+        .msg-row { display: flex; }
+        .msg-row.outgoing { justify-content: flex-end; }
+        .msg-row.incoming { justify-content: flex-start; }
+        .msg-bubble {
+            max-width: 70%; padding: 10px 16px; border-radius: 18px;
+            font-size: 14px; line-height: 1.5; word-wrap: break-word;
+        }
+        .msg-bubble.incoming {
+            background: rgba(255, 255, 255, 0.08);
+            border-bottom-left-radius: 4px;
+        }
+        .msg-bubble.outgoing {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(168, 85, 247, 0.3));
+            border-bottom-right-radius: 4px;
+        }
+        .msg-time {
+            font-size: 10px; color: rgba(255, 255, 255, 0.25); margin-top: 2px;
+            padding: 0 4px;
+        }
+        .msg-row.outgoing .msg-time { text-align: right; }
+        .msg-error {
+            font-size: 12px; color: #ef4444; font-style: italic;
+            padding: 4px 16px;
+        }
+
+        /* Chat Composer */
+        .chat-composer {
+            padding: 16px 24px; border-top: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex; gap: 12px; align-items: flex-end;
+        }
+        .chat-composer textarea {
+            flex: 1; padding: 10px 14px; background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px;
+            color: #ffffff; font-size: 14px; font-family: inherit;
+            line-height: 1.4; resize: none; outline: none; max-height: 120px;
+            transition: border-color 0.2s;
+        }
+        .chat-composer textarea::placeholder { color: rgba(255, 255, 255, 0.3); }
+        .chat-composer textarea:focus { border-color: rgba(168, 85, 247, 0.4); }
+        .chat-send-btn {
+            padding: 10px 20px; background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            border: none; border-radius: 20px; color: #ffffff; font-size: 14px;
+            font-weight: 600; cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+        }
+        .chat-send-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4); }
+        .chat-send-btn:disabled { opacity: 0.4; cursor: default; }
+
+        /* Empty States */
+        .chat-empty {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            flex-direction: column; color: rgba(255, 255, 255, 0.3); gap: 8px;
+        }
+        .chat-empty svg { width: 48px; height: 48px; opacity: 0.3; }
+        .chat-empty p { font-size: 14px; }
+        .conv-list-empty {
+            padding: 40px 20px; text-align: center; color: rgba(255, 255, 255, 0.3); font-size: 14px;
+        }
+        .dm-unavailable {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            flex-direction: column; color: rgba(255, 255, 255, 0.4); gap: 12px; padding: 40px;
+            text-align: center;
+        }
+        .dm-unavailable p { font-size: 15px; line-height: 1.6; }
+        .dm-unavailable a { color: #a855f7; text-decoration: none; }
+
+        /* Loading */
+        .loading-state { text-align: center; padding: 40px; color: rgba(255, 255, 255, 0.4); }
+        .loading-spinner {
+            display: inline-block; width: 28px; height: 28px;
+            border: 3px solid rgba(139, 92, 246, 0.3); border-top-color: #a855f7;
+            border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 8px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 768px) {
+            .conv-list { width: 80px; }
+            .conv-info, .conv-time { display: none; }
+            .conv-avatar { width: 40px; height: 40px; font-size: 14px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar"></div>
+        <div class="main-content">
+            <div class="messages-layout" id="messages-layout">
+                <div class="loading-state" style="flex:1">
+                    <div class="loading-spinner"></div>
+                    <div>Loading messages...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/nostr-tools@2.1.4/lib/nostr.bundle.js"></script>
+    <script src="/js/session.js"></script>
+    <script src="/js/sidebar.js"></script>
+    <script src="/js/nostr-social.js"></script>
+    <script src="/js/nostr-dm.js"></script>
+
+    <script>
+        // State
+        let myPubkey = null;
+        let conversations = new Map(); // partnerPubkey -> { messages, lastMessageTime }
+        let convProfiles = new Map();  // pubkey -> { name, picture }
+        let activeConvPartner = null;
+        let decryptedMessages = new Map(); // eventId -> plaintext
+        let isSending = false;
+
+        const escapeHtml = NostrSocial.escapeHtml;
+
+        // ===== Init =====
+
+        async function init() {
+            SessionManager.init();
+            ClientSidebar.init();
+
+            const session = SessionManager.getSession();
+            if (!session) {
+                window.location.href = '/login.html?return=' + encodeURIComponent(window.location.href);
+                return;
+            }
+            myPubkey = session.publicKey;
+
+            // Check DM capability
+            if (!NostrDM.canDM()) {
+                document.getElementById('messages-layout').innerHTML = `
+                    <div class="dm-unavailable">
+                        <svg width="48" height="48" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <p>Direct messages require access to your private key for encryption.</p>
+                        <p>Please <a href="/login.html?return=${encodeURIComponent(window.location.href)}">log in with your nsec</a> to use messages.</p>
+                    </div>`;
+                return;
+            }
+
+            await loadConversations();
+
+            // Check for npub param to auto-open conversation
+            const params = new URLSearchParams(window.location.search);
+            const npubParam = params.get('npub');
+            if (npubParam) {
+                try {
+                    const decoded = window.NostrTools.nip19.decode(npubParam);
+                    if (decoded.type === 'npub') {
+                        selectConversation(decoded.data);
+                    }
+                } catch (e) {}
+            }
+        }
+
+        async function loadConversations() {
+            const allDMs = await NostrDM.fetchAllDMs(myPubkey);
+            conversations = NostrDM.groupConversations(allDMs, myPubkey);
+
+            // Fetch profiles for all partners
+            const partnerPubkeys = [...conversations.keys()];
+            if (partnerPubkeys.length > 0) {
+                convProfiles = await NostrSocial.fetchProfiles(partnerPubkeys);
+            }
+
+            // Decrypt last message of each conversation for preview
+            const privateKey = SessionManager.getPrivateKey();
+            for (const [partner, conv] of conversations) {
+                const lastMsg = conv.messages[conv.messages.length - 1];
+                if (lastMsg && !decryptedMessages.has(lastMsg.id)) {
+                    try {
+                        const senderPubkey = lastMsg.pubkey === myPubkey ? partner : lastMsg.pubkey;
+                        const plaintext = await NostrDM.decrypt(privateKey, senderPubkey, lastMsg.content);
+                        decryptedMessages.set(lastMsg.id, plaintext);
+                    } catch (e) {
+                        decryptedMessages.set(lastMsg.id, '[Unable to decrypt]');
+                    }
+                }
+            }
+
+            renderLayout();
+        }
+
+        function renderLayout() {
+            const sortedPartners = [...conversations.entries()]
+                .sort((a, b) => b[1].lastMessageTime - a[1].lastMessageTime);
+
+            let convListHtml = '';
+            if (sortedPartners.length === 0) {
+                convListHtml = `<div class="conv-list-empty">No conversations yet.<br>Visit a user's profile to send a message.</div>`;
+            } else {
+                convListHtml = sortedPartners.map(([partner, conv]) => {
+                    const profile = convProfiles.get(partner) || {};
+                    const name = profile.name || 'Unknown';
+                    const initial = name.charAt(0).toUpperCase();
+                    const lastMsg = conv.messages[conv.messages.length - 1];
+                    const preview = decryptedMessages.get(lastMsg?.id) || '...';
+                    const time = lastMsg ? NostrSocial.relativeTime(lastMsg.created_at) : '';
+                    const isActive = partner === activeConvPartner;
+
+                    return `
+                        <div class="conv-item${isActive ? ' active' : ''}" onclick="selectConversation('${partner}')">
+                            <div class="conv-avatar">
+                                ${profile.picture
+                                    ? `<img src="${escapeHtml(profile.picture)}" alt="" onerror="this.style.display='none';this.parentElement.textContent='${initial}'">`
+                                    : initial
+                                }
+                            </div>
+                            <div class="conv-info">
+                                <div class="conv-name">${escapeHtml(name)}</div>
+                                <div class="conv-preview">${escapeHtml(preview.substring(0, 50))}</div>
+                            </div>
+                            <div class="conv-time">${time}</div>
+                        </div>`;
+                }).join('');
+            }
+
+            let chatHtml = '';
+            if (activeConvPartner) {
+                chatHtml = renderChat();
+            } else {
+                chatHtml = `
+                    <div class="chat-empty">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+                            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+                        </svg>
+                        <p>Select a conversation to view messages</p>
+                    </div>`;
+            }
+
+            document.getElementById('messages-layout').innerHTML = `
+                <div class="conv-list">
+                    <div class="conv-list-header">Messages</div>
+                    <div class="conv-list-items">${convListHtml}</div>
+                </div>
+                <div class="chat-view">${chatHtml}</div>
+            `;
+
+            // Wire up chat composer if active
+            if (activeConvPartner) {
+                setupChatComposer();
+                scrollChatToBottom();
+            }
+        }
+
+        async function selectConversation(partnerPubkey) {
+            activeConvPartner = partnerPubkey;
+
+            // If this is a new conversation (no messages yet), create empty entry
+            if (!conversations.has(partnerPubkey)) {
+                conversations.set(partnerPubkey, { messages: [], lastMessageTime: 0 });
+                // Fetch partner profile
+                if (!convProfiles.has(partnerPubkey)) {
+                    const profiles = await NostrSocial.fetchProfiles([partnerPubkey]);
+                    profiles.forEach((v, k) => convProfiles.set(k, v));
+                }
+            }
+
+            // Decrypt all messages in this conversation
+            const conv = conversations.get(partnerPubkey);
+            const privateKey = SessionManager.getPrivateKey();
+            for (const msg of conv.messages) {
+                if (!decryptedMessages.has(msg.id)) {
+                    try {
+                        const senderPubkey = msg.pubkey === myPubkey ? partnerPubkey : msg.pubkey;
+                        const plaintext = await NostrDM.decrypt(privateKey, senderPubkey, msg.content);
+                        decryptedMessages.set(msg.id, plaintext);
+                    } catch (e) {
+                        decryptedMessages.set(msg.id, '[Unable to decrypt]');
+                    }
+                }
+            }
+
+            renderLayout();
+        }
+
+        function renderChat() {
+            const conv = conversations.get(activeConvPartner);
+            const profile = convProfiles.get(activeConvPartner) || {};
+            const name = profile.name || 'Unknown';
+            const initial = name.charAt(0).toUpperCase();
+            let npub = '';
+            try { npub = window.NostrTools.nip19.npubEncode(activeConvPartner); } catch (e) {}
+
+            let messagesHtml = '';
+            let lastDay = '';
+            for (const msg of (conv?.messages || [])) {
+                const day = new Date(msg.created_at * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                if (day !== lastDay) {
+                    messagesHtml += `<div class="msg-day-divider">${day}</div>`;
+                    lastDay = day;
+                }
+
+                const isOutgoing = msg.pubkey === myPubkey;
+                const plaintext = decryptedMessages.get(msg.id);
+                const time = new Date(msg.created_at * 1000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+                if (plaintext === '[Unable to decrypt]') {
+                    messagesHtml += `<div class="msg-error">Could not decrypt message</div>`;
+                } else {
+                    messagesHtml += `
+                        <div class="msg-row ${isOutgoing ? 'outgoing' : 'incoming'}">
+                            <div>
+                                <div class="msg-bubble ${isOutgoing ? 'outgoing' : 'incoming'}">${escapeHtml(plaintext || '...')}</div>
+                                <div class="msg-time">${time}</div>
+                            </div>
+                        </div>`;
+                }
+            }
+
+            if (!conv || conv.messages.length === 0) {
+                messagesHtml = `<div class="chat-empty"><p>No messages yet. Say hello!</p></div>`;
+            }
+
+            return `
+                <div class="chat-header">
+                    <div class="chat-header-avatar">
+                        ${profile.picture
+                            ? `<img src="${escapeHtml(profile.picture)}" alt="" onerror="this.style.display='none';this.parentElement.textContent='${initial}'">`
+                            : initial
+                        }
+                    </div>
+                    <div>
+                        <div class="chat-header-name">${npub ? `<a href="/user.html?npub=${npub}">${escapeHtml(name)}</a>` : escapeHtml(name)}</div>
+                        <div class="chat-header-handle">${npub ? npub.substring(0, 20) + '...' : ''}</div>
+                    </div>
+                </div>
+                <div class="chat-messages" id="chat-messages">${messagesHtml}</div>
+                <div class="chat-composer">
+                    <textarea id="chat-input" placeholder="Type a message..." rows="1"></textarea>
+                    <button class="chat-send-btn" id="chat-send-btn" disabled onclick="sendMessage()">Send</button>
+                </div>`;
+        }
+
+        function setupChatComposer() {
+            const input = document.getElementById('chat-input');
+            const sendBtn = document.getElementById('chat-send-btn');
+            if (!input || !sendBtn) return;
+
+            input.addEventListener('input', () => {
+                sendBtn.disabled = input.value.trim().length === 0 || isSending;
+                // Auto-resize
+                input.style.height = 'auto';
+                input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+            });
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (!sendBtn.disabled) sendMessage();
+                }
+            });
+        }
+
+        function scrollChatToBottom() {
+            const el = document.getElementById('chat-messages');
+            if (el) el.scrollTop = el.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const sendBtn = document.getElementById('chat-send-btn');
+            const text = input.value.trim();
+            if (!text || isSending || !activeConvPartner) return;
+
+            isSending = true;
+            sendBtn.disabled = true;
+            sendBtn.textContent = '...';
+
+            try {
+                const signedEvent = await NostrDM.sendDM(activeConvPartner, text);
+
+                // Add to conversation
+                const conv = conversations.get(activeConvPartner);
+                if (conv) {
+                    conv.messages.push(signedEvent);
+                    conv.lastMessageTime = signedEvent.created_at;
+                }
+                decryptedMessages.set(signedEvent.id, text);
+
+                input.value = '';
+                input.style.height = 'auto';
+                renderLayout();
+            } catch (error) {
+                console.error('Send DM failed:', error);
+                alert('Failed to send message: ' + error.message);
+            } finally {
+                isSending = false;
+                if (sendBtn) {
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = 'Send';
+                }
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

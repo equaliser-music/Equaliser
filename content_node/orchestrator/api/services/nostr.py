@@ -33,12 +33,15 @@ def create_track_event(
     pubkey: str,
     album: Optional[str] = None,
     genre: Optional[str] = None,
-    price_sats: int = 100,
+    price_amount: float = 0.05,
+    price_currency: str = "USD",
     release_date: Optional[str] = None,
     cover_art_cid: Optional[str] = None,
     release_type: Optional[str] = None,
     release_id: Optional[str] = None,
     track_number: Optional[int] = None,
+    blossom_audio_hash: Optional[str] = None,
+    blossom_cover_hash: Optional[str] = None,
 ) -> dict:
     """
     Create a NOSTR Kind 30050 track metadata event.
@@ -54,7 +57,8 @@ def create_track_event(
         pubkey: Artist's NOSTR public key (hex)
         album: Optional album name
         genre: Optional genre
-        price_sats: Price per stream in satoshis
+        price_amount: Price per stream in the specified currency
+        price_currency: ISO 4217 currency code (USD, GBP, EUR, JPY) or SAT
         release_date: Optional release date (ISO format)
         cover_art_cid: Optional IPFS CID of cover art
         release_type: Release type (single, album, ep)
@@ -79,7 +83,8 @@ def create_track_event(
         ["duration", str(duration)],
         ["ipfs_manifest_cid", manifest_cid],
         ["ipfs_preview_cid", preview_cid],
-        ["price_sats", str(price_sats)],
+        ["price", str(price_amount)],
+        ["price_currency", price_currency],
     ]
 
     if album:
@@ -98,6 +103,10 @@ def create_track_event(
         tags.append(["release_id", release_id])
     if track_number is not None:
         tags.append(["track_number", str(track_number)])
+    if blossom_audio_hash:
+        tags.append(["blossom_audio_hash", blossom_audio_hash])
+    if blossom_cover_hash:
+        tags.append(["blossom_cover_hash", blossom_cover_hash])
 
     event = {
         "kind": TRACK_EVENT_KIND,
@@ -119,7 +128,8 @@ def create_release_event(
     genre: Optional[str] = None,
     release_date: Optional[str] = None,
     cover_art_cid: Optional[str] = None,
-    price_sats: int = 0,
+    price_amount: float = 0,
+    price_currency: str = "USD",
     track_count: int = 0,
     total_duration: int = 0,
 ) -> dict:
@@ -137,7 +147,8 @@ def create_release_event(
         genre: Optional genre
         release_date: Release date (ISO format)
         cover_art_cid: IPFS CID of cover art
-        price_sats: Total price for the release in satoshis
+        price_amount: Total price for the release in the specified currency
+        price_currency: ISO 4217 currency code (USD, GBP, EUR, JPY) or SAT
         track_count: Number of tracks in the release
         total_duration: Total duration in seconds
 
@@ -167,8 +178,9 @@ def create_release_event(
         tags.append(["release_date", release_date])
     if cover_art_cid:
         tags.append(["cover_art_cid", cover_art_cid])
-    if price_sats > 0:
-        tags.append(["price_sats", str(price_sats)])
+    if price_amount > 0:
+        tags.append(["price", str(price_amount)])
+        tags.append(["price_currency", price_currency])
     if track_count > 0:
         tags.append(["track_count", str(track_count)])
     if total_duration > 0:

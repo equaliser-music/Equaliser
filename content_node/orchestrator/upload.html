@@ -712,8 +712,17 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Price per Stream (sats)</label>
-                        <input type="number" class="form-input" id="default-price" value="100" min="0">
+                        <label class="form-label">Price per Stream</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="number" class="form-input" id="default-price" value="0.05" min="0" step="any" style="flex: 1;">
+                            <select class="form-input" id="default-price-currency" style="width: 100px;">
+                                <option value="USD">USD</option>
+                                <option value="GBP">GBP</option>
+                                <option value="EUR">EUR</option>
+                                <option value="JPY">JPY</option>
+                                <option value="SAT">SAT</option>
+                            </select>
+                        </div>
                         <p class="form-hint">0 for free streaming</p>
                     </div>
                     <div class="form-group">
@@ -819,6 +828,7 @@
         let tracks = [];
         let isUploading = false;
         let coverArtCid = null;
+        let coverArtBlossomHash = null;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
@@ -884,6 +894,15 @@
                             const profile = JSON.parse(msg[2].content);
                             if (profile.name) {
                                 document.getElementById('default-artist').value = profile.name;
+                            }
+                            // Load pricing preferences from profile
+                            if (profile.equaliser) {
+                                if (profile.equaliser.price_currency) {
+                                    document.getElementById('default-price-currency').value = profile.equaliser.price_currency;
+                                }
+                                if (profile.equaliser.default_track_price !== undefined) {
+                                    document.getElementById('default-price').value = profile.equaliser.default_track_price;
+                                }
                             }
                             // Update sidebar
                             const avatarUrl = profile.picture || null;
@@ -980,7 +999,8 @@
                 album: albumName,
                 releaseType: releaseType,
                 genre: document.getElementById('default-genre').value || '',
-                price: parseInt(document.getElementById('default-price').value) || 100,
+                priceAmount: parseFloat(document.getElementById('default-price').value) || 0.05,
+                priceCurrency: document.getElementById('default-price-currency').value || 'USD',
                 releaseDate: document.getElementById('default-release-date').value || '',
                 duration: 0,
                 status: 'pending',
@@ -1100,8 +1120,8 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Price (sats)</label>
-                                <input type="number" class="form-input" value="${track.price}" min="0" onchange="updateTrackMeta('${track.id}', 'price', parseInt(this.value))">
+                                <label class="form-label">Price (${track.priceCurrency})</label>
+                                <input type="number" class="form-input" value="${track.priceAmount}" min="0" step="any" onchange="updateTrackMeta('${track.id}', 'priceAmount', parseFloat(this.value))">
                             </div>
                         </div>
                     </div>
@@ -1315,10 +1335,14 @@
                 formData.append('album', track.album);
                 formData.append('genre', track.genre);
                 formData.append('release_date', track.releaseDate);
-                formData.append('price_sats', track.price.toString());
+                formData.append('price_amount', track.priceAmount.toString());
+                formData.append('price_currency', track.priceCurrency);
                 formData.append('release_type', track.releaseType || 'single');
                 if (coverArtCid) {
                     formData.append('cover_art_cid', coverArtCid);
+                }
+                if (coverArtBlossomHash) {
+                    formData.append('blossom_cover_hash', coverArtBlossomHash);
                 }
 
                 // Upload file
@@ -1439,7 +1463,7 @@
             const statusText = document.getElementById('cover-art-status-text');
             statusEl.style.display = 'flex';
             statusEl.className = 'cover-art-status uploading';
-            statusText.innerHTML = '<span class="loading"></span> Uploading to IPFS...';
+            statusText.innerHTML = '<span class="loading"></span> Uploading cover art...';
 
             try {
                 const formData = new FormData();
@@ -1457,13 +1481,15 @@
 
                 const result = await response.json();
                 coverArtCid = result.cid;
+                coverArtBlossomHash = result.blossom_hash || null;
 
                 statusEl.className = 'cover-art-status success';
-                statusText.innerHTML = `<svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg> Uploaded: <span class="cover-art-cid">${result.cid}</span>`;
+                statusText.innerHTML = `<svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg> Uploaded`;
 
                 showNotification('Cover art uploaded successfully!', 'success');
             } catch (error) {
                 coverArtCid = null;
+                coverArtBlossomHash = null;
                 statusEl.className = 'cover-art-status error';
                 statusText.innerHTML = `<svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg> Failed: ${error.message}`;
                 showNotification('Failed to upload cover art: ' + error.message, 'error');

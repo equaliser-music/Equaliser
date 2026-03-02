@@ -289,6 +289,19 @@ A persistent status bar appears at the top of all admin pages showing:
 
 The content node runs a [nostr-rs-relay](https://github.com/scsibug/nostr-rs-relay) instance for storing and serving NOSTR events.
 
+### Public Relay, Application-Level Filtering
+
+Content node relays are **public** — open for both reading and writing. This is intentional: decentralisation requires that other content nodes, fan clients, and NOSTR clients can connect freely. Locking the relay down would break cross-node discovery and artist-to-artist publishing.
+
+Spam defence operates at the **application layer**, not the relay layer:
+
+- All events created through Equaliser are tagged with `["app", "equaliser"]` before signing
+- UI feeds filter on this tag — untagged events (spam, random NOSTR traffic) are invisible to users
+- `cleanup-relay.sh` periodically removes untagged events from non-protected pubkeys for storage hygiene
+- This creates an application-level overlay network on standard NOSTR infrastructure
+
+See [SOCIAL.md](./SOCIAL.md) for the full two-layer architecture.
+
 ### Configuration
 
 Edit `nostr-relay/config.toml` to customize:

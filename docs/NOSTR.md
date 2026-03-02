@@ -149,6 +149,53 @@ ports:
   - "7777:7777"
 ```
 
+## App-Tag Filtering & Spam Management
+
+Content node relays are **public** (open read + write) to support decentralisation. Spam defence operates at the application layer using the `["app", "Equaliser"]` tag:
+
+- **Tagging**: All events created through Equaliser are tagged with `["app", "Equaliser"]` before signing
+- **Filtering**: UI feeds only display events with this tag — untagged events are invisible to users
+- **Cleanup**: `cleanup-relay.sh` periodically removes untagged events from non-protected pubkeys
+
+This approach keeps relays public for cross-node discovery and fan interaction while creating a clean, curated Equaliser experience in the UI. The relay accumulates some junk between cleanups, but the UI never shows it.
+
+See [SOCIAL.md](../docs/SOCIAL.md) for the full two-layer architecture (Equaliser Network vs Wider NOSTR).
+
+## Tag Indexing Limitation
+
+**Critical for developers:** `nostr-rs-relay` only indexes **single-letter tags** for relay-side query filtering:
+
+| Indexed (relay-side filter works) | Not indexed (must filter client-side) |
+|----------------------------------|--------------------------------------|
+| `e` (event references) | `app` |
+| `p` (pubkey references) | `content-type` |
+| `d` (replaceable event identifiers) | `board` |
+| `t` (hashtags) | `subject` |
+
+This means relay filter parameters like `#app`, `#content-type`, `#board` will return **zero results**. All filtering on multi-character tags must be done client-side after fetching events broadly.
+
+**Correct pattern:**
+```javascript
+// Fetch broadly by kinds (and single-letter tags if applicable)
+const allNotes = await fetchNotes({ kinds: [1], limit: 500 });
+
+// Filter client-side for multi-char tags
+const threads = allNotes.filter(ev =>
+    ev.tags.some(t => t[0] === 'app' && t[1] === 'Equaliser') &&
+    ev.tags.some(t => t[0] === 'content-type' && t[1] === 'thread')
+);
+```
+
+**Wrong pattern (returns 0 results):**
+```javascript
+// DO NOT use multi-char tag filters in relay queries
+const threads = await fetchNotes({
+    kinds: [1],
+    '#app': ['Equaliser'],        // NOT INDEXED
+    '#content-type': ['thread'],  // NOT INDEXED
+});
+```
+
 ## Production Deployment
 
 For production, you'll need:

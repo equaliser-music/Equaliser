@@ -1,0 +1,7 @@
+# VPS override - remap port so host nginx owns 80/443
+# Copy to content_node/ on the VPS alongside docker-compose.yml
+# Docker Compose automatically merges this with docker-compose.yml
+services:
+  web:
+    ports: !override
+      - "8080:80"

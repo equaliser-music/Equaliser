@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equaliser - Profile</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 240px;
+            max-width: 800px;
+            padding-bottom: 60px;
+        }
+
+        /* Banner */
+        .profile-banner {
+            height: 200px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(255, 0, 110, 0.2), rgba(59, 130, 246, 0.2));
+            position: relative;
+            overflow: hidden;
+        }
+
+        .profile-banner img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Profile Header */
+        .profile-header {
+            padding: 0 32px;
+            position: relative;
+        }
+
+        .profile-avatar-wrapper {
+            margin-top: -48px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+        }
+
+        .profile-avatar {
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            border: 4px solid #0a0a0f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: 700;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .edit-profile-btn {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .edit-profile-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Profile Info */
+        .profile-info {
+            padding: 0 32px;
+        }
+
+        .profile-display-name {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .profile-identifiers {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .profile-npub {
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .profile-npub:hover {
+            color: #a855f7;
+        }
+
+        .profile-nip05 {
+            font-size: 13px;
+            color: #a855f7;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .profile-nip05 svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .profile-lud16 {
+            font-size: 13px;
+            color: #fbbf24;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .profile-lud16 svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .profile-bio {
+            font-size: 15px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 20px;
+            white-space: pre-wrap;
+        }
+
+        /* Stats */
+        .profile-stats {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 28px;
+        }
+
+        .profile-stat {
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .profile-stat:hover {
+            opacity: 0.8;
+        }
+
+        .profile-stat-value {
+            font-weight: 700;
+            font-size: 16px;
+            margin-right: 4px;
+        }
+
+        .profile-stat-label {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Tabs */
+        .profile-tabs {
+            display: flex;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 0 32px;
+            margin-bottom: 24px;
+        }
+
+        .profile-tab {
+            padding: 14px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .profile-tab:hover {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .profile-tab.active {
+            color: #ffffff;
+            border-bottom-color: #a855f7;
+        }
+
+        /* Activity Feed */
+        .profile-feed {
+            padding: 0 32px;
+        }
+
+        .empty-feed {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .empty-feed svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 16px;
+            opacity: 0.4;
+        }
+
+        .empty-feed p {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .empty-feed .sub {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Feed Items */
+        .feed-items {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .feed-item {
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .feed-item:last-child {
+            border-bottom: none;
+        }
+
+        .feed-item-context {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.35);
+            margin-bottom: 10px;
+            padding-left: 48px;
+        }
+
+        .feed-item-context svg {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+        }
+
+        .feed-item-context a {
+            color: rgba(255, 255, 255, 0.5);
+            text-decoration: none;
+        }
+
+        .feed-item-context a:hover {
+            text-decoration: underline;
+        }
+
+        .feed-item-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .feed-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            overflow: hidden;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .feed-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .feed-author-name {
+            font-size: 14px;
+            font-weight: 600;
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .feed-author-name a {
+            color: #ffffff;
+            text-decoration: none;
+        }
+
+        .feed-author-name a:hover {
+            text-decoration: underline;
+        }
+
+        .feed-time {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.3);
+            flex-shrink: 0;
+        }
+
+        .feed-item-content {
+            font-size: 14px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.85);
+            word-break: break-word;
+            white-space: pre-wrap;
+            padding-left: 46px;
+        }
+
+        .feed-item-content a {
+            color: #a855f7;
+            text-decoration: none;
+        }
+
+        .feed-item-content a:hover {
+            text-decoration: underline;
+        }
+
+        .feed-actions {
+            display: flex;
+            gap: 4px;
+            margin-top: 10px;
+            padding-left: 46px;
+        }
+
+        .feed-action-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 12px;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .feed-action-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .feed-action-btn svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        .feed-action-btn.like-btn:hover,
+        .feed-action-btn.like-btn.liked {
+            color: #ef4444;
+        }
+
+        .feed-action-btn.like-btn.liked svg {
+            fill: #ef4444;
+        }
+
+        .feed-action-btn.repost-btn:hover,
+        .feed-action-btn.repost-btn.reposted {
+            color: #22c55e;
+        }
+
+        .feed-loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 13px;
+        }
+
+        /* Loading State */
+        .loading-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 20px;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            border: 3px solid rgba(139, 92, 246, 0.3);
+            border-top-color: #a855f7;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                margin-left: 64px;
+            }
+
+            .profile-banner {
+                height: 140px;
+            }
+
+            .profile-avatar {
+                width: 72px;
+                height: 72px;
+                font-size: 24px;
+                margin-top: -36px;
+            }
+
+            .profile-header,
+            .profile-info,
+            .profile-tabs,
+            .profile-feed {
+                padding-left: 20px;
+                padding-right: 20px;
+            }
+
+            .profile-display-name {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-content">
+            <!-- Loading state -->
+            <div id="loading-state" class="loading-state">
+                <div class="loading-spinner"></div>
+            </div>
+
+            <!-- Profile content (hidden until loaded) -->
+            <div id="profile-content" style="display: none;">
+                <div class="profile-banner" id="profile-banner"></div>
+
+                <div class="profile-header">
+                    <div class="profile-avatar-wrapper">
+                        <div class="profile-avatar" id="profile-avatar">
+                            <svg width="40" height="40" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <a href="/messages.html" class="edit-profile-btn" id="messages-btn" style="display: none;">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+                                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+                                </svg>
+                                Messages
+                            </a>
+                            <a href="/settings.html" class="edit-profile-btn" id="edit-btn" style="display: none;">
+                                Edit Profile
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-info">
+                    <div class="profile-display-name" id="profile-name">Unknown</div>
+                    <div class="profile-identifiers">
+                        <span class="profile-npub" id="profile-npub" title="Click to copy" onclick="copyNpub()"></span>
+                        <span class="profile-nip05" id="profile-nip05" style="display: none;">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                            <span id="nip05-text"></span>
+                        </span>
+                        <span class="profile-lud16" id="profile-lud16" style="display: none;">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/></svg>
+                            <span id="lud16-text"></span>
+                        </span>
+                    </div>
+                    <div class="profile-bio" id="profile-bio"></div>
+                    <div class="profile-stats">
+                        <div class="profile-stat">
+                            <span class="profile-stat-value" id="following-count">0</span>
+                            <span class="profile-stat-label">Following</span>
+                        </div>
+                        <div class="profile-stat">
+                            <span class="profile-stat-value" id="followers-count">0</span>
+                            <span class="profile-stat-label">Followers</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-tabs">
+                    <div class="profile-tab active" data-tab="posts">Posts</div>
+                    <div class="profile-tab" data-tab="likes">Likes</div>
+                </div>
+
+                <div class="profile-feed" id="profile-feed">
+                    <div class="empty-feed">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"/>
+                        </svg>
+                        <p>No posts yet</p>
+                        <p class="sub">Activity will appear here as you interact with the community</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/nostr-tools@2.1.4/lib/nostr.bundle.js"></script>
+    <script src="/js/session.js"></script>
+    <script src="/js/sidebar.js"></script>
+    <script src="/js/nostr-social.js"></script>
+
+    <script>
+        // Config
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const relayUrl = `${wsProtocol}//${window.location.host}/relay`;
+
+        // State
+        let profilePubkey = null;
+        let isOwnProfile = false;
+        let fullNpub = null;
+        let profileData = null; // Kind 0 profile object
+        let activeTab = 'posts';
+
+        // Feed data
+        let postsData = null;   // { items, loaded }
+        let likesData = null;
+
+        // Profile cache: pubkey -> { name, picture }
+        const profileCache = {};
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            SessionManager.init();
+            ClientSidebar.init();
+
+            // Determine which profile to show
+            const urlParams = new URLSearchParams(window.location.search);
+            const npubParam = urlParams.get('npub');
+
+            if (npubParam) {
+                try {
+                    const decoded = NostrTools.nip19.decode(npubParam);
+                    if (decoded.type !== 'npub') throw new Error('Invalid npub');
+                    profilePubkey = decoded.data;
+                    fullNpub = npubParam;
+                } catch (e) {
+                    console.error('Invalid npub:', e);
+                    document.getElementById('loading-state').innerHTML = '<p style="color: rgba(255,255,255,0.5);">Invalid profile link</p>';
+                    return;
+                }
+
+                const session = SessionManager.getSession();
+                if (session && session.publicKey === profilePubkey) {
+                    isOwnProfile = true;
+                }
+            } else if (SessionManager.hasSession()) {
+                const session = SessionManager.getSession();
+                profilePubkey = session.publicKey;
+                fullNpub = session.npub;
+                isOwnProfile = true;
+            } else {
+                window.location.href = '/login.html?return=' + encodeURIComponent(window.location.href);
+                return;
+            }
+
+            if (isOwnProfile) {
+                document.getElementById('edit-btn').style.display = '';
+                document.getElementById('messages-btn').style.display = '';
+            }
+
+            document.getElementById('profile-npub').textContent =
+                fullNpub.substring(0, 16) + '...' + fullNpub.substring(fullNpub.length - 8);
+
+            // Wire up tabs
+            document.querySelectorAll('.profile-tab').forEach(tab => {
+                tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+            });
+
+            // Fetch profile data
+            await loadProfile();
+            await loadFollowCounts();
+
+            // Show content
+            document.getElementById('loading-state').style.display = 'none';
+            document.getElementById('profile-content').style.display = '';
+
+            // Load posts feed
+            loadPostsTab();
+        });
+
+        // ==================== Tab Switching ====================
+
+        function switchTab(tabName) {
+            activeTab = tabName;
+
+            document.querySelectorAll('.profile-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.tab === tabName);
+            });
+
+            if (tabName === 'posts') {
+                loadPostsTab();
+            } else if (tabName === 'likes') {
+                loadLikesTab();
+            }
+        }
+
+        // ==================== Posts Tab ====================
+
+        async function loadPostsTab() {
+            const feed = document.getElementById('profile-feed');
+
+            if (postsData) {
+                renderPostsFeed(postsData);
+                return;
+            }
+
+            feed.innerHTML = '<div class="feed-loading">Loading posts...</div>';
+
+            // Fetch Kind 1 (notes) and Kind 6 (reposts) from this user
+            const events = await fetchEventsFromRelay({
+                kinds: [1, 6],
+                authors: [profilePubkey],
+                limit: 100
+            });
+
+            // Separate posts and reposts - only show Equaliser-tagged events
+            const ownNotes = events.filter(e => e.kind === 1 && NostrSocial.isEqualiiserEvent(e) && NostrSocial.isTopLevelPost(e));
+            const reposts = events.filter(e => e.kind === 6 && NostrSocial.isEqualiiserEvent(e));
+
+            // Build feed items
+            const items = [];
+
+            // Own notes
+            for (const note of ownNotes) {
+                items.push({
+                    type: 'post',
+                    timestamp: note.created_at,
+                    noteId: note.id,
+                    authorPubkey: note.pubkey,
+                    content: note.content
+                });
+            }
+
+            // Reposts — resolve original notes
+            for (const repost of reposts) {
+                let originalNote = null;
+
+                // Try to parse embedded original note from content
+                if (repost.content) {
+                    try {
+                        originalNote = JSON.parse(repost.content);
+                    } catch (e) {}
+                }
+
+                // Fallback: fetch original note from relay via e tag
+                if (!originalNote) {
+                    const eTag = repost.tags.find(t => t[0] === 'e');
+                    if (eTag) {
+                        const fetched = await fetchEventsFromRelay({
+                            ids: [eTag[1]],
+                            limit: 1
+                        });
+                        if (fetched.length > 0) originalNote = fetched[0];
+                    }
+                }
+
+                if (originalNote) {
+                    items.push({
+                        type: 'repost',
+                        timestamp: repost.created_at,
+                        noteId: originalNote.id,
+                        authorPubkey: originalNote.pubkey,
+                        content: originalNote.content,
+                        repostedBy: repost.pubkey
+                    });
+                }
+            }
+
+            // Sort newest first
+            items.sort((a, b) => b.timestamp - a.timestamp);
+
+            postsData = items;
+
+            // Fetch profiles for all unique authors
+            const authorPubkeys = [...new Set(items.map(i => i.authorPubkey))];
+            await fetchProfiles(authorPubkeys);
+
+            renderPostsFeed(items);
+        }
+
+        function renderPostsFeed(items) {
+            const feed = document.getElementById('profile-feed');
+
+            if (items.length === 0) {
+                feed.innerHTML = `
+                    <div class="empty-feed">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"/>
+                        </svg>
+                        <p>No posts yet</p>
+                        <p class="sub">Posts and reposts will appear here</p>
+                    </div>`;
+                return;
+            }
+
+            feed.innerHTML = `<div class="feed-items">
+                ${items.map(item => renderFeedItem(item)).join('')}
+            </div>`;
+        }
+
+        // ==================== Likes Tab ====================
+
+        async function loadLikesTab() {
+            const feed = document.getElementById('profile-feed');
+
+            if (likesData) {
+                renderLikesFeed(likesData);
+                return;
+            }
+
+            feed.innerHTML = '<div class="feed-loading">Loading likes...</div>';
+
+            // Fetch Kind 7 reactions by this user
+            const reactions = await fetchEventsFromRelay({
+                kinds: [7],
+                authors: [profilePubkey],
+                limit: 100
+            });
+
+            // Filter to positive reactions only
+            const likes = reactions.filter(r => r.content !== '-');
+
+            // Resolve original notes
+            const items = [];
+            const noteIdsToFetch = [];
+
+            for (const like of likes) {
+                const eTag = like.tags.find(t => t[0] === 'e');
+                if (eTag) noteIdsToFetch.push(eTag[1]);
+            }
+
+            // Batch fetch all liked notes
+            const likedNotes = noteIdsToFetch.length > 0
+                ? await fetchEventsFromRelay({ ids: noteIdsToFetch, limit: 200 })
+                : [];
+
+            const noteMap = new Map();
+            likedNotes.forEach(n => noteMap.set(n.id, n));
+
+            for (const like of likes) {
+                const eTag = like.tags.find(t => t[0] === 'e');
+                if (!eTag) continue;
+
+                const note = noteMap.get(eTag[1]);
+                if (note) {
+                    items.push({
+                        type: 'liked',
+                        timestamp: like.created_at,
+                        noteId: note.id,
+                        authorPubkey: note.pubkey,
+                        content: note.content
+                    });
+                }
+            }
+
+            // Sort newest first
+            items.sort((a, b) => b.timestamp - a.timestamp);
+
+            likesData = items;
+
+            // Fetch profiles
+            const authorPubkeys = [...new Set(items.map(i => i.authorPubkey))];
+            await fetchProfiles(authorPubkeys);
+
+            renderLikesFeed(items);
+        }
+
+        function renderLikesFeed(items) {
+            const feed = document.getElementById('profile-feed');
+
+            if (items.length === 0) {
+                feed.innerHTML = `
+                    <div class="empty-feed">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/>
+                        </svg>
+                        <p>No likes yet</p>
+                        <p class="sub">Posts you like will appear here</p>
+                    </div>`;
+                return;
+            }
+
+            feed.innerHTML = `<div class="feed-items">
+                ${items.map(item => renderFeedItem(item)).join('')}
+            </div>`;
+        }
+
+        // ==================== Shared Feed Rendering ====================
+
+        function renderFeedItem(item) {
+            const author = profileCache[item.authorPubkey] || {};
+            const authorName = author.name || 'Unknown';
+            const authorInitial = authorName.charAt(0).toUpperCase();
+            const authorNpub = NostrTools.nip19.npubEncode(item.authorPubkey);
+            const content = linkifyContent(escapeHtml(item.content));
+            const time = relativeTime(item.timestamp);
+
+            let contextHtml = '';
+            if (item.type === 'repost') {
+                const repostedByName = profileCache[item.repostedBy]?.name || 'You';
+                contextHtml = `
+                    <div class="feed-item-context">
+                        <svg fill="currentColor" viewBox="0 0 20 20"><path d="M7 16V4m0 0L3 8m4-4l4 4M13 4v12m0 0l4-4m-4 4l-4-4"/></svg>
+                        ${escapeHtml(repostedByName)} reposted
+                    </div>`;
+            } else if (item.type === 'liked') {
+                contextHtml = `
+                    <div class="feed-item-context">
+                        <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/></svg>
+                        You liked
+                    </div>`;
+            }
+
+            return `
+                <div class="feed-item" data-note-id="${item.noteId}">
+                    ${contextHtml}
+                    <div class="feed-item-header">
+                        <div class="feed-avatar">
+                            ${author.picture
+                                ? `<img src="${escapeHtml(author.picture)}" alt="" onerror="this.style.display='none';this.parentElement.textContent='${authorInitial}'">`
+                                : authorInitial
+                            }
+                        </div>
+                        <span class="feed-author-name"><a href="/user.html?npub=${authorNpub}">${escapeHtml(authorName)}</a></span>
+                        <span class="feed-time">${time}</span>
+                    </div>
+                    <div class="feed-item-content" style="cursor:pointer" onclick="window.location.href='/thread.html?id=${item.noteId}'">${content}</div>
+                    <div class="feed-actions">
+                        <button class="feed-action-btn reply-btn" onclick="window.location.href='/thread.html?id=${item.noteId}'">
+                            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7z"/>
+                            </svg>
+                            <span class="reply-count" data-reply-note-id="${item.noteId}"></span>
+                        </button>
+                        <button class="feed-action-btn like-btn" onclick="handleLike('${item.noteId}', '${item.authorPubkey}', this)">
+                            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
+                            </svg>
+                            <span class="like-count"></span>
+                        </button>
+                        <button class="feed-action-btn repost-btn${item.type === 'repost' ? ' reposted' : ''}" onclick="handleRepost('${item.noteId}', '${item.authorPubkey}', this)">
+                            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M7 16V4m0 0L3 8m4-4l4 4M13 4v12m0 0l4-4m-4 4l-4-4"/>
+                            </svg>
+                            <span class="repost-count"></span>
+                        </button>
+                    </div>
+                </div>`;
+        }
+
+        // ==================== Relay Helpers ====================
+
+        function fetchEventsFromRelay(filter) {
+            return new Promise((resolve) => {
+                const ws = new WebSocket(relayUrl);
+                const events = [];
+                const subId = 'q-' + Math.random().toString(36).substring(7);
+
+                const timeout = setTimeout(() => {
+                    try { ws.close(); } catch(e) {}
+                    resolve(events);
+                }, 8000);
+
+                ws.onopen = () => {
+                    ws.send(JSON.stringify(['REQ', subId, filter]));
+                };
+
+                ws.onmessage = (e) => {
+                    try {
+                        const msg = JSON.parse(e.data);
+                        if (msg[0] === 'EVENT' && msg[1] === subId) {
+                            events.push(msg[2]);
+                        }
+                        if (msg[0] === 'EOSE') {
+                            clearTimeout(timeout);
+                            ws.close();
+                            resolve(events);
+                        }
+                    } catch (err) {}
+                };
+
+                ws.onerror = () => {
+                    clearTimeout(timeout);
+                    resolve(events);
+                };
+            });
+        }
+
+        function publishToRelay(event) {
+            return new Promise((resolve) => {
+                const ws = new WebSocket(relayUrl);
+                const timeout = setTimeout(() => {
+                    try { ws.close(); } catch(e) {}
+                    resolve(false);
+                }, 5000);
+
+                ws.onopen = () => {
+                    ws.send(JSON.stringify(['EVENT', event]));
+                };
+
+                ws.onmessage = (e) => {
+                    try {
+                        const msg = JSON.parse(e.data);
+                        if (msg[0] === 'OK') {
+                            clearTimeout(timeout);
+                            ws.close();
+                            resolve(msg[2] === true);
+                        }
+                    } catch (err) {}
+                };
+
+                ws.onerror = () => {
+                    clearTimeout(timeout);
+                    resolve(false);
+                };
+            });
+        }
+
+        // Batch fetch Kind 0 profiles and populate cache
+        async function fetchProfiles(pubkeys) {
+            // Filter out already cached
+            const needed = pubkeys.filter(pk => !profileCache[pk]);
+            if (needed.length === 0) return;
+
+            const events = await fetchEventsFromRelay({
+                kinds: [0],
+                authors: needed,
+                limit: needed.length
+            });
+
+            events.forEach(ev => {
+                try {
+                    const p = JSON.parse(ev.content);
+                    profileCache[ev.pubkey] = {
+                        name: p.display_name || p.name || 'Unknown',
+                        picture: p.picture || null
+                    };
+                } catch (e) {}
+            });
+
+            // Add the profile page's own profile to cache
+            if (profileData && !profileCache[profilePubkey]) {
+                profileCache[profilePubkey] = {
+                    name: profileData.display_name || profileData.name || 'Unknown',
+                    picture: profileData.picture || null
+                };
+            }
+        }
+
+        // ==================== Like / Repost from Profile ====================
+
+        async function handleLike(noteId, authorPubkey, btnEl) {
+            const session = SessionManager.getSession();
+            if (!session) {
+                window.location.href = '/login.html?return=' + encodeURIComponent(window.location.href);
+                return;
+            }
+
+            if (btnEl.classList.contains('liked')) return;
+
+            try {
+                const event = {
+                    kind: 7,
+                    created_at: Math.floor(Date.now() / 1000),
+                    tags: [['e', noteId], ['p', authorPubkey]],
+                    content: '+'
+                };
+
+                const signed = await SessionManager.signEvent(event);
+                await publishToRelay(signed);
+
+                // Update UI
+                btnEl.classList.add('liked');
+                btnEl.querySelector('svg').setAttribute('fill', 'currentColor');
+                const countEl = btnEl.querySelector('.like-count');
+                const current = parseInt(countEl.textContent) || 0;
+                countEl.textContent = current + 1;
+            } catch (err) {
+                console.error('Like failed:', err);
+            }
+        }
+
+        async function handleRepost(noteId, authorPubkey, btnEl) {
+            const session = SessionManager.getSession();
+            if (!session) {
+                window.location.href = '/login.html?return=' + encodeURIComponent(window.location.href);
+                return;
+            }
+
+            if (btnEl.classList.contains('reposted')) return;
+
+            try {
+                const event = {
+                    kind: 6,
+                    created_at: Math.floor(Date.now() / 1000),
+                    tags: [['e', noteId, relayUrl], ['p', authorPubkey]],
+                    content: ''
+                };
+
+                const signed = await SessionManager.signEvent(event);
+                await publishToRelay(signed);
+
+                // Update UI
+                btnEl.classList.add('reposted');
+                const countEl = btnEl.querySelector('.repost-count');
+                const current = parseInt(countEl.textContent) || 0;
+                countEl.textContent = current + 1;
+
+                // Invalidate posts cache so repost shows on refresh
+                postsData = null;
+            } catch (err) {
+                console.error('Repost failed:', err);
+            }
+        }
+
+        // ==================== Profile Loading ====================
+
+        async function loadProfile() {
+            return new Promise((resolve) => {
+                const ws = new WebSocket(relayUrl);
+                const subId = 'profile-' + Math.random().toString(36).substring(7);
+
+                const timeout = setTimeout(() => {
+                    try { ws.close(); } catch(e) {}
+                    resolve();
+                }, 8000);
+
+                ws.onopen = () => {
+                    ws.send(JSON.stringify(['REQ', subId, {
+                        kinds: [0],
+                        authors: [profilePubkey],
+                        limit: 1
+                    }]));
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const msg = JSON.parse(event.data);
+                        if (msg[0] === 'EVENT' && msg[1] === subId && msg[2]) {
+                            const profile = JSON.parse(msg[2].content);
+                            profileData = profile;
+                            // Add to cache
+                            profileCache[profilePubkey] = {
+                                name: profile.display_name || profile.name || 'Unknown',
+                                picture: profile.picture || null
+                            };
+                            renderProfile(profile);
+                        }
+                        if (msg[0] === 'EOSE') {
+                            clearTimeout(timeout);
+                            ws.close();
+                            resolve();
+                        }
+                    } catch (e) {}
+                };
+
+                ws.onerror = () => {
+                    clearTimeout(timeout);
+                    resolve();
+                };
+            });
+        }
+
+        function renderProfile(profile) {
+            const name = profile.display_name || profile.name || 'Unknown';
+            document.getElementById('profile-name').textContent = name;
+            document.title = `${name} - Equaliser`;
+
+            const avatarEl = document.getElementById('profile-avatar');
+            if (profile.picture) {
+                avatarEl.innerHTML = `<img src="${profile.picture}" alt="${escapeHtml(name)}" onerror="this.style.display='none'">`;
+            } else {
+                const initials = name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+                avatarEl.textContent = initials;
+            }
+
+            if (profile.banner) {
+                document.getElementById('profile-banner').innerHTML =
+                    `<img src="${profile.banner}" alt="Banner" onerror="this.style.display='none'">`;
+            }
+
+            if (profile.about) {
+                document.getElementById('profile-bio').textContent = profile.about;
+            }
+
+            if (profile.nip05) {
+                document.getElementById('profile-nip05').style.display = '';
+                document.getElementById('nip05-text').textContent = profile.nip05;
+            }
+
+            if (profile.lud16) {
+                document.getElementById('profile-lud16').style.display = '';
+                document.getElementById('lud16-text').textContent = profile.lud16;
+            }
+        }
+
+        // Fetch follow counts from Kind 3
+        async function loadFollowCounts() {
+            return new Promise((resolve) => {
+                const ws = new WebSocket(relayUrl);
+                const subId = 'follows-' + Math.random().toString(36).substring(7);
+
+                const timeout = setTimeout(() => {
+                    try { ws.close(); } catch(e) {}
+                    resolve();
+                }, 8000);
+
+                ws.onopen = () => {
+                    ws.send(JSON.stringify(['REQ', subId, {
+                        kinds: [3],
+                        authors: [profilePubkey],
+                        limit: 1
+                    }]));
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const msg = JSON.parse(event.data);
+                        if (msg[0] === 'EVENT' && msg[1] === subId && msg[2]) {
+                            const followingCount = msg[2].tags.filter(t => t[0] === 'p').length;
+                            document.getElementById('following-count').textContent = followingCount;
+                        }
+                        if (msg[0] === 'EOSE') {
+                            clearTimeout(timeout);
+                            ws.close();
+                            resolve();
+                        }
+                    } catch (e) {}
+                };
+
+                ws.onerror = () => {
+                    clearTimeout(timeout);
+                    resolve();
+                };
+            });
+        }
+
+        // ==================== Utilities ====================
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function linkifyContent(text) {
+            return text.replace(
+                /(https?:\/\/[^\s<]+)/g,
+                '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+            );
+        }
+
+        function relativeTime(unixTimestamp) {
+            const now = Math.floor(Date.now() / 1000);
+            const diff = now - unixTimestamp;
+
+            if (diff < 60) return 'just now';
+            if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+            if (diff < 604800) return `${Math.floor(diff / 86400)}d`;
+            if (diff < 2592000) return `${Math.floor(diff / 604800)}w`;
+
+            const date = new Date(unixTimestamp * 1000);
+            return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        }
+
+        async function copyNpub() {
+            if (!fullNpub) return;
+            try {
+                await navigator.clipboard.writeText(fullNpub);
+                const el = document.getElementById('profile-npub');
+                const original = el.textContent;
+                el.textContent = 'Copied!';
+                el.style.color = '#22c55e';
+                setTimeout(() => {
+                    el.textContent = original;
+                    el.style.color = '';
+                }, 1500);
+            } catch (e) {}
+        }
+    </script>
+</body>
+</html>

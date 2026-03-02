@@ -20,10 +20,15 @@ from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 
+import logging
+
 from services.hls import encode_to_hls, get_audio_duration
 from services.ipfs import upload_directory_to_ipfs, upload_file_to_ipfs
 from services.nostr import create_track_event, publish_event, publish_signed_event
 from services.database import DraftTrack, create_draft, mark_released
+from services.blossom import upload_to_blossom
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -39,9 +44,11 @@ class TrackMetadata(BaseModel):
     album: Optional[str] = None
     genre: Optional[str] = None
     release_date: Optional[str] = None
-    price_sats: int = 100  # Default price per stream
+    price_amount: float = 0.05  # Default price per stream
+    price_currency: str = "USD"  # ISO 4217 code or SAT
     release_type: Optional[str] = None  # single, album, ep
     cover_art_cid: Optional[str] = None  # IPFS CID of cover art
+    blossom_cover_hash: Optional[str] = None  # SHA-256 hash on Blossom
 
 
 class TrackUploadResponse(BaseModel):
@@ -53,6 +60,7 @@ class TrackUploadResponse(BaseModel):
     duration: int
     ipfs_manifest_cid: str
     ipfs_preview_cid: str
+    blossom_audio_hash: Optional[str] = None  # SHA-256 of original audio on Blossom
     status: str  # "draft" for new uploads
 
 
@@ -78,9 +86,11 @@ async def upload_track(
     album: Optional[str] = Form(None),
     genre: Optional[str] = Form(None),
     release_date: Optional[str] = Form(None),
-    price_sats: int = Form(100),
+    price_amount: float = Form(0.05),
+    price_currency: str = Form("USD"),
     release_type: Optional[str] = Form(None),  # single, album, ep
     cover_art_cid: Optional[str] = Form(None),  # IPFS CID of cover art
+    blossom_cover_hash: Optional[str] = Form(None),  # SHA-256 hash on Blossom
     artist_pubkey: str = Form(...),
     artist_privkey: Optional[str] = Form(None),  # Optional: for server-side signing
 ):
@@ -136,9 +146,11 @@ async def upload_track(
         album=album,
         genre=genre,
         release_date=release_date,
-        price_sats=price_sats,
+        price_amount=price_amount,
+        price_currency=price_currency,
         release_type=release_type,
-        cover_art_cid=cover_art_cid
+        cover_art_cid=cover_art_cid,
+        blossom_cover_hash=blossom_cover_hash
     )
 
     # Start background processing
@@ -237,7 +249,9 @@ async def publish_track_event(request: SignedEventRequest):
 class CoverArtResponse(BaseModel):
     """Response after successful cover art upload."""
     cid: str
-    url: str
+    blossom_hash: Optional[str] = None  # SHA-256 on Blossom
+    url: str  # Primary URL (Blossom if available, else IPFS)
+    ipfs_url: Optional[str] = None  # IPFS fallback URL
 
 
 @router.post("/cover-art", response_model=CoverArtResponse)
@@ -245,10 +259,10 @@ async def upload_cover_art(
     file: UploadFile = File(...),
 ):
     """
-    Upload cover art image to IPFS.
+    Upload cover art image to Blossom (primary) and IPFS (fallback).
 
     Accepts JPEG, PNG, or WebP images.
-    Returns the IPFS CID for use in release/track metadata.
+    Returns both Blossom hash and IPFS CID for use in release/track metadata.
     """
     # Validate file type
     valid_types = ["image/jpeg", "image/png", "image/webp"]
@@ -274,15 +288,36 @@ async def upload_cover_art(
             tmp.write(content)
             tmp_path = tmp.name
 
-        # Upload to IPFS
-        cid = await upload_file_to_ipfs(Path(tmp_path))
+        blossom_hash = None
+        cid = None
+
+        # Upload to Blossom (primary)
+        try:
+            blossom_hash = await upload_to_blossom(Path(tmp_path))
+        except Exception as e:
+            logger.warning(f"Blossom cover art upload failed: {e}")
+
+        # Upload to IPFS (secondary/fallback)
+        try:
+            cid = await upload_file_to_ipfs(Path(tmp_path))
+        except Exception as e:
+            logger.warning(f"IPFS cover art upload failed: {e}")
 
         # Clean up temp file
         os.unlink(tmp_path)
 
+        if not blossom_hash and not cid:
+            raise RuntimeError("Both Blossom and IPFS uploads failed")
+
+        # Prefer Blossom URL, fall back to IPFS
+        primary_url = f"/blossom/{blossom_hash}{ext}" if blossom_hash else f"/ipfs/{cid}"
+        ipfs_url = f"/ipfs/{cid}" if cid else None
+
         return CoverArtResponse(
-            cid=cid,
-            url=f"https://ipfs.io/ipfs/{cid}"
+            cid=cid or "",
+            blossom_hash=blossom_hash,
+            url=primary_url,
+            ipfs_url=ipfs_url,
         )
 
     except Exception as e:
@@ -310,11 +345,19 @@ async def process_track(
     4. Save as draft in database (NOSTR publication deferred until release)
     """
     try:
-        # Step 1: Get duration
+        # Step 1: Upload original to Blossom (preserve for downloads/packages)
+        update_status(track_id, "uploading", 5, "Preserving original audio on Blossom...")
+        blossom_audio_hash = None
+        try:
+            blossom_audio_hash = await upload_to_blossom(input_path)
+        except Exception as e:
+            logger.warning(f"Blossom upload failed for {track_id}: {e}")
+
+        # Step 2: Get duration
         update_status(track_id, "encoding", 10, "Analyzing audio file...")
         duration = await get_audio_duration(input_path)
 
-        # Step 2: Encode to HLS
+        # Step 3: Encode to HLS
         update_status(track_id, "encoding", 20, "Encoding to HLS segments...")
         hls_dir = track_dir / "hls"
         preview_dir = track_dir / "preview"
@@ -328,7 +371,7 @@ async def process_track(
 
         update_status(track_id, "uploading", 50, "Uploading to IPFS...")
 
-        # Step 3: Upload to IPFS
+        # Step 4: Upload to IPFS
         # Upload full track directory
         manifest_cid = await upload_directory_to_ipfs(hls_dir)
 
@@ -337,7 +380,13 @@ async def process_track(
 
         update_status(track_id, "saving", 80, "Saving draft...")
 
-        # Step 4: Save as draft in database (instead of creating NOSTR event)
+        # Determine original filename
+        original_filename = input_path.name
+        if original_filename.startswith("original"):
+            # Use the uploaded filename from metadata if available
+            original_filename = f"{metadata.title}{input_path.suffix}"
+
+        # Step 5: Save as draft in database (instead of creating NOSTR event)
         draft = DraftTrack(
             id=track_id,
             artist_pubkey=artist_pubkey,
@@ -345,13 +394,17 @@ async def process_track(
             artist_name=metadata.artist,
             album=metadata.album,
             genre=metadata.genre,
-            price_sats=metadata.price_sats,
+            price_amount=metadata.price_amount,
+            price_currency=metadata.price_currency,
             release_date=metadata.release_date,
             release_type=metadata.release_type or "single",
             cover_art_cid=metadata.cover_art_cid,
+            blossom_cover_hash=metadata.blossom_cover_hash,
             ipfs_manifest_cid=manifest_cid,
             ipfs_preview_cid=preview_cid,
             duration=duration,
+            blossom_audio_hash=blossom_audio_hash,
+            original_filename=original_filename,
             status="draft",
         )
 
@@ -366,6 +419,7 @@ async def process_track(
             duration=duration,
             ipfs_manifest_cid=manifest_cid,
             ipfs_preview_cid=preview_cid,
+            blossom_audio_hash=blossom_audio_hash,
             status="draft"
         )
 
