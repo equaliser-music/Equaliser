@@ -884,7 +884,7 @@
                             </svg>
                             <span class="like-count"></span>
                         </button>
-                        <button class="feed-action-btn repost-btn" onclick="handleRepost('${item.noteId}', '${item.authorPubkey}', this)">
+                        <button class="feed-action-btn repost-btn${item.type === 'repost' ? ' reposted' : ''}" onclick="handleRepost('${item.noteId}', '${item.authorPubkey}', this)">
                             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
                                 <path d="M7 16V4m0 0L3 8m4-4l4 4M13 4v12m0 0l4-4m-4 4l-4-4"/>
                             </svg>
