@@ -215,7 +215,7 @@ Events without a `content-type` tag are treated as feed posts for backward compa
 
 The main timeline showing Equaliser-tagged posts from followed users and artists.
 
-**Pages:** `feed.html` (full feed), `home.html` (sidebar feed), `user.html` (user's posts), `profile.html` (own posts)
+**Pages:** `social.html` (Feed tab, default), `home.html` (sidebar feed), `user.html` (user's posts), `profile.html` (own posts)
 
 **Behaviour:**
 - Fetches Kind 1 events from relay, filtered client-side for `["app", "Equaliser"]` tag
@@ -242,7 +242,7 @@ Twitter/X-style threaded view of a post and its replies.
 
 Reddit-style threaded discussions. See [COMMUNITY.md](./COMMUNITY.md) for full spec.
 
-**Page:** `community.html` (thread list) / `community.html?thread=<eventId>` (thread detail)
+**Page:** `social.html?tab=community` (thread list) / `social.html?tab=community&thread=<eventId>` (thread detail)
 
 **Behaviour:**
 - Board filter tabs: All | General | Music | Production | Gigs

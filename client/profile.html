@@ -481,9 +481,18 @@
                                 <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
                             </svg>
                         </div>
-                        <a href="/settings.html" class="edit-profile-btn" id="edit-btn" style="display: none;">
-                            Edit Profile
-                        </a>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <a href="/messages.html" class="edit-profile-btn" id="messages-btn" style="display: none;">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+                                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+                                </svg>
+                                Messages
+                            </a>
+                            <a href="/settings.html" class="edit-profile-btn" id="edit-btn" style="display: none;">
+                                Edit Profile
+                            </a>
+                        </div>
                     </div>
                 </div>
 
@@ -592,6 +601,7 @@
 
             if (isOwnProfile) {
                 document.getElementById('edit-btn').style.display = '';
+                document.getElementById('messages-btn').style.display = '';
             }
 
             document.getElementById('profile-npub').textContent =
