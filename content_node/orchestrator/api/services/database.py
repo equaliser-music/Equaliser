@@ -27,11 +27,15 @@ class DraftTrack:
     duration: int
     album: Optional[str] = None
     genre: Optional[str] = None
-    price_sats: int = 100
+    price_amount: float = 0.05
+    price_currency: str = "USD"
     release_date: Optional[str] = None
     release_type: str = "single"
     track_number: Optional[int] = None
     cover_art_cid: Optional[str] = None
+    blossom_audio_hash: Optional[str] = None
+    blossom_cover_hash: Optional[str] = None
+    original_filename: Optional[str] = None
     status: str = "draft"
     nostr_event_id: Optional[str] = None
     nostr_d_tag: Optional[str] = None
@@ -54,7 +58,8 @@ CREATE TABLE IF NOT EXISTS draft_tracks (
     artist_name TEXT NOT NULL,
     album TEXT,
     genre TEXT,
-    price_sats INTEGER DEFAULT 100,
+    price_amount REAL NOT NULL DEFAULT 0.05,
+    price_currency TEXT NOT NULL DEFAULT 'USD',
     release_date TEXT,
     release_type TEXT DEFAULT 'single',
     track_number INTEGER,
@@ -64,6 +69,11 @@ CREATE TABLE IF NOT EXISTS draft_tracks (
     ipfs_manifest_cid TEXT NOT NULL,
     ipfs_preview_cid TEXT NOT NULL,
     duration INTEGER NOT NULL,
+
+    -- Blossom (original files)
+    blossom_audio_hash TEXT,
+    blossom_cover_hash TEXT,
+    original_filename TEXT,
 
     -- Status
     status TEXT DEFAULT 'draft',
@@ -84,7 +94,7 @@ CREATE INDEX IF NOT EXISTS idx_draft_tracks_album ON draft_tracks(album);
 
 
 async def init_db():
-    """Initialize the database with schema."""
+    """Initialize the database with schema and run migrations."""
     # Ensure directory exists
     db_dir = os.path.dirname(DATABASE_PATH)
     if db_dir:
@@ -92,6 +102,14 @@ async def init_db():
 
     async with aiosqlite.connect(DATABASE_PATH) as db:
         await db.executescript(SCHEMA)
+
+        # Migration: add Blossom columns to existing databases
+        for col in ["blossom_audio_hash TEXT", "blossom_cover_hash TEXT", "original_filename TEXT"]:
+            try:
+                await db.execute(f"ALTER TABLE draft_tracks ADD COLUMN {col}")
+            except Exception:
+                pass  # Column already exists
+
         await db.commit()
     print(f"Database initialized at {DATABASE_PATH}")
 
@@ -112,17 +130,20 @@ async def create_draft(draft: DraftTrack) -> DraftTrack:
             """
             INSERT INTO draft_tracks (
                 id, artist_pubkey, title, artist_name, album, genre,
-                price_sats, release_date, release_type, track_number,
+                price_amount, price_currency, release_date, release_type, track_number,
                 cover_art_cid, ipfs_manifest_cid, ipfs_preview_cid,
-                duration, status, nostr_event_id, nostr_d_tag,
+                duration, blossom_audio_hash, blossom_cover_hash, original_filename,
+                status, nostr_event_id, nostr_d_tag,
                 created_at, updated_at, released_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 draft.id, draft.artist_pubkey, draft.title, draft.artist_name,
-                draft.album, draft.genre, draft.price_sats, draft.release_date,
+                draft.album, draft.genre, draft.price_amount, draft.price_currency,
+                draft.release_date,
                 draft.release_type, draft.track_number, draft.cover_art_cid,
                 draft.ipfs_manifest_cid, draft.ipfs_preview_cid, draft.duration,
+                draft.blossom_audio_hash, draft.blossom_cover_hash, draft.original_filename,
                 draft.status, draft.nostr_event_id, draft.nostr_d_tag,
                 draft.created_at, draft.updated_at, draft.released_at
             )
@@ -191,8 +212,9 @@ async def update_draft(
     """Update a draft's metadata. Returns updated draft or None if not found."""
     # Build update query dynamically
     allowed_fields = {
-        "title", "artist_name", "album", "genre", "price_sats",
-        "release_date", "release_type", "track_number", "cover_art_cid"
+        "title", "artist_name", "album", "genre", "price_amount", "price_currency",
+        "release_date", "release_type", "track_number", "cover_art_cid",
+        "blossom_cover_hash"
     }
 
     # Filter to allowed fields only

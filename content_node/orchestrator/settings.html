@@ -390,6 +390,218 @@
             color: rgba(255, 255, 255, 0.5);
         }
 
+        /* NIP-05 Setup Panel */
+        .nip05-setup-panel {
+            margin-top: 16px;
+            background: rgba(139, 92, 246, 0.05);
+            border: 1px solid rgba(139, 92, 246, 0.15);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .nip05-setup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .nip05-setup-header:hover {
+            background: rgba(139, 92, 246, 0.08);
+        }
+
+        .nip05-setup-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #a855f7;
+        }
+
+        .nip05-chevron {
+            color: rgba(255, 255, 255, 0.4);
+            transition: transform 0.2s;
+        }
+
+        .nip05-chevron.open {
+            transform: rotate(180deg);
+        }
+
+        .nip05-setup-body {
+            padding: 0 16px 16px;
+        }
+
+        .nip05-step {
+            display: flex;
+            gap: 14px;
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .nip05-step:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .nip05-step-number {
+            flex-shrink: 0;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(139, 92, 246, 0.2);
+            color: #a855f7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .nip05-step-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .nip05-step-content h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .nip05-step-content p {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .nip05-step-content code {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+        }
+
+        .nip05-code-block {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 12px 14px;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.8);
+            white-space: pre;
+            overflow-x: auto;
+            margin-bottom: 10px;
+        }
+
+        .nip05-url-display {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 13px;
+            color: #a855f7;
+            margin-bottom: 8px;
+            word-break: break-all;
+        }
+
+        .nip05-step-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-sm {
+            padding: 8px 14px;
+            font-size: 13px;
+        }
+
+        .nip05-server-configs {
+            margin-top: 4px;
+        }
+
+        .nip05-config-toggle {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+
+        .nip05-config-tab {
+            padding: 5px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .nip05-config-tab.active {
+            background: rgba(139, 92, 246, 0.2);
+            border-color: rgba(139, 92, 246, 0.3);
+            color: #a855f7;
+        }
+
+        .nip05-config-tab:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .nip05-check {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            font-size: 13px;
+        }
+
+        .nip05-check-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .nip05-check.pass .nip05-check-icon { color: #22c55e; }
+        .nip05-check.fail .nip05-check-icon { color: #ef4444; }
+        .nip05-check.checking .nip05-check-icon { color: #fbbf24; }
+        .nip05-check.pass .nip05-check-text { color: rgba(255, 255, 255, 0.7); }
+        .nip05-check.fail .nip05-check-text { color: rgba(239, 68, 68, 0.9); }
+
+        .nip05-check-detail {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-left: 30px;
+            margin-top: -4px;
+            margin-bottom: 4px;
+        }
+
+        .nip05-no-address {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 14px;
+            font-style: italic;
+        }
+
+        .link {
+            color: #a855f7;
+            text-decoration: none;
+        }
+
+        .link:hover {
+            text-decoration: underline;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .main-content {
@@ -486,6 +698,139 @@
                 </div>
             </div>
 
+            <!-- NIP-05 Verification Setup Section -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        NIP-05 Verification
+                    </h2>
+                </div>
+
+                <p style="color: rgba(255,255,255,0.5); font-size: 14px; margin-bottom: 16px;">
+                    NIP-05 lets NOSTR clients verify your identity using your domain name. Set your NIP-05 address in your <a href="profile.html" class="link">Profile</a>, then follow the steps below to configure your domain.
+                </p>
+
+                <div id="nip05-current-address" style="margin-bottom: 16px;">
+                    <!-- Populated by JS -->
+                </div>
+
+                <div id="nip05-setup-panel" class="nip05-setup-panel" style="display: none;">
+                    <div class="nip05-setup-header" onclick="toggleNip05Panel()">
+                        <span class="nip05-setup-title">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
+                            </svg>
+                            Set up domain verification
+                        </span>
+                        <svg class="nip05-chevron" id="nip05-chevron" width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+
+                    <div id="nip05-setup-body" class="nip05-setup-body" style="display: none;">
+                        <!-- Step 1: Download file -->
+                        <div class="nip05-step">
+                            <div class="nip05-step-number">1</div>
+                            <div class="nip05-step-content">
+                                <h4>Download your verification file</h4>
+                                <p>This file proves you own this NOSTR identity. It must be hosted on your domain.</p>
+                                <div class="nip05-code-block" id="nip05-json-preview"></div>
+                                <div class="nip05-step-actions">
+                                    <button class="btn btn-secondary btn-sm" onclick="downloadNostrJson()">
+                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                        </svg>
+                                        Download nostr.json
+                                    </button>
+                                    <button class="btn btn-secondary btn-sm" onclick="copyNostrJson()">
+                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/>
+                                            <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/>
+                                        </svg>
+                                        <span id="copy-btn-text">Copy</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Upload to website -->
+                        <div class="nip05-step">
+                            <div class="nip05-step-number">2</div>
+                            <div class="nip05-step-content">
+                                <h4>Upload to your website</h4>
+                                <p>Place the file so it is accessible at:</p>
+                                <div class="nip05-url-display" id="nip05-target-url"></div>
+                                <p class="form-hint">The file must be in a folder called <code>.well-known</code> at the root of your website.</p>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: CORS headers -->
+                        <div class="nip05-step">
+                            <div class="nip05-step-number">3</div>
+                            <div class="nip05-step-content">
+                                <h4>Add CORS headers</h4>
+                                <p>NOSTR clients need permission to read this file from your domain. Add these headers to your web server config.</p>
+
+                                <div class="nip05-server-configs">
+                                    <div class="nip05-config-toggle">
+                                        <button class="nip05-config-tab active" onclick="showServerConfig('nginx', this)">Nginx</button>
+                                        <button class="nip05-config-tab" onclick="showServerConfig('apache', this)">Apache</button>
+                                    </div>
+                                    <div class="nip05-code-block" id="nip05-nginx-config">location /.well-known/nostr.json {
+    add_header 'Access-Control-Allow-Origin' '*' always;
+    add_header 'Access-Control-Allow-Methods' 'GET, OPTIONS' always;
+
+    if ($request_method = 'OPTIONS') {
+        return 204;
+    }
+}</div>
+                                    <div class="nip05-code-block" id="nip05-apache-config" style="display: none;"># In .htaccess or VirtualHost config
+&lt;IfModule mod_headers.c&gt;
+    &lt;Files "nostr.json"&gt;
+        Header set Access-Control-Allow-Origin "*"
+        Header set Access-Control-Allow-Methods "GET, OPTIONS"
+    &lt;/Files&gt;
+&lt;/IfModule&gt;</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Verify -->
+                        <div class="nip05-step">
+                            <div class="nip05-step-number">4</div>
+                            <div class="nip05-step-content">
+                                <h4>Verify your setup</h4>
+                                <p>Check that everything is configured correctly.</p>
+                                <button class="btn btn-primary btn-sm" id="nip05-verify-btn" onclick="verifyNip05()">
+                                    Verify NIP-05
+                                </button>
+                                <div id="nip05-verify-results" style="display: none;">
+                                    <div class="nip05-check" id="nip05-check-accessible">
+                                        <span class="nip05-check-icon"></span>
+                                        <span class="nip05-check-text">File accessible</span>
+                                    </div>
+                                    <div class="nip05-check" id="nip05-check-json">
+                                        <span class="nip05-check-icon"></span>
+                                        <span class="nip05-check-text">Valid JSON format</span>
+                                    </div>
+                                    <div class="nip05-check" id="nip05-check-name">
+                                        <span class="nip05-check-icon"></span>
+                                        <span class="nip05-check-text">Name found in response</span>
+                                    </div>
+                                    <div class="nip05-check" id="nip05-check-pubkey">
+                                        <span class="nip05-check-icon"></span>
+                                        <span class="nip05-check-text">Public key matches</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- NOSTR Identity Section -->
             <div class="settings-section">
                 <div class="section-header">
@@ -514,6 +859,16 @@
                     <input type="text" class="form-input" id="session-type-display" readonly style="background: rgba(255,255,255,0.02); cursor: default;">
                     <p class="form-hint">How you're authenticated (NIP-07 Extension or manual nsec)</p>
                 </div>
+
+                <div class="button-group" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.05);">
+                    <button class="btn btn-secondary" onclick="downloadBackup()">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                        Backup Identity
+                    </button>
+                    <p class="form-hint" style="margin: 0; align-self: center;">Save your keys securely. Required to restore your identity.</p>
+                </div>
             </div>
         </div>
     </div>
@@ -531,7 +886,7 @@
         let userRelays = [];
 
         // Configuration
-        const localRelayUrl = 'ws://' + window.location.host + '/relay';
+        const localRelayUrl = (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/relay';
 
         // Relay list is published to local relay only
         const publishRelays = [localRelayUrl];
@@ -563,8 +918,13 @@
             // Render relay list
             renderRelays();
 
-            // Fetch and update artist profile in sidebar
+            // Fetch and update artist profile in sidebar + NIP-05 section
             await loadArtistProfile(session.publicKey);
+
+            // Show NIP-05 section even if no profile found
+            if (!artistProfile) {
+                updateNip05Section();
+            }
 
             // Handle Enter key on add relay
             document.getElementById('new-relay-input').addEventListener('keydown', (e) => {
@@ -620,7 +980,9 @@
                     });
 
                     if (profile) {
+                        artistProfile = profile;
                         AdminSidebar.updateArtistDisplay(profile.name, profile.picture);
+                        updateNip05Section();
                         return;
                     }
                 } catch (err) {
@@ -910,6 +1272,324 @@
 
                 saveBtn.disabled = false;
                 saveBtn.innerHTML = 'Save Relay Configuration';
+            }
+        }
+
+        // =====================================================
+        // NIP-05 Verification Setup
+        // =====================================================
+
+        let artistProfile = null;  // Loaded from relay for NIP-05 address
+
+        function parseNip05(value) {
+            if (!value || !value.includes('@')) return null;
+            const parts = value.split('@');
+            if (parts.length !== 2) return null;
+            const name = parts[0].toLowerCase().trim();
+            const domain = parts[1].toLowerCase().trim();
+            if (!name || !domain || !domain.includes('.')) return null;
+            return { name, domain };
+        }
+
+        function getRelayUrlsForNostrJson() {
+            // Use the relay list configured on this page
+            return userRelays
+                .filter(r => r.read || r.write)
+                .map(r => r.url.replace(/^ws:\/\//, 'wss://'));
+        }
+
+        function generateNostrJson() {
+            const session = SessionManager.getSession();
+            if (!session) return null;
+
+            const nip05Value = artistProfile?.nip05;
+            const nip05 = parseNip05(nip05Value);
+            if (!nip05) return null;
+
+            const pubkeyHex = session.publicKey;
+            const relayUrls = getRelayUrlsForNostrJson();
+
+            const result = {
+                names: {
+                    [nip05.name]: pubkeyHex
+                }
+            };
+
+            if (relayUrls.length > 0) {
+                result.relays = {
+                    [pubkeyHex]: relayUrls
+                };
+            }
+
+            return result;
+        }
+
+        function updateNip05Section() {
+            const addressEl = document.getElementById('nip05-current-address');
+            const panelEl = document.getElementById('nip05-setup-panel');
+
+            const nip05Value = artistProfile?.nip05;
+            const nip05 = parseNip05(nip05Value);
+
+            if (!nip05) {
+                addressEl.innerHTML = '<p class="nip05-no-address">No NIP-05 address set. Add one in your <a href="profile.html" class="link">Profile</a> first.</p>';
+                panelEl.style.display = 'none';
+                return;
+            }
+
+            addressEl.innerHTML = `<p style="font-size: 14px; color: rgba(255,255,255,0.7);">Current address: <strong style="color: #a855f7;">${nip05Value}</strong></p>`;
+            panelEl.style.display = 'block';
+
+            // Update JSON preview
+            const jsonObj = generateNostrJson();
+            if (jsonObj) {
+                document.getElementById('nip05-json-preview').textContent = JSON.stringify(jsonObj, null, 2);
+            }
+
+            // Update target URL
+            document.getElementById('nip05-target-url').textContent =
+                `https://${nip05.domain}/.well-known/nostr.json`;
+        }
+
+        function toggleNip05Panel() {
+            const body = document.getElementById('nip05-setup-body');
+            const chevron = document.getElementById('nip05-chevron');
+
+            if (body.style.display === 'none') {
+                body.style.display = 'block';
+                chevron.classList.add('open');
+            } else {
+                body.style.display = 'none';
+                chevron.classList.remove('open');
+            }
+        }
+
+        function downloadNostrJson() {
+            const jsonObj = generateNostrJson();
+            if (!jsonObj) {
+                alert('No NIP-05 address configured. Set one in your Profile first.');
+                return;
+            }
+
+            const blob = new Blob([JSON.stringify(jsonObj, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'nostr.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function copyNostrJson() {
+            const jsonObj = generateNostrJson();
+            if (!jsonObj) return;
+
+            navigator.clipboard.writeText(JSON.stringify(jsonObj, null, 2)).then(() => {
+                const btnText = document.getElementById('copy-btn-text');
+                btnText.textContent = 'Copied!';
+                setTimeout(() => { btnText.textContent = 'Copy'; }, 2000);
+            }).catch(() => {
+                const textarea = document.createElement('textarea');
+                textarea.value = JSON.stringify(jsonObj, null, 2);
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                const btnText = document.getElementById('copy-btn-text');
+                btnText.textContent = 'Copied!';
+                setTimeout(() => { btnText.textContent = 'Copy'; }, 2000);
+            });
+        }
+
+        function showServerConfig(type, btn) {
+            document.getElementById('nip05-nginx-config').style.display = type === 'nginx' ? 'block' : 'none';
+            document.getElementById('nip05-apache-config').style.display = type === 'apache' ? 'block' : 'none';
+
+            document.querySelectorAll('.nip05-config-tab').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        const CHECK_PASS = `<svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>`;
+        const CHECK_FAIL = `<svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>`;
+        const CHECK_LOADING = `<span class="loading" style="width:14px;height:14px;border-width:2px;"></span>`;
+
+        function setCheckState(id, state, text) {
+            const el = document.getElementById(id);
+            el.className = `nip05-check ${state}`;
+            el.querySelector('.nip05-check-icon').innerHTML =
+                state === 'pass' ? CHECK_PASS : state === 'fail' ? CHECK_FAIL : CHECK_LOADING;
+            if (text) el.querySelector('.nip05-check-text').textContent = text;
+        }
+
+        async function verifyNip05() {
+            const nip05Value = artistProfile?.nip05;
+            const nip05 = parseNip05(nip05Value);
+            if (!nip05) {
+                alert('No NIP-05 address configured. Set one in your Profile first.');
+                return;
+            }
+
+            const session = SessionManager.getSession();
+            if (!session) return;
+
+            const resultsEl = document.getElementById('nip05-verify-results');
+            resultsEl.style.display = 'block';
+
+            resultsEl.querySelectorAll('.nip05-check-detail').forEach(el => el.remove());
+
+            const verifyBtn = document.getElementById('nip05-verify-btn');
+            verifyBtn.disabled = true;
+            verifyBtn.innerHTML = '<span class="loading" style="width:14px;height:14px;border-width:2px;"></span> Verifying...';
+
+            setCheckState('nip05-check-accessible', 'checking', 'Checking file...');
+            setCheckState('nip05-check-json', 'checking', 'Waiting...');
+            setCheckState('nip05-check-name', 'checking', 'Waiting...');
+            setCheckState('nip05-check-pubkey', 'checking', 'Waiting...');
+
+            const url = `https://${nip05.domain}/.well-known/nostr.json?name=${encodeURIComponent(nip05.name)}`;
+
+            try {
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    setCheckState('nip05-check-accessible', 'fail', `File not accessible (HTTP ${response.status})`);
+                    setCheckState('nip05-check-json', 'fail', 'Skipped');
+                    setCheckState('nip05-check-name', 'fail', 'Skipped');
+                    setCheckState('nip05-check-pubkey', 'fail', 'Skipped');
+                    resetVerifyBtn();
+                    return;
+                }
+                setCheckState('nip05-check-accessible', 'pass', 'File accessible (includes CORS)');
+
+                let data;
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    setCheckState('nip05-check-json', 'fail', 'Invalid JSON format');
+                    setCheckState('nip05-check-name', 'fail', 'Skipped');
+                    setCheckState('nip05-check-pubkey', 'fail', 'Skipped');
+                    resetVerifyBtn();
+                    return;
+                }
+
+                if (!data.names || typeof data.names !== 'object') {
+                    setCheckState('nip05-check-json', 'fail', 'Missing "names" object in JSON');
+                    setCheckState('nip05-check-name', 'fail', 'Skipped');
+                    setCheckState('nip05-check-pubkey', 'fail', 'Skipped');
+                    resetVerifyBtn();
+                    return;
+                }
+                setCheckState('nip05-check-json', 'pass', 'Valid JSON format');
+
+                const foundPubkey = data.names[nip05.name];
+                if (!foundPubkey) {
+                    setCheckState('nip05-check-name', 'fail', `Name "${nip05.name}" not found in response`);
+                    setCheckState('nip05-check-pubkey', 'fail', 'Skipped');
+                    resetVerifyBtn();
+                    return;
+                }
+                setCheckState('nip05-check-name', 'pass', `Name "${nip05.name}" found`);
+
+                const expectedPubkey = session.publicKey.toLowerCase();
+                if (foundPubkey.toLowerCase() === expectedPubkey) {
+                    setCheckState('nip05-check-pubkey', 'pass', 'Public key matches');
+                } else {
+                    setCheckState('nip05-check-pubkey', 'fail', 'Public key does not match your identity');
+                    const detail = document.createElement('div');
+                    detail.className = 'nip05-check-detail';
+                    detail.textContent = `Expected: ${expectedPubkey.slice(0, 16)}... Got: ${foundPubkey.slice(0, 16)}...`;
+                    document.getElementById('nip05-check-pubkey').after(detail);
+                }
+
+            } catch (err) {
+                setCheckState('nip05-check-accessible', 'fail', 'Cannot reach file');
+                setCheckState('nip05-check-json', 'fail', 'Skipped');
+                setCheckState('nip05-check-name', 'fail', 'Skipped');
+                setCheckState('nip05-check-pubkey', 'fail', 'Skipped');
+
+                const detail = document.createElement('div');
+                detail.className = 'nip05-check-detail';
+                detail.textContent = 'The file may not exist, CORS headers may be missing, or the domain may not support HTTPS.';
+                document.getElementById('nip05-check-accessible').after(detail);
+            }
+
+            resetVerifyBtn();
+        }
+
+        function resetVerifyBtn() {
+            const verifyBtn = document.getElementById('nip05-verify-btn');
+            verifyBtn.disabled = false;
+            verifyBtn.innerHTML = 'Verify NIP-05';
+        }
+
+        // =====================================================
+        // Backup Identity
+        // =====================================================
+
+        function downloadBackup() {
+            try {
+                const session = SessionManager.getSession();
+                if (!session) {
+                    alert('No active session. Please log in first.');
+                    return;
+                }
+
+                const privateKey = SessionManager.getPrivateKey();
+                if (!privateKey) {
+                    alert('Cannot backup: This session uses a browser extension. Your keys are managed by the extension.');
+                    return;
+                }
+
+                const privateKeyHex = Array.from(privateKey).map(b => b.toString(16).padStart(2, '0')).join('');
+
+                let nsec = null;
+                try {
+                    const stored = sessionStorage.getItem('equaliser_session');
+                    if (stored) {
+                        const data = JSON.parse(stored);
+                        nsec = data.nsec;
+                    }
+                } catch (e) {
+                    console.warn('Could not retrieve nsec from storage');
+                }
+
+                if (!nsec) {
+                    nsec = NostrTools.nip19.nsecEncode(privateKey);
+                }
+
+                const name = artistProfile?.name || 'artist';
+
+                const backup = {
+                    version: 1,
+                    created: new Date().toISOString(),
+                    keys: {
+                        nsec: nsec,
+                        npub: session.npub,
+                        privateKeyHex: privateKeyHex,
+                        publicKeyHex: session.publicKey
+                    },
+                    profile: {
+                        name: name,
+                        bio: artistProfile?.about || '',
+                        location: artistProfile?.equaliser?.location || '',
+                        genres: artistProfile?.equaliser?.genres || []
+                    }
+                };
+
+                const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `equaliser-backup-${name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error('Backup download failed:', err);
+                alert('Failed to download backup: ' + err.message);
             }
         }
 

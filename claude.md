@@ -17,11 +17,26 @@ Documentation exists in the 'docs' folder. Please read in the following order at
 12. DEPLOYMENT_OPTIONS.md
 13. SCALING.md
 14. ARTIST_PACKAGE.md
-15. contributor email summary.md
+15. BLOSSOM.md
+16. contributor email summary.md
+17. PRICING_CURRENCY.md
+18. COMMUNITY.md
 
 ## Important Rules
 
 - **Never commit without explicit permission**: Do not run `git commit` or use the commit tool unless the user specifically asks you to commit changes. Always wait for explicit instructions like "commit this", "please commit", or "push the changes".
+
+## Development Workflow
+
+All changes follow a **local-first** workflow:
+
+1. **Develop locally** - Make code changes on the local machine
+2. **Test locally** - Start the local content node (`./tools/start-node.sh`) and verify changes work
+3. **User confirms** - Wait for the user to say they are happy with the local test
+4. **Ask about VPS deploy** - When the user confirms local testing is good, ask: *"Do you want to deploy this to the VPS?"*
+5. **Deploy to VPS** - If the user says yes, commit and push changes (using `./tools/commit.sh`), then run `./tools/deploy-vps.sh` to deploy
+
+**Never deploy to VPS without the user explicitly confirming they want to.** Always test locally first.
 
 ## Tools
 
@@ -97,45 +112,78 @@ This script:
 - Adds Claude co-authorship to commit message
 - Pushes to origin on the current branch
 
+### deploy-vps.sh
+Deploy committed changes to the VPS content node. **Use when user confirms they want to deploy to VPS after successful local testing.**
+
+```bash
+./tools/deploy-vps.sh              # Full deploy: git pull + configs + rebuild containers
+./tools/deploy-vps.sh --restart    # Just restart containers (no code update)
+./tools/deploy-vps.sh --status     # Check VPS container status
+./tools/deploy-vps.sh -h           # Show help
+```
+
+This script:
+- Checks all changes are committed and pushed before deploying
+- Runs `git pull` on the VPS to fetch latest code
+- Syncs VPS configs (nginx, docker-compose override)
+- Rebuilds and restarts Docker containers on the VPS
+- Shows container status after deploy
+
+**Pre-requisites:** Changes must be committed and pushed to origin. The script will refuse to deploy if there are uncommitted or unpushed changes.
+
+### cleanup-relay.sh
+Remove non-Equaliser events from the NOSTR relay. **Use when user asks to "clean up the relay", "remove spam", or "clear junk events".**
+
+```bash
+./tools/cleanup-relay.sh              # Dry run — show what would be deleted
+./tools/cleanup-relay.sh --execute    # Actually delete untagged events
+./tools/cleanup-relay.sh --local      # Run against local relay (default is VPS)
+```
+
+This script:
+- Identifies events without the `["app", "Equaliser"]` tag
+- Protects all known Equaliser pubkeys (from backup files and seed data)
+- Shows breakdown by event kind before deleting
+- Dry run by default for safety
+
 ### Artist Package Tools
 
-Tools for bulk importing/exporting artist content. See [ARTIST_PACKAGE.md](docs/ARTIST_PACKAGE.md) for format specification.
+Tools for importing/exporting artist content as `.eqpkg.zip` release packages. See [ARTIST_PACKAGE.md](docs/ARTIST_PACKAGE.md) for format specification.
 
 #### convert-mockup.sh
-Convert mockups/content artist folders to Artist Package format. **Use when preparing test data.**
+Convert mockups/content artist folders to `.eqpkg.zip` packages. **Use when preparing test data.**
 
 ```bash
 ./tools/convert-mockup.sh shibuya-crossings    # Convert single artist
 ./tools/convert-mockup.sh --all                # Convert all mockup artists
-./tools/convert-mockup.sh --all --output ./backups/  # Custom output dir
+./tools/convert-mockup.sh --all --legacy       # Also create legacy .artist-package
 ```
 
 #### import-artist.sh
-Import an Artist Package into the content node. **Use when user asks to "import artist", "load test data", or "bulk import".**
+Import a package into the content node. **Use when user asks to "import artist", "load test data", or "bulk import".**
+
+Supports both `.eqpkg.zip` (release packages) and legacy `.artist-package` directories.
 
 ```bash
-./tools/import-artist.sh ./packages/shibuya-crossings.artist-package           # Fresh import (new identity)
-./tools/import-artist.sh ./packages/shibuya-crossings.artist-package --restore # Use existing keys
-./tools/import-artist.sh ./packages/shibuya-crossings.artist-package --dry-run # Preview only
+./tools/import-artist.sh ./packages/release.eqpkg.zip                    # Fresh import (.eqpkg.zip)
+./tools/import-artist.sh ./packages/release.eqpkg.zip --restore backup.json  # Restore identity
+./tools/import-artist.sh ./packages/artist.artist-package                # Legacy format
+./tools/import-artist.sh ./packages/artist.artist-package --restore      # Legacy restore
 ```
 
-This script:
-- Generates new NOSTR identity (or restores from backup)
-- Uploads avatar/banner to IPFS
-- Publishes Kind 0 profile to relay
-- Imports all releases as drafts
-- Saves identity backup for dashboard login
+For `.eqpkg.zip`: generates identity, imports releases via API, saves backup.
+For `.artist-package`: generates identity, publishes profile, imports releases as drafts.
 
 #### export-artist.sh
-Export an existing artist from the content node. **Use when user asks to "backup artist", "export content", or "create package".**
+Export releases as signed `.eqpkg.zip` packages. **Use when user asks to "backup artist", "export content", or "create package".**
 
 ```bash
-./tools/export-artist.sh --npub npub1...                  # Export profile + releases
-./tools/export-artist.sh --npub npub1... --include-keys   # Include identity (prompts for nsec)
-./tools/export-artist.sh --npub npub1... --releases-only  # Releases only
+./tools/export-artist.sh --npub npub1... --album "Album Name"    # Export specific album
+./tools/export-artist.sh --npub npub1... --all-albums             # Export all albums
+./tools/export-artist.sh --npub npub1... --all-albums --include-keys  # With identity backup
 ```
 
-Note: Audio files are not included in exports (content is HLS-encoded on IPFS).
+Requires nsec for signing packages. Original audio must be on Blossom (tracks uploaded after Blossom integration).
 
 ## TODO
 
@@ -177,31 +225,61 @@ Note: Audio files are not included in exports (content is HLS-encoded on IPFS).
   - Released drafts marked as 'released' with event ID for history
   - See [ORCHESTRATOR.md](docs/ORCHESTRATOR.md) for API documentation
 
-- [ ] **Onboarding to Dashboard Flow**: After completing onboarding, show "Go to Dashboard" button
+- [x] **Onboarding to Dashboard Flow**: After completing onboarding, show "Go to Dashboard" button
   - User completes onboarding and profile is published to relays
   - Session is already established (keys in memory)
-  - Add "Go to Dashboard" button on success screen
-  - Preserve session so user doesn't need to log in again
+  - "Go to Dashboard" button on success screen
+  - Session preserved so user doesn't need to log in again
 
 - [ ] **Track Upload API (Phase 2)**: Add encryption and payment
   - Generate AES-256 encryption key per track
   - Encrypt HLS segments (except 30s preview)
   - Store encryption keys in SQLite
   - Payment webhook to release keys via NIP-44
+  - Fiat → sats conversion at invoice time using live exchange rate (Strike API)
   - See Technical Specification sections 4.3-4.4
 
-- [ ] **Explore Blossom for Streaming**: Evaluate hybrid IPFS + Blossom architecture
-  - NOSTR-native media hosting protocol using BUD servers
-  - Content addressed by SHA-256 hash, tied to npub
-  - Growing adoption in NOSTR music apps (Wavlake)
-  - **Hybrid approach:** IPFS for storage/resilience, Blossom for streaming delivery
-    - Upload stores on IPFS (canonical, content-addressed, resilient)
-    - Content also pushed to Blossom server (fast HTTP delivery)
-    - Player fetches from Blossom (low latency, CDN-friendly)
-    - Fallback to IPFS gateway if Blossom unavailable
-  - Blossom advantages for streaming: direct HTTP, no DHT lookup, predictable latency
-  - Content node could run both IPFS daemon and Blossom server
-  - See https://github.com/hzrd149/blossom
+- [x] **Pricing Currency**: Artist-preferred currency for stream pricing
+  - Currency selector (USD, GBP, EUR, JPY, SAT) in profile editor and track upload UI
+  - Track prices stored as `["price", "0.04"]` + `["price_currency", "GBP"]` in Kind 30050
+  - SQLite schema, orchestrator APIs, profile editor, and track upload UI all updated
+  - Fiat → sats conversion at invoice time deferred to Track Upload Phase 2 (payment system)
+  - See [PRICING_CURRENCY.md](docs/PRICING_CURRENCY.md)
+
+- [x] **Blossom Integration (MVP)**: Blossom server for original audio + images
+  - Blossom Docker service with BUD-03 auth (node identity keypair)
+  - Original audio preserved on Blossom during track upload
+  - Cover art uploaded to Blossom (primary) + IPFS (fallback)
+  - NOSTR events include `blossom_audio_hash` and `blossom_cover_hash` tags
+  - See [BLOSSOM.md](docs/BLOSSOM.md)
+
+- [x] **Release Package System**: Export/import releases as signed `.eqpkg.zip`
+  - Export from admin UI or CLI (`export-artist.sh`)
+  - Import via admin UI or CLI (`import-artist.sh`)
+  - Packages contain manifest + original audio + signed NOSTR event
+  - SHA-256 integrity verification, no private keys in packages
+  - See [ARTIST_PACKAGE.md](docs/ARTIST_PACKAGE.md)
+
+- [ ] **Blossom: Profile Images**: Migrate avatar/banner uploads to Blossom primary
+  - Update profile editor image upload to use Blossom first
+  - Store both Blossom URL and IPFS CID in Kind 0 events
+  - Client fallback: Blossom URL first, IPFS gateway fallback
+
+- [ ] **Blossom Disaster Recovery**: Rebuild content node from NOSTR + IPFS
+  - Authenticate with nsec on fresh node → query relays for artist events
+  - Extract IPFS CIDs from event tags → fetch content from IPFS network
+  - Re-upload to local Blossom server → platform restored
+  - Relies on IPFS cross-pinning (artist community) for content survival
+  - Document recovery path first, automate tooling in later phase
+  - See [BLOSSOM_INTEGRATION_IDEAS.md](docs/BLOSSOM_INTEGRATION_IDEAS.md)
+
+- [x] **Relay Spam Management**: App-tag filtering + periodic cleanup
+  - All Equaliser events tagged with `["app", "equaliser"]` before signing
+  - UI feeds filter exclusively on this tag — untagged events are invisible to users
+  - Content node relays remain **public** (open read + write) to support decentralisation
+  - `cleanup-relay.sh` removes untagged events from non-protected pubkeys (storage hygiene)
+  - This creates an application-level overlay network on standard NOSTR relays
+  - Future: consider `event_kind_allowlist`, rate limiting, or NIP-42 AUTH if spam volume warrants relay-level restrictions
 
 - [ ] **Label Multi-Artist Management**: Support labels managing multiple artist identities
   - Use NIP-06 / BIP-32 hierarchical key derivation from label master seed
@@ -228,10 +306,12 @@ Note: Audio files are not included in exports (content is HLS-encoded on IPFS).
   - Database scaling (PostgreSQL for labels, read replicas)
   - CDN integration for mainstream traffic levels
 
-- [ ] **Social Features**: Artist-fan interaction via NOSTR
-  - **Feed**: Standard NOSTR feed showing mentions, comments on tracks, reactions (Kind 1, 7, 6)
-  - **Message Board**: Threaded discussions using Kind 1 replies with topic/hashtag filtering
-  - **Blogging**: Long-form content using Kind 30023 (NIP-23) for artist updates, announcements
-  - Admin UI to view mentions, reply to fans, post updates
-  - Moderation tools (mute, block lists)
-  - See NIP-01, NIP-23 for protocol details
+- [x] **Social Features**: Artist-fan interaction via NOSTR
+  - **Feed**: Kind 1 posts with `["content-type", "post"]` tag, reply/like/repost actions, clickable posts to thread view
+  - **Threaded Replies**: `thread.html` page showing root post + chronological replies using NIP-10 `e`/`p` tags
+  - **Community Message Boards**: Community tab in `social.html` with board tabs (general/music/production/gigs), thread list + detail views, `["content-type", "thread"]` and `["content-type", "reply"]` tags
+  - **Direct Messages**: `messages.html` with NIP-04 encrypted DMs (Kind 4), two-panel conversation list + chat UI, `nostr-dm.js` module
+  - **Unified Social Page**: `social.html` combines Feed + Community as full-width tabs ("Timeline" / "Community Threads"). Single "Social" link in sidebar bottom nav (alongside Profile, Settings). Messages accessible from profile page.
+  - **Relay Tag Filtering**: All multi-char tag filtering done client-side (relay only indexes single-letter tags)
+  - **Seed Data**: `tools/seed-social.sh` populates relay with test posts, threads, DMs, reactions
+  - See [SOCIAL.md](docs/SOCIAL.md), [COMMUNITY.md](docs/COMMUNITY.md)

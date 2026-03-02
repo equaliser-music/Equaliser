@@ -763,7 +763,7 @@
 
         // Configuration
         const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-        const localRelayUrl = 'ws://' + window.location.host + '/relay';
+        const localRelayUrl = (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/relay';
 
         // In development: only local relay enabled by default
         // In production: public relays enabled, local relay available but not default

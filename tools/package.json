@@ -1,0 +1,11 @@
+{
+  "name": "equaliser-tools",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "nostr-tools": "^2.1.4",
+    "@noble/hashes": "^1.3.0",
+    "ws": "^8.16.0"
+  }
+}

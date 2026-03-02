@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equaliser - Log In</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 40px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 480px;
+            width: 100%;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo img {
+            width: 180px;
+            height: auto;
+        }
+
+        .logo p {
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 8px;
+        }
+
+        /* Card */
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 32px;
+        }
+
+        .card-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .card-description {
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 24px;
+            line-height: 1.6;
+            text-align: center;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 6px;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            color: #ffffff;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-extension {
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+            color: #ffffff;
+        }
+
+        .btn-extension:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        /* Divider */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 24px 0;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .divider span {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* File Upload */
+        .file-upload-btn {
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .file-upload-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Notices */
+        .notice {
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .notice-warning {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            color: #fbbf24;
+        }
+
+        .notice-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+        }
+
+        /* Footer */
+        .footer-links {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .footer-links a {
+            color: #a855f7;
+            text-decoration: none;
+        }
+
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <img src="/images/equaliser-logo.png" alt="Equaliser">
+            <p>Welcome back</p>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">Log In</h2>
+            <p class="card-description">
+                Sign in with your NOSTR identity to continue.
+            </p>
+
+            <!-- Session expired notice -->
+            <div class="notice notice-warning" id="expired-notice" style="display: none;">
+                Your session expired due to inactivity. Please log in again.
+            </div>
+
+            <!-- Error notice -->
+            <div class="notice notice-error" id="error-notice" style="display: none;"></div>
+
+            <!-- NIP-07 Extension (shown if available) -->
+            <div id="extension-section" style="display: none;">
+                <button class="btn btn-extension" id="extension-btn" onclick="loginWithExtension()">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    Connect with Nostr Extension
+                </button>
+
+                <div class="divider">
+                    <span>or</span>
+                </div>
+            </div>
+
+            <!-- nsec Entry -->
+            <div class="form-group">
+                <input type="password" class="form-input" id="nsec-input" placeholder="Enter your nsec1..." onkeydown="if(event.key==='Enter') loginWithNsec()">
+                <p class="form-hint">Your private key never leaves your browser</p>
+            </div>
+
+            <button class="btn btn-primary" id="nsec-btn" onclick="loginWithNsec()">
+                Log In
+            </button>
+
+            <div class="divider">
+                <span>or</span>
+            </div>
+
+            <!-- Backup File -->
+            <label class="file-upload-btn btn btn-secondary">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20" style="margin-right: 8px;">
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                </svg>
+                Restore from Backup File
+                <input type="file" id="backup-file-input" accept=".json" onchange="loadBackupFile(event)" style="display: none;">
+            </label>
+            <p class="form-hint" style="text-align: center; margin-top: 8px;">Load an equaliser-backup-*.json file</p>
+        </div>
+
+        <div class="footer-links">
+            Don't have an account? <a href="/onboarding.html">Sign up</a>
+        </div>
+    </div>
+
+    <!-- nostr-tools via CDN -->
+    <script src="https://unpkg.com/nostr-tools@2.1.4/lib/nostr.bundle.js"></script>
+    <script src="/js/session.js"></script>
+
+    <script>
+        // Get return URL from query params
+        const urlParams = new URLSearchParams(window.location.search);
+        const returnUrl = urlParams.get('return') || '/home.html';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            SessionManager.init();
+
+            // Already logged in? Redirect
+            if (SessionManager.hasSession()) {
+                window.location.href = returnUrl;
+                return;
+            }
+
+            // Show extension button if available
+            if (typeof window.nostr !== 'undefined') {
+                document.getElementById('extension-section').style.display = 'block';
+            }
+
+            // Show session expired notice
+            if (urlParams.get('expired') === '1') {
+                document.getElementById('expired-notice').style.display = 'block';
+            }
+        });
+
+        function showError(message) {
+            const notice = document.getElementById('error-notice');
+            notice.textContent = message;
+            notice.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('error-notice').style.display = 'none';
+        }
+
+        // Extension login
+        async function loginWithExtension() {
+            const btn = document.getElementById('extension-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Connecting...';
+            hideError();
+
+            try {
+                await SessionManager.createSessionFromExtension();
+                window.location.href = returnUrl;
+            } catch (error) {
+                console.error('Extension login failed:', error);
+                showError('Failed to connect: ' + error.message);
+                btn.disabled = false;
+                btn.innerHTML = `
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    Connect with Nostr Extension`;
+            }
+        }
+
+        // nsec login
+        async function loginWithNsec() {
+            const nsecInput = document.getElementById('nsec-input').value.trim();
+            if (!nsecInput) {
+                showError('Please enter your nsec');
+                return;
+            }
+
+            const btn = document.getElementById('nsec-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Logging in...';
+            hideError();
+
+            try {
+                await SessionManager.createSessionFromNsec(nsecInput);
+                window.location.href = returnUrl;
+            } catch (error) {
+                console.error('Login failed:', error);
+                showError('Invalid nsec: ' + error.message);
+                btn.disabled = false;
+                btn.innerHTML = 'Log In';
+            }
+        }
+
+        // Backup file login
+        function loadBackupFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            hideError();
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const backup = JSON.parse(e.target.result);
+
+                    if (!backup.keys || !backup.keys.nsec) {
+                        throw new Error('Invalid backup file: missing keys');
+                    }
+
+                    await SessionManager.createSessionFromNsec(backup.keys.nsec);
+                    window.location.href = returnUrl;
+                } catch (error) {
+                    console.error('Backup restore failed:', error);
+                    showError('Failed to load backup: ' + error.message);
+                }
+            };
+
+            reader.onerror = function() {
+                showError('Failed to read file');
+            };
+
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+    </script>
+</body>
+</html>

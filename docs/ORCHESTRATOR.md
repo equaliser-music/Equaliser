@@ -49,7 +49,8 @@ Content-Type: multipart/form-data
 | `album` | string | No | Album name |
 | `genre` | string | No | Genre |
 | `release_date` | string | No | Release date (YYYY-MM-DD) |
-| `price_sats` | integer | No | Price per stream in satoshis (default: 100) |
+| `price_amount` | float | No | Price per stream (default: 0.05) |
+| `price_currency` | string | No | ISO 4217 currency code or SAT (default: USD) |
 | `artist_privkey` | string | No | Private key for server-side NOSTR signing |
 
 **Response:**
@@ -185,7 +186,8 @@ Returns drafts for the specified artist.
       "artist_name": "Artist Name",
       "album": "Album Name",
       "genre": "Electronic",
-      "price_sats": 100,
+      "price_amount": 0.05,
+      "price_currency": "USD",
       "release_date": "2026-01-25",
       "release_type": "single",
       "cover_art_cid": "Qm...",
@@ -226,7 +228,8 @@ Updates draft metadata. Only the owner (matching pubkey) can update.
   "artist_name": "Artist Name",
   "album": "Album Name",
   "genre": "Rock",
-  "price_sats": 150,
+  "price_amount": 0.06,
+  "price_currency": "USD",
   "release_date": "2026-02-01",
   "release_type": "album",
   "cover_art_cid": "Qm..."
@@ -351,7 +354,8 @@ Track metadata is published as Kind 30050 (parameterized replaceable event):
     ["duration", "245"],
     ["ipfs_manifest_cid", "Qm..."],
     ["ipfs_preview_cid", "Qm..."],
-    ["price_sats", "100"],
+    ["price", "0.05"],
+    ["price_currency", "USD"],
     ["album", "Album Name"],
     ["genre", "Electronic"],
     ["release_date", "2026-01-24"]
@@ -442,7 +446,8 @@ CREATE TABLE draft_tracks (
     artist_name TEXT NOT NULL,
     album TEXT,
     genre TEXT,
-    price_sats INTEGER DEFAULT 100,
+    price_amount REAL NOT NULL DEFAULT 0.05,
+    price_currency TEXT NOT NULL DEFAULT 'USD',
     release_date TEXT,
     release_type TEXT DEFAULT 'single',
     track_number INTEGER,

@@ -1,18 +1,26 @@
 #!/bin/bash
 #
-# Import an Equaliser Artist Package into the content node
+# Import content into the Equaliser content node
+#
+# Supports two formats:
+#   .eqpkg.zip      - Release package (audio + manifest, via API)
+#   .artist-package  - Legacy artist package (identity + profile + releases)
 #
 # Usage:
-#   ./tools/import-artist.sh <package-path>
-#   ./tools/import-artist.sh ./packages/shibuya-crossings.artist-package
-#   ./tools/import-artist.sh ./packages/shibuya-crossings.artist-package --restore
+#   ./tools/import-artist.sh <package-path> [options]
+#
+# Examples:
+#   ./tools/import-artist.sh ./packages/release.eqpkg.zip
+#   ./tools/import-artist.sh ./packages/release.eqpkg.zip --restore backup.json
+#   ./tools/import-artist.sh ./packages/artist.artist-package
+#   ./tools/import-artist.sh ./packages/artist.artist-package --restore
 #
 # Options:
-#   --restore       Use existing identity from backup.json (required for migration)
-#   --dry-run       Preview import without making changes
-#   --base-url      Content node URL (default: http://localhost)
-#   --skip-profile  Skip profile creation (releases only)
-#   -h, --help      Show this help message
+#   --restore [file]  Use existing identity. For .eqpkg.zip, provide backup file path.
+#   --dry-run         Preview import without making changes
+#   --base-url URL    Content node URL (default: http://localhost)
+#   --skip-profile    Skip profile creation
+#   -h, --help        Show this help message
 #
 # Requirements:
 #   - Content node running (./tools/start-node.sh)
@@ -46,6 +54,7 @@ DRY_RUN=false
 RESTORE_MODE=false
 SKIP_PROFILE=false
 PACKAGE_PATH=""
+RESTORE_BACKUP_FILE=""
 
 # Generated identity (for fresh imports)
 GENERATED_NSEC=""
@@ -53,23 +62,31 @@ GENERATED_NPUB=""
 GENERATED_PRIVKEY_HEX=""
 GENERATED_PUBKEY_HEX=""
 
+# Import result (for .eqpkg.zip)
+IMPORT_ARTIST_NAME=""
+
 show_help() {
-    echo "Import an Equaliser Artist Package into the content node"
+    echo "Import content into the Equaliser content node"
     echo ""
     echo "Usage:"
     echo "  $0 <package-path> [options]"
     echo ""
+    echo "Formats:"
+    echo "  .eqpkg.zip      Release package (audio + metadata)"
+    echo "  .artist-package  Legacy package (identity + profile + releases)"
+    echo ""
     echo "Options:"
-    echo "  --restore       Use identity from package's backup.json"
-    echo "  --dry-run       Preview import without making changes"
-    echo "  --base-url URL  Content node URL (default: http://localhost)"
-    echo "  --skip-profile  Skip profile creation (releases only)"
-    echo "  -h, --help      Show this help message"
+    echo "  --restore [file]  Use existing identity from backup file"
+    echo "  --dry-run         Preview import without making changes"
+    echo "  --base-url URL    Content node URL (default: http://localhost)"
+    echo "  --skip-profile    Skip profile creation"
+    echo "  -h, --help        Show this help message"
     echo ""
     echo "Examples:"
-    echo "  $0 ./packages/shibuya-crossings.artist-package"
-    echo "  $0 ./packages/shibuya-crossings.artist-package --restore"
-    echo "  $0 ./packages/shibuya-crossings.artist-package --dry-run"
+    echo "  $0 ./packages/release.eqpkg.zip"
+    echo "  $0 ./packages/release.eqpkg.zip --restore backup.json"
+    echo "  $0 ./packages/artist.artist-package"
+    echo "  $0 ./packages/artist.artist-package --restore"
 }
 
 # Parse arguments
@@ -81,6 +98,11 @@ while [[ $# -gt 0 ]]; do
             ;;
         --restore)
             RESTORE_MODE=true
+            # Check if next arg is a backup file path (JSON, not a flag)
+            if [[ $# -gt 1 && ! "$2" =~ ^-- && "$2" == *.json ]]; then
+                RESTORE_BACKUP_FILE="$2"
+                shift
+            fi
             shift
             ;;
         --dry-run)
@@ -109,7 +131,15 @@ if [[ -z "$PACKAGE_PATH" ]]; then
     exit 1
 fi
 
-if [[ ! -d "$PACKAGE_PATH" ]]; then
+# Detect package type
+IS_EQPKG=false
+if [[ "$PACKAGE_PATH" == *.eqpkg.zip || "$PACKAGE_PATH" == *.zip ]]; then
+    IS_EQPKG=true
+    if [[ ! -f "$PACKAGE_PATH" ]]; then
+        echo -e "${RED}Error: Package file not found: $PACKAGE_PATH${NC}"
+        exit 1
+    fi
+elif [[ ! -d "$PACKAGE_PATH" ]]; then
     echo -e "${RED}Error: Package not found: $PACKAGE_PATH${NC}"
     exit 1
 fi
@@ -240,11 +270,22 @@ PYTHON
 
 # Load identity from backup.json
 load_identity() {
-    local backup_file="$PACKAGE_PATH/identity/backup.json"
+    local backup_file=""
+
+    if [[ -n "$RESTORE_BACKUP_FILE" ]]; then
+        # Explicit backup file path (for .eqpkg.zip imports)
+        backup_file="$RESTORE_BACKUP_FILE"
+    else
+        # Legacy: look inside the package directory
+        backup_file="$PACKAGE_PATH/identity/backup.json"
+    fi
 
     if [[ ! -f "$backup_file" ]]; then
-        echo -e "${RED}Error: No backup.json found for restore mode${NC}"
-        echo "File expected at: $backup_file"
+        echo -e "${RED}Error: Backup file not found: $backup_file${NC}"
+        if [[ "$IS_EQPKG" == "true" ]]; then
+            echo "For .eqpkg.zip imports, provide a backup file:"
+            echo "  $0 package.eqpkg.zip --restore backup.json"
+        fi
         exit 1
     fi
 
@@ -256,7 +297,7 @@ load_identity() {
     GENERATED_PUBKEY_HEX=$(jq -r '.keys.publicKeyHex' "$backup_file")
 
     if [[ -z "$GENERATED_NSEC" || "$GENERATED_NSEC" == "null" ]]; then
-        echo -e "${RED}Error: Invalid backup.json - missing keys${NC}"
+        echo -e "${RED}Error: Invalid backup file - missing keys${NC}"
         exit 1
     fi
 
@@ -422,7 +463,7 @@ except Exception as e:
 PYTHON
 }
 
-# Import a single release as draft
+# Import a single release as draft (legacy .artist-package format)
 import_release() {
     local release_dir="$1"
     local release_slug=$(basename "$release_dir")
@@ -440,7 +481,8 @@ import_release() {
     local artist=$(jq -r '.artist' "$metadata_file")
     local album=$(jq -r '.album // empty' "$metadata_file")
     local genre=$(jq -r '.genre // empty' "$metadata_file")
-    local price_sats=$(jq -r '.price_sats // 100' "$metadata_file")
+    local price_amount=$(jq -r '.price_amount // 0.05' "$metadata_file")
+    local price_currency=$(jq -r '.price_currency // "USD"' "$metadata_file")
     local release_date=$(jq -r '.release_date // empty' "$metadata_file")
     local release_type=$(jq -r '.release_type // "single"' "$metadata_file")
     local audio_file=$(jq -r '.audio_file' "$metadata_file")
@@ -477,7 +519,8 @@ import_release() {
         -F "file=@$audio_path;type=$mime_type"
         -F "title=$title"
         -F "artist=$artist"
-        -F "price_sats=$price_sats"
+        -F "price_amount=$price_amount"
+        -F "price_currency=$price_currency"
         -F "artist_pubkey=$GENERATED_PUBKEY_HEX"
     )
 
@@ -524,7 +567,7 @@ import_release() {
     return 1
 }
 
-# Save generated identity backup
+# Save generated identity backup (legacy format)
 save_identity_backup() {
     local manifest_file="$PACKAGE_PATH/manifest.json"
     local artist_name=$(jq -r '.artist.name' "$manifest_file")
@@ -537,11 +580,12 @@ save_identity_backup() {
     local genres="[]"
 
     if [[ -f "$profile_file" ]]; then
-        bio=$(jq -r '.about // ""' "$profile_file")
+        bio=$(jq '.about // ""' "$profile_file")
         location=$(jq -r '.equaliser.location // ""' "$profile_file")
         genres=$(jq -c '.equaliser.genres // []' "$profile_file")
     fi
 
+    mkdir -p "$PROJECT_ROOT/packages"
     local backup_file="$PROJECT_ROOT/packages/equaliser-backup-${artist_slug}-$(date +%s).json"
 
     cat > "$backup_file" << EOF
@@ -556,7 +600,7 @@ save_identity_backup() {
   },
   "profile": {
     "name": "$artist_name",
-    "bio": "$bio",
+    "bio": $bio,
     "location": "$location",
     "genres": $genres
   }
@@ -570,6 +614,121 @@ EOF
     echo -e "  2. Click 'Load Backup File' and select: ${CYAN}$backup_file${NC}"
 }
 
+# Import .eqpkg.zip release package via API
+import_eqpkg() {
+    local pkg_path="$1"
+
+    echo -e "${BLUE}Importing release package...${NC}"
+
+    if [[ "$DRY_RUN" == "true" ]]; then
+        echo -e "${YELLOW}  [dry-run] Would import: $(basename "$pkg_path")${NC}"
+        return 0
+    fi
+
+    # Ensure filename ends with .eqpkg.zip for the API
+    local filename=$(basename "$pkg_path")
+    local curl_filename="$filename"
+    if [[ "$filename" != *.eqpkg.zip ]]; then
+        curl_filename="${filename%.zip}.eqpkg.zip"
+    fi
+
+    echo -e "  Uploading and processing (this may take a few minutes)..."
+
+    local response=$(curl -s --max-time 600 -w "\n%{http_code}" -X POST \
+        "$BASE_URL/api/releases/import" \
+        -F "file=@$pkg_path;filename=$curl_filename" \
+        -F "pubkey=$GENERATED_PUBKEY_HEX")
+
+    # Split response body and HTTP status
+    local http_code=$(echo "$response" | tail -1)
+    local body=$(echo "$response" | sed '$d')
+
+    if [[ "$http_code" -ge 200 && "$http_code" -lt 300 ]]; then
+        local track_count=$(echo "$body" | jq -r '.track_count // 0')
+        local album=$(echo "$body" | jq -r '.album // "Unknown"')
+        local artist=$(echo "$body" | jq -r '.artist // "Unknown"')
+
+        echo -e "  ${GREEN}✓ Imported $track_count track(s)${NC}"
+        echo -e "    Album: ${CYAN}$album${NC}"
+        echo -e "    Artist: ${CYAN}$artist${NC}"
+
+        IMPORT_ARTIST_NAME="$artist"
+        return 0
+    else
+        local detail=$(echo "$body" | jq -r '.detail // "Unknown error"')
+        echo -e "  ${RED}✗ Import failed ($http_code): $detail${NC}"
+        return 1
+    fi
+}
+
+# Main flow for .eqpkg.zip packages
+main_eqpkg() {
+    echo -e "Package: ${CYAN}$(basename "$PACKAGE_PATH")${NC}"
+    echo -e "Format:  .eqpkg.zip (release package)"
+    echo -e "Mode:    $(if [[ "$RESTORE_MODE" == "true" ]]; then echo "Restore identity"; else echo "Fresh identity"; fi)"
+    [[ "$DRY_RUN" == "true" ]] && echo -e "${YELLOW}DRY RUN - no changes will be made${NC}"
+    echo ""
+
+    if [[ "$DRY_RUN" != "true" ]]; then
+        check_node
+        echo ""
+    fi
+
+    # Setup identity
+    if [[ "$RESTORE_MODE" == "true" ]]; then
+        load_identity
+    else
+        generate_identity
+    fi
+    echo ""
+
+    # Import releases via API
+    if ! import_eqpkg "$PACKAGE_PATH"; then
+        echo -e "${RED}Import failed${NC}"
+        exit 1
+    fi
+    echo ""
+
+    echo -e "${GREEN}========================================${NC}"
+    echo -e "${GREEN}Import complete!${NC}"
+    echo -e "${GREEN}========================================${NC}"
+    echo ""
+
+    # Save identity backup for login
+    if [[ "$DRY_RUN" != "true" && "$RESTORE_MODE" != "true" ]]; then
+        local artist_name="${IMPORT_ARTIST_NAME:-unknown-artist}"
+        local artist_slug=$(echo "$artist_name" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd 'a-z0-9-')
+
+        mkdir -p "$PROJECT_ROOT/packages"
+        local backup_file="$PROJECT_ROOT/packages/equaliser-backup-${artist_slug}-$(date +%s).json"
+
+        cat > "$backup_file" << EOF
+{
+  "version": 1,
+  "created": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "keys": {
+    "nsec": "$GENERATED_NSEC",
+    "npub": "$GENERATED_NPUB",
+    "privateKeyHex": "$GENERATED_PRIVKEY_HEX",
+    "publicKeyHex": "$GENERATED_PUBKEY_HEX"
+  },
+  "profile": {
+    "name": "$artist_name",
+    "bio": "",
+    "location": "",
+    "genres": []
+  }
+}
+EOF
+
+        echo -e "${GREEN}Identity backup saved: $backup_file${NC}"
+        echo ""
+        echo -e "To login to the dashboard:"
+        echo -e "  1. Go to ${CYAN}$BASE_URL/admin/login.html${NC}"
+        echo -e "  2. Click 'Load Backup File' and select: ${CYAN}$backup_file${NC}"
+    fi
+}
+
 # Main execution
 main() {
     echo -e "${BLUE}========================================${NC}"
@@ -578,6 +737,14 @@ main() {
     echo ""
 
     check_deps
+
+    # Branch based on package type
+    if [[ "$IS_EQPKG" == "true" ]]; then
+        main_eqpkg
+        return
+    fi
+
+    # --- Legacy .artist-package flow ---
 
     # Validate package
     local manifest_file="$PACKAGE_PATH/manifest.json"

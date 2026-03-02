@@ -597,7 +597,7 @@
 
     <script>
         // Local relay URL
-        const localRelayUrl = `ws://${window.location.host}/relay`;
+        const localRelayUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/relay`;
         const localIpfsGateway = `${window.location.origin}/ipfs/`;
 
         // Initialize on page load
@@ -785,6 +785,7 @@
                         title: releaseType === 'single' ? getTagValue(track.tags, 'title') : album,
                         releaseType,
                         coverCid: getTagValue(track.tags, 'cover_art_cid'),
+                        blossomCoverHash: getTagValue(track.tags, 'blossom_cover_hash'),
                         releaseDate: getTagValue(track.tags, 'release_date'),
                         createdAt: track.created_at,
                         tracks: [],
@@ -800,6 +801,9 @@
                 // Use cover from any track if not set
                 if (!groups[groupKey].coverCid) {
                     groups[groupKey].coverCid = getTagValue(track.tags, 'cover_art_cid');
+                }
+                if (!groups[groupKey].blossomCoverHash) {
+                    groups[groupKey].blossomCoverHash = getTagValue(track.tags, 'blossom_cover_hash');
                 }
             });
 
@@ -821,6 +825,7 @@
                         title: releaseType === 'single' ? draft.title : album,
                         releaseType,
                         coverCid: draft.cover_art_cid,
+                        blossomCoverHash: draft.blossom_cover_hash,
                         releaseDate: draft.release_date,
                         createdAt: createdAtTimestamp,
                         tracks: [],
@@ -837,6 +842,9 @@
                 // Use cover from any track if not set
                 if (!groups[groupKey].coverCid && draft.cover_art_cid) {
                     groups[groupKey].coverCid = draft.cover_art_cid;
+                }
+                if (!groups[groupKey].blossomCoverHash && draft.blossom_cover_hash) {
+                    groups[groupKey].blossomCoverHash = draft.blossom_cover_hash;
                 }
             });
 
@@ -882,8 +890,12 @@
                 const year = releaseDate ? releaseDate.split('-')[0] : new Date(release.createdAt * 1000).getFullYear();
                 const isDraft = release.status === 'draft';
 
-                const coverHtml = coverCid
-                    ? `<img src="${localIpfsGateway}${coverCid}" alt="${title}">`
+                const blossomCoverHash = release.blossomCoverHash;
+                const coverUrl = blossomCoverHash
+                    ? `/blossom/${blossomCoverHash}`
+                    : coverCid ? `${localIpfsGateway}${coverCid}` : null;
+                const coverHtml = coverUrl
+                    ? `<img src="${coverUrl}" alt="${title}">`
                     : `<svg fill="currentColor" viewBox="0 0 20 20">
                         <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/>
                        </svg>`;

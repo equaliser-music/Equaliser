@@ -330,7 +330,7 @@
             border-bottom: none;
         }
 
-        .tracklist-header .col-drag { width: 40px; }
+        .tracklist-header .col-move { width: 60px; }
         .tracklist-header .col-num { width: 40px; text-align: center; }
         .tracklist-header .col-title { flex: 1; }
         .tracklist-header .col-duration { width: 70px; text-align: right; }
@@ -362,31 +362,52 @@
             background: rgba(255, 255, 255, 0.03);
         }
 
-        .tracklist-row.dragging {
-            opacity: 0.5;
-            background: rgba(139, 92, 246, 0.1);
+        .col-move {
+            width: 60px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
-        .tracklist-row.drag-over {
-            border-top: 2px solid #a855f7;
-        }
-
-        .col-drag {
-            width: 40px;
-            cursor: grab;
-            color: rgba(255, 255, 255, 0.3);
+        .move-btn {
+            background: none;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            padding: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: all 0.15s;
         }
 
-        .col-drag:active {
-            cursor: grabbing;
+        .move-btn:hover {
+            color: #a855f7;
+            border-color: rgba(168, 85, 247, 0.4);
+            background: rgba(168, 85, 247, 0.1);
         }
 
-        .col-drag svg {
-            width: 16px;
-            height: 16px;
+        .move-btn:disabled {
+            opacity: 0.2;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .move-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .tracklist-row.active-track {
+            background: rgba(168, 85, 247, 0.08);
+            border-left: 3px solid #a855f7;
+            padding-left: 13px;
+        }
+
+        .tracklist-row.active-track .col-num {
+            color: #a855f7;
+            font-weight: 600;
         }
 
         .col-num {
@@ -846,7 +867,7 @@
         let removedTracks = [];
         let addedTracks = [];
         let selectedTracksToAdd = [];
-        let draggedTrackIndex = null;
+        let activeTrackD = null;  // d-tag of the track being moved
         let isDraftMode = false;  // Editing a draft from the database
         let draftData = null;     // Original draft data from API
 
@@ -918,7 +939,8 @@
                             duration: d.duration,
                             manifestCid: d.ipfs_manifest_cid,
                             previewCid: d.ipfs_preview_cid,
-                            priceSats: d.price_sats,
+                            priceAmount: d.price_amount,
+                            priceCurrency: d.price_currency || 'USD',
                             trackNumber: d.track_number || 1
                         }));
                     }
@@ -934,7 +956,8 @@
                         duration: draftData.duration,
                         manifestCid: draftData.ipfs_manifest_cid,
                         previewCid: draftData.ipfs_preview_cid,
-                        priceSats: draftData.price_sats,
+                        priceAmount: draftData.price_amount,
+                        priceCurrency: draftData.price_currency || 'USD',
                         trackNumber: draftData.track_number || 1
                     }];
                 }
@@ -948,6 +971,7 @@
                     genre: draftData.genre || '',
                     releaseDate: draftData.release_date || '',
                     coverArtCid: draftData.cover_art_cid || '',
+                    blossomCoverHash: draftData.blossom_cover_hash || '',
                     tracks: tracks,
                     status: 'draft'
                 };
@@ -1019,21 +1043,24 @@
                 duration: parseInt(tags.duration) || 0,
                 manifestCid: tags.ipfs_manifest_cid || '',
                 previewCid: tags.ipfs_preview_cid || '',
-                priceSats: parseInt(tags.price_sats) || 100,
+                priceAmount: parseFloat(tags.price) || 0.05,
+                priceCurrency: tags.price_currency || 'USD',
                 releaseDate: tags.release_date || '',
                 coverArtCid: tags.cover_art_cid || '',
+                blossomCoverHash: tags.blossom_cover_hash || '',
                 trackNumber: parseInt(tags.track_number) || 0
             };
         }
 
         function loadRelease(releaseId) {
             // Group tracks into release
+            // Keys match releases.html format: "released:single:id" or "released:album:name"
             const releaseMap = new Map();
 
             allTracks.forEach(track => {
                 const key = track.releaseType === 'single' || !track.album
-                    ? `single:${track.d}`
-                    : `${track.releaseType}:${track.album}`;
+                    ? `released:single:${track.d}`
+                    : `released:${track.releaseType}:${track.album}`;
 
                 if (!releaseMap.has(key)) {
                     releaseMap.set(key, {
@@ -1044,6 +1071,7 @@
                         genre: track.genre,
                         releaseDate: track.releaseDate,
                         coverArtCid: track.coverArtCid,
+                        blossomCoverHash: track.blossomCoverHash,
                         tracks: [],
                         createdAt: track.createdAt
                     });
@@ -1053,6 +1081,9 @@
                 release.tracks.push(track);
                 if (track.coverArtCid && !release.coverArtCid) {
                     release.coverArtCid = track.coverArtCid;
+                }
+                if (track.blossomCoverHash && !release.blossomCoverHash) {
+                    release.blossomCoverHash = track.blossomCoverHash;
                 }
             });
 
@@ -1141,13 +1172,18 @@
 
                     <div class="cover-section">
                         <div class="cover-preview" id="cover-preview" onclick="document.getElementById('cover-input').click()">
-                            ${editingRelease.coverArtCid
-                                ? `<img src="/ipfs/${editingRelease.coverArtCid}" alt="Cover">`
-                                : `<svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg>`
-                            }
+                            ${(() => {
+                                const coverUrl = editingRelease.blossomCoverHash
+                                    ? `/blossom/${editingRelease.blossomCoverHash}`
+                                    : editingRelease.coverArtCid ? `/ipfs/${editingRelease.coverArtCid}` : null;
+                                return coverUrl
+                                    ? `<img src="${coverUrl}" alt="Cover">`
+                                    : `<svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg>`;
+                            })()}
                         </div>
                         <input type="file" id="cover-input" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleCoverUpload(event)">
                         <input type="hidden" id="cover-cid" value="${editingRelease.coverArtCid || ''}">
+                        <input type="hidden" id="cover-blossom-hash" value="${editingRelease.blossomCoverHash || ''}">
                         <div class="cover-info">
                             <h4>Cover Art</h4>
                             <p>Click to upload a new cover image. Recommended size: 1000x1000px. Formats: JPEG, PNG, WebP.</p>
@@ -1233,7 +1269,7 @@
                     </div>
 
                     <div class="tracklist-header">
-                        <span class="col-drag"></span>
+                        <span class="col-move"></span>
                         <span class="col-num">#</span>
                         <span class="col-title">Title</span>
                         <span class="col-duration">Duration</span>
@@ -1263,17 +1299,14 @@
             }
 
             container.innerHTML = editingTracks.map((track, index) => `
-                <div class="tracklist-row" draggable="true" data-index="${index}"
-                     ondragstart="handleDragStart(event, ${index})"
-                     ondragover="handleDragOver(event)"
-                     ondragenter="handleDragEnter(event)"
-                     ondragleave="handleDragLeave(event)"
-                     ondrop="handleDrop(event, ${index})"
-                     ondragend="handleDragEnd(event)">
-                    <div class="col-drag">
-                        <svg fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/>
-                        </svg>
+                <div class="tracklist-row${activeTrackD === track.d ? ' active-track' : ''}" data-index="${index}" data-d="${track.d}">
+                    <div class="col-move">
+                        <button type="button" class="move-btn" onclick="moveTrack(${index}, -1)" ${index === 0 ? 'disabled' : ''} title="Move up">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+                        </button>
+                        <button type="button" class="move-btn" onclick="moveTrack(${index}, 1)" ${index === editingTracks.length - 1 ? 'disabled' : ''} title="Move down">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                        </button>
                     </div>
                     <span class="col-num">${index + 1}</span>
                     <div class="col-title">
@@ -1282,9 +1315,9 @@
                     </div>
                     <span class="col-duration">${formatDuration(track.duration)}</span>
                     <div class="col-price">
-                        <input type="number" class="price-input" value="${track.priceSats}" min="0"
-                               onchange="updateTrackField('${track.d}', 'priceSats', parseInt(this.value) || 0)">
-                        <span class="price-label">sats</span>
+                        <input type="number" class="price-input" value="${track.priceAmount}" min="0" step="any"
+                               onchange="updateTrackField('${track.d}', 'priceAmount', parseFloat(this.value) || 0)">
+                        <span class="price-label">${track.priceCurrency}</span>
                     </div>
                     <div class="col-actions">
                         <button type="button" class="remove-btn" onclick="removeTrack('${track.d}')" title="Remove from release">
@@ -1324,49 +1357,62 @@
             renderTracklist();
         }
 
-        // Drag and Drop
-        function handleDragStart(e, index) {
-            draggedTrackIndex = index;
-            e.target.classList.add('dragging');
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', index);
+        // Move track up or down by swapping DOM rows in place
+        function moveTrack(index, direction) {
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= editingTracks.length) return;
+
+            const container = document.getElementById('tracklist-editor');
+            const rows = container.children;
+            const movingRow = rows[index];
+            const swapRow = rows[newIndex];
+
+            // Swap in the data array
+            const track = editingTracks[index];
+            activeTrackD = track.d;
+            editingTracks.splice(index, 1);
+            editingTracks.splice(newIndex, 0, track);
+
+            // Swap DOM nodes - insert the moving row before or after the swap row
+            if (direction === -1) {
+                container.insertBefore(movingRow, swapRow);
+            } else {
+                container.insertBefore(movingRow, swapRow.nextSibling);
+            }
+
+            // Update track numbers and button states for just the two swapped rows
+            updateRowState(movingRow, newIndex);
+            updateRowState(swapRow, index);
+
+            // Update highlight
+            movingRow.classList.add('active-track');
+            swapRow.classList.remove('active-track');
+
+            movingRow.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         }
 
-        function handleDragOver(e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
+        // Update a row's track number and button disabled states after a swap
+        function updateRowState(row, index) {
+            row.dataset.index = index;
+            row.querySelector('.col-num').textContent = index + 1;
+
+            const buttons = row.querySelectorAll('.move-btn');
+            const upBtn = buttons[0];
+            const downBtn = buttons[1];
+
+            upBtn.disabled = (index === 0);
+            upBtn.onclick = () => moveTrack(index, -1);
+            downBtn.disabled = (index === editingTracks.length - 1);
+            downBtn.onclick = () => moveTrack(index, 1);
         }
 
-        function handleDragEnter(e) {
-            e.preventDefault();
-            const row = e.target.closest('.tracklist-row');
-            if (row) row.classList.add('drag-over');
-        }
-
-        function handleDragLeave(e) {
-            const row = e.target.closest('.tracklist-row');
-            if (row) row.classList.remove('drag-over');
-        }
-
-        function handleDrop(e, targetIndex) {
-            e.preventDefault();
-            const row = e.target.closest('.tracklist-row');
-            if (row) row.classList.remove('drag-over');
-
-            if (draggedTrackIndex === null || draggedTrackIndex === targetIndex) return;
-
-            const [movedTrack] = editingTracks.splice(draggedTrackIndex, 1);
-            editingTracks.splice(targetIndex, 0, movedTrack);
-            renderTracklist();
-        }
-
-        function handleDragEnd(e) {
-            e.target.classList.remove('dragging');
-            draggedTrackIndex = null;
-            document.querySelectorAll('.tracklist-row.drag-over').forEach(row => {
-                row.classList.remove('drag-over');
-            });
-        }
+        // Click anywhere outside move buttons to deselect
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.move-btn') && activeTrackD) {
+                activeTrackD = null;
+                renderTracklist();
+            }
+        });
 
         // Add Track Modal
         function openAddTrackModal() {
@@ -1407,7 +1453,7 @@
                      onclick="toggleTrackSelection('${track.d}')">
                     <div class="add-track-info">
                         <div class="add-track-title">${escapeHtml(track.title)}</div>
-                        <div class="add-track-meta">${formatDuration(track.duration)} · ${track.priceSats} sats</div>
+                        <div class="add-track-meta">${formatDuration(track.duration)} · ${track.priceAmount} ${track.priceCurrency}</div>
                     </div>
                     <div class="add-track-check">
                         <svg fill="currentColor" viewBox="0 0 20 20">
@@ -1471,8 +1517,12 @@
                 if (!response.ok) throw new Error('Upload failed');
 
                 const result = await response.json();
-                preview.innerHTML = `<img src="/ipfs/${result.cid}" alt="Cover">`;
+                const coverUrl = result.blossom_hash
+                    ? `/blossom/${result.blossom_hash}`
+                    : `/ipfs/${result.cid}`;
+                preview.innerHTML = `<img src="${coverUrl}" alt="Cover">`;
                 document.getElementById('cover-cid').value = result.cid;
+                document.getElementById('cover-blossom-hash').value = result.blossom_hash || '';
                 showNotification('Cover art uploaded', 'success');
 
             } catch (error) {
@@ -1497,6 +1547,7 @@
             const newGenre = document.getElementById('release-genre').value;
             const newDate = document.getElementById('release-date').value;
             const newCoverCid = document.getElementById('cover-cid').value;
+            const newBlossomCoverHash = document.getElementById('cover-blossom-hash').value;
 
             if (!newTitle || !newArtist) {
                 showNotification('Title and artist are required', 'error');
@@ -1519,7 +1570,8 @@
                         ['duration', track.duration.toString()],
                         ['ipfs_manifest_cid', track.manifestCid],
                         ['ipfs_preview_cid', track.previewCid],
-                        ['price_sats', track.priceSats.toString()],
+                        ['price', track.priceAmount.toString()],
+                        ['price_currency', track.priceCurrency],
                         ['release_type', newType],
                         ['track_number', (i + 1).toString()]
                     ];
@@ -1530,6 +1582,7 @@
                     if (newGenre) tags.push(['genre', newGenre]);
                     if (newDate) tags.push(['release_date', newDate]);
                     if (newCoverCid) tags.push(['cover_art_cid', newCoverCid]);
+                    if (newBlossomCoverHash) tags.push(['blossom_cover_hash', newBlossomCoverHash]);
 
                     await publishTrackEvent(session, tags);
                 }
@@ -1544,7 +1597,8 @@
                         ['duration', track.duration.toString()],
                         ['ipfs_manifest_cid', track.manifestCid],
                         ['ipfs_preview_cid', track.previewCid],
-                        ['price_sats', track.priceSats.toString()],
+                        ['price', track.priceAmount.toString()],
+                        ['price_currency', track.priceCurrency],
                         ['release_type', 'single']
                     ];
 
@@ -1607,6 +1661,7 @@
             const newGenre = document.getElementById('release-genre').value;
             const newDate = document.getElementById('release-date').value;
             const newCoverCid = document.getElementById('cover-cid').value;
+            const newBlossomCoverHash = document.getElementById('cover-blossom-hash').value;
 
             if (!newTitle || !newArtist) {
                 showNotification('Title and artist are required', 'error');
@@ -1622,20 +1677,25 @@
                 let savedCount = 0;
                 for (let i = 0; i < editingTracks.length; i++) {
                     const track = editingTracks[i];
+                    const updateData = {
+                        title: track.title,
+                        artist_name: newArtist,
+                        album: newType !== 'single' ? newTitle : null,
+                        release_type: newType,
+                        genre: newGenre || null,
+                        release_date: newDate || null,
+                        cover_art_cid: newCoverCid || null,
+                        price_amount: track.priceAmount,
+                        price_currency: track.priceCurrency,
+                        track_number: i + 1  // Update track order
+                    };
+                    if (newBlossomCoverHash) {
+                        updateData.blossom_cover_hash = newBlossomCoverHash;
+                    }
                     const response = await fetch(`/api/drafts/${track.id}?pubkey=${session.publicKey}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            title: track.title,
-                            artist_name: newArtist,
-                            album: newType !== 'single' ? newTitle : null,
-                            release_type: newType,
-                            genre: newGenre || null,
-                            release_date: newDate || null,
-                            cover_art_cid: newCoverCid || null,
-                            price_sats: track.priceSats,
-                            track_number: i + 1  // Update track order
-                        })
+                        body: JSON.stringify(updateData)
                     });
 
                     if (response.ok) {

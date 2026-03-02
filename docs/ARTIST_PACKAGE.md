@@ -1,229 +1,239 @@
 # Artist Package Format
 
-The Artist Package is a portable format for importing and exporting artist content. It supports:
+Equaliser supports two package formats for importing and exporting artist content:
 
-- **Testing**: Bulk import demo content after container reset
-- **Backup**: Full artist catalog export including releases
-- **Migration**: Move an artist between content nodes
-- **Onboarding**: Import existing catalogs when an artist joins
+| Format | Extension | Use Case |
+|--------|-----------|----------|
+| **Release Package** | `.eqpkg.zip` | Signed release export/import with original audio |
+| **Legacy Package** | `.artist-package/` | Full artist setup (identity + profile + releases) |
 
-## Package Structure
+## Release Package (.eqpkg.zip)
+
+The primary format for exporting and importing releases. Contains original audio files, metadata manifest, and a cryptographic signature proving the package was created by the artist.
+
+### Structure
+
+```
+my-release.eqpkg.zip
+├── manifest.json       # Release metadata + track list + file hashes
+├── signature.json      # Signed NOSTR event covering manifest hash
+├── cover.jpg           # Cover art (optional)
+└── tracks/
+    ├── 01-track-name.mp3
+    └── 02-track-name.mp3
+```
+
+### manifest.json
+
+Contains release metadata, track list with per-track metadata, and SHA-256 hashes of audio files for integrity verification.
+
+```json
+{
+  "format_version": "1.0",
+  "created_at": "2026-02-07T12:00:00Z",
+  "release": {
+    "title": "Neon Dreams",
+    "artist": "Shibuya Crossings",
+    "release_type": "album",
+    "genre": "Electronic",
+    "release_date": "2025-06-15",
+    "cover_art": {
+      "filename": "cover.jpg",
+      "sha256": "abc123..."
+    }
+  },
+  "tracks": [
+    {
+      "title": "At Eight in a Spanish Bar",
+      "track_number": 1,
+      "duration": 245,
+      "price_amount": 0.05,
+      "price_currency": "USD",
+      "genre": "Electronic",
+      "audio": {
+        "filename": "tracks/01-at-eight-in-a-spanish-bar.mp3",
+        "sha256": "def456...",
+        "original_filename": "full.mp3"
+      }
+    }
+  ]
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `format_version` | Yes | Package format version (`1.0`) |
+| `created_at` | Yes | ISO 8601 creation timestamp |
+| `release.title` | Yes | Release/album title |
+| `release.artist` | Yes | Artist name |
+| `release.release_type` | Yes | `single`, `album`, or `ep` |
+| `release.genre` | No | Primary genre |
+| `release.release_date` | No | Original release date |
+| `release.cover_art` | No | Cover art filename and SHA-256 |
+| `tracks[].title` | Yes | Track title |
+| `tracks[].track_number` | Yes | Position in release |
+| `tracks[].duration` | No | Duration in seconds |
+| `tracks[].price_amount` | Yes | Price per stream |
+| `tracks[].price_currency` | Yes | ISO 4217 code (USD, GBP, EUR, JPY) or SAT |
+| `tracks[].audio.filename` | Yes | Path to audio file within the zip |
+| `tracks[].audio.sha256` | Yes | SHA-256 hash for integrity verification |
+
+### signature.json
+
+Contains a signed NOSTR event where `content` is the SHA-256 of `manifest.json`. This proves the package was created by the artist (verifiable with their public key). **No private keys are included.**
+
+```json
+{
+  "event": {
+    "kind": 1,
+    "pubkey": "hex-pubkey...",
+    "created_at": 1707300000,
+    "tags": [
+      ["t", "eqpkg"],
+      ["format_version", "1.0"],
+      ["album", "Neon Dreams"]
+    ],
+    "content": "sha256-of-manifest-json...",
+    "id": "event-id...",
+    "sig": "schnorr-signature..."
+  },
+  "manifest_sha256": "sha256-of-manifest-json..."
+}
+```
+
+### Export
+
+Export releases from the admin UI or CLI:
+
+**Admin UI:** Click the export button on a release card in `/admin/releases.html`. The browser handles signing via the session.
+
+**CLI:**
+```bash
+# Export a specific album
+./tools/export-artist.sh --npub npub1abc... --album "Neon Dreams"
+
+# Export all albums
+./tools/export-artist.sh --npub npub1abc... --all-albums
+
+# Export with identity backup
+./tools/export-artist.sh --npub npub1abc... --all-albums --include-keys
+```
+
+The CLI prompts for the artist's nsec to sign the package.
+
+### Import
+
+Import `.eqpkg.zip` packages via the admin UI or CLI:
+
+**Admin UI:** Click "Import Package" in `/admin/releases.html` and drop a `.eqpkg.zip` file.
+
+**CLI:**
+```bash
+# Fresh import (generates new identity)
+./tools/import-artist.sh ./packages/neon-dreams.eqpkg.zip
+
+# Import with existing identity
+./tools/import-artist.sh ./packages/neon-dreams.eqpkg.zip --restore backup.json
+```
+
+Import process:
+1. Extracts zip (with path traversal protection)
+2. Validates manifest structure
+3. Verifies signature (optional - warns on mismatch)
+4. For each track: uploads to Blossom → HLS encodes → uploads to IPFS → creates draft
+5. Returns list of created draft IDs
+
+### API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/releases/export-prepare` | POST | Build manifest, return unsigned event for signing |
+| `/api/releases/export-download` | POST | Build and download .eqpkg.zip with signed event |
+| `/api/releases/import` | POST | Extract .eqpkg.zip, create drafts |
+
+### Requirements
+
+Export requires tracks to have `blossom_audio_hash` set (original audio preserved on Blossom). Tracks uploaded before Blossom integration won't have this - re-upload them to enable export.
+
+---
+
+## Legacy Package (.artist-package)
+
+The original format for full artist setup including identity, profile, and releases. Still supported for backward compatibility and test data setup.
+
+### Structure
 
 ```
 {artist-slug}.artist-package/
 ├── manifest.json           # Package metadata
 ├── identity/
-│   ├── backup.json        # OPTIONAL: Equaliser identity backup (nsec/npub)
+│   ├── backup.json        # OPTIONAL: Identity backup (nsec/npub)
 │   └── profile.json       # Profile data for Kind 0 event
 ├── media/
 │   ├── avatar.jpg         # Profile picture
 │   └── banner.jpg         # Banner image
 └── releases/
     └── {release-slug}/
-        ├── metadata.json   # Release metadata (maps to Kind 30050)
-        ├── audio.mp3       # Original audio file (mp3, wav, flac)
-        └── cover.jpg       # Cover art image
+        ├── metadata.json   # Release metadata
+        ├── audio.mp3       # Original audio file
+        └── cover.jpg       # Cover art
 ```
 
-## File Specifications
+### Import Modes
 
-### manifest.json
+**Fresh Import** (testing):
+```bash
+./tools/import-artist.sh ./packages/artist.artist-package
+```
+Generates new identity, publishes profile, imports releases as drafts.
 
-Package metadata and import instructions.
+**Restore Import** (backup):
+```bash
+./tools/import-artist.sh ./packages/artist.artist-package --restore
+```
+Uses keys from `identity/backup.json`.
 
-```json
-{
-  "format": "equaliser-artist-package",
-  "version": "1.0",
-  "created_at": "2025-01-29T12:00:00Z",
-  "artist": {
-    "name": "Shibuya Crossings",
-    "slug": "shibuya-crossings"
-  },
-  "contents": {
-    "has_identity": true,
-    "has_media": true,
-    "release_count": 10
-  },
-  "source": {
-    "type": "export",
-    "node_url": "https://artist.example.com",
-    "exported_at": "2025-01-29T12:00:00Z"
-  }
-}
+**Dry Run:**
+```bash
+./tools/import-artist.sh ./packages/artist.artist-package --dry-run
 ```
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `format` | Yes | Must be `equaliser-artist-package` |
-| `version` | Yes | Package format version (`1.0`) |
-| `created_at` | Yes | ISO 8601 timestamp |
-| `artist.name` | Yes | Display name |
-| `artist.slug` | Yes | URL-safe identifier |
-| `contents.has_identity` | Yes | Whether `identity/backup.json` is included |
-| `contents.has_media` | Yes | Whether avatar/banner images are included |
-| `contents.release_count` | Yes | Number of releases in package |
-| `source` | No | Origin information (for exports) |
+### Creating from Mockups
 
-### identity/backup.json
-
-Standard Equaliser identity backup file. Same format as onboarding backup.
-
-```json
-{
-  "version": 1,
-  "created": "2025-01-29T12:00:00Z",
-  "keys": {
-    "nsec": "nsec1...",
-    "npub": "npub1...",
-    "privateKeyHex": "abc123...",
-    "publicKeyHex": "def456..."
-  },
-  "profile": {
-    "name": "Shibuya Crossings",
-    "bio": "Electronic and alternative sounds...",
-    "location": "Tokyo, Japan",
-    "genres": ["Electronic", "Alternative", "Indie"]
-  }
-}
-```
-
-**Important**: This file contains the private key. It should only be included when:
-- Exporting for backup/migration (user explicitly requests)
-- The user understands the security implications
-
-For testing imports, this file can be omitted and new keys will be generated.
-
-### identity/profile.json
-
-Profile data used to construct the Kind 0 NOSTR event. This is the public profile information without keys.
-
-```json
-{
-  "name": "Shibuya Crossings",
-  "about": "Electronic and alternative sounds with introspective songwriting.",
-  "picture": null,
-  "banner": null,
-  "website": "https://shibuyacrossings.com",
-  "nip05": "shibuya@example.com",
-  "lud16": "shibuya@getalby.com",
-  "equaliser": {
-    "location": "Tokyo, Japan",
-    "genres": ["Electronic", "Alternative", "Indie"],
-    "joinedDate": "2025-01-16"
-  }
-}
-```
-
-Note: `picture` and `banner` are set to `null` in the package. The import tool uploads the images from `media/` to IPFS and populates these URLs.
-
-### releases/{slug}/metadata.json
-
-Release metadata that maps to a Kind 30050 NOSTR event.
-
-```json
-{
-  "id": "at-eight-in-a-spanish-bar",
-  "title": "At Eight in a Spanish Bar",
-  "artist": "Shibuya Crossings",
-  "album": "DOYA (Depend On Your Alter Ego)",
-  "album_id": "doya-depend-on-your-alter-ego-2011",
-  "track_number": 1,
-  "duration": null,
-  "genre": "Electronic",
-  "price_sats": 210,
-  "release_date": "2011-03-24",
-  "release_type": "album",
-  "tags": ["electronic", "atmospheric", "evening"],
-  "audio_file": "audio.mp3",
-  "cover_file": "cover.jpg"
-}
-```
-
-| Field | Required | Description |
-|-------|----------|-------------|
-| `id` | Yes | Unique release identifier (becomes d-tag) |
-| `title` | Yes | Track title |
-| `artist` | Yes | Artist name |
-| `album` | No | Album name |
-| `album_id` | No | Album identifier |
-| `track_number` | No | Position in album |
-| `duration` | No | Duration in seconds (calculated during import if null) |
-| `genre` | No | Primary genre |
-| `price_sats` | Yes | Price in satoshis |
-| `release_date` | No | Original release date |
-| `release_type` | No | `single`, `album`, or `ep` |
-| `tags` | No | Array of tags |
-| `audio_file` | Yes | Filename of audio in this folder |
-| `cover_file` | No | Filename of cover art in this folder |
-
-## Import Modes
-
-### 1. Fresh Import (Testing)
-
-For testing with demo content. Generates new identity.
+Convert mockup content to packages:
 
 ```bash
-./tools/import-artist.sh shibuya-crossings.artist-package
+# Create .eqpkg.zip packages
+./tools/convert-mockup.sh --all
+
+# Create both formats
+./tools/convert-mockup.sh --all --legacy
 ```
 
-- Generates new NOSTR keys
-- Uploads media to IPFS
-- Publishes Kind 0 profile
-- Imports releases as drafts
-- Outputs new identity backup for session login
-
-### 2. Restore Import (Backup)
-
-Restores an artist with their original identity.
-
-```bash
-./tools/import-artist.sh shibuya-crossings.artist-package --restore
-```
-
-- Uses keys from `identity/backup.json`
-- Same npub as original
-- Requires backup.json to be present
-
-### 3. Dry Run
-
-Preview what would be imported without making changes.
-
-```bash
-./tools/import-artist.sh shibuya-crossings.artist-package --dry-run
-```
-
-## Export
-
-Export an existing artist from a content node.
-
-```bash
-./tools/export-artist.sh --npub npub1... --output ./backups/
-```
-
-Options:
-- `--include-keys`: Include identity backup (nsec) in export
-- `--releases-only`: Export releases without profile/media
+---
 
 ## Tools
 
 | Tool | Description |
 |------|-------------|
-| `tools/import-artist.sh` | Import an artist package into content node |
-| `tools/export-artist.sh` | Export artist from content node to package |
-| `tools/convert-mockup.sh` | Convert mockups/content artist to package format |
+| `tools/import-artist.sh` | Import `.eqpkg.zip` or `.artist-package` into content node |
+| `tools/export-artist.sh` | Export releases as signed `.eqpkg.zip` packages |
+| `tools/convert-mockup.sh` | Convert mockup artist data to `.eqpkg.zip` (or legacy) |
 
-## Security Considerations
+## Security
 
-1. **Private keys**: The `identity/backup.json` file contains the nsec (private key). Handle with care.
-2. **Package integrity**: Consider adding checksums for media files in future versions.
-3. **Storage**: Don't commit packages with real keys to version control.
+1. **No private keys in .eqpkg.zip**: Packages contain a signature (public verification) but never the nsec
+2. **SHA-256 integrity**: Audio file hashes in the manifest are verified during import
+3. **Path traversal protection**: Zip extraction validates all paths stay within the target directory
+4. **Identity backups**: Only `.artist-package` format supports including keys, and only when explicitly requested
 
 ## Compatibility
 
-- Package format version `1.0`
+- `.eqpkg.zip` format version `1.0`
 - Requires Equaliser content node with:
-  - `/api/tracks/upload` endpoint
-  - `/api/tracks/cover-art` endpoint
-  - `/api/drafts` endpoints
+  - Blossom server (for original audio storage)
+  - `/api/releases/export-prepare` endpoint
+  - `/api/releases/export-download` endpoint
+  - `/api/releases/import` endpoint
+  - `/api/tracks/upload` endpoint (for legacy format)
   - NOSTR relay at `/relay`
