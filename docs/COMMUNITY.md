@@ -290,7 +290,7 @@ No separate registration. If you have a NOSTR identity, you can participate in a
 - Author profiles (avatar, name) on threads and replies
 - Board badge colours: general=blue, music=purple, production=green, gigs=amber
 - Browser history support (pushState/popstate) for thread navigation
-- Sidebar navigation link to Community page
+- Accessible via Social link in sidebar bottom nav → Community Threads tab
 - Client-side filtering for all multi-character tags
 - Seed data script (`tools/seed-social.mjs`) for populating test content
 

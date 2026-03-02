@@ -215,7 +215,7 @@ Events without a `content-type` tag are treated as feed posts for backward compa
 
 The main timeline showing Equaliser-tagged posts from followed users and artists.
 
-**Pages:** `social.html` (Feed tab, default), `home.html` (sidebar feed), `user.html` (user's posts), `profile.html` (own posts)
+**Pages:** `social.html` (Feed tab, default), `home.html` (sidebar feed), `user.html` (user's posts), `profile.html` (own posts + reposts with green indicator)
 
 **Behaviour:**
 - Fetches Kind 1 events from relay, filtered client-side for `["app", "Equaliser"]` tag
@@ -244,6 +244,8 @@ Reddit-style threaded discussions. See [COMMUNITY.md](./COMMUNITY.md) for full s
 
 **Page:** `social.html?tab=community` (thread list) / `social.html?tab=community&thread=<eventId>` (thread detail)
 
+The social page has two full-width top-level tabs ("Timeline" and "Community Threads") with purple underline active state. Sub-tabs (Your Feed / Global Feed, board filters) use white text highlight only.
+
 **Behaviour:**
 - Board filter tabs: All | General | Music | Production | Gigs
 - Threads use `["content-type", "thread"]`, `["subject", "..."]`, `["board", "..."]` tags
@@ -268,7 +270,7 @@ NIP-04 encrypted private messaging with two-panel inbox UI.
 
 ### 5. Sidebar Navigation (Implemented)
 
-Community and Messages links added to sidebar (`client/js/sidebar.js`) between Feed and the disabled Discover/Library items.
+Single "Social" link in the sidebar bottom nav section (`client/js/sidebar.js`), alongside Profile and Settings. Appears only when logged in. The main Menu section contains Home, Discover (disabled), and Library (disabled). Messages is accessible from the profile page rather than the sidebar.
 
 ### 6. Seed Data (Implemented)
 
