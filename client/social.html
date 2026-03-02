@@ -22,11 +22,11 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
         .social-page-title { font-size: 22px; font-weight: 700; margin-bottom: 16px; }
-        .social-top-tabs { display: flex; gap: 0; }
+        .social-top-tabs { display: flex; gap: 0; padding: 0; }
         .social-top-tab {
-            flex: 1; padding: 12px 0; background: none; border: none;
-            border-bottom: 2px solid transparent; color: rgba(255, 255, 255, 0.4);
-            font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+            flex: 1; padding: 12px 0; background: none; border: none; border-bottom: 2px solid transparent;
+            color: rgba(255, 255, 255, 0.35); font-size: 15px; font-weight: 600;
+            cursor: pointer; transition: color 0.2s; text-align: center;
         }
         .social-top-tab:hover { color: rgba(255, 255, 255, 0.7); }
         .social-top-tab.active { color: #a855f7; border-bottom-color: #a855f7; }
@@ -35,14 +35,15 @@
         .feed-section { display: block; }
         .feed-section.hidden { display: none; }
 
-        .feed-sub-tabs { display: flex; gap: 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        .feed-sub-tabs { display: flex; gap: 0; overflow-x: auto; border-bottom: 1px solid rgba(255, 255, 255, 0.05); margin-top: 12px; }
         .feed-sub-tab {
-            flex: 1; padding: 10px 0; background: none; border: none;
-            border-bottom: 2px solid transparent; color: rgba(255, 255, 255, 0.35);
-            font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+            padding: 12px 16px; background: none; border: none;
+            border-bottom: 2px solid transparent; color: rgba(255, 255, 255, 0.4);
+            font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+            white-space: nowrap;
         }
-        .feed-sub-tab:hover { color: rgba(255, 255, 255, 0.6); }
-        .feed-sub-tab.active { color: #ffffff; border-bottom-color: rgba(168, 85, 247, 0.5); }
+        .feed-sub-tab:hover { color: rgba(255, 255, 255, 0.7); }
+        .feed-sub-tab.active { color: #ffffff; }
 
         /* Composer */
         .composer { padding: 16px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
@@ -133,7 +134,7 @@
             white-space: nowrap;
         }
         .board-tab:hover { color: rgba(255, 255, 255, 0.7); }
-        .board-tab.active { color: #a855f7; border-bottom-color: #a855f7; }
+        .board-tab.active { color: #ffffff; }
 
         .community-toolbar {
             display: flex; align-items: center; justify-content: flex-end;
@@ -302,8 +303,8 @@
                 <div class="social-page-header">
                     <h1 class="social-page-title">Social</h1>
                     <div class="social-top-tabs">
-                        <button class="social-top-tab active" data-tab="feed" onclick="switchTopTab('feed')">Feed</button>
-                        <button class="social-top-tab" data-tab="community" onclick="switchTopTab('community')">Community</button>
+                        <button class="social-top-tab active" data-tab="feed" onclick="switchTopTab('feed')">Timeline</button>
+                        <button class="social-top-tab" data-tab="community" onclick="switchTopTab('community')">Community Threads</button>
                     </div>
                 </div>
 
