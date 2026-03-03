@@ -455,39 +455,29 @@
         // ===== Profile Loading =====
 
         async _loadProfile() {
-            return new Promise((resolve) => {
-                const ws = new WebSocket(relayUrl);
-                const subId = 'profile-' + Math.random().toString(36).substring(7);
-                const timeout = setTimeout(() => { try { ws.close(); } catch(e) {} resolve(); }, 8000);
+            try {
+                if (typeof NostrSocial === 'undefined') return;
 
-                ws.onopen = () => {
-                    ws.send(JSON.stringify(['REQ', subId, {
-                        kinds: [0], authors: [this._profilePubkey], limit: 1
-                    }]));
-                };
+                // Query all configured relays (local + external) for the full Kind 0 event
+                const events = await NostrSocial.queryRelays({
+                    kinds: [0], authors: [this._profilePubkey], limit: 1
+                });
 
-                ws.onmessage = (event) => {
-                    try {
-                        const msg = JSON.parse(event.data);
-                        if (msg[0] === 'EVENT' && msg[1] === subId && msg[2]) {
-                            const profile = JSON.parse(msg[2].content);
-                            this._profileData = profile;
-                            this._profileCache[this._profilePubkey] = {
-                                name: profile.display_name || profile.name || 'Unknown',
-                                picture: profile.picture || null
-                            };
-                            this._renderProfile(profile);
-                        }
-                        if (msg[0] === 'EOSE') {
-                            clearTimeout(timeout);
-                            ws.close();
-                            resolve();
-                        }
-                    } catch (e) {}
-                };
+                if (events.length > 0) {
+                    const profile = JSON.parse(events[0].content);
+                    this._profileData = profile;
+                    this._profileCache[this._profilePubkey] = {
+                        name: profile.display_name || profile.name || 'Unknown',
+                        picture: profile.picture || null
+                    };
+                    this._renderProfile(profile);
 
-                ws.onerror = () => { clearTimeout(timeout); resolve(); };
-            });
+                    // Mirror to local relay so future loads are fast
+                    NostrSocial.publishToLocal(events[0]);
+                }
+            } catch (e) {
+                console.error('Failed to load profile:', e);
+            }
         },
 
         _renderProfile(profile) {

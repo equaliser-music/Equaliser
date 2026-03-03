@@ -171,7 +171,11 @@ const EqualiserPlayer = {
             this._hlsInstance = null;
         }
 
-        const cidToPlay = previewCid || manifestCid;
+        // Logged-in users get full tracks; guests get 30-second previews
+        const isLoggedIn = typeof SessionManager !== 'undefined' && SessionManager.hasSession();
+        const cidToPlay = isLoggedIn
+            ? (manifestCid || previewCid)
+            : (previewCid || manifestCid);
         if (!cidToPlay) {
             console.error('No CID available for playback');
             return;

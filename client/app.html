@@ -32,6 +32,12 @@
             overflow: hidden;
         }
 
+        /* Ensure injected .main-content can scroll within the SPA shell */
+        #page-content > .main-content {
+            overflow-y: auto;
+            height: 100%;
+        }
+
         /* Loading state */
         .page-loading {
             display: flex;
@@ -88,9 +94,16 @@
     <script>
         // Initialize the app shell
         SessionManager.init();
-        ClientSidebar.init();
         EqualiserPlayer.init();
-        Router.init();
+
+        // Load external relays BEFORE sidebar/router so profile fetches use them
+        (async () => {
+            if (SessionManager.hasSession() && typeof NostrSocial !== 'undefined') {
+                await NostrSocial.loadUserRelays(SessionManager.getSession().publicKey);
+            }
+            ClientSidebar.init();
+            Router.init();
+        })();
     </script>
 </body>
 </html>

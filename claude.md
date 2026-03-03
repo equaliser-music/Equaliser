@@ -299,12 +299,15 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - Security hardening (rate limiting, input validation, container isolation)
 
 - [ ] **Multi-Node Architecture**: Scaling beyond single content node
+  - **Equaliser relay network**: Two-tier relay architecture — standard NOSTR relays for social interop, Equaliser peer relays for music metadata replication
+  - Artists configure peer relays (other content nodes); orchestrator publishes music events to local + peer relays
+  - NOSTR relay replication for metadata + IPFS cross-pinning for audio = full redundancy
   - Federation between content nodes (mutual content pinning)
   - Load balancing for high-traffic artists/labels
   - Geographic distribution for lower latency
-  - Shared relay infrastructure vs dedicated relays
   - Database scaling (PostgreSQL for labels, read replicas)
   - CDN integration for mainstream traffic levels
+  - See [SCALING.md — Equaliser Relay Network](docs/SCALING.md#equaliser-relay-network)
 
 - [x] **Social Features**: Artist-fan interaction via NOSTR
   - **Feed**: Kind 1 posts with `["content-type", "post"]` tag, reply/like/repost actions, clickable posts to thread view
