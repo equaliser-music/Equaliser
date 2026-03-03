@@ -251,6 +251,23 @@ const ClientSidebar = {
     },
 
     /**
+     * Update the active nav item based on current path.
+     * Called by the router on navigation.
+     */
+    updateActiveState(path) {
+        if (!this._container) return;
+        const pageName = path.split('/').pop().split('?')[0].replace('.html', '') || 'home';
+        const currentPage = (pageName === 'feed' || pageName === 'community') ? 'social' : pageName;
+
+        this._container.querySelectorAll('.nav-item').forEach(item => {
+            const href = item.getAttribute('href');
+            if (!href || href === '#') return;
+            const itemPage = href.split('/').pop().replace('.html', '') || 'home';
+            item.classList.toggle('active', itemPage === currentPage);
+        });
+    },
+
+    /**
      * Handle logout
      */
     logout() {
