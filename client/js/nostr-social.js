@@ -468,6 +468,12 @@ const NostrSocial = (() => {
             }
         }
 
+        // Cap external relays to avoid slow queries across too many connections
+        const MAX_EXTERNAL_RELAYS = 5;
+        if (externalRelays.length > MAX_EXTERNAL_RELAYS) {
+            externalRelays = externalRelays.slice(0, MAX_EXTERNAL_RELAYS);
+        }
+
         // Push external relays into DEFAULT_RELAYS (mutate array so all references see changes)
         for (const relay of externalRelays) {
             if (!DEFAULT_RELAYS.includes(relay)) {
@@ -483,7 +489,7 @@ const NostrSocial = (() => {
      */
     async function queryRelays(filter) {
         const allResults = await Promise.allSettled(
-            DEFAULT_RELAYS.map(r => _queryRelay(r, filter))
+            DEFAULT_RELAYS.map(r => _queryRelay(r, filter, 4000))
         ).then(results => results
             .filter(r => r.status === 'fulfilled')
             .map(r => r.value)
