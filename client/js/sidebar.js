@@ -182,48 +182,19 @@ const ClientSidebar = {
     /**
      * Fetch user profile from relay and update sidebar display
      */
-    _fetchUserProfile() {
+    async _fetchUserProfile() {
         if (this._profileFetched) return;
         this._profileFetched = true;
 
         const session = SessionManager.getSession();
-        if (!session) return;
-
-        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const relayUrl = `${wsProtocol}//${window.location.host}/relay`;
+        if (!session || typeof NostrSocial === 'undefined') return;
 
         try {
-            const ws = new WebSocket(relayUrl);
-            const subId = 'sidebar-profile-' + Math.random().toString(36).substring(7);
-
-            const timeout = setTimeout(() => { try { ws.close(); } catch(e) {} }, 5000);
-
-            ws.onopen = () => {
-                ws.send(JSON.stringify(['REQ', subId, {
-                    kinds: [0],
-                    authors: [session.publicKey],
-                    limit: 1
-                }]));
-            };
-
-            ws.onmessage = (event) => {
-                try {
-                    const msg = JSON.parse(event.data);
-                    if (msg[0] === 'EVENT' && msg[1] === subId && msg[2]) {
-                        const profile = JSON.parse(msg[2].content);
-                        this.updateUserDisplay(
-                            profile.display_name || profile.name,
-                            profile.picture
-                        );
-                    }
-                    if (msg[0] === 'EOSE') {
-                        clearTimeout(timeout);
-                        ws.close();
-                    }
-                } catch (e) {}
-            };
-
-            ws.onerror = () => { clearTimeout(timeout); };
+            const profiles = await NostrSocial.fetchProfiles([session.publicKey]);
+            const profile = profiles.get(session.publicKey);
+            if (profile) {
+                this.updateUserDisplay(profile.name, profile.picture);
+            }
         } catch (e) {
             console.log('Failed to fetch profile for sidebar:', e);
         }

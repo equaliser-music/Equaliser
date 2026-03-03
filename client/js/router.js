@@ -261,7 +261,7 @@ const Router = {
 
         return new Promise((resolve, reject) => {
             const script = document.createElement('script');
-            script.src = modulePath;
+            script.src = modulePath + '?v=' + Date.now();
             script.onload = () => {
                 this._loadedScripts.add(modulePath);
                 resolve();

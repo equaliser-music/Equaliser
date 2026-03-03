@@ -12,6 +12,14 @@ const NostrSocial = (() => {
     const LOCAL_RELAY = `${wsProtocol}//${window.location.host}/relay`;
     const DEFAULT_RELAYS = [LOCAL_RELAY];
 
+    // Well-known public relays used as fallback when user has no Kind 10002
+    const FALLBACK_RELAYS = [
+        'wss://relay.damus.io',
+        'wss://nos.lol',
+        'wss://relay.primal.net'
+    ];
+    let _relaysLoaded = false;
+
     // ===== Utilities =====
 
     function escapeHtml(text) {
@@ -405,6 +413,102 @@ const NostrSocial = (() => {
         return events;
     }
 
+    // ===== Relay List Management =====
+
+    /**
+     * Load the user's relay list (Kind 10002) and add external relays to DEFAULT_RELAYS.
+     * Checks local relay first, then well-known relays, then falls back to defaults.
+     * Mirrors Kind 10002 to local relay if found externally.
+     */
+    async function loadUserRelays(pubkey) {
+        if (_relaysLoaded || !pubkey) return;
+        _relaysLoaded = true;
+
+        let externalRelays = [];
+
+        // 1. Check local relay for Kind 10002
+        const localEvents = await _queryRelay(LOCAL_RELAY, {
+            kinds: [10002], authors: [pubkey], limit: 1
+        }, 5000);
+
+        if (localEvents.length > 0) {
+            externalRelays = localEvents[0].tags
+                .filter(t => t[0] === 'r' && t[1])
+                .map(t => t[1])
+                .filter(url => url !== LOCAL_RELAY);
+        } else {
+            // 2. No Kind 10002 locally — try well-known relays
+            for (const fallback of FALLBACK_RELAYS) {
+                try {
+                    const fbEvents = await _queryRelay(fallback, {
+                        kinds: [10002], authors: [pubkey], limit: 1
+                    }, 5000);
+                    if (fbEvents.length > 0) {
+                        externalRelays = fbEvents[0].tags
+                            .filter(t => t[0] === 'r' && t[1])
+                            .map(t => t[1])
+                            .filter(url => url !== LOCAL_RELAY);
+                        // Mirror Kind 10002 to local relay
+                        _publishToSingleRelay(LOCAL_RELAY, fbEvents[0]);
+                        break;
+                    }
+                } catch (e) { /* skip failed relay */ }
+            }
+
+            // 3. If still nothing, use fallbacks directly
+            if (externalRelays.length === 0) {
+                externalRelays = FALLBACK_RELAYS.slice();
+            }
+        }
+
+        // Always include fallback relays as a safety net
+        for (const fallback of FALLBACK_RELAYS) {
+            if (!externalRelays.includes(fallback)) {
+                externalRelays.push(fallback);
+            }
+        }
+
+        // Push external relays into DEFAULT_RELAYS (mutate array so all references see changes)
+        for (const relay of externalRelays) {
+            if (!DEFAULT_RELAYS.includes(relay)) {
+                DEFAULT_RELAYS.push(relay);
+            }
+        }
+
+    }
+
+    /**
+     * Query all DEFAULT_RELAYS with a filter and return raw events (deduplicated, most recent per pubkey).
+     * Unlike fetchProfiles(), this returns full raw events for use by the profile editor.
+     */
+    async function queryRelays(filter) {
+        const allResults = await Promise.allSettled(
+            DEFAULT_RELAYS.map(r => _queryRelay(r, filter))
+        ).then(results => results
+            .filter(r => r.status === 'fulfilled')
+            .map(r => r.value)
+        );
+        // Deduplicate by pubkey, keeping most recent
+        const seen = new Map();
+        for (const events of allResults) {
+            for (const ev of events) {
+                const key = ev.pubkey || ev.id;
+                const existing = seen.get(key);
+                if (!existing || ev.created_at > existing.created_at) {
+                    seen.set(key, ev);
+                }
+            }
+        }
+        return Array.from(seen.values());
+    }
+
+    /**
+     * Publish an already-signed event to the local relay only (for mirroring).
+     */
+    async function publishToLocal(event) {
+        return _publishToSingleRelay(LOCAL_RELAY, event);
+    }
+
     // ===== Expose public API =====
 
     return {
@@ -425,6 +529,9 @@ const NostrSocial = (() => {
         fetchThreadReplies,
         fetchCommunityThreads,
         fetchCommunityReplies,
-        publishEvent
+        publishEvent,
+        loadUserRelays,
+        queryRelays,
+        publishToLocal
     };
 })();

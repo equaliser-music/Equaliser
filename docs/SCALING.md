@@ -306,6 +306,73 @@ services:
 
 ---
 
+## Equaliser Relay Network
+
+### Two-Tier Relay Architecture
+
+Equaliser uses two distinct sets of relays for different purposes:
+
+**Standard NOSTR relays** (damus, nos.lol, primal, etc.)
+- Social events: Kind 1 posts, Kind 6 reposts, Kind 7 likes
+- Profile metadata: Kind 0
+- Contact lists: Kind 3, Kind 10002
+- Interoperability with the wider NOSTR ecosystem (Damus, Primal, etc.)
+
+**Equaliser relay network** (other Equaliser content nodes)
+- Music metadata: Kind 30050 track/release events
+- Album data, pricing, cover art references
+- Equaliser-specific application data
+
+This separation ensures social interactions broadcast widely for NOSTR interop, while music catalogue data replicates only across Equaliser nodes that need it.
+
+### Why a Separate Music Relay Network?
+
+Standard NOSTR relays are optimised for social events (short text, reactions, profiles). Music metadata has different characteristics:
+
+- **Larger events** — track events contain IPFS CIDs, pricing, HLS manifests, Blossom hashes
+- **Targeted audience** — only Equaliser clients need this data
+- **Redundancy requirements** — if an artist's node goes down, their catalogue must remain discoverable
+- **Cross-node discovery** — fans on one Equaliser node should find artists on another
+
+### How It Works
+
+Artists configure a list of Equaliser relays (other content nodes they trust):
+
+```
+Artist's content node relay:  ws://my-node.example.com/relay
+Equaliser peer relays:        ws://label-node.example.com/relay
+                              ws://collab-node.example.com/relay
+```
+
+The orchestrator publishes music events to the local relay AND the configured Equaliser peer relays. This gives:
+
+1. **Redundancy** — catalogue survives if one node goes offline
+2. **Discovery** — clients query multiple Equaliser relays for music content
+3. **Federation** — artists on different nodes can appear in each other's catalogues
+
+### Complementary to IPFS Pinning
+
+This relay network handles **metadata** replication. Combined with IPFS cross-pinning between nodes, you get full redundancy:
+
+| Layer | What It Replicates | Technology |
+|-------|--------------------|------------|
+| Metadata | Track info, pricing, profiles | NOSTR relay network |
+| Audio content | HLS segments, original files | IPFS mutual pinning |
+| Original masters | Lossless audio files | Blossom cross-server |
+
+### Implementation Notes
+
+- Could use a dedicated tag (e.g. `["equaliser-relay", "wss://..."]`) on the artist's Kind 0 profile
+- Or a custom event kind for Equaliser relay lists (similar to Kind 10002 for standard relays)
+- The `["app", "Equaliser"]` tag on events ensures only Equaliser content is replicated
+- Peer relay lists could be managed in the admin settings UI
+
+### Status
+
+Future phase. Depends on having multiple active content nodes to federate between. Current single-node deployments publish music events to local relay only, with social events going to standard NOSTR relays.
+
+---
+
 ## VPS Sizing
 
 ### Recommended Specs by Tier
