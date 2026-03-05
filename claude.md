@@ -21,6 +21,11 @@ Documentation exists in the 'docs' folder. Please read in the following order at
 16. contributor email summary.md
 17. PRICING_CURRENCY.md
 18. COMMUNITY.md
+19. NODE-MANAGEMENT-SPEC.md
+20. ACCESS_CONTROL.md
+21. NODE_ADMIN.md
+22. RELAY_SYNCER.md
+23. DATABASE.md
 
 ## Important Rules
 
@@ -318,3 +323,37 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - **Relay Tag Filtering**: All multi-char tag filtering done client-side (relay only indexes single-letter tags)
   - **Seed Data**: `tools/seed-social.sh` populates relay with test posts, threads, DMs, reactions
   - See [SOCIAL.md](docs/SOCIAL.md), [COMMUNITY.md](docs/COMMUNITY.md)
+
+- [ ] **Access Control (Phase A)**: Gated onboarding with invite codes
+  - Public request form at `/join` for artists to apply
+  - Admin approval workflow via management console
+  - Invite code generation and validation before onboarding
+  - `access_requests` and `node_artists` tables in PostgreSQL
+  - See [ACCESS_CONTROL.md](docs/ACCESS_CONTROL.md), [NODE-MANAGEMENT-SPEC.md](docs/NODE-MANAGEMENT-SPEC.md) Section 5
+
+- [ ] **Relay Syncer & Cache API (Phase B)**: PostgreSQL cache with background relay syncer
+  - Standalone Python process subscribing to external NOSTR relays
+  - Ingests Equaliser-tagged events into shared PostgreSQL database
+  - Cache API endpoints on orchestrator for fast web client reads
+  - Auto-discovers new relays via Kind 10002 events
+  - See [RELAY_SYNCER.md](docs/RELAY_SYNCER.md), [DATABASE.md](docs/DATABASE.md), [NODE-MANAGEMENT-SPEC.md](docs/NODE-MANAGEMENT-SPEC.md) Sections 2-4
+
+- [ ] **Node Management Console (Phase C)**: Admin dashboard at `/admin/console`
+  - React SPA for node operators (separate from artist admin)
+  - Sections: Overview, Sync Manager, Artist Management, IPFS & Storage, Blossom Mirroring, Settings
+  - Admin authentication via `ADMIN_PASSWORD` env var
+  - WebSocket for real-time status updates
+  - See [NODE_ADMIN.md](docs/NODE_ADMIN.md), [NODE-MANAGEMENT-SPEC.md](docs/NODE-MANAGEMENT-SPEC.md) Section 6
+
+- [ ] **IPFS Cluster & Blossom Mirroring (Phase D)**: Cross-node content redundancy
+  - IPFS cluster pin request workflow (inbound/outbound)
+  - Blossom server configuration and mirroring policies
+  - Storage management and auto-approve policies
+  - See [NODE-MANAGEMENT-SPEC.md](docs/NODE-MANAGEMENT-SPEC.md) Section 7
+
+- [ ] **Multi-Tenant Hosting (Phase E)**: Fee models and payment splits
+  - Fee model configuration (free, percentage, flat_rate) per artist
+  - Payment split logic in orchestrator (future, after Strike integration)
+  - Artist portability / export tooling
+  - Public node directory listing
+  - See [NODE-MANAGEMENT-SPEC.md](docs/NODE-MANAGEMENT-SPEC.md) Section 8

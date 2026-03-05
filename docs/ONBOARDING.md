@@ -72,6 +72,19 @@ Relays are servers that store and forward NOSTR events. The onboarding tool publ
 
 More relays = better redundancy and discoverability.
 
+## Access Control (Gated Onboarding)
+
+When access control is enabled on a node, artists must request access before they can onboard:
+
+1. **Request access** at `/join` — a public form requiring artist name, description, and optional links/email/npub
+2. **Admin reviews** the request via the node management console
+3. **Invite code issued** on approval (e.g. `EQ-a8f3b2c1`) — shared with the artist via email or DM
+4. **Enter invite code** at the start of the onboarding wizard — validated before proceeding
+
+Once the invite code is accepted, the artist proceeds through the standard onboarding flow described below. On successful onboarding, the invite is marked as used and the artist is registered in the node's artist list.
+
+See [ACCESS_CONTROL.md](ACCESS_CONTROL.md) for the full request form, approval workflow, and API endpoints.
+
 ## The Onboarding Flow
 
 ### Step 1: Generate Keys
@@ -295,3 +308,5 @@ The Kind 0 profile published during onboarding establishes the artist's identity
 - [NIP-19: bech32-encoded entities](https://github.com/nostr-protocol/nips/blob/master/19.md)
 - [nostr-tools library](https://github.com/nbd-wtf/nostr-tools)
 - [Equaliser Technical Specification](../../Technical%20Specification.md)
+- [Access Control](ACCESS_CONTROL.md) — Gated onboarding with invite codes
+- [Node Management Spec](NODE-MANAGEMENT-SPEC.md) — Full node management specification
