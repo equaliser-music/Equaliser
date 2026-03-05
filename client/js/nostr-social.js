@@ -515,6 +515,15 @@ const NostrSocial = (() => {
         return _publishToSingleRelay(LOCAL_RELAY, event);
     }
 
+    /**
+     * Fetch notes from the local relay only. Sorts newest-first.
+     */
+    async function fetchFromLocal(filter) {
+        const events = await _queryRelay(LOCAL_RELAY, filter);
+        events.sort((a, b) => b.created_at - a.created_at);
+        return events;
+    }
+
     // ===== Expose public API =====
 
     return {
@@ -538,6 +547,7 @@ const NostrSocial = (() => {
         publishEvent,
         loadUserRelays,
         queryRelays,
-        publishToLocal
+        publishToLocal,
+        fetchFromLocal
     };
 })();

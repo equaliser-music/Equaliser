@@ -91,7 +91,7 @@ const NostrPlaylists = (() => {
         };
 
         const signedEvent = await SessionManager.signEvent(event);
-        await NostrSocial.publishEvent(signedEvent);
+        await NostrSocial.publishToLocal(signedEvent);
         _myPlaylistsCache = null;
         _cachedPlaylists = null;
         return { dTag, event: signedEvent };
@@ -126,7 +126,7 @@ const NostrPlaylists = (() => {
         };
 
         const signedEvent = await SessionManager.signEvent(event);
-        await NostrSocial.publishEvent(signedEvent);
+        await NostrSocial.publishToLocal(signedEvent);
         _myPlaylistsCache = null;
         _cachedPlaylists = null;
         _playlistCache.delete(`${session.publicKey}:${dTag}`);
@@ -148,7 +148,7 @@ const NostrPlaylists = (() => {
         };
 
         const signedEvent = await SessionManager.signEvent(event);
-        await NostrSocial.publishEvent(signedEvent);
+        await NostrSocial.publishToLocal(signedEvent);
         _myPlaylistsCache = null;
         _cachedPlaylists = null;
         _playlistCache.delete(`${session.publicKey}:${dTag}`);
@@ -163,7 +163,7 @@ const NostrPlaylists = (() => {
 
         if (_isFresh(_myPlaylistsCache)) return _myPlaylistsCache.data;
 
-        const events = await NostrSocial.fetchNotes({
+        const events = await NostrSocial.fetchFromLocal({
             kinds: [30001],
             authors: [session.publicKey],
             limit: 200
@@ -206,7 +206,7 @@ const NostrPlaylists = (() => {
         const cached = _playlistCache.get(cacheKey);
         if (_isFresh(cached)) return cached.data;
 
-        const events = await NostrSocial.fetchNotes({
+        const events = await NostrSocial.fetchFromLocal({
             kinds: [30001],
             authors: [pubkey],
             '#d': [dTag],
@@ -240,7 +240,7 @@ const NostrPlaylists = (() => {
     }
 
     async function fetchPublicPlaylists(pubkey) {
-        const events = await NostrSocial.fetchNotes({
+        const events = await NostrSocial.fetchFromLocal({
             kinds: [30001],
             authors: [pubkey],
             limit: 200
@@ -325,7 +325,7 @@ const NostrPlaylists = (() => {
         const session = SessionManager.getSession();
         if (!session) return [];
 
-        const events = await NostrSocial.fetchNotes({
+        const events = await NostrSocial.fetchFromLocal({
             kinds: [30001],
             authors: [session.publicKey],
             '#d': ['eq:followed-playlists'],
@@ -351,7 +351,7 @@ const NostrPlaylists = (() => {
         const session = SessionManager.getSession();
         if (!session) return null;
 
-        const events = await NostrSocial.fetchNotes({
+        const events = await NostrSocial.fetchFromLocal({
             kinds: [30001],
             authors: [session.publicKey],
             '#d': ['eq:followed-playlists'],
@@ -386,7 +386,7 @@ const NostrPlaylists = (() => {
         };
 
         const signedEvent = await SessionManager.signEvent(event);
-        await NostrSocial.publishEvent(signedEvent);
+        await NostrSocial.publishToLocal(signedEvent);
         return signedEvent;
     }
 
@@ -412,7 +412,7 @@ const NostrPlaylists = (() => {
         };
 
         const signedEvent = await SessionManager.signEvent(event);
-        await NostrSocial.publishEvent(signedEvent);
+        await NostrSocial.publishToLocal(signedEvent);
         return signedEvent;
     }
 
