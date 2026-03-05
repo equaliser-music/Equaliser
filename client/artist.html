@@ -411,6 +411,28 @@
             font-weight: 600;
         }
 
+        .tracklist-item .track-add-playlist {
+            background: none;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: rgba(255, 255, 255, 0.5);
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            opacity: 0;
+            transition: opacity 0.15s, color 0.15s, border-color 0.15s;
+            margin-left: 8px;
+        }
+
+        .tracklist-item:hover .track-add-playlist { opacity: 1; }
+        .tracklist-item .track-add-playlist:hover { color: #a855f7; border-color: #a855f7; }
+
         /* Two-column body layout */
         .artist-body {
             display: flex;

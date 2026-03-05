@@ -582,13 +582,15 @@
                     ${release.tracks.map((track, i) => {
                         const price = this._formatPrice(track.priceAmount, track.priceCurrency);
                         const hasPreview = !!track.previewCid;
+                        const isLoggedIn = SessionManager.hasSession();
                         return `
                             <li class="tracklist-item${hasPreview ? ' playable' : ''}" style="${hasPreview ? 'cursor:pointer' : ''}"
-                                ${hasPreview ? `onclick="window._playArtistTrack(${index}, ${i})"` : ''}>
+                                ${hasPreview ? `onclick="if(!event.target.closest('.track-add-playlist'))window._playArtistTrack(${index}, ${i})"` : ''}>
                                 <span class="tracklist-num">${i + 1}</span>
                                 <span class="tracklist-title">${escapeHtml(track.title)}</span>
                                 ${price ? `<span class="tracklist-price">${price}</span>` : ''}
                                 <span class="tracklist-duration">${track.duration ? this._formatDuration(track.duration) : ''}</span>
+                                ${isLoggedIn ? `<button class="track-add-playlist" data-event-id="${track.eventId}" onclick="event.stopPropagation();NostrPlaylists.showPlaylistPicker('${track.eventId}',this)" title="Add to playlist">+</button>` : ''}
                             </li>`;
                     }).join('')}
                 </ul>`;

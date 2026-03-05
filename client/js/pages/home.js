@@ -661,15 +661,25 @@
                             </div>
                             <div class="track-list-item-duration">${this._formatTime(track.duration)}</div>
                             ${price ? `<div class="track-list-item-price">${price}</div>` : ''}
+                            ${SessionManager.hasSession() ? `<button class="track-add-playlist" data-event-id="${track.eventId}" title="Add to playlist">+</button>` : ''}
                         </div>
                     `;
                 }).join('');
 
                 // Add click handlers to track items
                 trackListEl.querySelectorAll('.track-list-item').forEach(item => {
-                    item.addEventListener('click', () => {
+                    item.addEventListener('click', (e) => {
+                        if (e.target.closest('.track-add-playlist')) return;
                         const index = parseInt(item.dataset.trackIndex);
                         this._playTrackFromList(index);
+                    });
+                });
+
+                // Playlist picker buttons
+                trackListEl.querySelectorAll('.track-add-playlist').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        NostrPlaylists.showPlaylistPicker(btn.dataset.eventId, btn);
                     });
                 });
             }
