@@ -32,7 +32,9 @@ const Router = {
         'user': '/js/pages/user.js',
         'thread': '/js/pages/thread.js',
         'messages': '/js/pages/messages.js',
-        'settings': '/js/pages/settings.js'
+        'settings': '/js/pages/settings.js',
+        'library': '/js/pages/library.js',
+        'playlist': '/js/pages/playlist.js'
     },
 
     /**

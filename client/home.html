@@ -452,6 +452,27 @@
             font-weight: 600;
         }
 
+        .track-add-playlist {
+            background: none;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: rgba(255, 255, 255, 0.5);
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            opacity: 0;
+            transition: opacity 0.15s, color 0.15s, border-color 0.15s;
+        }
+
+        .track-list-item:hover .track-add-playlist { opacity: 1; }
+        .track-add-playlist:hover { color: #a855f7; border-color: #a855f7; }
+
         .now-playing-cover img {
             width: 100%;
             height: 100%;

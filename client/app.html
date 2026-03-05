@@ -62,6 +62,104 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        /* Playlist picker dropdown (used across pages) */
+        .eq-playlist-picker {
+            width: 250px;
+            background: rgba(20, 20, 35, 0.98);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .eq-playlist-picker-header {
+            padding: 12px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.6);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .eq-playlist-picker-list {
+            max-height: 200px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.15) transparent;
+        }
+
+        .eq-playlist-picker-empty {
+            padding: 16px;
+            text-align: center;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .eq-playlist-picker-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.15s;
+        }
+
+        .eq-playlist-picker-item:hover { background: rgba(255, 255, 255, 0.05); }
+
+        .eq-playlist-picker-item input[type="checkbox"] {
+            accent-color: #a855f7;
+        }
+
+        .eq-playlist-picker-create {
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 10px 16px;
+        }
+
+        .eq-playlist-picker-create-btn {
+            background: none;
+            border: none;
+            color: #a855f7;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 4px 0;
+        }
+
+        .eq-playlist-picker-create-btn:hover { color: #c084fc; }
+
+        .eq-playlist-picker-create-form {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .eq-playlist-picker-create-input {
+            flex: 1;
+            padding: 6px 10px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            color: #fff;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .eq-playlist-picker-create-input:focus { border-color: #a855f7; }
+
+        .eq-playlist-picker-create-save {
+            padding: 6px 12px;
+            background: #a855f7;
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .eq-playlist-picker-create-save:disabled { opacity: 0.5; }
     </style>
 </head>
 <body>
@@ -88,6 +186,7 @@
     <script src="/js/sidebar.js"></script>
     <script src="/js/nostr-social.js"></script>
     <script src="/js/nostr-dm.js"></script>
+    <script src="/js/nostr-playlists.js"></script>
     <script src="/js/player.js"></script>
     <script src="/js/router.js"></script>
 

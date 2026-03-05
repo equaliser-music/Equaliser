@@ -398,6 +398,7 @@
                 const name = profile.name || 'Nostr User';
                 const initial = name.charAt(0).toUpperCase();
                 const time = NostrSocial.relativeTime(note.created_at);
+                const isPlaylistShare = note.tags?.some(t => t[0] === 'content-type' && t[1] === 'playlist-share');
                 const content = NostrSocial.linkifyContent(escapeHtml(note.content));
                 const likeCount = this._feedReactionData.likes[note.id] || 0;
                 const repostCount = this._feedReactionData.reposts[note.id] || 0;
@@ -428,6 +429,7 @@
                                     <span class="feed-time">${time}</span>
                                 </div>
                                 <div class="feed-content feed-post-clickable" onclick="navigateToThread('${note.id}')">${content}</div>
+                                ${isPlaylistShare ? this._renderPlaylistShareCard(note) : ''}
                                 <div class="feed-actions">
                                     <div class="feed-action reply-btn" onclick="navigateToThread('${note.id}')">
                                         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -452,6 +454,21 @@
                         </div>
                     </div>`;
             }).join('');
+        },
+
+        _renderPlaylistShareCard(note) {
+            const aTag = note.tags?.find(t => t[0] === 'a');
+            if (!aTag) return '';
+            const parts = aTag[1].split(':');
+            if (parts.length < 3 || parts[0] !== '30001') return '';
+            const pubkey = parts[1];
+            const dTag = parts[2];
+            return `
+                <div class="feed-playlist-card" onclick="Router.navigate('/playlist.html?pubkey=${pubkey}&d=${dTag}')">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20" style="opacity:0.6;flex-shrink:0"><path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/></svg>
+                    <span>View Playlist</span>
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20" style="opacity:0.4;margin-left:auto"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+                </div>`;
         },
 
         // ===== Feed Reactions =====
