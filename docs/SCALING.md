@@ -222,9 +222,20 @@ Multiple relay instances behind load balancer:
 - Shared database or event sync between instances
 - Complex, only for mainstream traffic
 
+### Cache Database (PostgreSQL)
+
+The relay syncer writes cached event data to a shared PostgreSQL database, which the orchestrator reads via the Cache API. This separates the query load from the NOSTR relay:
+
+- **NOSTR relay** (nostr-rs-relay + SQLite): Handles event storage, WebSocket subscriptions, and relay protocol
+- **PostgreSQL cache**: Serves pre-parsed, indexed data to the web client via REST API
+
+This means the web client no longer queries the relay directly for artist/track listings — it hits fast PostgreSQL queries via the Cache API. The relay is reserved for real-time event subscriptions and publishing.
+
+See [RELAY_SYNCER.md](RELAY_SYNCER.md) for syncer architecture and [DATABASE.md](DATABASE.md) for the cache schema.
+
 ### Realistic Assessment
 
-For indie artists, relay scaling is unlikely to be the bottleneck. The relay handles lightweight metadata (track info, profiles, social events). Streaming bandwidth is the real scaling challenge, and that's solved by Cloudflare + HLS.
+For indie artists, relay scaling is unlikely to be the bottleneck. The relay handles lightweight metadata (track info, profiles, social events). Streaming bandwidth is the real scaling challenge, and that's solved by Cloudflare + HLS. The addition of the PostgreSQL cache further reduces relay load by offloading read queries.
 
 ---
 
@@ -377,11 +388,15 @@ Future phase. Depends on having multiple active content nodes to federate betwee
 
 ### Recommended Specs by Tier
 
+With the relay syncer and PostgreSQL added to the stack, minimum RAM requirements increase slightly:
+
 | Tier | CPU | RAM | Storage | Bandwidth | Monthly Cost |
 |------|-----|-----|---------|-----------|--------------|
 | Indie | 1 vCPU | 2GB | 50GB | 2TB | $10-15 |
 | Growing | 2 vCPU | 4GB | 100GB | 4TB | $20-30 |
 | Popular | 4 vCPU | 8GB | 200GB | 8TB | $40-60 |
+
+PostgreSQL adds ~200MB RAM overhead. The relay syncer is lightweight (~50MB). Both fit comfortably within the indie tier but should be monitored as event volume grows.
 
 ### Provider Recommendations
 

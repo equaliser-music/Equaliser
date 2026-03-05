@@ -19,6 +19,9 @@ const EqualiserPlayer = {
     _playlist: [],
     _currentIndex: -1,
     _isPlaying: false,
+    _isMuted: false,
+    _volume: 1.0,
+    _queueOpen: false,
     _initialized: false,
 
     /**
@@ -42,6 +45,7 @@ const EqualiserPlayer = {
     setPlaylist(tracks, startIndex = 0) {
         this._playlist = tracks;
         this._play(startIndex);
+        if (this._queueOpen) this._renderQueue();
     },
 
     /**
@@ -143,7 +147,16 @@ const EqualiserPlayer = {
 
         if (titleEl) titleEl.textContent = track.title || 'Unknown Track';
         if (artistEl) artistEl.textContent = track.artist || 'Unknown Artist';
-        if (badgeEl) badgeEl.classList.add('visible');
+
+        // Only show "Preview" badge when not logged in (playing preview CID)
+        const isLoggedIn = typeof SessionManager !== 'undefined' && SessionManager.hasSession();
+        if (badgeEl) {
+            if (isLoggedIn) {
+                badgeEl.classList.remove('visible');
+            } else {
+                badgeEl.classList.add('visible');
+            }
+        }
 
         if (coverEl) {
             const coverUrl = this._getCoverUrl(track.blossomCoverHash, track.coverArtCid);
@@ -158,6 +171,9 @@ const EqualiserPlayer = {
         this._playHls(track.previewCid, track.manifestCid);
         this._isPlaying = true;
         this._updatePlayPauseButton();
+
+        // Update queue panel
+        this._updateQueueHighlight();
 
         // Dispatch event for pages to react
         window.dispatchEvent(new CustomEvent('eq-player-track-change', {
@@ -278,6 +294,38 @@ const EqualiserPlayer = {
             }
         });
 
+        // Queue button
+        document.getElementById('eq-btn-queue').addEventListener('click', () => this._toggleQueue());
+        document.getElementById('eq-queue-close').addEventListener('click', () => this._toggleQueue());
+        document.getElementById('eq-queue-clear').addEventListener('click', () => this._clearQueue());
+        document.getElementById('eq-queue-list').addEventListener('click', (e) => {
+            const removeBtn = e.target.closest('.eq-queue-item-remove');
+            if (removeBtn) {
+                e.stopPropagation();
+                this._removeFromQueue(parseInt(removeBtn.dataset.remove, 10));
+                return;
+            }
+            const item = e.target.closest('.eq-queue-item');
+            if (item) this._play(parseInt(item.dataset.index, 10));
+        });
+
+        // Volume button (mute toggle)
+        document.getElementById('eq-btn-volume').addEventListener('click', () => {
+            this._isMuted = !this._isMuted;
+            audio.muted = this._isMuted;
+            this._updateVolumeUI();
+        });
+
+        // Volume slider
+        document.getElementById('eq-volume-slider').addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            this._volume = val;
+            audio.volume = val;
+            this._isMuted = val === 0;
+            audio.muted = this._isMuted;
+            this._updateVolumeUI();
+        });
+
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             // Don't intercept when typing in inputs/textareas
@@ -292,6 +340,12 @@ const EqualiserPlayer = {
             }
             if (e.code === 'ArrowRight') this.next();
             if (e.code === 'ArrowLeft') this.prev();
+            if (e.code === 'KeyQ') this._toggleQueue();
+            if (e.code === 'KeyM') {
+                this._isMuted = !this._isMuted;
+                audio.muted = this._isMuted;
+                this._updateVolumeUI();
+            }
         });
     },
 
@@ -325,6 +379,132 @@ const EqualiserPlayer = {
             <rect x="22" y="10" width="3" height="14" rx="1.5" fill="white"/>
             <rect x="27" y="13" width="3" height="8" rx="1.5" fill="white"/>
         </svg>`;
+    },
+
+    _getVolumeIcon(volume, muted) {
+        if (muted || volume === 0) {
+            // Muted icon (speaker with X)
+            return `<svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217z" clip-rule="evenodd"/>
+                <path fill-rule="evenodd" d="M12.293 7.293a1 1 0 011.414 0L15 8.586l1.293-1.293a1 1 0 111.414 1.414L16.414 10l1.293 1.293a1 1 0 01-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>`;
+        }
+        if (volume < 0.5) {
+            // Low volume (speaker with one wave)
+            return `<svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217z" clip-rule="evenodd"/>
+                <path fill-rule="evenodd" d="M11.828 5.757a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clip-rule="evenodd"/>
+            </svg>`;
+        }
+        // Full volume (speaker with two waves)
+        return `<svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clip-rule="evenodd"/>
+        </svg>`;
+    },
+
+    _updateVolumeUI() {
+        const btn = document.getElementById('eq-btn-volume');
+        const slider = document.getElementById('eq-volume-slider');
+        if (btn) btn.innerHTML = this._getVolumeIcon(this._volume, this._isMuted);
+        if (slider) slider.value = this._isMuted ? 0 : this._volume;
+    },
+
+    // ===== Queue Panel =====
+
+    _toggleQueue() {
+        this._queueOpen = !this._queueOpen;
+        const panel = document.getElementById('eq-queue-panel');
+        const btn = document.getElementById('eq-btn-queue');
+        if (panel) panel.classList.toggle('open', this._queueOpen);
+        if (btn) btn.classList.toggle('active', this._queueOpen);
+        if (this._queueOpen) this._renderQueue();
+    },
+
+    _renderQueue() {
+        const list = document.getElementById('eq-queue-list');
+        if (!list) return;
+        if (this._playlist.length === 0) {
+            list.innerHTML = '<div class="eq-queue-empty">No tracks in queue</div>';
+            return;
+        }
+        list.innerHTML = this._playlist.map((track, i) => {
+            const isCurrent = i === this._currentIndex;
+            return `<div class="eq-queue-item${isCurrent ? ' playing' : ''}" data-index="${i}">
+                <div class="eq-queue-item-number">${isCurrent ? '<svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/></svg>' : (i + 1)}</div>
+                <div class="eq-queue-item-info">
+                    <div class="eq-queue-item-title">${this._escapeHtml(track.title || 'Unknown Track')}</div>
+                    <div class="eq-queue-item-artist">${this._escapeHtml(track.artist || 'Unknown Artist')}</div>
+                </div>
+                <button class="eq-queue-item-remove" data-remove="${i}" title="Remove from queue">&times;</button>
+            </div>`;
+        }).join('');
+    },
+
+    _updateQueueHighlight() {
+        if (!this._queueOpen) return;
+        const items = document.querySelectorAll('.eq-queue-item');
+        items.forEach((item, i) => {
+            const isCurrent = i === this._currentIndex;
+            item.classList.toggle('playing', isCurrent);
+            const numEl = item.querySelector('.eq-queue-item-number');
+            if (numEl) {
+                numEl.innerHTML = isCurrent ? '<svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/></svg>' : (i + 1);
+            }
+        });
+        // Scroll current track into view
+        const playing = document.querySelector('.eq-queue-item.playing');
+        if (playing) playing.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    },
+
+    _removeFromQueue(index) {
+        if (index < 0 || index >= this._playlist.length) return;
+        if (this._playlist.length === 1) {
+            this._clearQueue();
+            return;
+        }
+        const wasPlaying = index === this._currentIndex;
+        this._playlist.splice(index, 1);
+        if (index < this._currentIndex) {
+            this._currentIndex--;
+        } else if (wasPlaying) {
+            // Current track removed — play the track that slid into this position
+            if (this._currentIndex >= this._playlist.length) {
+                this._currentIndex = 0;
+            }
+            this._play(this._currentIndex);
+        }
+        this._renderQueue();
+    },
+
+    _clearQueue() {
+        if (this._hlsInstance) {
+            this._hlsInstance.destroy();
+            this._hlsInstance = null;
+        }
+        if (this._audioEl) {
+            this._audioEl.pause();
+            this._audioEl.removeAttribute('src');
+        }
+        this._playlist = [];
+        this._currentIndex = -1;
+        this._isPlaying = false;
+        this._updatePlayPauseButton();
+        // Reset player bar UI
+        const titleEl = document.querySelector('.eq-player-bar .now-playing-title');
+        const artistEl = document.querySelector('.eq-player-bar .now-playing-artist');
+        const coverEl = document.querySelector('.eq-player-bar .now-playing-cover');
+        const fillEl = document.getElementById('eq-progress-fill');
+        const currentEl = document.getElementById('eq-time-current');
+        const totalEl = document.getElementById('eq-time-total');
+        const badgeEl = document.getElementById('eq-preview-badge');
+        if (titleEl) titleEl.textContent = 'Select a track';
+        if (artistEl) artistEl.textContent = '-';
+        if (coverEl) coverEl.innerHTML = this._getEqIcon();
+        if (fillEl) fillEl.style.width = '0%';
+        if (currentEl) currentEl.textContent = '0:00';
+        if (totalEl) totalEl.textContent = '0:00';
+        if (badgeEl) badgeEl.classList.remove('visible');
+        this._renderQueue();
     },
 
     // ===== DOM Injection =====
@@ -374,14 +554,34 @@ const EqualiserPlayer = {
             </div>
 
             <div class="player-extras">
-                <button class="control-btn">
+                <button class="control-btn" id="eq-btn-queue" title="Queue (Q)">
                     <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clip-rule="evenodd"/>
+                        <path fill-rule="evenodd" d="M2 4a1 1 0 011-1h14a1 1 0 110 2H3a1 1 0 01-1-1zm0 4a1 1 0 011-1h14a1 1 0 110 2H3a1 1 0 01-1-1zm0 4a1 1 0 011-1h10a1 1 0 110 2H3a1 1 0 01-1-1zm12 0a1 1 0 011-1h1a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 01-1-1z" clip-rule="evenodd"/>
                     </svg>
                 </button>
+                <button class="control-btn" id="eq-btn-volume" title="Mute (M)">
+                    ${this._getVolumeIcon(1.0)}
+                </button>
+                <input type="range" id="eq-volume-slider" class="eq-volume-slider" min="0" max="1" step="0.01" value="1" title="Volume">
             </div>
         `;
         document.body.appendChild(playerBar);
+
+        // Queue panel
+        const queuePanel = document.createElement('div');
+        queuePanel.className = 'eq-queue-panel';
+        queuePanel.id = 'eq-queue-panel';
+        queuePanel.innerHTML = `
+            <div class="eq-queue-header">
+                <span>Queue</span>
+                <div class="eq-queue-header-actions">
+                    <button class="eq-queue-clear" id="eq-queue-clear">Clear</button>
+                    <button class="eq-queue-close" id="eq-queue-close">&times;</button>
+                </div>
+            </div>
+            <div class="eq-queue-list" id="eq-queue-list"></div>
+        `;
+        document.body.appendChild(queuePanel);
 
         // Hidden audio element
         const audio = document.createElement('audio');
@@ -566,14 +766,239 @@ const EqualiserPlayer = {
             .eq-player-bar .player-extras {
                 display: flex;
                 align-items: center;
-                gap: 16px;
+                gap: 8px;
                 flex: 1;
                 justify-content: flex-end;
+            }
+
+            .eq-volume-slider {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 80px;
+                height: 4px;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 2px;
+                outline: none;
+                cursor: pointer;
+            }
+
+            .eq-volume-slider::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 12px;
+                height: 12px;
+                background: #ffffff;
+                border-radius: 50%;
+                cursor: pointer;
+                transition: transform 0.15s;
+            }
+
+            .eq-volume-slider::-webkit-slider-thumb:hover {
+                transform: scale(1.3);
+            }
+
+            .eq-volume-slider::-moz-range-thumb {
+                width: 12px;
+                height: 12px;
+                background: #ffffff;
+                border-radius: 50%;
+                border: none;
+                cursor: pointer;
+            }
+
+            .eq-volume-slider::-moz-range-track {
+                background: rgba(255, 255, 255, 0.1);
+                height: 4px;
+                border-radius: 2px;
+            }
+
+            .eq-player-bar .control-btn.active {
+                color: #a855f7;
+            }
+
+            .eq-queue-panel {
+                position: fixed;
+                bottom: 88px;
+                right: 24px;
+                width: 320px;
+                max-height: 400px;
+                background: rgba(15, 15, 25, 0.97);
+                backdrop-filter: blur(20px);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 12px 12px 0 0;
+                z-index: 99;
+                display: none;
+                flex-direction: column;
+                overflow: hidden;
+            }
+
+            .eq-queue-panel.open {
+                display: flex;
+            }
+
+            .eq-queue-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 14px 16px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+                font-size: 14px;
+                font-weight: 600;
+            }
+
+            .eq-queue-header-actions {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .eq-queue-clear {
+                background: none;
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                color: rgba(255, 255, 255, 0.5);
+                font-size: 11px;
+                cursor: pointer;
+                padding: 3px 8px;
+                border-radius: 4px;
+                transition: all 0.15s;
+            }
+
+            .eq-queue-clear:hover {
+                color: #ffffff;
+                border-color: rgba(255, 255, 255, 0.3);
+            }
+
+            .eq-queue-close {
+                background: none;
+                border: none;
+                color: rgba(255, 255, 255, 0.5);
+                font-size: 20px;
+                cursor: pointer;
+                padding: 0 4px;
+                line-height: 1;
+            }
+
+            .eq-queue-close:hover {
+                color: #ffffff;
+            }
+
+            .eq-queue-list {
+                overflow-y: auto;
+                flex: 1;
+                scrollbar-width: thin;
+                scrollbar-color: rgba(255,255,255,0.15) transparent;
+            }
+
+            .eq-queue-list::-webkit-scrollbar {
+                width: 6px;
+            }
+
+            .eq-queue-list::-webkit-scrollbar-track {
+                background: transparent;
+            }
+
+            .eq-queue-list::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.15);
+                border-radius: 3px;
+            }
+
+            .eq-queue-empty {
+                padding: 32px 16px;
+                text-align: center;
+                color: rgba(255, 255, 255, 0.4);
+                font-size: 13px;
+            }
+
+            .eq-queue-item {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 10px 16px;
+                cursor: pointer;
+                transition: background 0.15s;
+            }
+
+            .eq-queue-item:hover {
+                background: rgba(255, 255, 255, 0.05);
+            }
+
+            .eq-queue-item.playing {
+                background: rgba(139, 92, 246, 0.12);
+            }
+
+            .eq-queue-item.playing .eq-queue-item-number {
+                color: #a855f7;
+            }
+
+            .eq-queue-item.playing .eq-queue-item-title {
+                color: #a855f7;
+            }
+
+            .eq-queue-item-number {
+                width: 24px;
+                flex-shrink: 0;
+                text-align: center;
+                font-size: 12px;
+                color: rgba(255, 255, 255, 0.4);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .eq-queue-item-info {
+                min-width: 0;
+                flex: 1;
+            }
+
+            .eq-queue-item-title {
+                font-size: 13px;
+                font-weight: 500;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .eq-queue-item-artist {
+                font-size: 11px;
+                color: rgba(255, 255, 255, 0.5);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .eq-queue-item-remove {
+                background: none;
+                border: none;
+                color: rgba(255, 255, 255, 0.25);
+                font-size: 16px;
+                cursor: pointer;
+                padding: 0 4px;
+                line-height: 1;
+                flex-shrink: 0;
+                opacity: 0;
+                transition: opacity 0.15s, color 0.15s;
+            }
+
+            .eq-queue-item:hover .eq-queue-item-remove {
+                opacity: 1;
+            }
+
+            .eq-queue-item-remove:hover {
+                color: #ff006e;
             }
 
             @media (max-width: 768px) {
                 .eq-player-bar {
                     left: 64px;
+                }
+                .eq-volume-slider {
+                    display: none;
+                }
+                .eq-queue-panel {
+                    left: 64px;
+                    right: 0;
+                    width: auto;
+                    border-radius: 0;
                 }
             }
         `;

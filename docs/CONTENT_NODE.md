@@ -10,11 +10,13 @@ content_node/
 ├── ipfs/                   # IPFS configuration
 ├── nostr-relay/            # NOSTR relay configuration
 │   └── config.toml
+├── relay-syncer/           # Background relay syncer (Python)
+│   └── Dockerfile
 ├── orchestrator/           # Artist admin tools & API
 │   ├── api/                # FastAPI backend
 │   │   ├── Dockerfile
 │   │   ├── main.py
-│   │   ├── routers/        # API endpoints (tracks, drafts)
+│   │   ├── routers/        # API endpoints (tracks, drafts, cache, admin)
 │   │   └── services/       # HLS, IPFS, NOSTR, database services
 │   ├── login.html          # Login gateway
 │   ├── dashboard.html      # Artist home page (default for /admin)
@@ -40,6 +42,8 @@ content_node/
 | `web` | nginx:alpine | 80 | Serves static files, routes requests |
 | `nostr-relay` | nostr-rs-relay | 8080 | NOSTR event storage and relay |
 | `orchestrator` | custom (Python) | 8000 | Track uploads, HLS encoding, API |
+| `relay-syncer` | custom (Python) | — | Background NOSTR relay syncer |
+| `postgres` | postgres:15 | 5432 | Cache database (shared by syncer + orchestrator) |
 
 ## URL Routing
 
@@ -47,10 +51,15 @@ content_node/
 |------|-------------|-------------|
 | `/` | `client/` | Fan-facing web app (landing page, artist pages) |
 | `/artist.html` | `client/artist.html` | Artist profile page (accepts `?npub=` parameter) |
+| `/join` | `orchestrator/join.html` | Public access request form |
 | `/admin` | `orchestrator/dashboard.html` | Artist admin home page (requires login) |
+| `/admin/console` | `console/` | Node management console (React SPA, admin auth) |
 | `/relay` | nostr-relay:8080 | WebSocket proxy to NOSTR relay |
 | `/ipfs/{CID}` | ipfs:8080 | IPFS gateway for content retrieval |
 | `/api` | orchestrator:8000 | Orchestrator API (track uploads, etc.) |
+| `/api/access/*` | orchestrator:8000 | Access control endpoints (public) |
+| `/api/artists/*` | orchestrator:8000 | Cache API — artist and track data (public) |
+| `/api/admin/*` | orchestrator:8000 | Admin API — sync, artists, requests (admin auth) |
 | `/health` | nginx | Health check endpoint |
 
 ## Quick Start
@@ -135,9 +144,11 @@ Once running:
 |-----|-------------|
 | http://localhost | Landing page (under construction) |
 | http://localhost/artist.html?npub=... | Artist profile page |
+| http://localhost/join | Access request form (public) |
 | http://localhost/admin | Artist dashboard (redirects to login if not authenticated) |
+| http://localhost/admin/console | Node management console (admin auth required) |
 | http://localhost/admin/login.html | Login gateway (single entry point) |
-| http://localhost/admin/onboarding.html | Artist onboarding wizard |
+| http://localhost/admin/onboarding.html | Artist onboarding wizard (invite code required) |
 | http://localhost/admin/profile.html | Artist profile editor |
 | http://localhost/admin/settings.html | Relay and account settings |
 | http://localhost/admin/upload.html | Track upload interface (saves as drafts) |
@@ -176,6 +187,10 @@ The onboarding wizard at `/admin/onboarding.html` allows artists to:
 4. **Configure profile** - Set name, bio, location, and genres
 5. **Publish to relays** - Broadcast profile to selected NOSTR relays with real-time status
 
+### Access Control (Gated Onboarding)
+
+When access control is enabled, artists must first request access at `/join` and receive an invite code from the node admin before they can proceed with onboarding. The invite code is validated at the start of the onboarding flow. See [ACCESS_CONTROL.md](ACCESS_CONTROL.md) for the full request and approval workflow.
+
 ### Features
 
 - Keys are generated client-side and never sent to any server
@@ -183,7 +198,7 @@ The onboarding wizard at `/admin/onboarding.html` allows artists to:
 - Only proceeds to success if at least one relay publishes successfully
 - Backup file download includes keys and profile data
 
-See [ONBOARDING.md](./orchestrator/ONBOARDING.md) for detailed documentation.
+See [ONBOARDING.md](ONBOARDING.md) for detailed documentation.
 
 ## Artist Admin Pages
 
@@ -370,6 +385,51 @@ IPFS data is stored in the Docker volume `ipfs-data`.
 
 See [IPFS.md](./ipfs/IPFS.md) for detailed configuration and operations.
 
+## Relay Syncer
+
+A standalone async Python process that subscribes to external NOSTR relays and caches Equaliser events in a shared PostgreSQL database. This provides fast, predictable data for the web client via the Cache API.
+
+- **Event Ingestion**: Subscribes to Equaliser-tagged events (Kind 0, 30050, 30051, 30052, 30053) from configured relays
+- **Resilience**: Automatic reconnection with exponential backoff, catch-up queries on reconnect, periodic full sync
+- **Relay Discovery**: Watches Kind 10002 events to discover new relays automatically
+- **Deduplication**: Validates signatures, applies replaceable event rules, deduplicates by event ID
+
+See [RELAY_SYNCER.md](RELAY_SYNCER.md) for full architecture, configuration, and troubleshooting.
+
+### Docker Configuration
+
+```yaml
+relay-syncer:
+  build: ./relay-syncer
+  environment:
+    - DATABASE_URL=postgresql://equaliser:${DB_PASSWORD}@postgres:5432/equaliser
+    - RELAY_LIST=ws://nostr-relay:8008,wss://relay.damus.io,wss://nos.lol,wss://relay.nostr.band
+    - SYNC_INTERVAL=3600
+  depends_on:
+    - postgres
+    - nostr-relay
+  restart: unless-stopped
+
+postgres:
+  image: postgres:15
+  environment:
+    - POSTGRES_USER=equaliser
+    - POSTGRES_PASSWORD=${DB_PASSWORD}
+    - POSTGRES_DB=equaliser
+  volumes:
+    - postgres-data:/var/lib/postgresql/data
+  ports:
+    - "5432:5432"
+```
+
+## Node Management Console
+
+Web-based admin dashboard at `/admin/console` for node operators to monitor and control all node operations. Distinct from artist admin pages at `/admin`.
+
+Sections: Overview, Sync Manager, Artist Management, IPFS & Storage, Blossom Mirroring, Node Settings.
+
+Requires admin authentication via `ADMIN_PASSWORD` environment variable. See [NODE_ADMIN.md](NODE_ADMIN.md) for full details.
+
 ## Orchestrator API
 
 The orchestrator is a FastAPI backend that handles content processing:
@@ -379,10 +439,12 @@ The orchestrator is a FastAPI backend that handles content processing:
 - **IPFS Integration**: Upload segments and get CIDs
 - **Draft Management**: SQLite database for unreleased tracks
 - **NOSTR Publishing**: Create and publish Kind 30050 track events
+- **Cache API**: Serves cached artist and track data from PostgreSQL (populated by relay syncer)
+- **Admin API**: Node management endpoints for sync, artists, and access control
 
 Access the upload UI at `/admin/upload.html`. Tracks are saved as drafts and can be reviewed at `/admin/releases.html` before publishing to NOSTR.
 
-See [ORCHESTRATOR.md](./ORCHESTRATOR.md) for full API documentation.
+See [ORCHESTRATOR.md](ORCHESTRATOR.md) for full API documentation. See [DATABASE.md](DATABASE.md) for the complete schema reference.
 
 ### Data Persistence
 
@@ -390,6 +452,7 @@ See [ORCHESTRATOR.md](./ORCHESTRATOR.md) for full API documentation.
 |--------|------|---------|
 | `drafts-data` | `/data` | SQLite database for draft tracks |
 | `orchestrator-uploads` | `/tmp/equaliser/uploads` | Temporary upload storage |
+| `postgres-data` | `/var/lib/postgresql/data` | PostgreSQL cache database (relay syncer + cache API) |
 
 ### Future Enhancements
 
@@ -472,6 +535,11 @@ docker-compose exec web ls -la /usr/share/nginx/html/admin
 - [NOSTR Protocol](https://github.com/nostr-protocol/nostr)
 - [nostr-rs-relay](https://github.com/scsibug/nostr-rs-relay)
 - [IPFS/Kubo](https://github.com/ipfs/kubo)
-- [Onboarding Documentation](./ONBOARDING.md)
-- [Orchestrator API](./ORCHESTRATOR.md)
-- [IPFS Documentation](./IPFS.md)
+- [Onboarding Documentation](ONBOARDING.md)
+- [Orchestrator API](ORCHESTRATOR.md)
+- [IPFS Documentation](IPFS.md)
+- [Node Management Spec](NODE-MANAGEMENT-SPEC.md)
+- [Relay Syncer](RELAY_SYNCER.md)
+- [Node Admin Console](NODE_ADMIN.md)
+- [Access Control](ACCESS_CONTROL.md)
+- [Database Schema](DATABASE.md)
