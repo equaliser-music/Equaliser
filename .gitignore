@@ -28,3 +28,6 @@ content_node/demo_accounts/
 
 # Artist packages (may contain private keys and large audio files)
 packages/
+
+# Screenshots
+screenshots/
