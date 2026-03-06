@@ -310,7 +310,7 @@ The relay handles app-tag filtering at ingestion, configurable per-node:
 - **`open`** — All events accepted (for NOSTR interop), untagged events go to raw-only table
 - **`hybrid`** — Tagged events get full optimised storage, untagged events accepted into raw-only table
 
-This replaces the previous `cleanup-relay.sh` approach — spam is filtered at the gate rather than cleaned up periodically.
+Spam is filtered at the gate rather than cleaned up periodically.
 
 ### Public Relay, NOSTR Compatibility
 

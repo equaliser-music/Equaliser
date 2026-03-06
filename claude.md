@@ -321,7 +321,7 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - **Community Message Boards**: Community tab in `social.html` with board tabs (general/music/production/gigs), thread list + detail views, `["content-type", "thread"]` and `["content-type", "reply"]` tags
   - **Direct Messages**: `messages.html` with NIP-04 encrypted DMs (Kind 4), two-panel conversation list + chat UI, `nostr-dm.js` module
   - **Unified Social Page**: `social.html` combines Feed + Community as full-width tabs ("Timeline" / "Community Threads"). Single "Social" link in sidebar bottom nav (alongside Profile, Settings). Messages accessible from profile page.
-  - **Relay Tag Filtering**: Multi-char tag filtering currently done client-side (Equaliser Relay will resolve this with full tag indexing)
+  - **Relay Tag Filtering**: Multi-char tag filtering done client-side (Equaliser Relay provides full tag indexing)
   - **Seed Data**: `tools/seed-social.sh` populates relay with test posts, threads, DMs, reactions
   - See [SOCIAL.md](docs/SOCIAL.md), [COMMUNITY.md](docs/COMMUNITY.md)
 
@@ -342,7 +342,7 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
 
 - [ ] **Equaliser Relay (Phase B)**: Custom NOSTR relay with built-in cache and peer syncing
   - Single service combining NIP-01 WebSocket, built-in peer syncer, PostgreSQL storage with full tag indexing, and REST API
-  - Replaces nostr-rs-relay, relay-syncer, and orchestrator cache API
+  - Replaces nostr-rs-relay with a purpose-built relay for Equaliser
   - Events parsed into denormalised tables on arrival — no sync lag
   - Auto-discovers new relays via Kind 10002 events
   - See [EQUALISER_RELAY.md](docs/EQUALISER_RELAY.md), [DATABASE.md](docs/DATABASE.md), [NODE-MANAGEMENT-SPEC.md](docs/NODE-MANAGEMENT-SPEC.md) Sections 2-4
