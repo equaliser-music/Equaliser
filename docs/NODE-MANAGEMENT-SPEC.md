@@ -1,8 +1,8 @@
-# Equaliser: Node Management, Relay Syncing & Access Control
+# Equaliser: Node Management, Equaliser Relay & Access Control
 
-**Date:** March 2026  
-**Status:** Implementation Specification  
-**Context:** Extends the content node architecture with relay syncing, cached API, node administration, and gated artist access
+**Date:** March 2026
+**Status:** Implementation Specification
+**Context:** Extends the content node architecture with the Equaliser Relay, node administration, and gated artist access
 
 ---
 
@@ -10,8 +10,8 @@
 
 The content node currently operates as an open system — anyone can access the onboarding page and publish to the local relay. This specification introduces:
 
-1. **Relay Syncer** — A background process that subscribes to external NOSTR relays and builds a local cache of Equaliser events
-2. **Cache API** — FastAPI endpoints serving cached data to the web client for fast, predictable responses
+1. **Equaliser Relay** — A custom NOSTR relay combining NIP-01 WebSocket protocol, built-in peer syncer, PostgreSQL storage with full tag indexing, and REST API for web client reads
+2. **Cache API** — REST endpoints on the Equaliser Relay serving cached data to the web client for fast, predictable responses
 3. **Node Management Console** — Admin dashboard for monitoring and controlling node operations
 4. **Access Control** — Gated onboarding requiring admin approval before artists can use the node
 
@@ -19,53 +19,64 @@ These components support the evolution from single-artist nodes to multi-tenant 
 
 ---
 
-## 2. Relay Syncer
+## 2. Equaliser Relay
 
 ### 2.1 Purpose
 
-A standalone async Python process that maintains persistent WebSocket connections to a configurable list of NOSTR relays, ingests Equaliser-tagged events, and writes them to a shared PostgreSQL database. This follows the same architectural pattern as Primal's caching server — background ingestion with a separate read API.
+A custom NOSTR relay purpose-built for Equaliser. Externally, it speaks standard NIP-01 WebSocket protocol — any NOSTR client can connect. Internally, it uses PostgreSQL with full tag indexing, denormalised schemas for fast queries, a built-in peer syncer for external relay subscriptions, and a REST API for the web client.
+
+This single service replaces three components from the previous architecture: nostr-rs-relay, relay-syncer, and the orchestrator's cache API. See [EQUALISER_RELAY.md](EQUALISER_RELAY.md) for the full specification.
 
 ### 2.2 Architecture
 
-The syncer runs as its own Docker container (`relay-syncer`) alongside the existing stack. It shares the PostgreSQL database with the FastAPI orchestrator but operates independently — either can be restarted without affecting the other.
-
 ```
-┌─────────────────────────────────────────────────┐
-│              Docker Compose Stack                │
-│                                                  │
-│  ┌──────────┐  ┌──────────┐  ┌──────────────┐  │
-│  │  IPFS    │  │  NOSTR   │  │ Orchestrator │  │
-│  │  (kubo)  │  │  Relay   │  │  (FastAPI)   │  │
-│  └──────────┘  └──────────┘  └──────┬───────┘  │
-│                                      │ reads    │
-│  ┌──────────────┐  ┌────────────────┴───────┐  │
-│  │ Relay Syncer │  │     PostgreSQL         │  │
-│  │  (Python)    ├──┤  (shared database)     │  │
-│  │              │  │                        │  │
-│  └──────────────┘  └────────────────────────┘  │
-│        │ writes                                  │
-│        │                                         │
-└────────┼─────────────────────────────────────────┘
-         │ WebSocket subscriptions
-         ▼
-   ┌──────────┐  ┌──────────┐  ┌──────────┐
-   │  Local   │  │  Damus   │  │  nos.lol │
-   │  Relay   │  │  Relay   │  │  Relay   │  ...
-   └──────────┘  └──────────┘  └──────────┘
+┌──────────────────────────────────────────────────────┐
+│                Docker Compose Stack                   │
+│                                                       │
+│  ┌──────────┐  ┌───────────────────┐  ┌───────────┐ │
+│  │  IPFS    │  │  Equaliser Relay  │  │Orchestrator│ │
+│  │  (kubo)  │  │  (Go/Rust)       │  │ (FastAPI)  │ │
+│  │          │  │                   │  │            │ │
+│  │          │  │  ┌─────────────┐  │  │            │ │
+│  │          │  │  │ WebSocket   │  │  │            │ │
+│  │          │  │  │ (NIP-01)    │  │  │            │ │
+│  │          │  │  ├─────────────┤  │  │            │ │
+│  │          │  │  │ REST API    │◄─┼──┤  reads     │ │
+│  │          │  │  ├─────────────┤  │  │            │ │
+│  │          │  │  │ Peer Syncer │  │  │            │ │
+│  │          │  │  ├─────────────┤  │  │            │ │
+│  │          │  │  │ PostgreSQL  │  │  │            │ │
+│  │          │  │  │  (storage)  │  │  │            │ │
+│  │          │  │  └─────────────┘  │  │            │ │
+│  └──────────┘  └───────────────────┘  └───────────┘ │
+│                        │                              │
+└────────────────────────┼──────────────────────────────┘
+                         │ WebSocket (outbound subscriptions + publishing)
+                         ▼
+                  ┌──────────┐  ┌──────────┐
+                  │  Damus   │  │  nos.lol │  ...
+                  │  Relay   │  │  Relay   │
+                  └──────────┘  └──────────┘
 ```
 
 ### 2.3 Behaviour
 
-**Subscriptions:**
-- Connects to each relay in its configured list
+**Subscriptions (built-in peer syncer):**
+- Maintains persistent WebSocket connections to configured external relays
 - Subscribes to Equaliser events: `{"kinds": [0, 30050, 30051, 30052, 30053], "#app": ["Equaliser"]}`
-- Also subscribes to Kind 10002 (relay list) events from known artist pubkeys to discover new relays organically
-- Subscribes to registered fan/listener pubkeys for user data caching (Kind 0, 3, 30001) — see [RELAY_SYNCER.md](RELAY_SYNCER.md) for details on user subscriptions, feed thresholds, and artist auto-discovery from follow lists
+- Subscribes to Kind 10002 (relay list) events from known artist pubkeys to discover new relays organically
+- Subscribes to registered fan/listener pubkeys for user data caching (Kind 0, 3, 30001) — see [EQUALISER_RELAY.md](EQUALISER_RELAY.md) for details on user subscriptions, feed thresholds, and artist auto-discovery from follow lists
 
 **Event Processing:**
-- Validates event signatures before writing to cache
+- Validates event signatures before writing
 - For replaceable events (Kind 0, parameterised replaceable 30000+ range), applies highest `created_at` wins rule
 - Deduplicates by event ID across relays
+- Events written to raw storage AND parsed into denormalised tables in a single transaction — no sync lag
+
+**Event Acceptance Policy:**
+- Events with `["app", "Equaliser"]` tag → stored in optimised schema + raw event table
+- Events without the tag → configurable per-node: `equaliser_only` (reject), `open` (accept to raw-only), or `hybrid`
+- Replaces the cleanup-relay.sh approach — filtering happens at ingestion
 
 **Resilience:**
 - Automatic reconnection with exponential backoff on disconnection
@@ -74,35 +85,43 @@ The syncer runs as its own Docker container (`relay-syncer`) alongside the exist
 - Logs connection status, event counts, and errors for the management console
 
 **Relay List Management:**
-- Initial relay list configured via environment variable or config file
-- Syncer watches for Kind 10002 events from indexed artists and adds new relays automatically
+- Initial relay list configured via `PEER_RELAYS` environment variable
+- Watches for Kind 10002 events from indexed artists and adds new relays automatically
 - Admin can add/remove relays via the management console
 - Each relay tracked with: URL, connection status, last event timestamp, event count, error count
+
+**Outbound Publishing:**
+- When the orchestrator publishes an event to the local relay, the peer syncer forwards it to configured external relays for federation
 
 ### 2.4 Docker Compose Addition
 
 ```yaml
-  relay-syncer:
-    build: ./relay-syncer
-    environment:
-      - DATABASE_URL=postgresql://equaliser:${DB_PASSWORD}@postgres:5432/equaliser
-      - RELAY_LIST=ws://nostr-relay:8008,wss://relay.damus.io,wss://nos.lol,wss://relay.nostr.band
-      - SYNC_INTERVAL=3600
-    depends_on:
-      - postgres
-      - nostr-relay
-    restart: unless-stopped
+equaliser-relay:
+  build: ./equaliser-relay
+  environment:
+    - DATABASE_URL=postgresql://equaliser:${DB_PASSWORD}@postgres:5432/equaliser
+    - PEER_RELAYS=wss://relay.damus.io,wss://nos.lol,wss://relay.nostr.band
+    - SYNC_INTERVAL=3600
+    - USER_FEED_DAYS=30
+    - USER_FEED_LIMIT=500
+    - EVENT_POLICY=equaliser_only
+    - REST_API_PORT=8008
+    - WS_PORT=8080
+  depends_on:
+    - postgres
+  ports:
+    - "8080:8080"     # WebSocket (proxied by nginx)
+    - "8008:8008"     # REST API (proxied by nginx)
+  restart: unless-stopped
 
-  postgres:
-    image: postgres:15
-    environment:
-      - POSTGRES_USER=equaliser
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=equaliser
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+postgres:
+  image: postgres:15
+  environment:
+    - POSTGRES_USER=equaliser
+    - POSTGRES_PASSWORD=${DB_PASSWORD}
+    - POSTGRES_DB=equaliser
+  volumes:
+    - postgres-data:/var/lib/postgresql/data
 ```
 
 ---
@@ -165,8 +184,8 @@ CREATE TABLE cached_albums (
     UNIQUE(artist_pubkey, d_tag)
 );
 
--- Relay tracking
-CREATE TABLE syncer_relays (
+-- Peer relay tracking
+CREATE TABLE peer_relays (
     url TEXT PRIMARY KEY,
     status TEXT DEFAULT 'disconnected',  -- connected, disconnected, error
     last_event_at BIGINT,
@@ -179,8 +198,8 @@ CREATE TABLE syncer_relays (
     added_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Sync log for debugging and monitoring
-CREATE TABLE sync_log (
+-- Event log for debugging and monitoring
+CREATE TABLE event_log (
     id SERIAL PRIMARY KEY,
     relay_url TEXT NOT NULL,
     event_kind INTEGER NOT NULL,
@@ -192,9 +211,9 @@ CREATE TABLE sync_log (
 
 ### 3.2 User Cache Tables
 
-Fan/listener data cached by the relay syncer when users authenticate through the node. This is purely metadata caching (profiles, follows, playlists, feeds) — distinct from file hosting. See [DATABASE.md](DATABASE.md) for full schema.
+Fan/listener data cached by the Equaliser Relay when users authenticate through the node. This is purely metadata caching (profiles, follows, playlists, feeds) — distinct from file hosting. See [DATABASE.md](DATABASE.md) for full schema.
 
-- `registered_users` — pubkeys that have authenticated (written by orchestrator, read by syncer)
+- `registered_users` — pubkeys that have authenticated (written by orchestrator, read by Equaliser Relay)
 - `cached_users` — parsed fan profiles (Kind 0)
 - `cached_user_follows` — follow list per user (Kind 3)
 - `cached_user_feed` — notes from followed pubkeys (Kind 1), subject to feed thresholds
@@ -206,7 +225,7 @@ Fan/listener data cached by the relay syncer when users authenticate through the
 
 ### 4.1 Public Endpoints (for web client)
 
-These are added to the existing FastAPI orchestrator, reading from the cache database.
+These are served by the Equaliser Relay's built-in REST API, reading from its PostgreSQL database.
 
 ```
 GET /api/artists
@@ -254,7 +273,7 @@ GET /api/users/{pubkey}/playlists
 ### 4.2 Admin Endpoints (authenticated, for management console)
 
 ```
-GET  /api/admin/sync/status         - Syncer status, relay connections, event counts
+GET  /api/admin/sync/status         - Relay status, peer connections, event counts
 GET  /api/admin/sync/relays         - List all tracked relays with status
 POST /api/admin/sync/relays         - Add a relay to the sync list
 DELETE /api/admin/sync/relays/{url} - Remove a relay
@@ -396,7 +415,7 @@ Web-based admin dashboard for node operators to monitor and control all node ope
 ### 6.2 Dashboard Sections
 
 **Overview**
-- Node status: all services health (IPFS, NOSTR relay, orchestrator, syncer, postgres)
+- Node status: all services health (IPFS, Equaliser Relay, orchestrator, postgres)
 - Quick stats: hosted artists count, total tracks, total storage used
 - Recent activity: latest requests, new events synced, errors
 
@@ -418,7 +437,7 @@ Web-based admin dashboard for node operators to monitor and control all node ope
 - Per-user enable/disable syncing
 - Feed threshold settings (time window in days, event count cap)
 - Force resync and remove user actions
-- See [RELAY_SYNCER.md](RELAY_SYNCER.md) for user subscription details
+- See [EQUALISER_RELAY.md](EQUALISER_RELAY.md) for user subscription details
 
 **IPFS & Storage**
 - Local IPFS node stats: storage used, peer count, pin count
@@ -435,7 +454,7 @@ Web-based admin dashboard for node operators to monitor and control all node ope
 **Node Settings**
 - Node identity: name, description, public-facing info
 - Fee model defaults for new artists
-- Relay syncer configuration
+- Equaliser Relay configuration
 - Backup and export tools
 
 ### 6.3 Authentication
@@ -573,25 +592,28 @@ The tooling should make this exit path explicit — a "migrate" or "export" opti
 
 This can be done with the existing stack — no new services needed. The admin approval page can be a simple authenticated page initially.
 
-### Phase B: Relay Syncer & Cache API
+### Phase B: Equaliser Relay
 
-**Goal:** Fast, reliable data for the web client.
+**Goal:** Fast, reliable data for the web client via a purpose-built custom relay.
 
 1. Set up PostgreSQL as a new service in Docker Compose
-2. Create cache database schema
-3. Build relay syncer as standalone Python process
-4. Add syncer as new Docker container
-5. Add cache API endpoints to orchestrator
-6. Update web client to use cache API instead of direct relay queries
+2. Create database schema (raw events + denormalised cache tables + event_tags for full tag indexing)
+3. Build Equaliser Relay with NIP-01 WebSocket layer and PostgreSQL backend
+4. Add built-in peer syncer for external relay subscriptions
+5. Add REST API to the relay for web client reads
+6. Remove nostr-rs-relay container from Docker Compose
+7. Update web client to use relay's REST API instead of direct relay queries
+
+See [EQUALISER_RELAY.md](EQUALISER_RELAY.md) for the full relay specification and migration path.
 
 ### Phase B.1: User Cache Integration
 
 **Goal:** Cache fan/listener data for fast client reads.
 
 1. Add user cache tables to PostgreSQL schema
-2. Add user subscription logic to relay syncer (Kind 0, 3, 30001, feed Kind 1)
+2. Add user subscription logic to Equaliser Relay's peer syncer (Kind 0, 3, 30001, feed Kind 1)
 3. Implement `POST /api/users/register` endpoint in orchestrator
-4. Add user data read endpoints to cache API
+4. User data read endpoints served by relay's REST API
 5. Add user management controls to admin console
 
 ### Phase C: Node Management Console
@@ -628,10 +650,10 @@ This can be done with the existing stack — no new services needed. The admin a
 
 | Document | Action | Description |
 |----------|--------|-------------|
-| `CONTENT_NODE.md` | **Update** | Add relay-syncer and postgres services to architecture, services table, Docker Compose, and URL routing. Add `/join` and `/admin/console` routes. |
-| `equaliser-technical-specification.md` | **Update** | Add Section 4.6 (Relay Syncer), Section 4.7 (Cache API), Section 4.8 (Node Management Console), Section 4.9 (Access Control). Update architecture diagram. |
-| `equaliser-node-setup-notes.md` | **Update** | Add relay-syncer container setup, PostgreSQL setup, and environment variables. Update Docker Compose examples. |
-| `RELAY_SYNCER.md` | **Create** | Dedicated documentation for the relay syncer process: configuration, relay management, sync behaviour, troubleshooting. |
+| `CONTENT_NODE.md` | **Update** | Add Equaliser Relay and postgres services to architecture, services table, Docker Compose, and URL routing. Add `/join` and `/admin/console` routes. |
+| `equaliser-technical-specification.md` | **Update** | Add Section 4.6 (Equaliser Relay), Section 4.7 (Cache API), Section 4.8 (Node Management Console), Section 4.9 (Access Control). Update architecture diagram. |
+| `equaliser-node-setup-notes.md` | **Update** | Add Equaliser Relay container setup, PostgreSQL setup, and environment variables. Update Docker Compose examples. |
+| `EQUALISER_RELAY.md` | **Exists** | Full specification for the custom relay. Authoritative source for relay architecture. |
 | `NODE_ADMIN.md` | **Create** | Documentation for the node management console: features, authentication, API reference for admin endpoints. |
 | `ACCESS_CONTROL.md` | **Create** | Documentation for the access request and invite code system: request form, approval workflow, invite codes, integration with onboarding. |
 | `DATABASE.md` | **Create** | Full database schema reference covering cache tables, access control tables, cluster/blossom tables, and node configuration. |

@@ -85,11 +85,10 @@ The Equaliser network consists of content stored on artist content node relays a
 - `cleanup-relay.sh` periodically removes untagged events from non-protected pubkeys for storage hygiene
 - The relay remains public — spam defence is at the application layer, not the relay layer
 
-**Relay Tag Filtering Limitation:**
-- `nostr-rs-relay` only indexes **single-letter tags** (`e`, `p`, `d`, `t`) for relay-side filtering
-- Multi-character tags like `app`, `content-type`, `board` are stored in events but **cannot be queried** via relay filter parameters (e.g. `#app`, `#content-type`)
-- All filtering on multi-character tags is performed **client-side** after fetching events broadly by `kinds` and single-letter tag filters
-- This is an architectural constraint that applies to all Equaliser queries — code must never rely on relay-side filtering for custom tags
+**Relay Tag Filtering:**
+- The current codebase filters multi-character tags (`app`, `content-type`, `board`) **client-side** after fetching events broadly
+- The Equaliser Relay resolves this limitation with full tag indexing in PostgreSQL — relay-side filtering on `#app`, `#content-type`, `#board` will work natively once deployed
+- See [EQUALISER_RELAY.md](EQUALISER_RELAY.md) for the full specification
 
 **Characteristics:**
 - Content lives on the artist's content node relay
@@ -414,10 +413,10 @@ Equaliser enables artist-controlled moderation within their content node while r
 
 ### Implementation
 
-The content node relay (nostr-rs-relay) supports:
-- Pubkey whitelists/blacklists via `config.toml`
-- NIP-42 authentication for write access
-- Event filtering by kind and tags
+The Equaliser Relay supports:
+- Event acceptance policy (`equaliser_only`, `open`, `hybrid`) for ingestion-level filtering
+- NIP-42 authentication for admin operations
+- Full tag indexing for efficient event filtering
 
 Additional moderation can be implemented at the UI layer:
 - Filter events before display

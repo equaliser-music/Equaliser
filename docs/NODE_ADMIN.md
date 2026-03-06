@@ -9,7 +9,7 @@
 
 Web-based admin dashboard for node operators to monitor and control all node operations. Served from `/admin/console` — distinct from artist admin pages at `/admin`.
 
-The management console provides visibility into relay syncing, artist management, storage, and node configuration.
+The management console provides visibility into the Equaliser Relay's peer syncer, artist management, storage, and node configuration.
 
 ---
 
@@ -17,7 +17,7 @@ The management console provides visibility into relay syncing, artist management
 
 - React SPA served as static files from `/admin/console`
 - Communicates with `/api/admin/*` endpoints
-- WebSocket connection to orchestrator for real-time status updates (relay connections, incoming requests)
+- WebSocket connection to Equaliser Relay for real-time status updates (peer relay connections, incoming events)
 - Consistent with existing admin pages in style
 
 ---
@@ -34,7 +34,7 @@ The admin authenticates and receives a session token or JWT for subsequent reque
 
 ### Overview
 
-- Node status: all services health (IPFS, NOSTR relay, orchestrator, syncer, postgres)
+- Node status: all services health (IPFS, Equaliser Relay, orchestrator, postgres)
 - Quick stats: hosted artists count, total tracks, total storage used
 - Recent activity: latest requests, new events synced, errors
 
@@ -45,7 +45,7 @@ The admin authenticates and receives a session token or JWT for subsequent reque
 - Controls: add relay, remove relay, enable/disable relay, force resync
 - Sync log: recent event activity with kind, source relay, action taken
 
-See [RELAY_SYNCER.md](RELAY_SYNCER.md) for syncer architecture and configuration.
+See [EQUALISER_RELAY.md](EQUALISER_RELAY.md) for the relay's peer syncer architecture and configuration.
 
 ### Artist Management
 
@@ -67,7 +67,7 @@ Manage fan/listener data caching. User caching is purely metadata — NOSTR even
 - **Force resync** — trigger an immediate full resync for a specific user
 - **Remove user** — deregister a pubkey and purge their cached data
 
-See [RELAY_SYNCER.md](RELAY_SYNCER.md) for how user subscriptions work and [DATABASE.md](DATABASE.md) for user cache tables.
+See [EQUALISER_RELAY.md](EQUALISER_RELAY.md) for how user subscriptions work and [DATABASE.md](DATABASE.md) for user cache tables.
 
 ### IPFS & Storage
 
@@ -87,7 +87,7 @@ See [RELAY_SYNCER.md](RELAY_SYNCER.md) for how user subscriptions work and [DATA
 
 - Node identity: name, description, public-facing info
 - Fee model defaults for new artists
-- Relay syncer configuration
+- Equaliser Relay configuration
 - Backup and export tools
 
 ---
@@ -97,7 +97,7 @@ See [RELAY_SYNCER.md](RELAY_SYNCER.md) for how user subscriptions work and [DATA
 ### Sync Management
 
 ```
-GET  /api/admin/sync/status         - Syncer status, relay connections, event counts
+GET  /api/admin/sync/status         - Relay status, peer connections, event counts
 GET  /api/admin/sync/relays         - List all tracked relays with status
 POST /api/admin/sync/relays         - Add a relay to the sync list
 DELETE /api/admin/sync/relays/{url} - Remove a relay
@@ -133,6 +133,6 @@ PUT    /api/admin/settings/user-cache      - Update global user cache settings (
 ## References
 
 - [NODE-MANAGEMENT-SPEC.md](NODE-MANAGEMENT-SPEC.md) — Full specification (Section 6)
-- [RELAY_SYNCER.md](RELAY_SYNCER.md) — Relay syncer architecture
+- [EQUALISER_RELAY.md](EQUALISER_RELAY.md) — Equaliser Relay architecture
 - [ACCESS_CONTROL.md](ACCESS_CONTROL.md) — Access request and approval workflow
 - [DATABASE.md](DATABASE.md) — Full database schema reference

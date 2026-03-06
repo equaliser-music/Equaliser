@@ -24,7 +24,7 @@ Documentation exists in the 'docs' folder. Please read in the following order at
 19. NODE-MANAGEMENT-SPEC.md
 20. ACCESS_CONTROL.md
 21. NODE_ADMIN.md
-22. RELAY_SYNCER.md
+22. EQUALISER_RELAY.md
 23. DATABASE.md
 
 ## Important Rules
@@ -137,6 +137,8 @@ This script:
 **Pre-requisites:** Changes must be committed and pushed to origin. The script will refuse to deploy if there are uncommitted or unpushed changes.
 
 ### cleanup-relay.sh
+**Deprecated** — the Equaliser Relay handles app-tag filtering at event ingestion via its event acceptance policy. This script is only needed for the legacy nostr-rs-relay setup.
+
 Remove non-Equaliser events from the NOSTR relay. **Use when user asks to "clean up the relay", "remove spam", or "clear junk events".**
 
 ```bash
@@ -278,13 +280,12 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - Document recovery path first, automate tooling in later phase
   - See [BLOSSOM_INTEGRATION_IDEAS.md](docs/BLOSSOM_INTEGRATION_IDEAS.md)
 
-- [x] **Relay Spam Management**: App-tag filtering + periodic cleanup
+- [x] **Relay Spam Management**: App-tag filtering at ingestion
   - All Equaliser events tagged with `["app", "equaliser"]` before signing
   - UI feeds filter exclusively on this tag — untagged events are invisible to users
-  - Content node relays remain **public** (open read + write) to support decentralisation
-  - `cleanup-relay.sh` removes untagged events from non-protected pubkeys (storage hygiene)
-  - This creates an application-level overlay network on standard NOSTR relays
-  - Future: consider `event_kind_allowlist`, rate limiting, or NIP-42 AUTH if spam volume warrants relay-level restrictions
+  - Equaliser Relay handles filtering at ingestion via configurable event acceptance policy (`equaliser_only`, `open`, or `hybrid` mode)
+  - `cleanup-relay.sh` deprecated — no longer needed with ingestion-level filtering
+  - This creates an application-level overlay network on standard NOSTR infrastructure
 
 - [ ] **Label Multi-Artist Management**: Support labels managing multiple artist identities
   - Use NIP-06 / BIP-32 hierarchical key derivation from label master seed
@@ -305,7 +306,7 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
 
 - [ ] **Multi-Node Architecture**: Scaling beyond single content node
   - **Equaliser relay network**: Two-tier relay architecture — standard NOSTR relays for social interop, Equaliser peer relays for music metadata replication
-  - Artists configure peer relays (other content nodes); orchestrator publishes music events to local + peer relays
+  - Artists configure peer relays (other content nodes); Equaliser Relay publishes music events to configured peer relays via its built-in peer syncer
   - NOSTR relay replication for metadata + IPFS cross-pinning for audio = full redundancy
   - Federation between content nodes (mutual content pinning)
   - Load balancing for high-traffic artists/labels
@@ -320,17 +321,17 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - **Community Message Boards**: Community tab in `social.html` with board tabs (general/music/production/gigs), thread list + detail views, `["content-type", "thread"]` and `["content-type", "reply"]` tags
   - **Direct Messages**: `messages.html` with NIP-04 encrypted DMs (Kind 4), two-panel conversation list + chat UI, `nostr-dm.js` module
   - **Unified Social Page**: `social.html` combines Feed + Community as full-width tabs ("Timeline" / "Community Threads"). Single "Social" link in sidebar bottom nav (alongside Profile, Settings). Messages accessible from profile page.
-  - **Relay Tag Filtering**: All multi-char tag filtering done client-side (relay only indexes single-letter tags)
+  - **Relay Tag Filtering**: Multi-char tag filtering currently done client-side (Equaliser Relay will resolve this with full tag indexing)
   - **Seed Data**: `tools/seed-social.sh` populates relay with test posts, threads, DMs, reactions
   - See [SOCIAL.md](docs/SOCIAL.md), [COMMUNITY.md](docs/COMMUNITY.md)
 
 - [ ] **User Data Caching (Phase B.1)**: Cache fan/listener NOSTR data on content node
   - Fan authenticates via NIP-07/NIP-46, orchestrator writes pubkey to `registered_users`
-  - Relay syncer subscribes to user's Kind 0 (profile), Kind 3 (follows), Kind 30001 (playlists), Kind 1 (feed)
+  - Equaliser Relay's built-in peer syncer subscribes to user's Kind 0 (profile), Kind 3 (follows), Kind 30001 (playlists), Kind 1 (feed)
   - Follow list processing auto-discovers Equaliser artists not yet indexed
   - Feed thresholds: `USER_FEED_DAYS` (default 30), `USER_FEED_LIMIT` (default 500)
   - Admin controls: per-user enable/disable, feed thresholds, force resync, remove user
-  - See [DATABASE.md](docs/DATABASE.md) (User Cache Tables), [RELAY_SYNCER.md](docs/RELAY_SYNCER.md) (User Subscriptions), [ORCHESTRATOR.md](docs/ORCHESTRATOR.md) (User Registration & Cache API)
+  - See [DATABASE.md](docs/DATABASE.md) (User Cache Tables), [EQUALISER_RELAY.md](docs/EQUALISER_RELAY.md) (Peer Syncer & User Subscriptions), [ORCHESTRATOR.md](docs/ORCHESTRATOR.md) (User Registration)
 
 - [ ] **Access Control (Phase A)**: Gated onboarding with invite codes
   - Public request form at `/join` for artists to apply
@@ -339,12 +340,12 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - `access_requests` and `node_artists` tables in PostgreSQL
   - See [ACCESS_CONTROL.md](docs/ACCESS_CONTROL.md), [NODE-MANAGEMENT-SPEC.md](docs/NODE-MANAGEMENT-SPEC.md) Section 5
 
-- [ ] **Relay Syncer & Cache API (Phase B)**: PostgreSQL cache with background relay syncer
-  - Standalone Python process subscribing to external NOSTR relays
-  - Ingests Equaliser-tagged events into shared PostgreSQL database
-  - Cache API endpoints on orchestrator for fast web client reads
+- [ ] **Equaliser Relay (Phase B)**: Custom NOSTR relay with built-in cache and peer syncing
+  - Single service combining NIP-01 WebSocket, built-in peer syncer, PostgreSQL storage with full tag indexing, and REST API
+  - Replaces nostr-rs-relay, relay-syncer, and orchestrator cache API
+  - Events parsed into denormalised tables on arrival — no sync lag
   - Auto-discovers new relays via Kind 10002 events
-  - See [RELAY_SYNCER.md](docs/RELAY_SYNCER.md), [DATABASE.md](docs/DATABASE.md), [NODE-MANAGEMENT-SPEC.md](docs/NODE-MANAGEMENT-SPEC.md) Sections 2-4
+  - See [EQUALISER_RELAY.md](docs/EQUALISER_RELAY.md), [DATABASE.md](docs/DATABASE.md), [NODE-MANAGEMENT-SPEC.md](docs/NODE-MANAGEMENT-SPEC.md) Sections 2-4
 
 - [ ] **Node Management Console (Phase C)**: Admin dashboard at `/admin/console`
   - React SPA for node operators (separate from artist admin)

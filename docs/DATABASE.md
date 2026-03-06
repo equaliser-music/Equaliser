@@ -12,9 +12,9 @@ The Equaliser content node uses two database systems:
 | Database | Engine | Purpose |
 |----------|--------|---------|
 | Drafts | SQLite | Track drafts and upload metadata (existing) |
-| Cache | PostgreSQL | Relay-synced event cache, access control, cluster/blossom state (new) |
+| Cache | PostgreSQL | Equaliser Relay event storage and cache, access control, cluster/blossom state |
 
-The SQLite database is used by the orchestrator for track uploads and draft management. The PostgreSQL database is shared between the relay syncer (writes) and the orchestrator cache API (reads), plus stores access control and cluster state.
+The SQLite database is used by the orchestrator for track uploads and draft management. The PostgreSQL database is owned by the Equaliser Relay, which writes events on ingestion and serves cached data via its REST API. The orchestrator reads from PostgreSQL for access control and cluster state.
 
 ---
 
@@ -58,13 +58,13 @@ CREATE TABLE draft_tracks (
 ## PostgreSQL: Cache Database
 
 **Connection:** `postgresql://equaliser:${DB_PASSWORD}@postgres:5432/equaliser`
-**Shared by:** Relay syncer (writer), orchestrator (reader)
+**Owned by:** Equaliser Relay (primary reader/writer). Orchestrator reads access control and cluster tables.
 
 ---
 
 ### Cache Tables
 
-These tables are populated by the relay syncer from external NOSTR relays.
+These tables are populated by the Equaliser Relay when events arrive via WebSocket or peer sync. Events are parsed into denormalised tables in a single transaction on arrival — no sync lag.
 
 #### cached_artists
 
@@ -138,7 +138,7 @@ CREATE TABLE cached_albums (
 
 ### User Cache Tables
 
-These tables support fan/listener data caching. The orchestrator writes to `registered_users` when a fan authenticates; the relay syncer reads that table and populates the remaining user cache tables from external relays. See [RELAY_SYNCER.md](RELAY_SYNCER.md) for subscription details.
+These tables support fan/listener data caching. The orchestrator writes to `registered_users` when a fan authenticates; the Equaliser Relay detects new registrations and subscribes to their data on peer relays, populating the remaining user cache tables. See [EQUALISER_RELAY.md](EQUALISER_RELAY.md) for subscription details.
 
 #### registered_users
 
@@ -224,16 +224,16 @@ CREATE TABLE cached_user_playlists (
 
 ---
 
-### Syncer Tables
+### Relay Operational Tables
 
-Used by the relay syncer for connection management and logging.
+Used by the Equaliser Relay for peer connection management and event processing logging.
 
-#### syncer_relays
+#### peer_relays
 
-Tracks relay connections and sync state.
+Tracks peer relay connections and sync state.
 
 ```sql
-CREATE TABLE syncer_relays (
+CREATE TABLE peer_relays (
     url TEXT PRIMARY KEY,
     status TEXT DEFAULT 'disconnected',    -- connected, disconnected, error
     last_event_at BIGINT,
@@ -247,12 +247,12 @@ CREATE TABLE syncer_relays (
 );
 ```
 
-#### sync_log
+#### event_log
 
 Debug and monitoring log for event processing.
 
 ```sql
-CREATE TABLE sync_log (
+CREATE TABLE event_log (
     id SERIAL PRIMARY KEY,
     relay_url TEXT NOT NULL,
     event_kind INTEGER NOT NULL,
@@ -374,13 +374,10 @@ CREATE TABLE blossom_mirrors (
 
 ## Migration Notes
 
-The existing SQLite database continues to serve draft management. The new PostgreSQL database is additive — it doesn't replace SQLite but serves a different purpose (caching external relay data, access control, cluster state).
+The existing SQLite database continues to serve draft management. The PostgreSQL database is additive — it doesn't replace SQLite but serves a different purpose (Equaliser Relay event storage and cache, access control, cluster state).
 
-Both databases are accessed by the orchestrator:
-- **SQLite:** Direct file access at `/data/drafts.db`
-- **PostgreSQL:** Network connection via `DATABASE_URL` environment variable
-
-The relay syncer only accesses PostgreSQL.
+- **SQLite:** Accessed directly by the orchestrator at `/data/drafts.db`
+- **PostgreSQL:** Owned by the Equaliser Relay, which manages all event data reads and writes. The orchestrator may read PostgreSQL directly for access control and cluster state tables.
 
 ---
 
@@ -388,6 +385,6 @@ The relay syncer only accesses PostgreSQL.
 
 - [NODE-MANAGEMENT-SPEC.md](NODE-MANAGEMENT-SPEC.md) — Full specification (Sections 3, 5, 7)
 - [ORCHESTRATOR.md](ORCHESTRATOR.md) — Orchestrator API and SQLite drafts schema
-- [RELAY_SYNCER.md](RELAY_SYNCER.md) — Relay syncer architecture
+- [EQUALISER_RELAY.md](EQUALISER_RELAY.md) — Equaliser Relay architecture
 - [ACCESS_CONTROL.md](ACCESS_CONTROL.md) — Access request and invite code system
 - [BLOSSOM.md](BLOSSOM.md) — Blossom integration

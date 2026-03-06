@@ -1,6 +1,6 @@
 # Equaliser Relay
 
-**Status:** Proposal (alternative to relay-syncer + nostr-rs-relay + PostgreSQL cache architecture)
+**Status:** Specification
 
 ---
 
@@ -314,7 +314,6 @@ This doesn't need to be built all at once. A phased approach:
 
 ## References
 
-- [RELAY_SYNCER.md](RELAY_SYNCER.md) — Current syncer architecture (would be absorbed)
 - [DATABASE.md](DATABASE.md) — Cache database schema (reused as-is)
 - [NODE-MANAGEMENT-SPEC.md](NODE-MANAGEMENT-SPEC.md) — Node management specification
 - [NOSTR.md](NOSTR.md) — Current relay setup and tag indexing limitation

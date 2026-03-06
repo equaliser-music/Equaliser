@@ -155,15 +155,17 @@ Content node relays are **public** (open read + write) to support decentralisati
 
 - **Tagging**: All events created through Equaliser are tagged with `["app", "Equaliser"]` before signing
 - **Filtering**: UI feeds only display events with this tag — untagged events are invisible to users
-- **Cleanup**: `cleanup-relay.sh` periodically removes untagged events from non-protected pubkeys
+- **Cleanup**: The Equaliser Relay handles this at ingestion via its event acceptance policy (`equaliser_only`, `open`, or `hybrid` mode). The legacy `cleanup-relay.sh` is deprecated.
 
-This approach keeps relays public for cross-node discovery and fan interaction while creating a clean, curated Equaliser experience in the UI. The relay accumulates some junk between cleanups, but the UI never shows it.
+This approach keeps relays public for cross-node discovery and fan interaction while creating a clean, curated Equaliser experience in the UI.
 
 See [SOCIAL.md](../docs/SOCIAL.md) for the full two-layer architecture (Equaliser Network vs Wider NOSTR).
 
 ## Tag Indexing Limitation
 
-**Critical for developers:** `nostr-rs-relay` only indexes **single-letter tags** for relay-side query filtering:
+> **Note:** This limitation applies to the legacy nostr-rs-relay. The Equaliser Relay uses PostgreSQL with full tag indexing, resolving this entirely. Once deployed, relay-side filtering on `#app`, `#content-type`, `#board` will work natively. See [EQUALISER_RELAY.md](EQUALISER_RELAY.md).
+
+**Current state:** `nostr-rs-relay` only indexes **single-letter tags** for relay-side query filtering:
 
 | Indexed (relay-side filter works) | Not indexed (must filter client-side) |
 |----------------------------------|--------------------------------------|
@@ -172,7 +174,7 @@ See [SOCIAL.md](../docs/SOCIAL.md) for the full two-layer architecture (Equalise
 | `d` (replaceable event identifiers) | `board` |
 | `t` (hashtags) | `subject` |
 
-This means relay filter parameters like `#app`, `#content-type`, `#board` will return **zero results**. All filtering on multi-character tags must be done client-side after fetching events broadly. This applies equally to user cache data (feeds, playlists) ingested by the relay syncer.
+This means relay filter parameters like `#app`, `#content-type`, `#board` will return **zero results** on nostr-rs-relay. All filtering on multi-character tags must be done client-side after fetching events broadly. The Equaliser Relay eliminates this limitation with full tag indexing.
 
 **Correct pattern:**
 ```javascript
@@ -270,14 +272,8 @@ docker-compose down -v
 docker-compose up -d
 ```
 
-## Why nostr-rs-relay?
+## Relay Implementation
 
-We chose nostr-rs-relay over alternatives like strfry because:
+The project is transitioning from nostr-rs-relay to the **Equaliser Relay** — a purpose-built custom relay with PostgreSQL storage, full tag indexing, built-in peer syncing, and a REST API for the web client. See [EQUALISER_RELAY.md](EQUALISER_RELAY.md) for the full specification.
 
-- **Simpler setup** - Single binary, straightforward config
-- **Lower resource usage** - SQLite is memory-efficient
-- **Easy backups** - SQLite is a single file
-- **Good NIP support** - Covers all common NIPs
-- **Active maintenance** - Regular updates and fixes
-
-For high-traffic production relays needing maximum throughput, consider [strfry](https://github.com/hoytech/strfry) instead.
+nostr-rs-relay was used initially for its simplicity (single binary, SQLite, low resource usage) but its single-letter tag indexing limitation became the biggest source of workarounds in the codebase.
