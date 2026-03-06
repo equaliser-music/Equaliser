@@ -87,7 +87,7 @@ The Equaliser network consists of content stored on artist content node relays a
 
 **Relay Tag Filtering:**
 - The current codebase filters multi-character tags (`app`, `content-type`, `board`) **client-side** after fetching events broadly
-- The Equaliser Relay resolves this limitation with full tag indexing in PostgreSQL — relay-side filtering on `#app`, `#content-type`, `#board` will work natively once deployed
+- The Equaliser Relay resolves this with full tag indexing in PostgreSQL — relay-side filtering on `#app`, `#content-type`, `#board` works natively
 - See [EQUALISER_RELAY.md](EQUALISER_RELAY.md) for the full specification
 
 **Characteristics:**

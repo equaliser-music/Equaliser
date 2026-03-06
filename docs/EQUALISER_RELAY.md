@@ -6,19 +6,15 @@
 
 ## Motivation
 
-The current planned architecture uses three separate components to serve event data to the web client:
+A music platform relay has requirements that generic NOSTR relays (like nostr-rs-relay) cannot meet:
 
-1. **nostr-rs-relay** — generic NOSTR relay (SQLite, single-letter tag indexing only)
-2. **relay-syncer** — Python process subscribing to external relays, writing parsed data to PostgreSQL
-3. **PostgreSQL** — cache database read by the orchestrator's REST API
+- **Full tag indexing** — Equaliser uses multi-character tags (`app`, `content-type`, `board`) extensively. Generic relays only index single-letter tags, forcing client-side filtering after broad fetches. This is the single biggest source of workarounds in the codebase.
+- **Denormalised schemas** — fast queries for artists, tracks, albums, and user data require purpose-built tables, not raw event storage.
+- **Peer syncing** — subscribing to external relays, ingesting events from the wider NOSTR network, and publishing outbound for federation.
+- **REST API** — the web client needs fast, structured read endpoints (artist catalogues, track listings, search) alongside the WebSocket protocol.
+- **Scalable storage** — PostgreSQL from the start, not SQLite with a migration path.
 
-This works, but has known friction:
-
-- **Tag indexing limitation** — nostr-rs-relay only indexes single-letter tags. Multi-char tags (`app`, `content-type`, `board`) require client-side filtering after broad fetches. This is the single biggest source of workarounds in the current codebase.
-- **Three services doing related work** — the relay stores events, the syncer reads and re-parses them into a cache, and the orchestrator serves the cache. Sync lag, duplicate data, and three things to deploy/monitor/debug.
-- **Scale ceiling** — nostr-rs-relay's SQLite backend and the Python syncer's WebSocket management will become bottlenecks at thousands of artists and millions of requests.
-
-A purpose-built Equaliser relay could collapse all three into a single service that is both the relay and the cache.
+The Equaliser Relay is a single service purpose-built around these requirements — a NOSTR relay that is also the cache, the sync engine, and the API server.
 
 ---
 
@@ -26,7 +22,7 @@ A purpose-built Equaliser relay could collapse all three into a single service t
 
 **Externally: good NOSTR citizen.** Speaks NIP-01 WebSocket protocol. Any standard NOSTR client can connect, subscribe, and read events. Publishes outbound to configured peer relays for federation and discoverability.
 
-**Internally: optimised for Equaliser.** PostgreSQL backend with denormalised schemas for tracks, artists, albums, users, and playlists. Full multi-char tag indexing. REST API for the web client. Built-in external relay subscriptions (absorbs the syncer role).
+**Internally: optimised for Equaliser.** PostgreSQL backend with denormalised schemas for tracks, artists, albums, users, and playlists. Full multi-char tag indexing. REST API for the web client. Built-in peer syncing for external relay subscriptions.
 
 The wider NOSTR network is supported — but never at the cost of app user experience and performance.
 
@@ -64,16 +60,11 @@ The wider NOSTR network is supported — but never at the cost of app user exper
                   └──────────┘  └──────────┘
 ```
 
-### What it replaces
+### Replaces nostr-rs-relay
 
-| Current | Equaliser Relay |
-|---------|----------------|
-| nostr-rs-relay container | Absorbed — WebSocket layer handles NIP-01 |
-| relay-syncer container | Absorbed — peer syncer subscribes to external relays |
-| PostgreSQL container | Embedded or co-located — relay owns its database |
-| Orchestrator cache API | Relay exposes REST endpoints directly (orchestrator still handles uploads, drafts, IPFS) |
+The Equaliser Relay replaces nostr-rs-relay in the Docker Compose stack. It speaks the same NIP-01 WebSocket protocol but adds PostgreSQL storage, full tag indexing, peer syncing, denormalised schemas, and a REST API.
 
-The orchestrator remains for track uploads, HLS encoding, IPFS management, and draft workflow — it doesn't need to change. It just reads from the relay's database instead of a separate cache database.
+The orchestrator remains for track uploads, HLS encoding, IPFS management, and draft workflow. It reads from the relay's database for any data it needs.
 
 ---
 
@@ -120,14 +111,14 @@ The denormalised tables are the same schemas already specified in [DATABASE.md](
 - `cached_user_playlists` (Kind 30001) — playlists
 
 **Operational:**
-- `peer_relays` — tracked relay connections (replaces `syncer_relays`)
-- `event_log` — processing log (replaces `sync_log`)
+- `peer_relays` — tracked relay connections
+- `event_log` — processing log
 
 When an event arrives (from WebSocket or peer sync), it's written to raw storage AND parsed into the appropriate denormalised table in a single transaction. No sync lag.
 
 ### 3. REST API
 
-Served by the relay process itself (not the orchestrator). Same endpoints currently specified for the orchestrator's cache API:
+Served by the relay process directly:
 
 ```
 GET /api/artists                    - List all cached artists
@@ -141,11 +132,11 @@ GET /api/users/{pubkey}/feed        - User's cached feed
 GET /api/users/{pubkey}/playlists   - User's playlists
 ```
 
-The orchestrator's track upload, draft management, and IPFS endpoints remain on the orchestrator. Only the read-side cache API moves to the relay.
+The orchestrator handles track uploads, draft management, and IPFS. The relay handles all read-side data serving.
 
-### 4. Peer Syncer (built-in)
+### 4. Peer Syncer
 
-Replaces the standalone relay-syncer process. Same behaviour:
+The peer syncer is a built-in component that handles all external relay communication:
 
 - Maintains persistent WebSocket connections to configured external relays
 - Subscribes to Equaliser-tagged events
@@ -246,8 +237,6 @@ postgres:
     - postgres-data:/var/lib/postgresql/data
 ```
 
-Replaces both `nostr-relay` and `relay-syncer` containers.
-
 ---
 
 ## Language Choice
@@ -268,21 +257,23 @@ Python is viable for an initial prototype to validate the architecture before re
 
 This doesn't need to be built all at once. A phased approach:
 
-### Phase 1: PostgreSQL-backed relay (replace nostr-rs-relay)
+### Phase 1: Core relay + storage
 - Build minimal NIP-01 relay with PostgreSQL storage
-- Full tag indexing
-- Drop-in replacement for nostr-rs-relay in the Docker stack
-- Syncer and orchestrator continue unchanged
+- Full tag indexing via `event_tags` table
+- Event acceptance policy (Equaliser-only / open / hybrid)
+- Replaces nostr-rs-relay in the Docker stack
 
-### Phase 2: Absorb syncer
-- Move peer relay subscription logic into the relay process
-- Remove relay-syncer container
-- Single process handles both local events and external sync
+### Phase 2: Peer syncing
+- Add peer syncer — persistent WebSocket connections to external relays
+- Inbound: subscribe to Equaliser-tagged events and registered user data
+- Outbound: forward locally published events for federation
+- Auto-reconnection with exponential backoff
 
-### Phase 3: Add REST API
-- Move cache API endpoints from orchestrator to the relay
-- Orchestrator becomes focused purely on uploads/drafts/IPFS
-- Web client reads from relay's REST API
+### Phase 3: REST API + denormalised schemas
+- Add denormalised tables (artists, tracks, albums, users)
+- Parse events into denormalised tables on arrival
+- Serve REST API endpoints for the web client
+- Orchestrator focuses purely on uploads/drafts/IPFS
 
 ### Phase 4: Optimise
 - Connection pooling, query optimisation, caching hot paths
@@ -302,13 +293,13 @@ This doesn't need to be built all at once. A phased approach:
 
 ---
 
-## What This Eliminates
+## Design Advantages
 
-- The tag indexing limitation and all client-side filtering workarounds
-- The relay-syncer as a separate container
-- Sync lag between relay and cache (events are parsed on arrival)
-- Duplicate data (raw events in relay SQLite + parsed data in PostgreSQL)
-- The `cleanup-relay.sh` script (event acceptance policy handles this at ingestion)
+- **Full tag indexing** — `#app`, `#content-type`, `#board` filters work natively in relay subscriptions. No client-side filtering workarounds needed.
+- **Zero sync lag** — events are parsed into denormalised tables on arrival, in the same transaction as raw storage.
+- **Single data path** — every event (local or from peer relays) follows the same path: validate → store → parse → notify. No duplicate data stores.
+- **Event acceptance policy** — spam handled at ingestion rather than periodic cleanup scripts.
+- **One service** — WebSocket, REST API, peer syncing, and storage in a single process. Simpler to deploy, monitor, and debug.
 
 ---
 
@@ -316,7 +307,7 @@ This doesn't need to be built all at once. A phased approach:
 
 - [DATABASE.md](DATABASE.md) — Cache database schema (reused as-is)
 - [NODE-MANAGEMENT-SPEC.md](NODE-MANAGEMENT-SPEC.md) — Node management specification
-- [NOSTR.md](NOSTR.md) — Current relay setup and tag indexing limitation
+- [NOSTR.md](NOSTR.md) — NOSTR protocol usage and relay configuration
 - [Primal Caching Server](https://github.com/PrimalHQ/primal-server) — Similar architecture (custom relay as cache)
 - [strfry](https://github.com/hoytech/strfry) — High-performance C++ relay (reference for design)
 - [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) — Basic NOSTR protocol

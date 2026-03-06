@@ -140,7 +140,7 @@ The community page filters threads by board. Filtering is done **client-side** a
 
 ### Relay Query Limitations
 
-The current codebase uses client-side filtering for multi-character tags (`app`, `content-type`, `board`) because the legacy nostr-rs-relay only indexes single-letter tags. The Equaliser Relay resolves this with full tag indexing — once deployed, relay-side filtering on these tags will work natively. See [EQUALISER_RELAY.md](EQUALISER_RELAY.md).
+The current codebase uses client-side filtering for multi-character tags (`app`, `content-type`, `board`) because nostr-rs-relay only indexes single-letter tags. The Equaliser Relay resolves this with full tag indexing — relay-side filtering on these tags works natively. See [EQUALISER_RELAY.md](EQUALISER_RELAY.md).
 
 All queries below show the current relay filter + the client-side filter that must be applied after fetching.
 

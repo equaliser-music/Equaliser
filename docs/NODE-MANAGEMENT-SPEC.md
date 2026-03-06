@@ -25,7 +25,7 @@ These components support the evolution from single-artist nodes to multi-tenant 
 
 A custom NOSTR relay purpose-built for Equaliser. Externally, it speaks standard NIP-01 WebSocket protocol — any NOSTR client can connect. Internally, it uses PostgreSQL with full tag indexing, denormalised schemas for fast queries, a built-in peer syncer for external relay subscriptions, and a REST API for the web client.
 
-This single service replaces three components from the previous architecture: nostr-rs-relay, relay-syncer, and the orchestrator's cache API. See [EQUALISER_RELAY.md](EQUALISER_RELAY.md) for the full specification.
+This replaces nostr-rs-relay in the Docker stack, adding PostgreSQL storage, full tag indexing, and a REST API. See [EQUALISER_RELAY.md](EQUALISER_RELAY.md) for the full specification.
 
 ### 2.2 Architecture
 
@@ -601,8 +601,8 @@ This can be done with the existing stack — no new services needed. The admin a
 3. Build Equaliser Relay with NIP-01 WebSocket layer and PostgreSQL backend
 4. Add built-in peer syncer for external relay subscriptions
 5. Add REST API to the relay for web client reads
-6. Remove nostr-rs-relay container from Docker Compose
-7. Update web client to use relay's REST API instead of direct relay queries
+6. Deploy Equaliser Relay as drop-in replacement for nostr-rs-relay in Docker Compose
+7. Update web client to use relay's REST API
 
 See [EQUALISER_RELAY.md](EQUALISER_RELAY.md) for the full relay specification and migration path.
 
