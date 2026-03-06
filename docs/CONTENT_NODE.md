@@ -8,10 +8,7 @@ The content node is the infrastructure that powers an artist's presence on the E
 content_node/
 ├── docker-compose.yml      # Orchestrates all services
 ├── ipfs/                   # IPFS configuration
-├── nostr-relay/            # NOSTR relay configuration
-│   └── config.toml
-├── relay-syncer/           # Background relay syncer (Python)
-│   └── Dockerfile
+├── equaliser-relay/        # Custom NOSTR relay (NIP-01 + REST API + peer syncer)
 ├── orchestrator/           # Artist admin tools & API
 │   ├── api/                # FastAPI backend
 │   │   ├── Dockerfile
@@ -40,10 +37,9 @@ content_node/
 |---------|-----------|---------------|---------|
 | `ipfs` | ipfs/kubo | 4001, 5001, 8080 | Decentralised content storage |
 | `web` | nginx:alpine | 80 | Serves static files, routes requests |
-| `nostr-relay` | nostr-rs-relay | 8080 | NOSTR event storage and relay |
-| `orchestrator` | custom (Python) | 8000 | Track uploads, HLS encoding, API |
-| `relay-syncer` | custom (Python) | — | Background NOSTR relay syncer |
-| `postgres` | postgres:15 | 5432 | Cache database (shared by syncer + orchestrator) |
+| `equaliser-relay` | custom (Go/Rust) | 8080, 8008 | NOSTR relay (NIP-01 WebSocket), REST API, peer syncer |
+| `orchestrator` | custom (Python) | 8000 | Track uploads, HLS encoding, draft management |
+| `postgres` | postgres:15 | 5432 | Equaliser Relay database (event storage + cache) |
 
 ## URL Routing
 
@@ -54,13 +50,14 @@ content_node/
 | `/join` | `orchestrator/join.html` | Public access request form |
 | `/admin` | `orchestrator/dashboard.html` | Artist admin home page (requires login) |
 | `/admin/console` | `console/` | Node management console (React SPA, admin auth) |
-| `/relay` | nostr-relay:8080 | WebSocket proxy to NOSTR relay |
+| `/relay` | equaliser-relay:8080 | WebSocket proxy to Equaliser Relay (NIP-01) |
 | `/ipfs/{CID}` | ipfs:8080 | IPFS gateway for content retrieval |
-| `/api` | orchestrator:8000 | Orchestrator API (track uploads, etc.) |
+| `/api` | orchestrator:8000 | Orchestrator API (track uploads, drafts) |
 | `/api/access/*` | orchestrator:8000 | Access control endpoints (public) |
-| `/api/artists/*` | orchestrator:8000 | Cache API — artist and track data (public) |
-| `/api/users/*` | orchestrator:8000 | User registration and cached data (fan auth) |
-| `/api/admin/*` | orchestrator:8000 | Admin API — sync, artists, requests (admin auth) |
+| `/api/artists/*` | equaliser-relay:8008 | Relay REST API — artist and track data (public) |
+| `/api/users/*` | equaliser-relay:8008 | Relay REST API — user cached data (fan auth) |
+| `/api/admin/sync/*` | equaliser-relay:8008 | Relay admin API — sync management (admin auth) |
+| `/api/admin/*` | orchestrator:8000 | Admin API — artists, requests (admin auth) |
 | `/health` | nginx | Health check endpoint |
 
 ## Quick Start
@@ -122,7 +119,7 @@ docker-compose logs -f
 # Specific service
 docker-compose logs -f ipfs
 docker-compose logs -f web
-docker-compose logs -f nostr-relay
+docker-compose logs -f equaliser-relay
 ```
 
 ### Stop All Services
@@ -301,44 +298,47 @@ A persistent status bar appears at the top of all admin pages showing:
 - `orchestrator/js/status-bar.js` - Status bar component
 - `orchestrator/login.html` - Login gateway page
 
-## NOSTR Relay
+## Equaliser Relay
 
-The content node runs a [nostr-rs-relay](https://github.com/scsibug/nostr-rs-relay) instance for storing and serving NOSTR events.
+The content node runs a custom Equaliser Relay — a purpose-built NOSTR relay that combines NIP-01 WebSocket protocol, a built-in peer syncer for external relay subscriptions, PostgreSQL storage with full tag indexing, and a REST API for the web client. See [EQUALISER_RELAY.md](EQUALISER_RELAY.md) for the full specification.
 
-### Public Relay, Application-Level Filtering
+### Event Acceptance Policy
 
-Content node relays are **public** — open for both reading and writing. This is intentional: decentralisation requires that other content nodes, fan clients, and NOSTR clients can connect freely. Locking the relay down would break cross-node discovery and artist-to-artist publishing.
+The relay handles app-tag filtering at ingestion, configurable per-node:
 
-Spam defence operates at the **application layer**, not the relay layer:
+- **`equaliser_only`** (default) — Only events with `["app", "Equaliser"]` tag are stored in the optimised schema
+- **`open`** — All events accepted (for NOSTR interop), untagged events go to raw-only table
+- **`hybrid`** — Tagged events get full optimised storage, untagged events accepted into raw-only table
 
-- All events created through Equaliser are tagged with `["app", "equaliser"]` before signing
-- UI feeds filter on this tag — untagged events (spam, random NOSTR traffic) are invisible to users
-- `cleanup-relay.sh` periodically removes untagged events from non-protected pubkeys for storage hygiene
-- This creates an application-level overlay network on standard NOSTR infrastructure
+This replaces the previous `cleanup-relay.sh` approach — spam is filtered at the gate rather than cleaned up periodically.
 
-See [SOCIAL.md](./SOCIAL.md) for the full two-layer architecture.
+### Public Relay, NOSTR Compatibility
+
+Content node relays are **public** — any standard NOSTR client (Damus, Amethyst, etc.) can connect, subscribe, and read events via the NIP-01 WebSocket interface. This ensures decentralisation and cross-node discovery.
 
 ### Configuration
 
-Edit `nostr-relay/config.toml` to customize:
+Configuration via environment variables:
 
-- `[info]` - Relay metadata (name, description)
-- `[database]` - Storage settings
-- `[network]` - Port and address
-- `[limits]` - Connection and message limits
+- `DATABASE_URL` — PostgreSQL connection string
+- `PEER_RELAYS` — Comma-separated external relay WebSocket URLs
+- `EVENT_POLICY` — Event acceptance policy (`equaliser_only`, `open`, `hybrid`)
+- `SYNC_INTERVAL` — Full resync interval in seconds (default 3600)
+- `USER_FEED_DAYS` — Maximum age of cached feed events (default 30)
+- `USER_FEED_LIMIT` — Maximum cached feed events per user (default 500)
 
 ### Supported NIPs
 
-1, 2, 9, 11, 12, 15, 16, 20, 22, 26, 28, 33, 40, 42
+- NIP-01 — Basic protocol (REQ/EVENT/CLOSE/EOSE)
+- NIP-11 — Relay information document
+- NIP-42 — Authentication (optional, for admin operations)
 
 ### Data Persistence
 
-Relay data is stored in a Docker volume `nostr-data`. To backup:
+Event data is stored in PostgreSQL (`postgres-data` volume). To backup:
 
 ```bash
-docker-compose stop
-docker run --rm -v equaliser-1_nostr-data:/data -v $(pwd):/backup alpine tar czf /backup/nostr-backup.tar.gz /data
-docker-compose start
+docker-compose exec postgres pg_dump -U equaliser equaliser > backup.sql
 ```
 
 ## Nginx Web Server
@@ -402,45 +402,6 @@ IPFS data is stored in the Docker volume `ipfs-data`.
 
 See [IPFS.md](./ipfs/IPFS.md) for detailed configuration and operations.
 
-## Relay Syncer
-
-A standalone async Python process that subscribes to external NOSTR relays and caches Equaliser events in a shared PostgreSQL database. This provides fast, predictable data for the web client via the Cache API.
-
-- **Artist Event Ingestion**: Subscribes to Equaliser-tagged events (Kind 0, 30050, 30051, 30052, 30053) from configured relays
-- **User Data Caching**: Subscribes to registered fan/listener pubkeys for profiles (Kind 0), follow lists (Kind 3), playlists (Kind 30001), and feed events (Kind 1)
-- **Resilience**: Automatic reconnection with exponential backoff, catch-up queries on reconnect, periodic full sync
-- **Relay Discovery**: Watches Kind 10002 events to discover new relays automatically
-- **Artist Auto-Discovery**: Follows lists from registered users are checked against the artist index — new Equaliser artists are added automatically
-- **Deduplication**: Validates signatures, applies replaceable event rules, deduplicates by event ID
-
-See [RELAY_SYNCER.md](RELAY_SYNCER.md) for full architecture, configuration, and troubleshooting.
-
-### Docker Configuration
-
-```yaml
-relay-syncer:
-  build: ./relay-syncer
-  environment:
-    - DATABASE_URL=postgresql://equaliser:${DB_PASSWORD}@postgres:5432/equaliser
-    - RELAY_LIST=ws://nostr-relay:8008,wss://relay.damus.io,wss://nos.lol,wss://relay.nostr.band
-    - SYNC_INTERVAL=3600
-  depends_on:
-    - postgres
-    - nostr-relay
-  restart: unless-stopped
-
-postgres:
-  image: postgres:15
-  environment:
-    - POSTGRES_USER=equaliser
-    - POSTGRES_PASSWORD=${DB_PASSWORD}
-    - POSTGRES_DB=equaliser
-  volumes:
-    - postgres-data:/var/lib/postgresql/data
-  ports:
-    - "5432:5432"
-```
-
 ## Node Management Console
 
 Web-based admin dashboard at `/admin/console` for node operators to monitor and control all node operations. Distinct from artist admin pages at `/admin`.
@@ -457,10 +418,9 @@ The orchestrator is a FastAPI backend that handles content processing:
 - **HLS Encoding**: Convert to streaming format with FFmpeg
 - **IPFS Integration**: Upload segments and get CIDs
 - **Draft Management**: SQLite database for unreleased tracks
-- **NOSTR Publishing**: Create and publish Kind 30050 track events
-- **Cache API**: Serves cached artist, track, and user data from PostgreSQL (populated by relay syncer)
-- **User Registration**: Registers authenticated fan pubkeys for data caching by the relay syncer
-- **Admin API**: Node management endpoints for sync, artists, and access control
+- **NOSTR Publishing**: Create and publish Kind 30050 track events to the Equaliser Relay
+- **User Registration**: Registers fan pubkeys for data caching (writes to `registered_users`, read by Equaliser Relay)
+- **Admin API**: Access control and artist management endpoints
 
 Access the upload UI at `/admin/upload.html`. Tracks are saved as drafts and can be reviewed at `/admin/releases.html` before publishing to NOSTR.
 
@@ -472,7 +432,7 @@ See [ORCHESTRATOR.md](ORCHESTRATOR.md) for full API documentation. See [DATABASE
 |--------|------|---------|
 | `drafts-data` | `/data` | SQLite database for draft tracks |
 | `orchestrator-uploads` | `/tmp/equaliser/uploads` | Temporary upload storage |
-| `postgres-data` | `/var/lib/postgresql/data` | PostgreSQL cache database (relay syncer + cache API) |
+| `postgres-data` | `/var/lib/postgresql/data` | PostgreSQL database (Equaliser Relay event storage + cache) |
 
 ### Future Enhancements
 
@@ -524,7 +484,7 @@ ports:
 
 Check relay logs:
 ```bash
-docker-compose logs nostr-relay
+docker-compose logs equaliser-relay
 ```
 
 Common issues:
@@ -536,7 +496,7 @@ Common issues:
 If you get "Connection failed" errors when connecting to `ws://localhost/relay`:
 
 1. Check the relay is running: `docker-compose ps`
-2. Verify nginx config has trailing slash on proxy_pass: `proxy_pass http://nostr-relay:8080/;`
+2. Verify nginx config has trailing slash on proxy_pass: `proxy_pass http://equaliser-relay:8080/;`
 3. Restart nginx: `docker-compose restart web`
 4. Test relay directly: `curl -H "Accept: application/nostr+json" http://localhost/relay`
 
@@ -553,13 +513,12 @@ docker-compose exec web ls -la /usr/share/nginx/html/admin
 - [Technical Specification](../Technical%20Specification.md)
 - [Project Rules](../PROJECT_RULES.md)
 - [NOSTR Protocol](https://github.com/nostr-protocol/nostr)
-- [nostr-rs-relay](https://github.com/scsibug/nostr-rs-relay)
+- [Equaliser Relay](EQUALISER_RELAY.md)
 - [IPFS/Kubo](https://github.com/ipfs/kubo)
 - [Onboarding Documentation](ONBOARDING.md)
 - [Orchestrator API](ORCHESTRATOR.md)
 - [IPFS Documentation](IPFS.md)
 - [Node Management Spec](NODE-MANAGEMENT-SPEC.md)
-- [Relay Syncer](RELAY_SYNCER.md)
+- [Database Schema](DATABASE.md)
 - [Node Admin Console](NODE_ADMIN.md)
 - [Access Control](ACCESS_CONTROL.md)
-- [Database Schema](DATABASE.md)

@@ -177,65 +177,30 @@ Subsequent plays: All served from edge cache
 
 ## Relay Scaling
 
-### nostr-rs-relay Limits
+### Equaliser Relay
 
-The default relay (nostr-rs-relay with SQLite) handles:
-- Thousands of events
-- Hundreds of concurrent connections
-- Typical indie artist traffic easily
+The custom Equaliser Relay uses PostgreSQL from the start, eliminating SQLite bottlenecks. Key scaling advantages:
 
-### When to Upgrade
+- **Full tag indexing** — no client-side filtering workarounds at scale
+- **Denormalised tables** — pre-parsed data for fast REST API queries
+- **Single transaction ingestion** — events parsed into cache on arrival, no sync lag
+- **Built-in peer syncer** — no separate Python process managing WebSocket connections
+- **Go/Rust implementation** — better throughput than a Python-based syncer
 
-Signs you're outgrowing SQLite:
-- Connection timeouts during peak traffic
-- Slow queries on large event sets
-- Database lock contention
+The web client queries the relay's REST API for artist/track listings rather than making direct WebSocket queries. This provides fast, predictable responses from PostgreSQL.
 
-### Upgrade Path
+### Scaling Path
 
-**Option 1: PostgreSQL backend**
+1. **Connection pooling** — tune PostgreSQL connection pool for concurrent REST + WebSocket load
+2. **Query optimisation** — indexes on hot paths, materialised views for common queries
+3. **Read replicas** — PostgreSQL replication for read-heavy workloads
+4. **Horizontal scaling** — multiple relay instances behind load balancer with shared database (only for mainstream traffic)
 
-nostr-rs-relay supports PostgreSQL:
-
-```toml
-[database]
-engine = "postgres"
-connection = "postgres://user:pass@localhost/nostr"
-```
-
-Benefits:
-- Better concurrency
-- Connection pooling
-- No single-writer bottleneck
-
-**Option 2: strfry relay**
-
-Higher-performance relay implementation:
-- LMDB backend (faster than SQLite)
-- Better memory efficiency
-- Handles more concurrent connections
-
-**Option 3: Horizontal scaling**
-
-Multiple relay instances behind load balancer:
-- Each instance handles subset of connections
-- Shared database or event sync between instances
-- Complex, only for mainstream traffic
-
-### Cache Database (PostgreSQL)
-
-The relay syncer writes cached event data to a shared PostgreSQL database, which the orchestrator reads via the Cache API. This separates the query load from the NOSTR relay:
-
-- **NOSTR relay** (nostr-rs-relay + SQLite): Handles event storage, WebSocket subscriptions, and relay protocol
-- **PostgreSQL cache**: Serves pre-parsed, indexed data to the web client via REST API
-
-This means the web client no longer queries the relay directly for artist/track listings — it hits fast PostgreSQL queries via the Cache API. The relay is reserved for real-time event subscriptions and publishing.
-
-See [RELAY_SYNCER.md](RELAY_SYNCER.md) for syncer architecture and [DATABASE.md](DATABASE.md) for the cache schema.
+See [EQUALISER_RELAY.md](EQUALISER_RELAY.md) for the full relay specification and [DATABASE.md](DATABASE.md) for the cache schema.
 
 ### Realistic Assessment
 
-For indie artists, relay scaling is unlikely to be the bottleneck. The relay handles lightweight metadata (track info, profiles, social events). Streaming bandwidth is the real scaling challenge, and that's solved by Cloudflare + HLS. The addition of the PostgreSQL cache further reduces relay load by offloading read queries.
+For indie artists, relay scaling is unlikely to be the bottleneck. The relay handles lightweight metadata (track info, profiles, social events). Streaming bandwidth is the real scaling challenge, and that's solved by Cloudflare + HLS. The Equaliser Relay further reduces concern by combining relay, cache, and syncer into a single optimised service.
 
 ---
 
@@ -388,7 +353,7 @@ Future phase. Depends on having multiple active content nodes to federate betwee
 
 ### Recommended Specs by Tier
 
-With the relay syncer and PostgreSQL added to the stack, minimum RAM requirements increase slightly:
+With the Equaliser Relay and PostgreSQL added to the stack, minimum RAM requirements increase slightly:
 
 | Tier | CPU | RAM | Storage | Bandwidth | Monthly Cost |
 |------|-----|-----|---------|-----------|--------------|
@@ -396,7 +361,7 @@ With the relay syncer and PostgreSQL added to the stack, minimum RAM requirement
 | Growing | 2 vCPU | 4GB | 100GB | 4TB | $20-30 |
 | Popular | 4 vCPU | 8GB | 200GB | 8TB | $40-60 |
 
-PostgreSQL adds ~200MB RAM overhead. The relay syncer is lightweight (~50MB). Both fit comfortably within the indie tier but should be monitored as event volume grows.
+The Equaliser Relay combines relay, syncer, and REST API in a single process. PostgreSQL adds ~200MB RAM overhead. Both fit comfortably within the indie tier but should be monitored as event volume grows.
 
 ### Provider Recommendations
 
