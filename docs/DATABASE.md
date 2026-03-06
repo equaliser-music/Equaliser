@@ -136,6 +136,94 @@ CREATE TABLE cached_albums (
 
 ---
 
+### User Cache Tables
+
+These tables support fan/listener data caching. The orchestrator writes to `registered_users` when a fan authenticates; the relay syncer reads that table and populates the remaining user cache tables from external relays. See [RELAY_SYNCER.md](RELAY_SYNCER.md) for subscription details.
+
+#### registered_users
+
+Registry of pubkeys that have authenticated through the node.
+
+```sql
+CREATE TABLE registered_users (
+    pubkey TEXT PRIMARY KEY,
+    npub TEXT NOT NULL,
+    registered_at TIMESTAMPTZ DEFAULT NOW(),
+    last_seen TIMESTAMPTZ DEFAULT NOW(),
+    enabled BOOLEAN DEFAULT TRUE              -- admin can disable syncing per user
+);
+```
+
+#### cached_users
+
+Parsed fan profiles from Kind 0 events.
+
+```sql
+CREATE TABLE cached_users (
+    pubkey TEXT PRIMARY KEY,
+    npub TEXT NOT NULL,
+    display_name TEXT,
+    name TEXT,
+    picture TEXT,
+    lightning_address TEXT,
+    about TEXT,
+    raw_event JSONB NOT NULL,
+    event_id TEXT NOT NULL,
+    created_at BIGINT NOT NULL,
+    cached_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+#### cached_user_follows
+
+Follow list per user from Kind 3 events — one row per followed pubkey.
+
+```sql
+CREATE TABLE cached_user_follows (
+    pubkey TEXT NOT NULL REFERENCES registered_users(pubkey),
+    follows_pubkey TEXT NOT NULL,
+    relay_hint TEXT,
+    updated_at BIGINT NOT NULL,
+    PRIMARY KEY (pubkey, follows_pubkey)
+);
+```
+
+#### cached_user_feed
+
+Notes from a user's follow list (Kind 1), subject to feed thresholds (`USER_FEED_DAYS`, `USER_FEED_LIMIT`).
+
+```sql
+CREATE TABLE cached_user_feed (
+    event_id TEXT PRIMARY KEY,
+    pubkey TEXT NOT NULL,                      -- author pubkey
+    for_user_pubkey TEXT NOT NULL REFERENCES registered_users(pubkey),
+    content TEXT,
+    created_at BIGINT NOT NULL,
+    cached_at TIMESTAMPTZ DEFAULT NOW(),
+    relay_source TEXT
+);
+```
+
+#### cached_user_playlists
+
+Equaliser playlists (Kind 30001) belonging to registered users.
+
+```sql
+CREATE TABLE cached_user_playlists (
+    event_id TEXT PRIMARY KEY,
+    pubkey TEXT NOT NULL REFERENCES registered_users(pubkey),
+    playlist_id TEXT NOT NULL,                 -- d tag
+    name TEXT,
+    track_refs JSONB,                          -- ordered list of track event IDs
+    raw_event JSONB NOT NULL,
+    created_at BIGINT NOT NULL,
+    cached_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(pubkey, playlist_id)
+);
+```
+
+---
+
 ### Syncer Tables
 
 Used by the relay syncer for connection management and logging.

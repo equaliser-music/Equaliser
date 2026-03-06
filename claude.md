@@ -324,6 +324,14 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - **Seed Data**: `tools/seed-social.sh` populates relay with test posts, threads, DMs, reactions
   - See [SOCIAL.md](docs/SOCIAL.md), [COMMUNITY.md](docs/COMMUNITY.md)
 
+- [ ] **User Data Caching (Phase B.1)**: Cache fan/listener NOSTR data on content node
+  - Fan authenticates via NIP-07/NIP-46, orchestrator writes pubkey to `registered_users`
+  - Relay syncer subscribes to user's Kind 0 (profile), Kind 3 (follows), Kind 30001 (playlists), Kind 1 (feed)
+  - Follow list processing auto-discovers Equaliser artists not yet indexed
+  - Feed thresholds: `USER_FEED_DAYS` (default 30), `USER_FEED_LIMIT` (default 500)
+  - Admin controls: per-user enable/disable, feed thresholds, force resync, remove user
+  - See [DATABASE.md](docs/DATABASE.md) (User Cache Tables), [RELAY_SYNCER.md](docs/RELAY_SYNCER.md) (User Subscriptions), [ORCHESTRATOR.md](docs/ORCHESTRATOR.md) (User Registration & Cache API)
+
 - [ ] **Access Control (Phase A)**: Gated onboarding with invite codes
   - Public request form at `/join` for artists to apply
   - Admin approval workflow via management console

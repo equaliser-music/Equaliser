@@ -59,6 +59,7 @@ content_node/
 | `/api` | orchestrator:8000 | Orchestrator API (track uploads, etc.) |
 | `/api/access/*` | orchestrator:8000 | Access control endpoints (public) |
 | `/api/artists/*` | orchestrator:8000 | Cache API — artist and track data (public) |
+| `/api/users/*` | orchestrator:8000 | User registration and cached data (fan auth) |
 | `/api/admin/*` | orchestrator:8000 | Admin API — sync, artists, requests (admin auth) |
 | `/health` | nginx | Health check endpoint |
 
@@ -358,6 +359,22 @@ The `/relay` path is configured for WebSocket connections to the NOSTR relay wit
 - Path rewriting (strips `/relay` prefix)
 - 24-hour read timeout for long-lived connections
 
+### Caching Strategy
+
+Different cache policies for different content types:
+
+| Content Type | Cache-Control | Rationale |
+|-------------|---------------|-----------|
+| JavaScript (`.js`) | `no-cache` | Mutable — browser always revalidates (304 is cheap) |
+| HTML (SPA routes) | Served as `app.html` | SPA shell; `/raw/` templates use `no-cache` |
+| IPFS (`/ipfs/*`) | `immutable, max-age=31536000` | CID-addressed content never changes |
+| Blossom (`/blossom/*`) | `immutable, max-age=31536000` | SHA-256 hash-addressed, immutable |
+| CSS, images | Browser default | Heuristic caching based on Last-Modified |
+
+**Important:** The JS `no-cache` location block uses `location ~* \.js$` (regex). Nginx regex locations override prefix locations, so take care that new regex blocks don't intercept prefix-matched paths like `/raw/`, `/admin`, or `/api`. Use `^~` on prefix locations if they need protection from regex override.
+
+Script tags in `app.html` include `?v=N` cache-busting parameters. Bump the version number when deploying JS changes to force browsers to re-download immediately.
+
 ### Compression
 
 Gzip compression is enabled for text, CSS, JSON, and JavaScript files.
@@ -389,9 +406,11 @@ See [IPFS.md](./ipfs/IPFS.md) for detailed configuration and operations.
 
 A standalone async Python process that subscribes to external NOSTR relays and caches Equaliser events in a shared PostgreSQL database. This provides fast, predictable data for the web client via the Cache API.
 
-- **Event Ingestion**: Subscribes to Equaliser-tagged events (Kind 0, 30050, 30051, 30052, 30053) from configured relays
+- **Artist Event Ingestion**: Subscribes to Equaliser-tagged events (Kind 0, 30050, 30051, 30052, 30053) from configured relays
+- **User Data Caching**: Subscribes to registered fan/listener pubkeys for profiles (Kind 0), follow lists (Kind 3), playlists (Kind 30001), and feed events (Kind 1)
 - **Resilience**: Automatic reconnection with exponential backoff, catch-up queries on reconnect, periodic full sync
 - **Relay Discovery**: Watches Kind 10002 events to discover new relays automatically
+- **Artist Auto-Discovery**: Follows lists from registered users are checked against the artist index — new Equaliser artists are added automatically
 - **Deduplication**: Validates signatures, applies replaceable event rules, deduplicates by event ID
 
 See [RELAY_SYNCER.md](RELAY_SYNCER.md) for full architecture, configuration, and troubleshooting.
@@ -439,7 +458,8 @@ The orchestrator is a FastAPI backend that handles content processing:
 - **IPFS Integration**: Upload segments and get CIDs
 - **Draft Management**: SQLite database for unreleased tracks
 - **NOSTR Publishing**: Create and publish Kind 30050 track events
-- **Cache API**: Serves cached artist and track data from PostgreSQL (populated by relay syncer)
+- **Cache API**: Serves cached artist, track, and user data from PostgreSQL (populated by relay syncer)
+- **User Registration**: Registers authenticated fan pubkeys for data caching by the relay syncer
 - **Admin API**: Node management endpoints for sync, artists, and access control
 
 Access the upload UI at `/admin/upload.html`. Tracks are saved as drafts and can be reviewed at `/admin/releases.html` before publishing to NOSTR.
