@@ -172,7 +172,7 @@ See [SOCIAL.md](../docs/SOCIAL.md) for the full two-layer architecture (Equalise
 | `d` (replaceable event identifiers) | `board` |
 | `t` (hashtags) | `subject` |
 
-This means relay filter parameters like `#app`, `#content-type`, `#board` will return **zero results**. All filtering on multi-character tags must be done client-side after fetching events broadly.
+This means relay filter parameters like `#app`, `#content-type`, `#board` will return **zero results**. All filtering on multi-character tags must be done client-side after fetching events broadly. This applies equally to user cache data (feeds, playlists) ingested by the relay syncer.
 
 **Correct pattern:**
 ```javascript

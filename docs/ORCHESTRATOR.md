@@ -299,6 +299,62 @@ Prepares all drafts in an album for release.
 }
 ```
 
+## User Registration & Cache API
+
+Fan/listener authentication and cached data endpoints. User caching is metadata only — profiles, follows, playlists, and feeds from NOSTR relays. The orchestrator writes to `registered_users` on login; the relay syncer handles all subsequent data ingestion.
+
+### Register User
+
+```
+POST /api/users/register
+Content-Type: application/json
+```
+
+Called when a fan authenticates via NIP-07 or NIP-46. Writes the pubkey to `registered_users` in PostgreSQL, triggering the relay syncer to begin caching their data.
+
+**Request Body:**
+
+```json
+{
+  "pubkey": "hex..."
+}
+```
+
+**Response:**
+
+```json
+{
+  "pubkey": "hex...",
+  "registered": true
+}
+```
+
+### Get Current User Profile
+
+```
+GET /api/users/me?pubkey={hex}
+```
+
+Returns the cached profile (Kind 0) for the authenticated user.
+
+### Get User Feed
+
+```
+GET /api/users/{pubkey}/feed?limit=50&offset=0
+```
+
+Returns cached feed events (Kind 1 from followed pubkeys), subject to `USER_FEED_DAYS` and `USER_FEED_LIMIT` thresholds. The client falls back to direct relay queries for anything beyond the cached window.
+
+### Get User Playlists
+
+```
+GET /api/users/{pubkey}/playlists
+```
+
+Returns the user's cached Equaliser playlists (Kind 30001).
+
+---
+
 ## Processing Pipeline
 
 When a track is uploaded, the orchestrator:
@@ -335,6 +391,9 @@ The preview contains only the first 30 seconds (unencrypted, free to stream).
 | `IPFS_API_URL` | `http://ipfs:5001` | IPFS node API endpoint |
 | `NOSTR_RELAY_URL` | `ws://nostr-relay:8080` | NOSTR relay WebSocket endpoint |
 | `DATABASE_PATH` | `/data/drafts.db` | SQLite database path for drafts |
+| `DATABASE_URL` | (required) | PostgreSQL connection string (shared with relay syncer) |
+| `USER_FEED_DAYS` | `30` | Maximum age of cached feed events in days |
+| `USER_FEED_LIMIT` | `500` | Maximum cached feed events per user |
 
 ## NOSTR Event Format
 

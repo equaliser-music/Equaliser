@@ -52,6 +52,35 @@ The syncer connects to each relay in its configured list and subscribes to Equal
 
 It also subscribes to Kind 10002 (relay list) events from known artist pubkeys to discover new relays organically.
 
+### User Subscriptions
+
+When a fan authenticates through the content node, the orchestrator writes their pubkey to the `registered_users` table. The syncer detects new registrations and subscribes to their data:
+
+```json
+{"kinds": [0, 3, 30001], "authors": ["<user_pubkey>"]}
+```
+
+For feed events, it subscribes to Kind 1 from the user's follow list:
+
+```json
+{"kinds": [1], "authors": ["<followed_1>", "<followed_2>", "..."], "since": <threshold_timestamp>}
+```
+
+Follow list subscriptions are updated whenever a new Kind 3 event is ingested for the user.
+
+**Artist auto-discovery:** When a user's Kind 3 follow list is processed, the syncer checks each followed pubkey against the existing artist index. Any Equaliser artists not already indexed are added automatically — their catalogue data then syncs through the normal artist cache pipeline.
+
+**Feed thresholds:** Feed events are cached subject to two node-level limits (whichever is hit first):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `USER_FEED_DAYS` | `30` | Maximum age of cached feed events in days |
+| `USER_FEED_LIMIT` | `500` | Maximum cached feed events per user |
+
+These can be updated at runtime via the admin console without restarting the container.
+
+**Freshness:** The syncer maintains persistent WebSocket subscriptions for all registered user pubkeys. There is no TTL-based expiry — freshness is event-driven via relay subscriptions, with the same reconnection and catch-up mechanisms used for artist data.
+
 ---
 
 ## Event Processing
@@ -115,6 +144,8 @@ postgres:
 | `DATABASE_URL` | (required) | PostgreSQL connection string |
 | `RELAY_LIST` | (required) | Comma-separated relay WebSocket URLs |
 | `SYNC_INTERVAL` | `3600` | Full resync interval in seconds |
+| `USER_FEED_DAYS` | `30` | Maximum age of cached feed events in days |
+| `USER_FEED_LIMIT` | `500` | Maximum cached feed events per user |
 
 ---
 
@@ -141,6 +172,16 @@ Relay connection tracking — URL, status, event counts, errors, auto-discovery 
 ### sync_log
 
 Debug and monitoring log — per-event record of relay source, kind, and action taken (inserted, updated, duplicate, invalid).
+
+### User Cache Tables
+
+Written by the syncer for registered fan/listener accounts:
+
+- **registered_users** — pubkeys that have authenticated through the node (written by orchestrator, read by syncer)
+- **cached_users** (Kind 0) — parsed fan profiles
+- **cached_user_follows** (Kind 3) — follow list per user
+- **cached_user_feed** (Kind 1) — notes from followed pubkeys, subject to feed thresholds
+- **cached_user_playlists** (Kind 30001) — Equaliser playlists belonging to registered users
 
 ---
 
@@ -173,6 +214,20 @@ These replace direct relay queries from the web client with fast, predictable AP
 - Verify events have the `["app", "Equaliser"]` tag (syncer only ingests tagged events)
 - Check `sync_log` table for action taken on specific event IDs
 - Run a force resync from the management console
+
+### User profile not appearing after login
+- Check `registered_users` table — confirm the pubkey was written by the orchestrator
+- Verify the user has a Kind 0 event on at least one configured relay
+- Check syncer logs: `docker compose logs relay-syncer`
+
+### Feed not populating
+- Confirm the user has a Kind 3 (follow list) event on a reachable relay
+- Check `USER_FEED_DAYS` and `USER_FEED_LIMIT` — thresholds may be filtering all events
+- Check `sync_log` for action taken on relevant event IDs
+
+### Playlists missing
+- Verify playlist events have the `["app", "Equaliser"]` tag
+- Check `cached_user_playlists` table directly for the user's pubkey
 
 ### Database connection issues
 - Verify PostgreSQL is running: `docker compose ps postgres`

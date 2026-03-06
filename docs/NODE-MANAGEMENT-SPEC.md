@@ -60,6 +60,7 @@ The syncer runs as its own Docker container (`relay-syncer`) alongside the exist
 - Connects to each relay in its configured list
 - Subscribes to Equaliser events: `{"kinds": [0, 30050, 30051, 30052, 30053], "#app": ["Equaliser"]}`
 - Also subscribes to Kind 10002 (relay list) events from known artist pubkeys to discover new relays organically
+- Subscribes to registered fan/listener pubkeys for user data caching (Kind 0, 3, 30001) — see [RELAY_SYNCER.md](RELAY_SYNCER.md) for details on user subscriptions, feed thresholds, and artist auto-discovery from follow lists
 
 **Event Processing:**
 - Validates event signatures before writing to cache
@@ -189,6 +190,16 @@ CREATE TABLE sync_log (
 );
 ```
 
+### 3.2 User Cache Tables
+
+Fan/listener data cached by the relay syncer when users authenticate through the node. This is purely metadata caching (profiles, follows, playlists, feeds) — distinct from file hosting. See [DATABASE.md](DATABASE.md) for full schema.
+
+- `registered_users` — pubkeys that have authenticated (written by orchestrator, read by syncer)
+- `cached_users` — parsed fan profiles (Kind 0)
+- `cached_user_follows` — follow list per user (Kind 3)
+- `cached_user_feed` — notes from followed pubkeys (Kind 1), subject to feed thresholds
+- `cached_user_playlists` — Equaliser playlists (Kind 30001)
+
 ---
 
 ## 4. Cache API Endpoints
@@ -225,6 +236,19 @@ GET /api/search
   - Search across artists and tracks
   - Query params: ?q=search+term&type=artist|track|all
   - Response: matched artists and tracks
+
+POST /api/users/register
+  - Register authenticated fan pubkey for data caching
+  - Body: {"pubkey": "hex..."}
+
+GET /api/users/me?pubkey={hex}
+  - Cached profile for authenticated user
+
+GET /api/users/{pubkey}/feed?limit=50&offset=0
+  - Cached feed events from followed pubkeys
+
+GET /api/users/{pubkey}/playlists
+  - User's cached Equaliser playlists (Kind 30001)
 ```
 
 ### 4.2 Admin Endpoints (authenticated, for management console)
@@ -236,6 +260,13 @@ POST /api/admin/sync/relays         - Add a relay to the sync list
 DELETE /api/admin/sync/relays/{url} - Remove a relay
 POST /api/admin/sync/force          - Trigger a full resync
 GET  /api/admin/sync/log            - Recent sync activity log
+
+GET    /api/admin/users                    - List all registered users with cache stats
+GET    /api/admin/users/{pubkey}           - View single user's cached data summary
+PUT    /api/admin/users/{pubkey}           - Enable/disable syncing for a user
+DELETE /api/admin/users/{pubkey}           - Deregister user and purge cached data
+POST   /api/admin/users/{pubkey}/resync    - Force resync user data
+PUT    /api/admin/settings/user-cache      - Update global user cache settings
 ```
 
 ---
@@ -380,6 +411,14 @@ Web-based admin dashboard for node operators to monitor and control all node ope
 - Onboarded artists list with status, track count, storage usage
 - Per-artist detail: fee model, published events, IPFS storage used
 - Invite code management: active codes, generate manual codes
+
+**User Management**
+- Global toggle to enable/disable user caching
+- Registered users list with last seen time, event counts, cache size
+- Per-user enable/disable syncing
+- Feed threshold settings (time window in days, event count cap)
+- Force resync and remove user actions
+- See [RELAY_SYNCER.md](RELAY_SYNCER.md) for user subscription details
 
 **IPFS & Storage**
 - Local IPFS node stats: storage used, peer count, pin count
@@ -544,6 +583,16 @@ This can be done with the existing stack — no new services needed. The admin a
 4. Add syncer as new Docker container
 5. Add cache API endpoints to orchestrator
 6. Update web client to use cache API instead of direct relay queries
+
+### Phase B.1: User Cache Integration
+
+**Goal:** Cache fan/listener data for fast client reads.
+
+1. Add user cache tables to PostgreSQL schema
+2. Add user subscription logic to relay syncer (Kind 0, 3, 30001, feed Kind 1)
+3. Implement `POST /api/users/register` endpoint in orchestrator
+4. Add user data read endpoints to cache API
+5. Add user management controls to admin console
 
 ### Phase C: Node Management Console
 

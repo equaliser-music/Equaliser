@@ -56,6 +56,19 @@ See [RELAY_SYNCER.md](RELAY_SYNCER.md) for syncer architecture and configuration
 
 See [ACCESS_CONTROL.md](ACCESS_CONTROL.md) for the access request and approval workflow.
 
+### User Management
+
+Manage fan/listener data caching. User caching is purely metadata — NOSTR event data (profiles, follow lists, playlists, feeds). This is distinct from file hosting (IPFS/Blossom) which consumes real storage.
+
+- **Global toggle** — enable/disable user caching entirely if the node is resource-constrained
+- **Registered users list** — all authenticated pubkeys with last seen time, event counts, cache size
+- **Per-user enable/disable** — suspend syncing for individual users without removing their registration
+- **Feed threshold settings** — configure global time window (days) and event count cap
+- **Force resync** — trigger an immediate full resync for a specific user
+- **Remove user** — deregister a pubkey and purge their cached data
+
+See [RELAY_SYNCER.md](RELAY_SYNCER.md) for how user subscriptions work and [DATABASE.md](DATABASE.md) for user cache tables.
+
 ### IPFS & Storage
 
 - Local IPFS node stats: storage used, peer count, pin count
@@ -102,6 +115,17 @@ POST   /api/admin/requests/{id}/decline - Decline request with optional reason
 GET    /api/admin/artists               - List all onboarded artists on this node
 PUT    /api/admin/artists/{pubkey}      - Update artist settings (fee model, status)
 DELETE /api/admin/artists/{pubkey}      - Remove artist from node
+```
+
+### User Management
+
+```
+GET    /api/admin/users                    - List all registered users with cache stats
+GET    /api/admin/users/{pubkey}           - View single user's cached data summary
+PUT    /api/admin/users/{pubkey}           - Enable/disable syncing for a user
+DELETE /api/admin/users/{pubkey}           - Deregister user and purge cached data
+POST   /api/admin/users/{pubkey}/resync    - Force resync user data
+PUT    /api/admin/settings/user-cache      - Update global user cache settings (enable/disable, feed thresholds)
 ```
 
 ---
