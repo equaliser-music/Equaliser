@@ -892,7 +892,7 @@
             const profileEvent = {
                 kind: 0,
                 created_at: Math.floor(Date.now() / 1000),
-                tags: [],
+                tags: [['app', 'Equaliser']],
                 content: JSON.stringify(profileContent)
             };
 
@@ -900,7 +900,7 @@
             const relayListEvent = {
                 kind: 10002,
                 created_at: Math.floor(Date.now() / 1000),
-                tags: defaultRelays.map(url => ['r', url]),
+                tags: [['app', 'Equaliser'], ...defaultRelays.map(url => ['r', url])],
                 content: ''
             };
 

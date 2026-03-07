@@ -515,7 +515,7 @@
                 const event = {
                     kind: 7,
                     created_at: Math.floor(Date.now() / 1000),
-                    tags: [['e', noteId], ['p', authorPubkey]],
+                    tags: [['app', 'Equaliser'], ['e', noteId], ['p', authorPubkey]],
                     content: '+'
                 };
                 const signedEvent = await SessionManager.signEvent(event);
@@ -542,7 +542,7 @@
                 const event = {
                     kind: 6,
                     created_at: Math.floor(Date.now() / 1000),
-                    tags: [['e', noteId, NostrSocial.DEFAULT_RELAYS[0]], ['p', authorPubkey]],
+                    tags: [['app', 'Equaliser'], ['e', noteId, NostrSocial.DEFAULT_RELAYS[0]], ['p', authorPubkey]],
                     content: originalNote ? JSON.stringify(originalNote) : ''
                 };
                 const signedEvent = await SessionManager.signEvent(event);

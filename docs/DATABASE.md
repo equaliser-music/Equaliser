@@ -14,7 +14,7 @@ The Equaliser content node uses two database systems:
 | Drafts | SQLite | Track drafts and upload metadata (existing) |
 | Cache | PostgreSQL | Equaliser Relay event storage and cache, access control, cluster/blossom state |
 
-The SQLite database is used by the orchestrator for track uploads and draft management. The PostgreSQL database is owned by the Equaliser Relay, which writes events on ingestion and serves cached data via its REST API. The orchestrator reads from PostgreSQL for access control and cluster state.
+The SQLite database is used by the orchestrator for track uploads and draft management. The PostgreSQL database is owned exclusively by the Equaliser Relay, which writes events on ingestion and serves cached data via its REST API at `/api/catalogue/*`. The orchestrator does NOT connect to PostgreSQL directly — all data access goes through the relay's REST API endpoints.
 
 ---
 
@@ -58,13 +58,61 @@ CREATE TABLE draft_tracks (
 ## PostgreSQL: Cache Database
 
 **Connection:** `postgresql://equaliser:${DB_PASSWORD}@postgres:5432/equaliser`
-**Owned by:** Equaliser Relay (primary reader/writer). Orchestrator reads access control and cluster tables.
+**Owned by:** Equaliser Relay (exclusive reader/writer). Orchestrator accesses data via relay REST API only.
+
+---
+
+### Raw Event Storage
+
+These tables form the core NOSTR protocol layer. Every accepted event is stored here regardless of whether denormalised parsing succeeds. This is the source of truth for serving `REQ` subscriptions.
+
+#### raw_events
+
+Every accepted NOSTR event, stored verbatim. Top-level fields extracted for efficient `REQ` filter matching.
+
+```sql
+CREATE TABLE raw_events (
+    id TEXT PRIMARY KEY,              -- event ID (32-byte hex, SHA-256 of serialised event)
+    pubkey TEXT NOT NULL,
+    kind INTEGER NOT NULL,
+    created_at BIGINT NOT NULL,
+    content TEXT NOT NULL,
+    sig TEXT NOT NULL,
+    raw JSONB NOT NULL,               -- full event as received, served back verbatim
+    first_seen_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_raw_events_pubkey ON raw_events(pubkey);
+CREATE INDEX idx_raw_events_kind ON raw_events(kind);
+CREATE INDEX idx_raw_events_created_at ON raw_events(created_at);
+CREATE INDEX idx_raw_events_kind_pubkey ON raw_events(kind, pubkey);
+```
+
+**Replaceable event handling:** For replaceable events (Kind 0, 3, 10000-19999) and parameterised replaceable events (Kind 30000-39999), the relay keeps only the latest version. When a newer event arrives (higher `created_at`, same pubkey+kind or pubkey+kind+d-tag), the old row is deleted from `raw_events` and `event_tags`, and the new event is inserted. The corresponding denormalised table row is updated. All in one transaction.
+
+#### event_tags
+
+Normalised tag index for all events. Enables relay-side filtering on any tag name, including multi-character tags (`app`, `content-type`, `board`).
+
+```sql
+CREATE TABLE event_tags (
+    event_id TEXT NOT NULL REFERENCES raw_events(id) ON DELETE CASCADE,
+    tag_name TEXT NOT NULL,           -- 'app', 'content-type', 'e', 'p', 'd', etc.
+    tag_value TEXT NOT NULL,
+    tag_index INTEGER NOT NULL,       -- position in the tag array
+    PRIMARY KEY (event_id, tag_name, tag_index)
+);
+
+CREATE INDEX idx_event_tags_lookup ON event_tags(tag_name, tag_value);
+```
+
+The `ON DELETE CASCADE` ensures that when a replaceable event is deleted from `raw_events`, its tags are automatically removed.
 
 ---
 
 ### Cache Tables
 
-These tables are populated by the Equaliser Relay when events arrive via WebSocket or peer sync. Events are parsed into denormalised tables in a single transaction on arrival — no sync lag.
+These tables are populated by the Equaliser Relay when events arrive via WebSocket or peer sync. Events are parsed into denormalised tables in a single transaction on arrival — no sync lag. If parsing fails, the raw event is still stored in `raw_events` and the error is logged to `event_log` (action: `parse_error`). Denormalised tables can be rebuilt from `raw_events` at any time.
 
 #### cached_artists
 
@@ -96,7 +144,7 @@ Parsed track metadata from Kind 30050 events.
 ```sql
 CREATE TABLE cached_tracks (
     event_id TEXT PRIMARY KEY,
-    artist_pubkey TEXT NOT NULL REFERENCES cached_artists(pubkey),
+    artist_pubkey TEXT NOT NULL,            -- no FK: tracks may arrive before artist profile
     d_tag TEXT NOT NULL,
     title TEXT,
     album TEXT,
@@ -122,7 +170,7 @@ Parsed album metadata from Kind 30051 events.
 ```sql
 CREATE TABLE cached_albums (
     event_id TEXT PRIMARY KEY,
-    artist_pubkey TEXT NOT NULL REFERENCES cached_artists(pubkey),
+    artist_pubkey TEXT NOT NULL,            -- no FK: albums may arrive before artist profile
     d_tag TEXT NOT NULL,
     title TEXT,
     cover_art_cid TEXT,
@@ -257,7 +305,7 @@ CREATE TABLE event_log (
     relay_url TEXT NOT NULL,
     event_kind INTEGER NOT NULL,
     event_id TEXT NOT NULL,
-    action TEXT NOT NULL,                  -- inserted, updated, duplicate, invalid
+    action TEXT NOT NULL,                  -- inserted, updated, duplicate, invalid, deleted, parse_error
     logged_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
@@ -377,7 +425,7 @@ CREATE TABLE blossom_mirrors (
 The existing SQLite database continues to serve draft management. The PostgreSQL database is additive — it doesn't replace SQLite but serves a different purpose (Equaliser Relay event storage and cache, access control, cluster state).
 
 - **SQLite:** Accessed directly by the orchestrator at `/data/drafts.db`
-- **PostgreSQL:** Owned by the Equaliser Relay, which manages all event data reads and writes. The orchestrator may read PostgreSQL directly for access control and cluster state tables.
+- **PostgreSQL:** Owned exclusively by the Equaliser Relay, which manages all reads and writes. The orchestrator accesses PostgreSQL data only through the relay's REST API — no direct database connection.
 
 ---
 

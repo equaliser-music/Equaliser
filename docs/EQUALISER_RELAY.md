@@ -36,7 +36,7 @@ The wider NOSTR network is supported — but never at the cost of app user exper
 │                                                       │
 │  ┌──────────┐  ┌───────────────────┐  ┌───────────┐ │
 │  │  IPFS    │  │  Equaliser Relay  │  │Orchestrator│ │
-│  │  (kubo)  │  │  (Rust/Go)       │  │ (FastAPI)  │ │
+│  │  (kubo)  │  │  (Go)            │  │ (FastAPI)  │ │
 │  │          │  │                   │  │            │ │
 │  │          │  │  ┌─────────────┐  │  │            │ │
 │  │          │  │  │ WebSocket   │  │  │            │ │
@@ -79,10 +79,34 @@ Standard NOSTR relay protocol. Accepts `REQ`, `EVENT`, `CLOSE` messages.
 - `#app`, `#content-type`, `#board` filters work natively in subscription queries
 - No client-side filtering workarounds needed
 
-**Supported NIPs (minimum):**
-- NIP-01 — Basic protocol (REQ/EVENT/CLOSE/EOSE)
-- NIP-11 — Relay information document
-- NIP-42 — Authentication (optional, for admin operations)
+**Supported NIPs:** `[1, 9, 11, 45]`
+- NIP-01 — Basic protocol (REQ/EVENT/CLOSE/EOSE/OK/NOTICE), replaceable events, parameterised replaceable events
+- NIP-09 — Event deletion (Kind 5 delete requests — relay deletes referenced events from storage)
+- NIP-11 — Relay information document (served at WebSocket URL via HTTP GET with `Accept: application/nostr+json`)
+- NIP-45 — Event counts (COUNT verb — efficient with PostgreSQL `COUNT(*)`)
+
+Social NIPs (NIP-04 DMs, NIP-10 threading, NIP-25 reactions) work automatically via NIP-01 event storage and tag filtering — no relay-side code needed. They are not listed in `supported_nips` because they are client-side conventions, not relay behaviours.
+
+**NIP-11 relay information document:**
+
+```json
+{
+  "name": "${RELAY_NAME}",
+  "description": "${RELAY_DESCRIPTION}",
+  "supported_nips": [1, 9, 11, 45],
+  "software": "equaliser-relay",
+  "version": "0.1.0",
+  "limitation": {
+    "max_message_length": 65536,
+    "max_subscriptions": 20,
+    "max_filters": 10,
+    "max_event_tags": 2000,
+    "auth_required": false
+  }
+}
+```
+
+`RELAY_NAME` and `RELAY_DESCRIPTION` are configurable via environment variables (shared with `/api/access/node-info`).
 
 **Event acceptance policy:**
 - Events with `["app", "Equaliser"]` tag → stored in optimised schema + raw event table
@@ -91,10 +115,13 @@ Standard NOSTR relay protocol. Accepts `REQ`, `EVENT`, `CLOSE` messages.
 
 ### 2. Optimised Storage (PostgreSQL)
 
-Events are stored twice:
+Events are stored in three layers:
 
-1. **Raw events table** — every accepted event as JSONB, for NOSTR protocol compliance (serving `REQ` subscriptions)
-2. **Denormalised tables** — parsed into Equaliser-specific schemas for fast REST API queries
+1. **`raw_events` table** — every accepted event with top-level fields extracted for `REQ` filtering, plus full event as JSONB for verbatim serving
+2. **`event_tags` table** — normalised tag index enabling relay-side filtering on any tag name (including multi-char tags)
+3. **Denormalised tables** — parsed into Equaliser-specific schemas for fast REST API queries
+
+See [DATABASE.md](DATABASE.md) for the full `raw_events` and `event_tags` schemas.
 
 The denormalised tables are the same schemas already specified in [DATABASE.md](DATABASE.md):
 
@@ -118,21 +145,51 @@ When an event arrives (from WebSocket or peer sync), it's written to raw storage
 
 ### 3. REST API
 
-Served by the relay process directly:
+The relay serves four tiers of REST endpoints, each with different access controls:
+
+**Public — `/api/catalogue/*`** (proxied by nginx, rate limited, GET only, same-origin CORS)
+
+Read-only endpoints for this node's own client. The data is publicly available via the WebSocket relay, but the catalogue API exists purely as a performance cache for the local client — not as a public API for other nodes or third-party clients. Each node builds its own cache from NOSTR events. nginx enforces same-origin CORS (`Access-Control-Allow-Origin` set to the node's own domain) and rate limiting.
 
 ```
-GET /api/artists                    - List all cached artists
-GET /api/artists/{npub}             - Single artist profile
-GET /api/artists/{npub}/tracks      - Artist's tracks
-GET /api/tracks/{event_id}          - Single track
-GET /api/tracks                     - Tracks across all artists
-GET /api/search                     - Search artists and tracks
-GET /api/users/me?pubkey={hex}      - Cached user profile
-GET /api/users/{pubkey}/feed        - User's cached feed
-GET /api/users/{pubkey}/playlists   - User's playlists
+GET /api/catalogue/artists                    - List all cached artists
+GET /api/catalogue/artists/{npub}             - Single artist profile
+GET /api/catalogue/artists/{npub}/tracks      - Artist's tracks
+GET /api/catalogue/tracks/{event_id}          - Single track
+GET /api/catalogue/tracks                     - Tracks across all artists
+GET /api/catalogue/search                     - Search artists and tracks
+GET /api/catalogue/users/me?pubkey={hex}      - Cached user profile
+GET /api/catalogue/users/{pubkey}/feed        - User's cached feed
+GET /api/catalogue/users/{pubkey}/playlists   - User's playlists
 ```
 
-The orchestrator handles track uploads, draft management, and IPFS. The relay handles all read-side data serving.
+**Public — `/api/access/*`** (proxied by nginx, rate limited)
+
+Access control endpoints for artist onboarding. These read/write the `access_requests` and `node_artists` tables in PostgreSQL, so they are served by the relay (the sole PostgreSQL owner). See [NODE-MANAGEMENT-SPEC.md](NODE-MANAGEMENT-SPEC.md) Section 5.
+
+```
+POST /api/access/request                      - Submit a join request (public form)
+GET  /api/access/node-info                    - Public node info (name, description, artist count, fee model)
+```
+
+**Internal — `/api/internal/*`** (Docker network only, NOT proxied by nginx)
+
+Orchestrator-to-relay calls. Only reachable on the Docker internal network — nginx never routes these paths, so they are not accessible from the public internet. The orchestrator calls `http://equaliser-relay:8008/api/internal/*` directly.
+
+```
+POST /api/internal/users/register             - Register fan pubkey for data caching
+POST /api/internal/access/validate            - Validate an invite code
+POST /api/internal/access/onboard             - Record successful artist onboarding
+GET  /api/internal/access/check?pubkey={hex}  - Check if pubkey is approved on this node
+```
+
+**Admin — `/api/admin/*`** (password authenticated via `ADMIN_PASSWORD` env var)
+
+Node management endpoints for the admin console. See [NODE-MANAGEMENT-SPEC.md](NODE-MANAGEMENT-SPEC.md) Section 4.
+
+The orchestrator handles track uploads, draft management, and IPFS at `/api/*`. The relay handles all read-side data serving at `/api/catalogue/*`. No routing ambiguity in nginx.
+
+**Orchestrator data access:** The orchestrator does NOT connect to PostgreSQL directly. All data access goes through the relay's REST API (`/api/internal/*` for writes, `/api/catalogue/*` for reads). The relay is the sole owner of PostgreSQL.
 
 ### 4. Peer Syncer
 
@@ -177,13 +234,23 @@ This means relay-side filtering on `#app`, `#content-type`, `#board` works corre
 
 ```
 Client/Peer → WebSocket EVENT
-    → Signature validation
-    → Replaceable event rules (highest created_at wins)
-    → Deduplication (by event ID)
-    → Write to raw_events table
-    → Parse into denormalised table (if Equaliser-tagged)
+    → Validate event ID (SHA-256 of serialised event matches id field)
+    → Validate Schnorr signature
+    → Event acceptance policy check (Equaliser-only / open / hybrid)
+    → Deduplication (by event ID — if exists, return OK duplicate)
+    → Replaceable event check (see below)
+    → Write to raw_events + event_tags (single transaction)
+    → Parse into denormalised table (best-effort, if Equaliser-tagged)
+    → Log parse errors to event_log (action: 'parse_error') if parsing fails
     → Notify active WebSocket subscriptions
+    → Return OK to client
 ```
+
+**Replaceable events:** For replaceable (Kind 0, 3, 10000-19999) and parameterised replaceable (Kind 30000-39999) events, the relay keeps only the latest version. On receiving a newer event (higher `created_at`, same pubkey+kind or pubkey+kind+d-tag): DELETE old row from `raw_events` (tags cascade via `ON DELETE CASCADE`), INSERT new event, UPDATE denormalised table. If the incoming event is older than the stored one, reject it with OK false. All within a single transaction.
+
+**NIP-09 event deletion:** When a Kind 5 event arrives, the relay deletes the referenced events (listed in `e` tags) from `raw_events`, `event_tags`, and the corresponding denormalised tables. Only the event author can delete their own events (pubkey must match). The Kind 5 event itself is stored so deletion is replayed on peer sync.
+
+**Parse failure handling:** Raw event storage is the source of truth for NOSTR protocol compliance. If denormalised parsing fails (malformed content, unexpected tags), the raw event is still stored and servable via WebSocket subscriptions — it just won't appear in the REST API until the parse issue is resolved. Denormalised tables can be rebuilt from `raw_events` at any time.
 
 ### Outbound (from orchestrator publishing)
 
@@ -213,13 +280,15 @@ equaliser-relay:
   build: ./equaliser-relay
   environment:
     - DATABASE_URL=postgresql://equaliser:${DB_PASSWORD}@postgres:5432/equaliser
+    - WS_PORT=8080
+    - REST_API_PORT=8008
+    - RELAY_NAME=Equaliser Relay
+    - RELAY_DESCRIPTION=Equaliser content node relay
+    - EVENT_POLICY=equaliser_only    # or: open, hybrid
     - PEER_RELAYS=wss://relay.damus.io,wss://nos.lol,wss://relay.nostr.band
     - SYNC_INTERVAL=3600
     - USER_FEED_DAYS=30
     - USER_FEED_LIMIT=500
-    - EVENT_POLICY=equaliser_only    # or: open, hybrid
-    - REST_API_PORT=8008
-    - WS_PORT=8080
   depends_on:
     - postgres
   ports:
@@ -241,15 +310,74 @@ postgres:
 
 ## Language Choice
 
-| Option | Pros | Cons |
-|--------|------|------|
-| **Rust** | Best performance, memory safety, existing relay ecosystem (nostr-rs-relay, strfry is C++) | Steeper learning curve, slower iteration |
-| **Go** | Fast enough, excellent WebSocket libraries, quick to build, easy deployment | Not as fast as Rust for pure throughput |
-| **Python (async)** | Consistent with orchestrator, fastest to prototype | Performance ceiling at high scale |
+**Go.** Best fit for a long-lived WebSocket server with concurrent connections. Goroutines handle concurrent peer syncer connections and client subscriptions naturally. Fast compilation, single binary deployment, tiny Docker image, excellent WebSocket (`nhooyr/websocket`) and PostgreSQL (`pgx`) libraries.
 
-Recommendation: **Go** for the sweet spot of performance, development speed, and operational simplicity. Rust if performance profiling later shows Go is the bottleneck.
+Alternatives considered:
+- **Rust** — better raw performance but slower development iteration. Overkill for single-node traffic levels.
+- **Python (async)** — consistent with orchestrator but lower performance ceiling for concurrent WebSocket handling.
 
-Python is viable for an initial prototype to validate the architecture before rewriting in Go/Rust.
+---
+
+## Project Structure
+
+```
+content_node/equaliser-relay/
+├── Dockerfile
+├── go.mod                          # module: equaliser-relay
+├── go.sum
+├── cmd/
+│   └── relay/
+│       └── main.go                 # entry point, wires everything up
+├── internal/
+│   ├── config/
+│   │   └── config.go              # env var parsing (DATABASE_URL, ports, limits, etc.)
+│   ├── storage/
+│   │   ├── postgres.go            # connection pool, migrations
+│   │   ├── events.go              # raw_events + event_tags CRUD, replaceable logic, deletion
+│   │   └── denorm.go              # denormalised table parsing/upserts
+│   ├── relay/
+│   │   ├── handler.go             # WebSocket connection handler
+│   │   ├── subscription.go        # REQ subscription management
+│   │   └── filter.go              # NIP-01 filter matching + SQL query building
+│   └── nostr/
+│       ├── event.go               # event struct, ID validation, signature verification
+│       └── nip01.go               # protocol message parsing (REQ, EVENT, CLOSE, COUNT)
+└── migrations/
+    └── 001_initial.sql            # full schema (raw_events, event_tags, all denorm + operational tables)
+```
+
+Directories added in later phases:
+- `internal/api/` — REST API handlers (Phase B.2)
+- `internal/syncer/` — peer syncer (Phase B.1)
+
+---
+
+## Environment Variables
+
+```
+# Required
+DATABASE_URL              # PostgreSQL connection string
+WS_PORT=8080              # WebSocket listener port
+REST_API_PORT=8008        # REST API listener port
+
+# Relay identity (used by NIP-11 and /api/access/node-info)
+RELAY_NAME=Equaliser Relay
+RELAY_DESCRIPTION=Equaliser content node relay
+
+# Event policy
+EVENT_POLICY=equaliser_only   # equaliser_only | open | hybrid
+
+# Peer syncing (Phase B.1)
+PEER_RELAYS=                  # comma-separated WebSocket URLs
+SYNC_INTERVAL=3600            # seconds between full syncs
+
+# User caching (Phase B.3)
+USER_FEED_DAYS=30             # max age of feed events to cache
+USER_FEED_LIMIT=500           # max feed events per user
+
+# Admin (Phase C)
+ADMIN_PASSWORD=               # password for /api/admin/* endpoints
+```
 
 ---
 
@@ -258,9 +386,11 @@ Python is viable for an initial prototype to validate the architecture before re
 This doesn't need to be built all at once. A phased approach:
 
 ### Phase 1: Core relay + storage
-- Build minimal NIP-01 relay with PostgreSQL storage
-- Full tag indexing via `event_tags` table
+- Build NIP-01 relay in Go with PostgreSQL storage
+- Full schema from day one: `raw_events`, `event_tags`, plus denormalised tables (`cached_artists`, `cached_tracks`, `cached_albums`)
+- Events parsed into denormalised tables on arrival (best-effort — raw event always stored even if parse fails)
 - Event acceptance policy (Equaliser-only / open / hybrid)
+- No peer syncing — drop-in replacement for nostr-rs-relay
 - Replaces nostr-rs-relay in the Docker stack
 
 ### Phase 2: Peer syncing
@@ -269,10 +399,10 @@ This doesn't need to be built all at once. A phased approach:
 - Outbound: forward locally published events for federation
 - Auto-reconnection with exponential backoff
 
-### Phase 3: REST API + denormalised schemas
-- Add denormalised tables (artists, tracks, albums, users)
-- Parse events into denormalised tables on arrival
-- Serve REST API endpoints for the web client
+### Phase 3: REST API + client migration
+- Serve REST API at `/api/catalogue/*` for the web client
+- Add `catalogue-api.js` client module
+- Migrate admin pages and public client reads to REST API
 - Orchestrator focuses purely on uploads/drafts/IPFS
 
 ### Phase 4: Optimise
@@ -323,7 +453,7 @@ This section covers the practical migration from nostr-rs-relay to the Equaliser
 
 | Service | Image | Port | Volume |
 |---------|-------|------|--------|
-| `equaliser-relay` | Custom (Go/Rust) | 8080 (WS), 8008 (REST) | — |
+| `equaliser-relay` | Custom (Go) | 8080 (WS), 8008 (REST) | — |
 | `postgres` | `postgres:15` | 5432 | `postgres-data` |
 | `orchestrator` | Custom (FastAPI) | 8000 | `drafts-data` (SQLite) |
 | `ipfs` | `ipfs/kubo:latest` | 4001, 5001 | `ipfs-data` |
@@ -344,12 +474,9 @@ The current nostr-rs-relay `config.toml` restricts accepted event kinds via an a
 
 ```
 /relay                    → equaliser-relay:8080    (WebSocket — unchanged behaviour)
-/api/artists/*            → equaliser-relay:8008    (REST API — NEW)
-/api/tracks               → equaliser-relay:8008    (REST API — NEW, GET only)
-/api/tracks/{id}          → equaliser-relay:8008    (REST API — NEW, GET only)
-/api/search               → equaliser-relay:8008    (REST API — NEW)
-/api/users/*/feed         → equaliser-relay:8008    (REST API — NEW)
-/api/users/*/playlists    → equaliser-relay:8008    (REST API — NEW)
+/api/catalogue/*          → equaliser-relay:8008    (public reads, rate limited)
+/api/access/*             → equaliser-relay:8008    (public access control, rate limited)
+/api/admin/*              → equaliser-relay:8008    (password authenticated)
 /api/*                    → orchestrator:8000       (Everything else — uploads, drafts, releases)
 /blossom/*                → blossom:3000
 /ipfs/*                   → ipfs:8080
@@ -357,7 +484,7 @@ The current nostr-rs-relay `config.toml` restricts accepted event kinds via an a
 /                         → static files
 ```
 
-**Note on `/api/tracks` conflict:** The orchestrator has `POST /api/tracks/upload` and `POST /api/tracks/publish`. The relay serves `GET /api/tracks` and `GET /api/tracks/{event_id}`. Resolve by routing `/api/tracks/upload` and `/api/tracks/publish` explicitly to orchestrator, or use a different relay REST prefix like `/api/cache/`.
+**Not proxied by nginx:** `/api/internal/*` is only accessible on the Docker internal network. The orchestrator calls `http://equaliser-relay:8008/api/internal/*` directly for user registration, access control validation, etc. This prevents external actors from hitting internal write endpoints.
 
 ### Data Migration
 
@@ -398,12 +525,13 @@ The orchestrator's relay interaction code (`publish_event`, `publish_signed_even
 - Cover art upload (`/api/tracks/cover-art`)
 - Draft management (`/api/drafts/*`) in SQLite
 - Package export/import (`/api/releases/*`)
-- User registration (`/api/users/register`)
+- User registration (`/api/users/register`) — orchestrator authenticates the fan, then calls relay's `/api/internal/users/register` to record the pubkey
 
 **What moves to the relay:**
-- Read-side data serving: artist profiles, track listings, search, user feeds, playlists — all served by the relay's REST API
+- Read-side data serving: artist profiles, track listings, search, user feeds, playlists — all served by the relay's REST API at `/api/catalogue/*`
+- Access control: join requests and node info — served by the relay at `/api/access/*` (these read/write `access_requests` and `node_artists` in PostgreSQL)
 
-**Shared database access:** The orchestrator needs read access to `registered_users` in PostgreSQL. Either connect directly (same `DATABASE_URL`) or call the relay's REST API.
+**No shared database access:** The orchestrator does NOT connect to PostgreSQL directly. The relay is the sole owner of the database. All orchestrator data access goes through the relay's REST API — reads via `/api/catalogue/*`, writes via `/api/internal/*` (Docker network only). This keeps a clean service boundary — one database owner, no shared schema coupling.
 
 ### Client Changes — Admin Pages
 
@@ -411,10 +539,10 @@ The orchestrator's relay interaction code (`publish_event`, `publish_signed_even
 
 | Page | Current | After |
 |------|---------|-------|
-| `dashboard.html` | WebSocket `{kinds:[0], authors:[pk]}` | `fetch('/api/artists/{npub}')` |
-| `dashboard.html` | WebSocket `{kinds:[30050], authors:[pk]}` | `fetch('/api/artists/{npub}/tracks')` |
-| `releases.html` | WebSocket `{kinds:[30050], authors:[pk]}` | `fetch('/api/artists/{npub}/tracks')` |
-| `profile.html` | Profile fetch via WebSocket | `fetch('/api/artists/{npub}')` |
+| `dashboard.html` | WebSocket `{kinds:[0], authors:[pk]}` | `fetch('/api/catalogue/artists/{npub}')` |
+| `dashboard.html` | WebSocket `{kinds:[30050], authors:[pk]}` | `fetch('/api/catalogue/artists/{npub}/tracks')` |
+| `releases.html` | WebSocket `{kinds:[30050], authors:[pk]}` | `fetch('/api/catalogue/artists/{npub}/tracks')` |
+| `profile.html` | Profile fetch via WebSocket | `fetch('/api/catalogue/artists/{npub}')` |
 
 Pages unchanged: `upload.html`, `edit-release.html`, `login.html`, `onboarding.html`, `settings.html` (use orchestrator APIs, not relay).
 
@@ -428,11 +556,11 @@ Migration approach: replace the WebSocket promise wrappers with `fetch()` calls.
 
 | Page | Current WebSocket query | New REST call |
 |------|------------------------|---------------|
-| `home.js` | `{kinds:[30050], limit:500}` | `GET /api/tracks` |
-| `home.js` | `{kinds:[0], authors:pubkeys}` | `GET /api/artists` |
-| `artist.js` | `{kinds:[0], authors:[pk]}` | `GET /api/artists/{npub}` |
-| `artist.js` | `{kinds:[30050], authors:[pk]}` | `GET /api/artists/{npub}/tracks` |
-| `library.js` | `{kinds:[30001], authors:[pk]}` | `GET /api/users/{pubkey}/playlists` |
+| `home.js` | `{kinds:[30050], limit:500}` | `GET /api/catalogue/tracks` |
+| `home.js` | `{kinds:[0], authors:pubkeys}` | `GET /api/catalogue/artists` |
+| `artist.js` | `{kinds:[0], authors:[pk]}` | `GET /api/catalogue/artists/{npub}` |
+| `artist.js` | `{kinds:[30050], authors:[pk]}` | `GET /api/catalogue/artists/{npub}/tracks` |
+| `library.js` | `{kinds:[30001], authors:[pk]}` | `GET /api/catalogue/users/{pubkey}/playlists` |
 
 #### WebSocket queries that stay (but benefit from full tag indexing)
 
@@ -445,7 +573,7 @@ Migration approach: replace the WebSocket promise wrappers with `fetch()` calls.
 
 **Client-side filtering removed:** The broad-fetch-then-filter pattern in `nostr-social.js` becomes unnecessary. Files affected: `js/nostr-social.js`, `js/pages/social.js`, `js/pages/home.js`, `js/pages/thread.js`, `js/pages/user.js`, `js/pages/artist.js`.
 
-**New module `client/js/nostr-api.js`:** REST API wrapper (`EqualiserAPI.getArtists()`, `.getArtistTracks(npub)`, `.search(query)`, etc.) for structured data reads.
+**New module `client/js/catalogue-api.js`:** REST API wrapper (`CatalogueAPI.getArtists()`, `.getArtistTracks(npub)`, `.search(query)`, etc.) calling `/api/catalogue/*` for structured data reads.
 
 **Publishing stays the same:** `NostrSocial.publishEvent()` sends signed events via WebSocket. The peer syncer handles federation. Auto-tagging `['app', 'Equaliser']` unchanged.
 
@@ -457,7 +585,7 @@ Aligned with the [Migration Path](#migration-path) phases above, with verificati
 
 **Phase 2 — Peer syncing:** Configure `PEER_RELAYS`. Verify: local events appear on external relays, external events appear locally, reconnection works after network interruption.
 
-**Phase 3 — REST API + client migration:** Relay serves REST API on port 8008. Add nginx routes. Add `nostr-api.js`. Migrate admin pages and public client reads to REST API. Update WebSocket queries to use multi-char tag filters. Remove client-side filtering workarounds. Verify: REST API returns correct data, performance improvement measurable.
+**Phase 3 — REST API + client migration:** Relay serves REST API at `/api/catalogue/*` on port 8008. Add nginx route for `/api/catalogue/` prefix. Add `catalogue-api.js` client module. Migrate admin pages and public client reads to REST API. Update WebSocket queries to use multi-char tag filters. Remove client-side filtering workarounds. Verify: REST API returns correct data, performance improvement measurable.
 
 **Phase 4 — Optimise:** Connection pooling, query optimisation, persistent WebSocket connections, cache hot paths. Benchmark and tune.
 
@@ -465,14 +593,65 @@ Aligned with the [Migration Path](#migration-path) phases above, with verificati
 
 - Keep nostr-rs-relay Docker image reference in a comment for quick rollback
 - PostgreSQL events can be exported and replayed to nostr-rs-relay if needed
-- Client REST API wrapper (`nostr-api.js`) can fall back to WebSocket queries if REST API is unavailable
+- Client REST API wrapper (`catalogue-api.js`) can fall back to WebSocket queries if REST API is unavailable
 - Phase 1 is fully reversible — just swap the Docker Compose service back
+
+---
+
+## Testing & Verification
+
+Three layers of testing, each building confidence that the relay is a valid drop-in replacement.
+
+### A) Go Unit Tests
+
+Run during build (`go test ./...`). Cover the core relay logic without requiring the full Docker stack.
+
+- **Event parsing:** Validate event ID (SHA-256 of serialised event), verify Schnorr signature, reject malformed events
+- **Replaceable event logic:** Higher `created_at` wins for same pubkey+kind (Kind 0/3/10000-19999), same pubkey+kind+d-tag (Kind 30000-39999). Older events rejected.
+- **NIP-01 filter matching:** Filter by kinds, authors, IDs, tags (including multi-char), since/until, limit. Verify SQL query generation.
+- **NIP-09 deletion:** Kind 5 events delete referenced events. Only author can delete own events.
+- **NIP-45 COUNT:** Returns correct counts for filters.
+- **Denormalised parsing:** Kind 0 → `cached_artists`, Kind 30050 → `cached_tracks`, Kind 30051 → `cached_albums`. Parse failure doesn't block raw storage.
+- **Event acceptance policy:** Equaliser-tagged events accepted in all modes. Untagged events accepted/rejected per policy.
+- Use `testcontainers-go` for PostgreSQL — real database, no mocks.
+
+### B) Integration Test Script
+
+Run after `start-node.sh` with the relay running in Docker. Exercises the WebSocket protocol end-to-end.
+
+- Send events via WebSocket, query them back via `REQ`, verify responses match
+- Test replaceable event replacement (send older then newer Kind 0, verify only newest returned)
+- Test NIP-09 deletion (send event, send Kind 5, verify event gone)
+- Test deduplication (send same event twice, verify single storage)
+- Test event acceptance policy (send untagged event, verify behaviour per `EVENT_POLICY`)
+- Test multi-char tag filtering (`#app`, `#content-type`, `#board` in `REQ` filters)
+- Verify denormalised tables populated correctly (query PostgreSQL via `docker exec`)
+- Test NIP-11 (HTTP GET to relay URL with correct Accept header)
+- Test NIP-45 COUNT responses
+
+### C) Drop-in Smoke Test
+
+The definitive verification that the relay is a valid replacement for nostr-rs-relay.
+
+1. Reset node, import test data with current nostr-rs-relay (`reset-node.sh --force`, `import-artist.sh`)
+2. Note event counts and verify all UI flows work (baseline)
+3. Swap to Equaliser Relay, replay events from nostr-rs-relay SQLite export
+4. Run through every UI flow:
+   - **Onboarding:** Key generation, backup, profile setup, relay publish
+   - **Profile:** Edit, save, verify profile loads on dashboard
+   - **Upload:** Track upload, HLS encoding, draft creation
+   - **Release:** Publish draft to relay, verify on releases page
+   - **Dashboard:** Artist profile, track list, stats
+   - **Social:** Feed posts, thread replies, reactions, DMs
+   - **Client app:** Home page, artist pages, track playback
+5. Verify event counts match between old and new relay
+6. Verify external NOSTR clients can connect via `/relay` WebSocket
 
 ---
 
 ## References
 
-- [DATABASE.md](DATABASE.md) — Cache database schema (reused as-is)
+- [DATABASE.md](DATABASE.md) — Full database schema (raw events, tags, denormalised tables, operational tables)
 - [CONTENT_NODE.md](CONTENT_NODE.md) — Content node architecture
 - [NODE-MANAGEMENT-SPEC.md](NODE-MANAGEMENT-SPEC.md) — Node management specification
 - [Primal Caching Server](https://github.com/PrimalHQ/primal-server) — Similar architecture (custom relay as cache)
