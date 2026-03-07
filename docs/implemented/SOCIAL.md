@@ -239,17 +239,184 @@ Twitter/X-style threaded view of a post and its replies.
 
 ### 3. Community Message Boards (Implemented)
 
-Reddit-style threaded discussions. See [COMMUNITY.md](./COMMUNITY.md) for full spec.
+Reddit-style threaded discussions where artists and fans participate in organised, categorised conversations. Each artist's content node hosts its own community board. Users interact using their existing NOSTR identities (nsec/npub) -- no separate accounts needed.
+
+Community is distinct from the Feed. Feed is a chronological timeline of updates (Twitter-like). Community is organised, threaded discussions (Reddit-like). They share the same NOSTR infrastructure but are separated by content tagging: the Feed page queries for `content-type: post`, the Community page queries for `content-type: thread` and follows NIP-10 `e` tags to load replies.
 
 **Page:** `social.html?tab=community` (thread list) / `social.html?tab=community&thread=<eventId>` (thread detail)
 
 The social page has two full-width top-level tabs ("Timeline" and "Community Threads") with purple underline active state. Sub-tabs (Your Feed / Global Feed, board filters) use white text highlight only.
 
-**Behaviour:**
-- Board filter tabs: All | General | Music | Production | Gigs
-- Threads use `["content-type", "thread"]`, `["subject", "..."]`, `["board", "..."]` tags
-- Replies use `["content-type", "reply"]` with NIP-10 `e`/`p` tags
-- All tag filtering is client-side (relay doesn't index multi-char tags)
+#### Event Structure
+
+**Thread (Opening Post):**
+
+A new thread is a Kind 1 event with a subject line (NIP-14) and the `thread` content type:
+
+```json
+{
+  "kind": 1,
+  "pubkey": "<author-pubkey>",
+  "created_at": 1709136000,
+  "content": "I've been experimenting with recording live drums through a single overhead mic. The results are surprisingly good for lo-fi tracks. Anyone else tried minimal mic setups?",
+  "tags": [
+    ["app", "equaliser"],
+    ["content-type", "thread"],
+    ["subject", "Minimal mic setups for recording drums"],
+    ["board", "production"]
+  ]
+}
+```
+
+**Reply:**
+
+A reply references the thread root using NIP-10 conventions:
+
+```json
+{
+  "kind": 1,
+  "pubkey": "<replier-pubkey>",
+  "created_at": 1709137000,
+  "content": "I do this all the time! A single Coles 4038 about 3 feet above the kit, slightly forward. Works brilliantly for anything with a Bonham vibe.",
+  "tags": [
+    ["app", "equaliser"],
+    ["content-type", "reply"],
+    ["e", "<thread-event-id>", "", "root"],
+    ["p", "<thread-author-pubkey>"]
+  ]
+}
+```
+
+**Nested Reply (Reply to a Reply):**
+
+```json
+{
+  "kind": 1,
+  "pubkey": "<another-pubkey>",
+  "created_at": 1709138000,
+  "content": "The 4038 is a great choice. I've had similar results with an AEA R84 in the same position.",
+  "tags": [
+    ["app", "equaliser"],
+    ["content-type", "reply"],
+    ["e", "<thread-event-id>", "", "root"],
+    ["e", "<parent-reply-id>", "", "reply"],
+    ["p", "<thread-author-pubkey>"],
+    ["p", "<parent-reply-pubkey>"]
+  ]
+}
+```
+
+**Reaction (Upvote):**
+
+Standard Kind 7 reaction events, used for thread and reply upvoting:
+
+```json
+{
+  "kind": 7,
+  "pubkey": "<reactor-pubkey>",
+  "created_at": 1709139000,
+  "content": "+",
+  "tags": [
+    ["app", "equaliser"],
+    ["e", "<target-event-id>"],
+    ["p", "<target-author-pubkey>"]
+  ]
+}
+```
+
+#### Boards (Categories)
+
+Threads are categorised using a `board` tag. The artist configures which boards are available on their node.
+
+| Board ID | Display Name | Description |
+|----------|-------------|-------------|
+| `general` | General | Anything goes |
+| `music` | Music | Discuss tracks, albums, recommendations |
+| `production` | Production | Recording, mixing, gear, techniques |
+| `gigs` | Gigs & Events | Live shows, meetups, tours |
+
+Artists can create custom boards relevant to their community. The board list is stored as a configuration in the orchestrator (not as a NOSTR event -- it is per-node config, not portable).
+
+Board badge colours: general=blue, music=purple, production=green, gigs=amber.
+
+#### Relay Query Patterns
+
+All queries use client-side filtering for multi-character tags (`app`, `content-type`, `board`) because nostr-rs-relay only indexes single-letter tags. The Equaliser Relay resolves this with full tag indexing -- relay-side filtering on these tags works natively. See [EQUALISER_RELAY.md](EQUALISER_RELAY.md).
+
+**List Threads (Community Home):**
+- Relay filter: `{ "kinds": [1], "limit": 500 }`
+- Client-side filter: Events where tags include `["app", "Equaliser"]` AND `["content-type", "thread"]`
+
+**List Threads by Board:**
+- Relay filter: Same as above
+- Client-side filter: Same + `["board", "<board-name>"]`
+
+**Load Thread Replies:**
+- Relay filter: `{ "kinds": [1], "#e": ["<thread-event-id>"], "limit": 500 }`
+- Client-side filter: Events where tags include `["app", "Equaliser"]` AND `["content-type", "reply"]`
+
+**Load Reactions for Thread List:**
+- Relay filter: `{ "kinds": [7], "#e": ["<thread-id-1>", "<thread-id-2>", "..."] }`
+- No additional client-side filter needed
+
+#### Sorting
+
+Threads are sorted client-side:
+
+| Sort | Logic |
+|------|-------|
+| **Newest** | Sort by `created_at` descending (default) |
+| **Most Active** | Sort by reply count descending |
+| **Most Liked** | Sort by reaction (Kind 7) count descending |
+| **Latest Reply** | Sort by most recent reply's `created_at` |
+
+For the current implementation, **Newest** is used -- it requires no additional queries.
+
+#### Scope: Per-Artist Community
+
+Each content node hosts its own community. When a fan visits an artist's page and opens the Community tab, they see threads on that artist's relay. The artist has moderation control over their own community. Different artists have different communities with different conversations. This mirrors the content node model -- each artist owns their infrastructure, including their community space.
+
+In a future phase, a fan client could aggregate community threads from multiple artist nodes they follow, similar to how a Reddit homepage aggregates across subreddits. This would be a client-side feature -- query multiple relays, merge results, display unified thread list. The NOSTR protocol supports this natively since events have the same structure regardless of which relay they are on.
+
+#### UI Design
+
+**Community Page (`social.html?tab=community`):**
+- Board selector tabs: All | General | Music | Production | Gigs
+- "New Thread" button
+- Thread list showing: subject (clickable), author avatar + name, board badge, reply count, reaction count, time since posted, time of last reply
+
+**Thread Detail Page (`social.html?tab=community&thread=<event-id>`):**
+- Thread subject as heading
+- Opening post (full content, author, timestamp)
+- Reply list below (threaded/nested)
+- Reply composer at bottom with "Replying to [name]" context for nested replies
+
+**Accessibility:**
+- Community is accessible from the artist public page (`artist.html`) as a "Community" tab alongside Music, About, etc.
+- Also accessible from the admin dashboard for artist moderation and participation
+
+#### Authentication
+
+Community uses the same session system as the rest of Equaliser:
+- **Logged-in users** (via nsec, backup file, or NIP-07): Can post threads, reply, and react
+- **Logged-out users**: Can read threads but cannot post
+- **Artist**: Full moderation capabilities in admin view
+
+#### Implementation Files
+
+- `client/social.html` -- Unified social page with Feed + Community tabs
+- `client/js/nostr-social.js` -- `fetchCommunityThreads()`, `fetchCommunityReplies()` functions
+- `tools/seed-social.mjs` -- Seed data for populating test community content
+
+#### Future Community Items
+
+- Upvote/react to threads and replies (Kind 7)
+- Sort by most active, most liked, latest reply
+- Mute/block pubkeys
+- Delete events (NIP-09)
+- Pin threads
+- Board management UI (add/remove/rename boards)
+- Cross-node community aggregation (fan client queries multiple relays)
 
 ### 4. Direct Messages (Implemented)
 
@@ -546,6 +713,7 @@ Pulling external content into local relay:
 - [NIP-14: Subject Tag](https://github.com/nostr-protocol/nips/blob/master/14.md) — Thread subject lines
 - [NIP-23: Long-form Content](https://github.com/nostr-protocol/nips/blob/master/23.md)
 - [NIP-25: Reactions](https://github.com/nostr-protocol/nips/blob/master/25.md)
+- [NIP-09: Event Deletion](https://github.com/nostr-protocol/nips/blob/master/09.md) — Moderation deletions
 - [NIP-51: Lists](https://github.com/nostr-protocol/nips/blob/master/51.md)
 - [NIP-57: Zaps](https://github.com/nostr-protocol/nips/blob/master/57.md)
 - [NIP-65: Relay List Metadata](https://github.com/nostr-protocol/nips/blob/master/65.md)

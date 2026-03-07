@@ -89,7 +89,7 @@ Managed hosting nodes can host multiple artists with configurable fee models:
 | `percentage` | Percentage of streaming revenue | 5-10% of each payment |
 | `flat_rate` | Fixed monthly fee in sats | 5,000 sats/month |
 
-Artists request access via a public form at `/join`, and the node admin approves via the management console. See [ACCESS_CONTROL.md](ACCESS_CONTROL.md) for the approval workflow and [NODE-MANAGEMENT-SPEC.md](NODE-MANAGEMENT-SPEC.md) for the full multi-tenant specification.
+Artists request access via a public form at `/join`, and the node admin approves via the management console. See [NODE-MANAGEMENT-SPEC.md](NODE-MANAGEMENT-SPEC.md) Section 5 for the approval workflow and Sections 6-8 for the full multi-tenant specification.
 
 **Artist portability:** Artists can always leave. Their identity is their NOSTR keypair and content is on IPFS with publicly known CIDs. Migration means standing up a new node (or joining another) and republishing events. The `.eqpkg.zip` export format packages everything needed. See [ARTIST_PACKAGE.md](ARTIST_PACKAGE.md).
 

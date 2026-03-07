@@ -83,7 +83,7 @@ When access control is enabled on a node, artists must request access before the
 
 Once the invite code is accepted, the artist proceeds through the standard onboarding flow described below. On successful onboarding, the invite is marked as used and the artist is registered in the node's artist list.
 
-See [ACCESS_CONTROL.md](ACCESS_CONTROL.md) for the full request form, approval workflow, and API endpoints.
+See [NODE-MANAGEMENT-SPEC.md](../NODE-MANAGEMENT-SPEC.md) Section 5 for the full request form, approval workflow, and API endpoints.
 
 ## The Onboarding Flow
 
@@ -308,5 +308,4 @@ The Kind 0 profile published during onboarding establishes the artist's identity
 - [NIP-19: bech32-encoded entities](https://github.com/nostr-protocol/nips/blob/master/19.md)
 - [nostr-tools library](https://github.com/nbd-wtf/nostr-tools)
 - [Equaliser Technical Specification](../../Technical%20Specification.md)
-- [Access Control](ACCESS_CONTROL.md) — Gated onboarding with invite codes
-- [Node Management Spec](NODE-MANAGEMENT-SPEC.md) — Full node management specification
+- [Node Management Spec](../NODE-MANAGEMENT-SPEC.md) — Full node management specification (access control in Section 5)

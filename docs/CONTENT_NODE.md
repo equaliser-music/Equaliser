@@ -187,7 +187,7 @@ The onboarding wizard at `/admin/onboarding.html` allows artists to:
 
 ### Access Control (Gated Onboarding)
 
-When access control is enabled, artists must first request access at `/join` and receive an invite code from the node admin before they can proceed with onboarding. The invite code is validated at the start of the onboarding flow. See [ACCESS_CONTROL.md](ACCESS_CONTROL.md) for the full request and approval workflow.
+When access control is enabled, artists must first request access at `/join` and receive an invite code from the node admin before they can proceed with onboarding. The invite code is validated at the start of the onboarding flow. See [NODE-MANAGEMENT-SPEC.md](NODE-MANAGEMENT-SPEC.md) Section 5 for the full request and approval workflow.
 
 ### Features
 
@@ -196,7 +196,7 @@ When access control is enabled, artists must first request access at `/join` and
 - Only proceeds to success if at least one relay publishes successfully
 - Backup file download includes keys and profile data
 
-See [ONBOARDING.md](ONBOARDING.md) for detailed documentation.
+See [ONBOARDING.md](implemented/ONBOARDING.md) for detailed documentation.
 
 ## Artist Admin Pages
 
@@ -408,7 +408,7 @@ Web-based admin dashboard at `/admin/console` for node operators to monitor and 
 
 Sections: Overview, Sync Manager, Artist Management, IPFS & Storage, Blossom Mirroring, Node Settings.
 
-Requires admin authentication via `ADMIN_PASSWORD` environment variable. See [NODE_ADMIN.md](NODE_ADMIN.md) for full details.
+Requires admin authentication via `ADMIN_PASSWORD` environment variable. See [NODE-MANAGEMENT-SPEC.md](NODE-MANAGEMENT-SPEC.md) Section 6 for full details.
 
 ## Orchestrator API
 
@@ -520,5 +520,5 @@ docker-compose exec web ls -la /usr/share/nginx/html/admin
 - [IPFS Documentation](IPFS.md)
 - [Node Management Spec](NODE-MANAGEMENT-SPEC.md)
 - [Database Schema](DATABASE.md)
-- [Node Admin Console](NODE_ADMIN.md)
-- [Access Control](ACCESS_CONTROL.md)
+- [Node Admin Console](NODE-MANAGEMENT-SPEC.md) (Section 6)
+- [Access Control](NODE-MANAGEMENT-SPEC.md) (Section 5)

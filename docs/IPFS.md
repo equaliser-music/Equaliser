@@ -270,7 +270,7 @@ If you have **IPFS Desktop** installed (even if not running), it may redirect br
 
 ### Profile Image URLs
 
-Per [IPFS_CID_COMPATIBILITY.md](./IPFS_CID_COMPATIBILITY.md), artist profiles store:
+Per [IPFS_CID_COMPATIBILITY.md](implemented/IPFS_CID_COMPATIBILITY.md), artist profiles store:
 - **Standard fields** (`picture`, `banner`): Public gateway URLs for NOSTR client compatibility
 - **Equaliser fields** (`picture_cid`, `banner_cid`): Raw CIDs for resilient gateway fallback
 
