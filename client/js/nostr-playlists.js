@@ -68,6 +68,7 @@ const NostrPlaylists = (() => {
         const dTag = `playlist-${Date.now()}`;
         const visibility = options.visibility || 'public';
         const tags = [
+            ['app', 'Equaliser'],
             ['d', dTag],
             ['title', title]
         ];
@@ -103,6 +104,7 @@ const NostrPlaylists = (() => {
 
         const visibility = options.visibility || 'public';
         const tags = [
+            ['app', 'Equaliser'],
             ['d', dTag],
             ['title', title]
         ];
@@ -142,6 +144,7 @@ const NostrPlaylists = (() => {
             kind: 5,
             created_at: Math.floor(Date.now() / 1000),
             tags: [
+                ['app', 'Equaliser'],
                 ['a', `30001:${session.publicKey}:${dTag}`]
             ],
             content: 'Playlist deleted'

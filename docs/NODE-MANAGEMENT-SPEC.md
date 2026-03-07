@@ -10,8 +10,8 @@
 
 The content node currently operates as an open system — anyone can access the onboarding page and publish to the local relay. This specification introduces:
 
-1. **Equaliser Relay** — A custom NOSTR relay combining NIP-01 WebSocket protocol, built-in peer syncer, PostgreSQL storage with full tag indexing, and REST API for web client reads
-2. **Cache API** — REST endpoints on the Equaliser Relay serving cached data to the web client for fast, predictable responses
+1. **Equaliser Relay** — A custom NOSTR relay (Go) combining NIP-01 WebSocket protocol, built-in peer syncer, PostgreSQL storage with full tag indexing, and REST API for web client reads
+2. **Cache API** — REST endpoints on the Equaliser Relay at `/api/catalogue/*` serving cached data to the web client for fast, predictable responses
 3. **Node Management Console** — Admin dashboard for monitoring and controlling node operations
 4. **Access Control** — Gated onboarding requiring admin approval before artists can use the node
 
@@ -25,7 +25,7 @@ These components support the evolution from single-artist nodes to multi-tenant 
 
 A custom NOSTR relay purpose-built for Equaliser. Externally, it speaks standard NIP-01 WebSocket protocol — any NOSTR client can connect. Internally, it uses PostgreSQL with full tag indexing, denormalised schemas for fast queries, a built-in peer syncer for external relay subscriptions, and a REST API for the web client.
 
-This replaces nostr-rs-relay in the Docker stack, adding PostgreSQL storage, full tag indexing, and a REST API. See [EQUALISER_RELAY.md](EQUALISER_RELAY.md) for the full specification.
+This replaces nostr-rs-relay in the Docker stack, adding PostgreSQL storage, full tag indexing, and a four-tier REST API: `/api/catalogue/*` (public reads), `/api/access/*` (public access control), `/api/internal/*` (orchestrator-to-relay, Docker network only), and `/api/admin/*` (password authenticated) — all proxied by nginx except `/api/internal/*`. The relay is the sole owner of PostgreSQL — the orchestrator accesses all data through the relay's REST API. See [EQUALISER_RELAY.md](EQUALISER_RELAY.md) for the full specification.
 
 ### 2.2 Architecture
 
@@ -35,7 +35,7 @@ This replaces nostr-rs-relay in the Docker stack, adding PostgreSQL storage, ful
 │                                                       │
 │  ┌──────────┐  ┌───────────────────┐  ┌───────────┐ │
 │  │  IPFS    │  │  Equaliser Relay  │  │Orchestrator│ │
-│  │  (kubo)  │  │  (Go/Rust)       │  │ (FastAPI)  │ │
+│  │  (kubo)  │  │  (Go)            │  │ (FastAPI)  │ │
 │  │          │  │                   │  │            │ │
 │  │          │  │  ┌─────────────┐  │  │            │ │
 │  │          │  │  │ WebSocket   │  │  │            │ │
@@ -152,7 +152,7 @@ CREATE TABLE cached_artists (
 -- Cached tracks (Kind 30050)
 CREATE TABLE cached_tracks (
     event_id TEXT PRIMARY KEY,
-    artist_pubkey TEXT NOT NULL REFERENCES cached_artists(pubkey),
+    artist_pubkey TEXT NOT NULL,            -- no FK: tracks may arrive before artist profile
     d_tag TEXT NOT NULL,
     title TEXT,
     album TEXT,
@@ -173,7 +173,7 @@ CREATE TABLE cached_tracks (
 -- Cached albums (Kind 30051)
 CREATE TABLE cached_albums (
     event_id TEXT PRIMARY KEY,
-    artist_pubkey TEXT NOT NULL REFERENCES cached_artists(pubkey),
+    artist_pubkey TEXT NOT NULL,            -- no FK: albums may arrive before artist profile
     d_tag TEXT NOT NULL,
     title TEXT,
     cover_art_cid TEXT,
@@ -213,7 +213,7 @@ CREATE TABLE event_log (
 
 Fan/listener data cached by the Equaliser Relay when users authenticate through the node. This is purely metadata caching (profiles, follows, playlists, feeds) — distinct from file hosting. See [DATABASE.md](DATABASE.md) for full schema.
 
-- `registered_users` — pubkeys that have authenticated (written by orchestrator, read by Equaliser Relay)
+- `registered_users` — pubkeys that have authenticated (orchestrator calls relay API to register, relay owns the table)
 - `cached_users` — parsed fan profiles (Kind 0)
 - `cached_user_follows` — follow list per user (Kind 3)
 - `cached_user_feed` — notes from followed pubkeys (Kind 1), subject to feed thresholds
@@ -221,56 +221,81 @@ Fan/listener data cached by the Equaliser Relay when users authenticate through 
 
 ---
 
-## 4. Cache API Endpoints
+## 4. Relay API Endpoints
 
-### 4.1 Public Endpoints (for web client)
+The relay serves four tiers of REST endpoints with different access controls:
 
-These are served by the Equaliser Relay's built-in REST API, reading from its PostgreSQL database.
+### 4.1 Public Endpoints — `/api/catalogue/*` (proxied by nginx, rate limited, same-origin CORS)
+
+Read-only endpoints for this node's own client. The catalogue API is a performance cache for the local client — not a public API for other nodes or third-party clients. Each node builds its own cache from NOSTR events; other nodes should use the WebSocket relay for data access. nginx enforces same-origin CORS (`Access-Control-Allow-Origin` set to the node's own domain) and rate limiting.
 
 ```
-GET /api/artists
+GET /api/catalogue/artists
   - Returns list of all cached artists
   - Query params: ?genre=Electronic&limit=20&offset=0
   - Response: array of artist profiles with track counts
 
-GET /api/artists/{npub}
+GET /api/catalogue/artists/{npub}
   - Returns single artist profile with full metadata
   - Response: artist profile + track listing
 
-GET /api/artists/{npub}/tracks
+GET /api/catalogue/artists/{npub}/tracks
   - Returns all tracks for an artist
   - Query params: ?album=&sort=newest&limit=50
   - Response: array of track metadata
 
-GET /api/tracks/{event_id}
+GET /api/catalogue/tracks/{event_id}
   - Returns single track metadata
   - Response: track metadata with artist info
 
-GET /api/tracks
+GET /api/catalogue/tracks
   - Returns tracks across all artists
   - Query params: ?genre=&sort=newest&limit=50
   - Response: array of track metadata with artist info
 
-GET /api/search
+GET /api/catalogue/search
   - Search across artists and tracks
   - Query params: ?q=search+term&type=artist|track|all
   - Response: matched artists and tracks
 
-POST /api/users/register
-  - Register authenticated fan pubkey for data caching
-  - Body: {"pubkey": "hex..."}
-
-GET /api/users/me?pubkey={hex}
+GET /api/catalogue/users/me?pubkey={hex}
   - Cached profile for authenticated user
 
-GET /api/users/{pubkey}/feed?limit=50&offset=0
+GET /api/catalogue/users/{pubkey}/feed?limit=50&offset=0
   - Cached feed events from followed pubkeys
 
-GET /api/users/{pubkey}/playlists
+GET /api/catalogue/users/{pubkey}/playlists
   - User's cached Equaliser playlists (Kind 30001)
 ```
 
-### 4.2 Admin Endpoints (authenticated, for management console)
+### 4.2 Internal Endpoints — `/api/internal/*` (Docker network only, NOT proxied by nginx)
+
+Orchestrator-to-relay calls. Only reachable on the Docker internal network — nginx never routes these paths, so they are not accessible from the public internet. The orchestrator calls `http://equaliser-relay:8008/api/internal/*` directly.
+
+```
+POST /api/internal/users/register
+  - Register authenticated fan pubkey for data caching
+  - Body: {"pubkey": "hex..."}
+  - Called by orchestrator after fan authenticates via NIP-07/NIP-46
+
+POST /api/internal/access/validate
+  - Validate an invite code
+  - Body: {"code": "EQ-a8f3b2c1"}
+  - Called by orchestrator during onboarding flow
+
+POST /api/internal/access/onboard
+  - Record successful artist onboarding
+  - Body: {"pubkey": "hex...", "artist_name": "...", "invite_code": "EQ-..."}
+  - Called by orchestrator after onboarding completes
+
+GET  /api/internal/access/check?pubkey={hex}
+  - Check if pubkey is approved on this node
+  - Called by orchestrator to gate access
+```
+
+### 4.3 Admin Endpoints — `/api/admin/*` (password authenticated via `ADMIN_PASSWORD`)
+
+Node management endpoints for the admin console. Proxied by nginx, authenticated via `ADMIN_PASSWORD` env var.
 
 ```
 GET  /api/admin/sync/status         - Relay status, peer connections, event counts
@@ -380,17 +405,17 @@ A new public page at `/join`. No NOSTR keys or authentication needed — this is
 | Email | No | For notification when request is reviewed |
 | Existing npub | No | If they already have a NOSTR identity |
 
-On submission, the form posts to `POST /api/access/request` and displays a confirmation message explaining that the node admin will review their request.
+On submission, the form posts to `POST /api/access/request` (served by the Equaliser Relay, proxied by nginx) and displays a confirmation message explaining that the node admin will review their request.
 
 ### 5.5 Invite Code Flow
 
 On approval, the system generates a unique invite code (e.g. `EQ-a8f3b2c1`). The admin can share this with the artist however they choose — email, DM, etc.
 
-The existing onboarding page (`/admin/onboarding.html`) is modified to require an invite code at the start. The code is validated against `POST /api/access/validate-code`. If valid, the artist proceeds through the existing onboarding flow (key generation, backup download, profile setup, relay publishing). On successful onboarding, the invite is marked as used and the artist is added to `node_artists`.
+The existing onboarding page (`/admin/onboarding.html`) is modified to require an invite code at the start. The orchestrator validates the code by calling `POST /api/internal/access/validate` on the relay (Docker network only, not publicly accessible). If valid, the artist proceeds through the existing onboarding flow (key generation, backup download, profile setup, relay publishing). On successful onboarding, the orchestrator calls `POST /api/internal/access/onboard` to mark the invite as used and add the artist to `node_artists`.
 
 ### 5.6 Node Info
 
-The public endpoint `GET /api/access/node-info` returns basic information about the node:
+The public endpoint `GET /api/access/node-info` (served by the Equaliser Relay, proxied by nginx) returns basic information about the node:
 
 - Node name and description
 - Number of hosted artists
@@ -409,13 +434,19 @@ The existing onboarding steps (key generation, backup download, profile setup, r
 
 ### 5.8 API Endpoints
 
+All access control endpoints are served by the Equaliser Relay (which owns the PostgreSQL `access_requests` and `node_artists` tables). The orchestrator calls the internal endpoints during the onboarding flow.
+
 ```
-# Public
+# Public — served by relay (proxied by nginx, rate limited)
 POST /api/access/request            - Submit a join request
-POST /api/access/validate-code      - Validate an invite code
 GET  /api/access/node-info          - Public node info (name, description, hosted artist count, fee model)
 
-# Admin (authenticated)
+# Internal (Docker network only, NOT proxied by nginx)
+POST /api/internal/access/validate  - Validate an invite code (called by orchestrator during onboarding)
+POST /api/internal/access/onboard   - Record successful onboarding (called by orchestrator)
+GET  /api/internal/access/check     - Check if pubkey is approved (called by orchestrator)
+
+# Admin (password authenticated)
 GET    /api/admin/requests           - List all access requests (filterable by status)
 GET    /api/admin/requests/{id}      - View single request
 POST   /api/admin/requests/{id}/approve  - Approve request, generates invite code
@@ -605,41 +636,53 @@ The tooling should make this exit path explicit — a "migrate" or "export" opti
 
 ## 9. Implementation Priority
 
-### Phase A: Access Control (Immediate)
+### Phase A: Access Control
 
 **Goal:** Close the open onboarding door.
 
-1. Create access request form page at `/join` or `/request`
-2. Add `access_requests` table to database
-3. Add `POST /api/access/request` endpoint
-4. Modify onboarding page to require invite code
-5. Add `POST /api/access/validate-code` endpoint
-6. Create minimal admin page to view and approve/decline requests
+**Depends on Phase B.0** — the access control endpoints (`/api/access/*`, `/api/internal/access/*`, `/api/admin/requests/*`) are served by the Equaliser Relay, which owns the PostgreSQL tables. Build the core relay first, then add access control.
 
-This can be done with the existing stack — no new services needed. The admin approval page can be a simple authenticated page initially.
+1. Add `access_requests` and `node_artists` tables to PostgreSQL schema (created as part of Phase B.0)
+2. Add access control endpoints to the relay: `POST /api/access/request`, `GET /api/access/node-info`, internal validation/onboarding, admin approval
+3. Create access request form page at `/join`
+4. Modify onboarding page to require invite code (orchestrator calls relay's `/api/internal/access/validate`)
+5. Create minimal admin page to view and approve/decline requests
 
 ### Phase B: Equaliser Relay
 
 **Goal:** Fast, reliable data for the web client via a purpose-built custom relay.
 
+**Language:** Go. Best fit for concurrent WebSocket connections (goroutines), single binary deployment, excellent PostgreSQL (`pgx`) and WebSocket (`nhooyr/websocket`) libraries.
+
+**Phase B.0 — Core relay (drop-in replacement):**
 1. Set up PostgreSQL as a new service in Docker Compose
-2. Create database schema (raw events + denormalised cache tables + event_tags for full tag indexing)
-3. Build Equaliser Relay with NIP-01 WebSocket layer and PostgreSQL backend
-4. Add built-in peer syncer for external relay subscriptions
-5. Add REST API to the relay for web client reads
-6. Deploy Equaliser Relay as drop-in replacement for nostr-rs-relay in Docker Compose
-7. Update web client to use relay's REST API
+2. Create full database schema from day one: `raw_events` + `event_tags` + denormalised cache tables (`cached_artists`, `cached_tracks`, `cached_albums`)
+3. Build NIP-01 WebSocket relay with PostgreSQL backend and full tag indexing
+4. Events parsed into denormalised tables on arrival (best-effort — raw event always stored even if parse fails, failures logged to `event_log`)
+5. No FK constraints on denormalised tables — tracks/albums may arrive before artist profiles
+6. Deploy as drop-in replacement for nostr-rs-relay (no peer syncing, no REST API yet)
+7. Relay is sole owner of PostgreSQL — orchestrator does NOT connect directly
+
+**Phase B.1 — Peer syncing:**
+8. Add peer syncer — persistent WebSocket connections to configured external relays
+9. Inbound subscriptions + outbound publishing for federation
+
+**Phase B.2 — REST API + client migration:**
+10. Serve REST API at `/api/catalogue/*` on port 8008
+11. Add nginx route for `/api/catalogue/` → relay
+12. Add `catalogue-api.js` client module
+13. Migrate admin pages and public client reads to REST API
 
 See [EQUALISER_RELAY.md](EQUALISER_RELAY.md) for the full relay specification and migration path.
 
-### Phase B.1: User Cache Integration
+### Phase B.3: User Cache Integration
 
 **Goal:** Cache fan/listener data for fast client reads.
 
 1. Add user cache tables to PostgreSQL schema
 2. Add user subscription logic to Equaliser Relay's peer syncer (Kind 0, 3, 30001, feed Kind 1)
-3. Implement `POST /api/users/register` endpoint in orchestrator
-4. User data read endpoints served by relay's REST API
+3. Implement `POST /api/internal/users/register` endpoint on the relay (Docker network only, called by orchestrator when a fan authenticates)
+4. User data read endpoints served by relay's REST API at `/api/catalogue/users/*`
 5. Add user management controls to admin console
 
 ### Phase C: Node Management Console

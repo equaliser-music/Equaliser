@@ -31,22 +31,46 @@ services:
       - ../client:/usr/share/nginx/html/client:ro
       - ./orchestrator:/usr/share/nginx/html/admin:ro
     depends_on:
-      - nostr-relay
+      - equaliser-relay
       - ipfs
       - orchestrator
       - blossom
     restart: unless-stopped
 
-  # NOSTR relay
-  nostr-relay:
-    image: scsibug/nostr-rs-relay:latest
-    container_name: equaliser-nostr-relay
+  # PostgreSQL database - owned exclusively by Equaliser Relay
+  postgres:
+    image: postgres:15-alpine
+    container_name: equaliser-postgres
+    environment:
+      - POSTGRES_USER=equaliser
+      - POSTGRES_PASSWORD=equaliser
+      - POSTGRES_DB=equaliser
     volumes:
-      - nostr-data:/usr/src/app/db
-      - ./nostr-relay/config.toml:/usr/src/app/config.toml:ro
+      - postgres-data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8080' || exit 1"]
+      test: ["CMD-SHELL", "pg_isready -U equaliser"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Equaliser Relay - NOSTR relay with PostgreSQL storage and full tag indexing
+  equaliser-relay:
+    build: ./equaliser-relay
+    container_name: equaliser-relay
+    environment:
+      - DATABASE_URL=postgresql://equaliser:equaliser@postgres:5432/equaliser
+      - WS_PORT=8080
+      - RELAY_NAME=Equaliser Content Node Relay
+      - RELAY_DESCRIPTION=A NOSTR relay for the Equaliser music platform content node
+      - EVENT_POLICY=equaliser_only
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -73,7 +97,7 @@ services:
     container_name: equaliser-orchestrator
     environment:
       - IPFS_API_URL=http://ipfs:5001
-      - NOSTR_RELAY_URL=ws://nostr-relay:8080
+      - NOSTR_RELAY_URL=ws://equaliser-relay:8080
       - BLOSSOM_URL=http://blossom:3000
       - DATABASE_PATH=/data/drafts.db
     volumes:
@@ -81,7 +105,7 @@ services:
       - drafts-data:/data
     depends_on:
       - ipfs
-      - nostr-relay
+      - equaliser-relay
       - blossom
     restart: unless-stopped
     healthcheck:
@@ -92,7 +116,7 @@ services:
       start_period: 10s
 
 volumes:
-  nostr-data:
+  postgres-data:
     driver: local
   ipfs-data:
     driver: local

@@ -114,7 +114,7 @@ const NostrDM = (() => {
         const event = {
             kind: 4,
             created_at: Math.floor(Date.now() / 1000),
-            tags: [['p', recipientPubkey]],
+            tags: [['app', 'Equaliser'], ['p', recipientPubkey]],
             content: encrypted
         };
 

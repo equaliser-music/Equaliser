@@ -235,6 +235,7 @@ async def export_prepare(request: ExportPrepareRequest):
         "pubkey": request.pubkey,
         "created_at": int(time.time()),
         "tags": [
+            ["app", "Equaliser"],
             ["t", "eqpkg"],
             ["format_version", FORMAT_VERSION],
             ["album", request.album],

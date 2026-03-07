@@ -343,7 +343,7 @@
             try {
                 const event = {
                     kind: 7, created_at: Math.floor(Date.now() / 1000),
-                    tags: [['e', noteId], ['p', authorPubkey]], content: '+'
+                    tags: [['app', 'Equaliser'], ['e', noteId], ['p', authorPubkey]], content: '+'
                 };
                 const signedEvent = await SessionManager.signEvent(event);
                 await NostrSocial.publishEvent(signedEvent);
@@ -365,7 +365,7 @@
                 const originalNote = this._feedNotes.find(n => n.id === noteId);
                 const event = {
                     kind: 6, created_at: Math.floor(Date.now() / 1000),
-                    tags: [['e', noteId, DEFAULT_RELAYS[0]], ['p', authorPubkey]],
+                    tags: [['app', 'Equaliser'], ['e', noteId, DEFAULT_RELAYS[0]], ['p', authorPubkey]],
                     content: originalNote ? JSON.stringify(originalNote) : ''
                 };
                 const signedEvent = await SessionManager.signEvent(event);
@@ -428,9 +428,10 @@
                     this._userContactTags.push(['p', targetPubkeyHex]);
                 }
 
+                const contactTags = [['app', 'Equaliser'], ...this._userContactTags];
                 const event = {
                     kind: 3, created_at: Math.floor(Date.now() / 1000),
-                    tags: this._userContactTags, content: this._userContactContent
+                    tags: contactTags, content: this._userContactContent
                 };
                 const signedEvent = await SessionManager.signEvent(event);
                 await NostrSocial.publishEvent(signedEvent);

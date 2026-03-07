@@ -117,7 +117,7 @@
             const event = {
                 kind: 0,
                 created_at: Math.floor(Date.now() / 1000),
-                tags: [],
+                tags: [['app', 'Equaliser']],
                 content: JSON.stringify(updatedProfile)
             };
 
@@ -231,7 +231,7 @@
             const event = {
                 kind: 10002,
                 created_at: Math.floor(Date.now() / 1000),
-                tags: this._relays.map(url => ['r', url]),
+                tags: [['app', 'Equaliser'], ...this._relays.map(url => ['r', url])],
                 content: ''
             };
 

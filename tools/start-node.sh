@@ -36,10 +36,12 @@ for arg in "$@"; do
             echo "  $0 -d --no-build Start detached without rebuilding"
             echo ""
             echo "Services started:"
-            echo "  - ipfs          IPFS node (ports 4001, 5001)"
-            echo "  - nostr-relay   NOSTR relay"
-            echo "  - orchestrator  FastAPI backend"
-            echo "  - web           Nginx (port 80)"
+            echo "  - ipfs              IPFS node (ports 4001, 5001)"
+            echo "  - postgres          PostgreSQL database"
+            echo "  - equaliser-relay   NOSTR relay (Go)"
+            echo "  - orchestrator      FastAPI backend"
+            echo "  - blossom           Blossom file server"
+            echo "  - web               Nginx (port 80)"
             echo ""
             echo "Access:"
             echo "  http://localhost              Landing page"
@@ -60,14 +62,14 @@ if [ -n "$BUILD_FLAG" ]; then
     echo "Building containers..."
 fi
 
-docker-compose up $BUILD_FLAG $DETACH_FLAG
+docker compose up $BUILD_FLAG $DETACH_FLAG
 
 if [ -n "$DETACH_FLAG" ]; then
     echo ""
     echo "Content node started in background."
     echo ""
-    echo "View logs:     docker-compose -f $CONTENT_NODE_DIR/docker-compose.yml logs -f"
-    echo "Stop:          docker-compose -f $CONTENT_NODE_DIR/docker-compose.yml down"
+    echo "View logs:     docker compose -f $CONTENT_NODE_DIR/docker-compose.yml logs -f"
+    echo "Stop:          docker compose -f $CONTENT_NODE_DIR/docker-compose.yml down"
     echo ""
     echo "Access:"
     echo "  http://localhost              Landing page"
