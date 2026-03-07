@@ -368,15 +368,17 @@ CREATE TABLE node_artists (
 
 ### 5.4 Request Form Page
 
-A new public page at `/request` (or `/join`). Simple form with fields:
+A new public page at `/join`. No NOSTR keys or authentication needed — this is a public-facing request form.
 
-- Artist/project name (required)
-- Brief description of your music (required)
-- Links to existing work — Bandcamp, SoundCloud, YouTube, personal site (optional but encouraged)
-- Email address for notification (optional)
-- Existing npub if they already have a NOSTR identity (optional)
+#### Fields
 
-No NOSTR keys or authentication needed — this is a public-facing request form.
+| Field | Required | Description |
+|-------|----------|-------------|
+| Artist/project name | Yes | Name of the artist or project |
+| Description | Yes | Brief description of their music |
+| Links | No (encouraged) | Existing work — Bandcamp, SoundCloud, YouTube, personal site |
+| Email | No | For notification when request is reviewed |
+| Existing npub | No | If they already have a NOSTR identity |
 
 On submission, the form posts to `POST /api/access/request` and displays a confirmation message explaining that the node admin will review their request.
 
@@ -384,9 +386,28 @@ On submission, the form posts to `POST /api/access/request` and displays a confi
 
 On approval, the system generates a unique invite code (e.g. `EQ-a8f3b2c1`). The admin can share this with the artist however they choose — email, DM, etc.
 
-The existing onboarding page (`/admin/onboarding.html`) is modified to require an invite code at the start. The code is validated against `POST /api/access/validate-code`. If valid, the artist proceeds through the existing onboarding flow. On successful onboarding (keys generated, profile published), the invite is marked as used and the artist is added to `node_artists`.
+The existing onboarding page (`/admin/onboarding.html`) is modified to require an invite code at the start. The code is validated against `POST /api/access/validate-code`. If valid, the artist proceeds through the existing onboarding flow (key generation, backup download, profile setup, relay publishing). On successful onboarding, the invite is marked as used and the artist is added to `node_artists`.
 
-### 5.6 API Endpoints
+### 5.6 Node Info
+
+The public endpoint `GET /api/access/node-info` returns basic information about the node:
+
+- Node name and description
+- Number of hosted artists
+- Fee model (if applicable)
+
+This allows prospective artists to understand what the node offers before requesting access.
+
+### 5.7 Integration with Existing Onboarding
+
+The access control system wraps the existing onboarding flow:
+
+1. **Before access control:** Artist visits `/admin/onboarding.html` and proceeds directly to key generation
+2. **With access control:** Artist visits `/join`, submits request, receives invite code, enters code at `/admin/onboarding.html`, then proceeds to key generation
+
+The existing onboarding steps (key generation, backup download, profile setup, relay publishing) remain unchanged. See [ONBOARDING.md](implemented/ONBOARDING.md) for the full onboarding flow.
+
+### 5.8 API Endpoints
 
 ```
 # Public
@@ -424,20 +445,25 @@ Web-based admin dashboard for node operators to monitor and control all node ope
 - Per-relay stats: event count, last event time, error count
 - Controls: add relay, remove relay, enable/disable relay, force resync
 - Sync log: recent event activity with kind, source relay, action taken
+- See [EQUALISER_RELAY.md](EQUALISER_RELAY.md) for the relay's peer syncer architecture and configuration
 
 **Artist Management**
-- Pending access requests queue with approve/decline actions
+- Pending access requests queue with approve/decline actions (see Section 5 above)
 - Onboarded artists list with status, track count, storage usage
 - Per-artist detail: fee model, published events, IPFS storage used
 - Invite code management: active codes, generate manual codes
 
 **User Management**
-- Global toggle to enable/disable user caching
-- Registered users list with last seen time, event counts, cache size
-- Per-user enable/disable syncing
-- Feed threshold settings (time window in days, event count cap)
-- Force resync and remove user actions
-- See [EQUALISER_RELAY.md](EQUALISER_RELAY.md) for user subscription details
+
+Manage fan/listener data caching. User caching is purely metadata — NOSTR event data (profiles, follow lists, playlists, feeds). This is distinct from file hosting (IPFS/Blossom) which consumes real storage.
+
+- **Global toggle** — enable/disable user caching entirely if the node is resource-constrained
+- **Registered users list** — all authenticated pubkeys with last seen time, event counts, cache size
+- **Per-user enable/disable** — suspend syncing for individual users without removing their registration
+- **Feed threshold settings** — configure global time window (days) and event count cap
+- **Force resync** — trigger an immediate full resync for a specific user
+- **Remove user** — deregister a pubkey and purge their cached data
+- See [EQUALISER_RELAY.md](EQUALISER_RELAY.md) for how user subscriptions work and [DATABASE.md](DATABASE.md) for user cache tables
 
 **IPFS & Storage**
 - Local IPFS node stats: storage used, peer count, pin count
@@ -467,7 +493,7 @@ All `/api/admin/*` endpoints require this authentication.
 
 - React SPA served as static files from `/admin/console`
 - Communicates with `/api/admin/*` endpoints
-- WebSocket connection to orchestrator for real-time status updates (relay connections, incoming requests)
+- WebSocket connection to Equaliser Relay for real-time status updates (peer relay connections, incoming events)
 - Consistent with existing admin pages (profile editor, settings) in style
 
 ---
@@ -573,7 +599,7 @@ Critical design principle: artists can always leave. Since their identity is the
 3. New node pins their IPFS content
 4. Old node can optionally unpin to free storage
 
-The tooling should make this exit path explicit — a "migrate" or "export" option in the artist admin panel that packages everything needed.
+The tooling should make this exit path explicit — a "migrate" or "export" option in the artist admin panel that packages everything needed. See [ARTIST_PACKAGE.md](ARTIST_PACKAGE.md) for the existing export format.
 
 ---
 
@@ -654,8 +680,8 @@ See [EQUALISER_RELAY.md](EQUALISER_RELAY.md) for the full relay specification an
 | `equaliser-technical-specification.md` | **Update** | Add Section 4.6 (Equaliser Relay), Section 4.7 (Cache API), Section 4.8 (Node Management Console), Section 4.9 (Access Control). Update architecture diagram. |
 | `equaliser-node-setup-notes.md` | **Update** | Add Equaliser Relay container setup, PostgreSQL setup, and environment variables. Update Docker Compose examples. |
 | `EQUALISER_RELAY.md` | **Exists** | Full specification for the custom relay. Authoritative source for relay architecture. |
-| `NODE_ADMIN.md` | **Create** | Documentation for the node management console: features, authentication, API reference for admin endpoints. |
-| `ACCESS_CONTROL.md` | **Create** | Documentation for the access request and invite code system: request form, approval workflow, invite codes, integration with onboarding. |
+| ~~`NODE_ADMIN.md`~~ | **Merged** | Node management console documentation folded into this spec (Section 6). |
+| ~~`ACCESS_CONTROL.md`~~ | **Merged** | Access control documentation folded into this spec (Sections 5, 8). |
 | `DATABASE.md` | **Create** | Full database schema reference covering cache tables, access control tables, cluster/blossom tables, and node configuration. |
 | `equaliser-domain-mapping-notes.md` | **Update** | Add routes for `/join`, `/admin/console`, and any new API paths to reverse proxy configuration. |
 

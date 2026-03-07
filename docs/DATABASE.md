@@ -266,7 +266,7 @@ CREATE TABLE event_log (
 
 ### Access Control Tables
 
-Used by the access request and invite code system. See [ACCESS_CONTROL.md](ACCESS_CONTROL.md).
+Used by the access request and invite code system. See [NODE-MANAGEMENT-SPEC.md](NODE-MANAGEMENT-SPEC.md) Section 5.
 
 #### access_requests
 
@@ -386,5 +386,5 @@ The existing SQLite database continues to serve draft management. The PostgreSQL
 - [NODE-MANAGEMENT-SPEC.md](NODE-MANAGEMENT-SPEC.md) — Full specification (Sections 3, 5, 7)
 - [ORCHESTRATOR.md](ORCHESTRATOR.md) — Orchestrator API and SQLite drafts schema
 - [EQUALISER_RELAY.md](EQUALISER_RELAY.md) — Equaliser Relay architecture
-- [ACCESS_CONTROL.md](ACCESS_CONTROL.md) — Access request and invite code system
-- [BLOSSOM.md](BLOSSOM.md) — Blossom integration
+- [NODE-MANAGEMENT-SPEC.md](NODE-MANAGEMENT-SPEC.md) — Access control (Section 5), multi-tenant hosting (Section 8)
+- [BLOSSOM.md](implemented/BLOSSOM.md) — Blossom integration

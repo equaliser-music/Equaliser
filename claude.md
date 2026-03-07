@@ -1,31 +1,33 @@
-Documentation exists in the 'docs' folder. Please read in the following order at the start of each session
+Documentation exists in the `docs/` folder. Read the following at the start of each session:
 
-1. Base documentation before any code was written:
-    - Functional Specification.md
-    - Technical Specification.md
+1. CONTENT_NODE.md
+2. ORCHESTRATOR.md
+3. IPFS.md
+4. EQUALISER_RELAY.md
+5. DATABASE.md
+6. NODE-MANAGEMENT-SPEC.md
+7. ARTIST_PACKAGE.md
+8. DEPLOYMENT_OPTIONS.md
+9. SCALING.md
+10. feature-proposals/FUTURE_FEATURES.md
 
-2. PROJECT_RULES.md
-3. CONTENT_NODE.md
-4. ORCHESTRATOR.md
-5. IPFS.md
-6. NOSTR.md
-7. IPFS_CID_COMPATIBILITY.md
-8. ONBOARDING.md
-9. SESSION_MANAGEMENT_FUNCTIONAL.md
-10. PROFILE.md
-11. SOCIAL.md
-12. DEPLOYMENT_OPTIONS.md
-13. SCALING.md
-14. ARTIST_PACKAGE.md
-15. BLOSSOM.md
-16. contributor email summary.md
-17. PRICING_CURRENCY.md
-18. COMMUNITY.md
-19. NODE-MANAGEMENT-SPEC.md
-20. ACCESS_CONTROL.md
-21. NODE_ADMIN.md
-22. EQUALISER_RELAY.md
-23. DATABASE.md
+Implemented feature docs in `docs/implemented/` — consult when working on specific areas (Functional Specification, Technical Specification, ONBOARDING, SESSION_MANAGEMENT_FUNCTIONAL, PROFILE, SOCIAL, BLOSSOM, IPFS_CID_COMPATIBILITY, PRICING_CURRENCY).
+
+Archived/deprecated docs in `docs/archive/` (NOSTR, BLOSSOM_INTEGRATION_IDEAS, README).
+
+## Codebase Structure
+
+**Always check `client/` and `content_node/` when assessing or making large-scale changes.** Do not modify mockup files unless specifically requested.
+
+| Directory | Purpose | Tech | Docs |
+|-----------|---------|------|------|
+| `client/` | Fan-facing SPA (listener UI). Served by nginx at `/` | Vanilla JS, HTML, nostr-tools, hls.js | [client/CLAUDE.md](client/CLAUDE.md) |
+| `content_node/` | Artist admin + backend services | Docker Compose: FastAPI orchestrator, IPFS, NOSTR relay, Blossom, nginx | [content_node/CLAUDE.md](content_node/CLAUDE.md), [CONTENT_NODE.md](docs/CONTENT_NODE.md) |
+| `mockups/` | Early UX prototypes (archived) | Express.js server, static HTML | [MOCKUPS.md](mockups/MOCKUPS.md) |
+| `tools/` | CLI scripts for dev, deploy, content management | Bash | See Tools section below |
+
+- `content_node/orchestrator/` contains the FastAPI backend (`api/`) and artist admin HTML pages
+- `content_node/web/nginx.conf` routes requests between client, orchestrator, IPFS, Blossom, and relay
 
 ## Important Rules
 
@@ -251,14 +253,14 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - Track prices stored as `["price", "0.04"]` + `["price_currency", "GBP"]` in Kind 30050
   - SQLite schema, orchestrator APIs, profile editor, and track upload UI all updated
   - Fiat → sats conversion at invoice time deferred to Track Upload Phase 2 (payment system)
-  - See [PRICING_CURRENCY.md](docs/PRICING_CURRENCY.md)
+  - See [PRICING_CURRENCY.md](docs/implemented/PRICING_CURRENCY.md)
 
 - [x] **Blossom Integration (MVP)**: Blossom server for original audio + images
   - Blossom Docker service with BUD-03 auth (node identity keypair)
   - Original audio preserved on Blossom during track upload
   - Cover art uploaded to Blossom (primary) + IPFS (fallback)
   - NOSTR events include `blossom_audio_hash` and `blossom_cover_hash` tags
-  - See [BLOSSOM.md](docs/BLOSSOM.md)
+  - See [BLOSSOM.md](docs/implemented/BLOSSOM.md)
 
 - [x] **Release Package System**: Export/import releases as signed `.eqpkg.zip`
   - Export from admin UI or CLI (`export-artist.sh`)
@@ -278,7 +280,7 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - Re-upload to local Blossom server → platform restored
   - Relies on IPFS cross-pinning (artist community) for content survival
   - Document recovery path first, automate tooling in later phase
-  - See [BLOSSOM_INTEGRATION_IDEAS.md](docs/BLOSSOM_INTEGRATION_IDEAS.md)
+  - See [BLOSSOM_INTEGRATION_IDEAS.md](docs/archive/BLOSSOM_INTEGRATION_IDEAS.md)
 
 - [x] **Relay Spam Management**: App-tag filtering at ingestion
   - All Equaliser events tagged with `["app", "equaliser"]` before signing
@@ -323,7 +325,7 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - **Unified Social Page**: `social.html` combines Feed + Community as full-width tabs ("Timeline" / "Community Threads"). Single "Social" link in sidebar bottom nav (alongside Profile, Settings). Messages accessible from profile page.
   - **Relay Tag Filtering**: Multi-char tag filtering done client-side (Equaliser Relay provides full tag indexing)
   - **Seed Data**: `tools/seed-social.sh` populates relay with test posts, threads, DMs, reactions
-  - See [SOCIAL.md](docs/SOCIAL.md), [COMMUNITY.md](docs/COMMUNITY.md)
+  - See [SOCIAL.md](docs/implemented/SOCIAL.md)
 
 - [ ] **User Data Caching (Phase B.1)**: Cache fan/listener NOSTR data on content node
   - Fan authenticates via NIP-07/NIP-46, orchestrator writes pubkey to `registered_users`
@@ -338,7 +340,7 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - Admin approval workflow via management console
   - Invite code generation and validation before onboarding
   - `access_requests` and `node_artists` tables in PostgreSQL
-  - See [ACCESS_CONTROL.md](docs/ACCESS_CONTROL.md), [NODE-MANAGEMENT-SPEC.md](docs/NODE-MANAGEMENT-SPEC.md) Section 5
+  - See [NODE-MANAGEMENT-SPEC.md](docs/NODE-MANAGEMENT-SPEC.md) Section 5
 
 - [ ] **Equaliser Relay (Phase B)**: Custom NOSTR relay with built-in cache and peer syncing
   - Single service combining NIP-01 WebSocket, built-in peer syncer, PostgreSQL storage with full tag indexing, and REST API
@@ -352,7 +354,7 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - Sections: Overview, Sync Manager, Artist Management, IPFS & Storage, Blossom Mirroring, Settings
   - Admin authentication via `ADMIN_PASSWORD` env var
   - WebSocket for real-time status updates
-  - See [NODE_ADMIN.md](docs/NODE_ADMIN.md), [NODE-MANAGEMENT-SPEC.md](docs/NODE-MANAGEMENT-SPEC.md) Section 6
+  - See [NODE-MANAGEMENT-SPEC.md](docs/NODE-MANAGEMENT-SPEC.md) Section 6
 
 - [ ] **IPFS Cluster & Blossom Mirroring (Phase D)**: Cross-node content redundancy
   - IPFS cluster pin request workflow (inbound/outbound)
