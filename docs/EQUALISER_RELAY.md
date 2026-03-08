@@ -1,6 +1,6 @@
 # Equaliser Relay
 
-**Status:** Specification
+**Status:** Phases 1-2 implemented, Phases 3-4 specification
 
 ---
 
@@ -330,25 +330,28 @@ content_node/equaliser-relay/
 │       └── main.go                 # entry point, wires everything up
 ├── internal/
 │   ├── config/
-│   │   └── config.go              # env var parsing (DATABASE_URL, ports, limits, etc.)
+│   │   └── config.go              # env var parsing (DATABASE_URL, ports, limits, peer relays, etc.)
 │   ├── storage/
 │   │   ├── postgres.go            # connection pool, migrations
 │   │   ├── events.go              # raw_events + event_tags CRUD, replaceable logic, deletion
-│   │   └── denorm.go              # denormalised table parsing/upserts
+│   │   ├── denorm.go              # denormalised table parsing/upserts
+│   │   └── peers.go               # peer_relays table CRUD (status, event counts, errors)
 │   ├── relay/
-│   │   ├── handler.go             # WebSocket connection handler
+│   │   ├── handler.go             # WebSocket handler, ProcessInboundEvent pipeline
 │   │   ├── subscription.go        # REQ subscription management
 │   │   └── filter.go              # NIP-01 filter matching + SQL query building
+│   ├── syncer/
+│   │   ├── syncer.go              # peer syncer: inbound sync, outbound forwarding, reconnection
+│   │   └── backoff.go             # exponential backoff helper (5s → 5min cap)
 │   └── nostr/
 │       ├── event.go               # event struct, ID validation, signature verification
-│       └── nip01.go               # protocol message parsing (REQ, EVENT, CLOSE, COUNT)
+│       └── nip01.go               # protocol message parsing + building (server and client sides)
 └── migrations/
     └── 001_initial.sql            # full schema (raw_events, event_tags, all denorm + operational tables)
 ```
 
 Directories added in later phases:
-- `internal/api/` — REST API handlers (Phase B.2)
-- `internal/syncer/` — peer syncer (Phase B.1)
+- `internal/api/` — REST API handlers (Phase 3)
 
 ---
 
@@ -367,9 +370,9 @@ RELAY_DESCRIPTION=Equaliser content node relay
 # Event policy
 EVENT_POLICY=equaliser_only   # equaliser_only | open | hybrid
 
-# Peer syncing (Phase B.1)
-PEER_RELAYS=                  # comma-separated WebSocket URLs
-SYNC_INTERVAL=3600            # seconds between full syncs
+# Peer syncing
+PEER_RELAYS=                  # comma-separated WebSocket URLs (empty = syncer disabled)
+SYNC_INTERVAL=3600            # seconds between periodic full resyncs
 
 # User caching (Phase B.3)
 USER_FEED_DAYS=30             # max age of feed events to cache
@@ -385,7 +388,7 @@ ADMIN_PASSWORD=               # password for /api/admin/* endpoints
 
 This doesn't need to be built all at once. A phased approach:
 
-### Phase 1: Core relay + storage
+### Phase 1: Core relay + storage ✅
 - Build NIP-01 relay in Go with PostgreSQL storage
 - Full schema from day one: `raw_events`, `event_tags`, plus denormalised tables (`cached_artists`, `cached_tracks`, `cached_albums`)
 - Events parsed into denormalised tables on arrival (best-effort — raw event always stored even if parse fails)
@@ -393,11 +396,15 @@ This doesn't need to be built all at once. A phased approach:
 - No peer syncing — drop-in replacement for nostr-rs-relay
 - Replaces nostr-rs-relay in the Docker stack
 
-### Phase 2: Peer syncing
-- Add peer syncer — persistent WebSocket connections to external relays
-- Inbound: subscribe to Equaliser-tagged events and registered user data
-- Outbound: forward locally published events for federation
-- Auto-reconnection with exponential backoff
+### Phase 2: Peer syncing ✅
+- Peer syncer (`internal/syncer/`) with persistent WebSocket connections to configured peer relays
+- Inbound: subscribe to Equaliser-tagged events on peer relays (`#app` filter — works with other Equaliser relays that support full tag indexing)
+- Outbound: locally published events forwarded to all connected peers via SubscriptionManager hook
+- Auto-reconnection with exponential backoff (5s initial, 5min cap)
+- Peer status tracking in `peer_relays` table (connection status, event counts, errors)
+- `ProcessInboundEvent` extracted from handler — shared pipeline for WebSocket clients and peer syncer
+- Configured via `PEER_RELAYS` (comma-separated URLs) and `SYNC_INTERVAL` env vars
+- User data subscriptions (Kind 0/3/30001 by pubkey) deferred to user registration API phase — syncer infrastructure supports it, just needs registered_users to be populated
 
 ### Phase 3: REST API + client migration
 - Serve REST API at `/api/catalogue/*` for the web client

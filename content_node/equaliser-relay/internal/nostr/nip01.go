@@ -313,3 +313,114 @@ func BuildNoticeMessage(message string) ([]byte, error) {
 func BuildCountMessage(subID string, count int64) ([]byte, error) {
 	return json.Marshal([]interface{}{"COUNT", subID, map[string]int64{"count": count}})
 }
+
+// --- Client-side message builders (for peer syncer acting as a NOSTR client) ---
+
+// BuildReqMessage builds a REQ message to send to a relay: ["REQ", <sub_id>, <filter>, ...]
+func BuildReqMessage(subID string, filters ...Filter) ([]byte, error) {
+	arr := make([]interface{}, 0, 2+len(filters))
+	arr = append(arr, "REQ", subID)
+	for _, f := range filters {
+		arr = append(arr, f)
+	}
+	return json.Marshal(arr)
+}
+
+// BuildClientEventMessage builds an EVENT message to send to a relay: ["EVENT", <event>]
+// This is the client-to-relay format (2 elements), not relay-to-client (3 elements).
+func BuildClientEventMessage(event *Event) ([]byte, error) {
+	return json.Marshal([]interface{}{"EVENT", event})
+}
+
+// BuildCloseMessage builds a CLOSE message: ["CLOSE", <sub_id>]
+func BuildCloseMessage(subID string) ([]byte, error) {
+	return json.Marshal([]string{"CLOSE", subID})
+}
+
+// --- Client-side message parsers (for peer syncer reading relay responses) ---
+
+// ParseRelayEventMessage parses a relay EVENT response: ["EVENT", <sub_id>, <event>]
+// This is the relay-to-client format (3 elements), not client-to-relay (2 elements).
+func ParseRelayEventMessage(data []byte) (string, *Event, error) {
+	var arr []json.RawMessage
+	if err := json.Unmarshal(data, &arr); err != nil {
+		return "", nil, err
+	}
+	if len(arr) < 3 {
+		return "", nil, fmt.Errorf("relay EVENT message requires at least 3 elements")
+	}
+
+	var subID string
+	if err := json.Unmarshal(arr[1], &subID); err != nil {
+		return "", nil, fmt.Errorf("invalid subscription ID: %w", err)
+	}
+
+	var event Event
+	if err := json.Unmarshal(arr[2], &event); err != nil {
+		return "", nil, fmt.Errorf("invalid event: %w", err)
+	}
+
+	return subID, &event, nil
+}
+
+// ParseOKMessage parses a relay OK response: ["OK", <event_id>, <accepted>, <message>]
+func ParseOKMessage(data []byte) (string, bool, string, error) {
+	var arr []json.RawMessage
+	if err := json.Unmarshal(data, &arr); err != nil {
+		return "", false, "", err
+	}
+	if len(arr) < 4 {
+		return "", false, "", fmt.Errorf("OK message requires at least 4 elements")
+	}
+
+	var eventID string
+	if err := json.Unmarshal(arr[1], &eventID); err != nil {
+		return "", false, "", fmt.Errorf("invalid event ID: %w", err)
+	}
+
+	var accepted bool
+	if err := json.Unmarshal(arr[2], &accepted); err != nil {
+		return "", false, "", fmt.Errorf("invalid accepted flag: %w", err)
+	}
+
+	var message string
+	if err := json.Unmarshal(arr[3], &message); err != nil {
+		return "", false, "", fmt.Errorf("invalid message: %w", err)
+	}
+
+	return eventID, accepted, message, nil
+}
+
+// ParseEOSEMessage parses an EOSE message: ["EOSE", <sub_id>]
+func ParseEOSEMessage(data []byte) (string, error) {
+	var arr []json.RawMessage
+	if err := json.Unmarshal(data, &arr); err != nil {
+		return "", err
+	}
+	if len(arr) < 2 {
+		return "", fmt.Errorf("EOSE message requires at least 2 elements")
+	}
+
+	var subID string
+	if err := json.Unmarshal(arr[1], &subID); err != nil {
+		return "", fmt.Errorf("invalid subscription ID: %w", err)
+	}
+	return subID, nil
+}
+
+// ParseNoticeMessage parses a NOTICE: ["NOTICE", <message>]
+func ParseNoticeMessage(data []byte) (string, error) {
+	var arr []json.RawMessage
+	if err := json.Unmarshal(data, &arr); err != nil {
+		return "", err
+	}
+	if len(arr) < 2 {
+		return "", fmt.Errorf("NOTICE message requires at least 2 elements")
+	}
+
+	var message string
+	if err := json.Unmarshal(arr[1], &message); err != nil {
+		return "", fmt.Errorf("invalid message: %w", err)
+	}
+	return message, nil
+}

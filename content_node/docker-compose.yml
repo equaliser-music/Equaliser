@@ -65,6 +65,8 @@ services:
       - RELAY_NAME=Equaliser Content Node Relay
       - RELAY_DESCRIPTION=A NOSTR relay for the Equaliser music platform content node
       - EVENT_POLICY=equaliser_only
+      - PEER_RELAYS=                    # comma-separated: wss://relay.damus.io,wss://nos.lol
+      - SYNC_INTERVAL=3600              # seconds between periodic full syncs
     depends_on:
       postgres:
         condition: service_healthy

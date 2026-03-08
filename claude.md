@@ -343,10 +343,10 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - See [NODE-MANAGEMENT-SPEC.md](docs/NODE-MANAGEMENT-SPEC.md) Section 5
 
 - [ ] **Equaliser Relay (Phase B)**: Custom NOSTR relay with built-in cache and peer syncing
-  - Single service combining NIP-01 WebSocket, built-in peer syncer, PostgreSQL storage with full tag indexing, and REST API
-  - Replaces nostr-rs-relay with a purpose-built relay for Equaliser
-  - Events parsed into denormalised tables on arrival — no sync lag
-  - Auto-discovers new relays via Kind 10002 events
+  - **Phase 1 (done):** NIP-01 WebSocket relay in Go, PostgreSQL storage with full tag indexing, denormalised parsing (Kind 0/30050/30051), event acceptance policy, replaces nostr-rs-relay
+  - **Phase 2 (done):** Peer syncer — persistent WebSocket connections to configured peer relays, inbound Equaliser event sync, outbound event forwarding, exponential backoff reconnection, peer status tracking in `peer_relays` table
+  - **Phase 3 (todo):** REST API at `/api/catalogue/*`, `catalogue-api.js` client module, migrate reads from WebSocket to REST
+  - **Phase 4 (todo):** Connection pooling, query optimisation, caching hot paths
   - See [EQUALISER_RELAY.md](docs/EQUALISER_RELAY.md), [DATABASE.md](docs/DATABASE.md), [NODE-MANAGEMENT-SPEC.md](docs/NODE-MANAGEMENT-SPEC.md) Sections 2-4
 
 - [ ] **Node Management Console (Phase C)**: Admin dashboard at `/admin/console`
