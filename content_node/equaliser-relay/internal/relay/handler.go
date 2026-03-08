@@ -187,42 +187,42 @@ func (h *Handler) handleMessage(ctx context.Context, conn *Connection, data []by
 	}
 }
 
-// handleEvent processes an incoming EVENT message.
-func (h *Handler) handleEvent(ctx context.Context, conn *Connection, data []byte) {
-	event, err := nostr.ParseEventMessage(data)
-	if err != nil {
-		h.sendNotice(conn, "invalid EVENT: "+err.Error())
-		return
-	}
+// ProcessResult describes the outcome of processing an inbound event.
+type ProcessResult struct {
+	Stored   bool   // true if event was written to the database
+	Accepted bool   // true if the relay accepted the event (stored or dedup)
+	Message  string // reason string for OK message (empty on success)
+}
 
+// ProcessInboundEvent runs the full event processing pipeline (validate, policy check,
+// store, denorm, notify) without sending an OK response. Used by both the WebSocket
+// handler and the peer syncer.
+//
+// sourceID is passed to NotifyNewEvent to avoid echo. relayURL is logged in event_log.
+func (h *Handler) ProcessInboundEvent(ctx context.Context, event *nostr.Event, sourceID string, relayURL string) ProcessResult {
 	// Validate event ID and signature
 	valid, reason := event.Validate()
 	if !valid {
-		h.sendOK(conn, event.ID, false, reason)
-		return
+		return ProcessResult{Accepted: false, Message: reason}
 	}
 
 	// Check event acceptance policy
 	if !h.checkEventPolicy(event) {
-		h.sendOK(conn, event.ID, false, "blocked: not an Equaliser event")
-		return
+		return ProcessResult{Accepted: false, Message: "blocked: not an Equaliser event"}
 	}
 
 	// Check if ephemeral — don't store
 	if nostr.IsEphemeral(event.Kind) {
-		// Notify subscribers but don't store
 		rawJSON, _ := event.MarshalRaw()
-		h.subMgr.NotifyNewEvent(event, rawJSON, conn.ID)
-		h.sendOK(conn, event.ID, true, "")
-		return
+		h.subMgr.NotifyNewEvent(event, rawJSON, sourceID)
+		return ProcessResult{Accepted: true}
 	}
 
 	// Begin transaction
 	tx, err := h.store.Pool().Begin(ctx)
 	if err != nil {
 		log.Printf("Begin transaction failed: %v", err)
-		h.sendOK(conn, event.ID, false, "error: internal")
-		return
+		return ProcessResult{Accepted: false, Message: "error: internal"}
 	}
 	defer tx.Rollback(ctx)
 
@@ -231,12 +231,10 @@ func (h *Handler) handleEvent(ctx context.Context, conn *Connection, data []byte
 		shouldStore, err := h.store.HandleReplaceable(ctx, tx, event)
 		if err != nil {
 			log.Printf("Replaceable check failed: %v", err)
-			h.sendOK(conn, event.ID, false, "error: internal")
-			return
+			return ProcessResult{Accepted: false, Message: "error: internal"}
 		}
 		if !shouldStore {
-			h.sendOK(conn, event.ID, false, "duplicate: event is older than current")
-			return
+			return ProcessResult{Accepted: false, Message: "duplicate: event is older than current"}
 		}
 	}
 
@@ -244,8 +242,7 @@ func (h *Handler) handleEvent(ctx context.Context, conn *Connection, data []byte
 	if event.Kind == 5 {
 		if err := h.store.HandleDeletion(ctx, tx, event); err != nil {
 			log.Printf("Deletion handling failed: %v", err)
-			h.sendOK(conn, event.ID, false, "error: internal")
-			return
+			return ProcessResult{Accepted: false, Message: "error: internal"}
 		}
 	}
 
@@ -253,12 +250,10 @@ func (h *Handler) handleEvent(ctx context.Context, conn *Connection, data []byte
 	inserted, err := h.store.StoreEvent(ctx, tx, event)
 	if err != nil {
 		log.Printf("Store event failed: %v", err)
-		h.sendOK(conn, event.ID, false, "error: internal")
-		return
+		return ProcessResult{Accepted: false, Message: "error: internal"}
 	}
 	if !inserted {
-		h.sendOK(conn, event.ID, true, "duplicate:")
-		return
+		return ProcessResult{Accepted: true, Message: "duplicate:"}
 	}
 
 	// Parse into denorm tables (best-effort, only for Equaliser-tagged events)
@@ -269,18 +264,29 @@ func (h *Handler) handleEvent(ctx context.Context, conn *Connection, data []byte
 	// Commit
 	if err := tx.Commit(ctx); err != nil {
 		log.Printf("Commit failed: %v", err)
-		h.sendOK(conn, event.ID, false, "error: internal")
-		return
+		return ProcessResult{Accepted: false, Message: "error: internal"}
 	}
 
 	// Log the event (async — not in the critical path)
-	go h.store.LogEvent(context.Background(), "local", event.Kind, event.ID, "inserted")
+	go h.store.LogEvent(context.Background(), relayURL, event.Kind, event.ID, "inserted")
 
 	// Notify matching subscriptions
 	rawJSON, _ := event.MarshalRaw()
-	h.subMgr.NotifyNewEvent(event, rawJSON, conn.ID)
+	h.subMgr.NotifyNewEvent(event, rawJSON, sourceID)
 
-	h.sendOK(conn, event.ID, true, "")
+	return ProcessResult{Stored: true, Accepted: true}
+}
+
+// handleEvent processes an incoming EVENT message.
+func (h *Handler) handleEvent(ctx context.Context, conn *Connection, data []byte) {
+	event, err := nostr.ParseEventMessage(data)
+	if err != nil {
+		h.sendNotice(conn, "invalid EVENT: "+err.Error())
+		return
+	}
+
+	result := h.ProcessInboundEvent(ctx, event, conn.ID, "local")
+	h.sendOK(conn, event.ID, result.Accepted, result.Message)
 }
 
 // handleReq processes an incoming REQ message.

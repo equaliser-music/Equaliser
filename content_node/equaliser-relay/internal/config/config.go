@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type Config struct {
@@ -16,6 +17,8 @@ type Config struct {
 	MaxFilters       int
 	MaxMessageLength int
 	MaxEventTags     int
+	PeerRelays       []string // WebSocket URLs of peer relays (from PEER_RELAYS env)
+	SyncInterval     int      // seconds between periodic full syncs (from SYNC_INTERVAL env)
 }
 
 func Load() *Config {
@@ -30,6 +33,17 @@ func Load() *Config {
 		MaxMessageLength: getEnvInt("MAX_MESSAGE_LENGTH", 65536),
 		MaxEventTags:     getEnvInt("MAX_EVENT_TAGS", 2000),
 	}
+
+	// Parse PEER_RELAYS (comma-separated, empty = no syncing)
+	if peerRelaysStr := getEnv("PEER_RELAYS", ""); peerRelaysStr != "" {
+		for _, url := range strings.Split(peerRelaysStr, ",") {
+			url = strings.TrimSpace(url)
+			if url != "" {
+				cfg.PeerRelays = append(cfg.PeerRelays, url)
+			}
+		}
+	}
+	cfg.SyncInterval = getEnvInt("SYNC_INTERVAL", 3600)
 
 	if cfg.DatabaseURL == "" {
 		log.Fatal("DATABASE_URL environment variable is required")

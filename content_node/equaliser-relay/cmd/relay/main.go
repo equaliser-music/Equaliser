@@ -13,6 +13,7 @@ import (
 	"equaliser-relay/internal/config"
 	"equaliser-relay/internal/relay"
 	"equaliser-relay/internal/storage"
+	"equaliser-relay/internal/syncer"
 )
 
 func main() {
@@ -47,6 +48,17 @@ func main() {
 	subMgr := relay.NewSubscriptionManager()
 	handler := relay.NewHandler(eventStore, denormParser, subMgr, cfg)
 
+	// Start peer syncer (only if peer relays are configured)
+	peerStore := storage.NewPeerStore(pool)
+	var peerSyncer *syncer.Syncer
+	if len(cfg.PeerRelays) > 0 {
+		peerSyncer = syncer.New(handler, subMgr, peerStore, cfg)
+		peerSyncer.Start(ctx)
+		log.Printf("Peer syncer started with %d relay(s)", len(cfg.PeerRelays))
+	} else {
+		log.Println("No peer relays configured, syncer disabled")
+	}
+
 	// Set up HTTP server
 	mux := http.NewServeMux()
 	mux.Handle("/", handler)
@@ -65,6 +77,11 @@ func main() {
 		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 		sig := <-sigCh
 		log.Printf("Received signal %s, shutting down...", sig)
+
+		// Stop syncer first (closes peer WebSocket connections)
+		if peerSyncer != nil {
+			peerSyncer.Stop()
+		}
 
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
