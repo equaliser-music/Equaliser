@@ -52,12 +52,20 @@ The wider NOSTR network is supported — but never at the cost of app user exper
 │  └──────────┘  └───────────────────┘  └───────────┘ │
 │                        │                              │
 └────────────────────────┼──────────────────────────────┘
-                         │ WebSocket (outbound subscriptions + publishing)
-                         ▼
-                  ┌──────────┐  ┌──────────┐
-                  │  Damus   │  │  nos.lol │  ...
-                  │  Relay   │  │  Relay   │
-                  └──────────┘  └──────────┘
+                         │ WebSocket (outbound)
+                         │
+              ┌──────────┼──────────┐
+              ▼                     ▼
+       Equaliser Peers        Standard Relays
+       (#app filter)          (pubkey filter)
+       ┌──────────┐           ┌──────────┐
+       │Equaliser │           │  Damus   │
+       │  Node B  │           │  Relay   │
+       └──────────┘           └──────────┘
+       ┌──────────┐           ┌──────────┐
+       │Equaliser │           │  nos.lol │
+       │  Node C  │           │  Relay   │
+       └──────────┘           └──────────┘
 ```
 
 ### Replaces nostr-rs-relay
@@ -193,18 +201,43 @@ The orchestrator handles track uploads, draft management, and IPFS at `/api/*`. 
 
 ### 4. Peer Syncer
 
-The peer syncer is a built-in component that handles all external relay communication:
+The peer syncer maintains persistent WebSocket connections to two types of external relays, each with a different subscription strategy:
 
-- Maintains persistent WebSocket connections to configured external relays
-- Subscribes to Equaliser-tagged events
-- Subscribes to registered user pubkeys for data caching
-- Auto-discovers relays via Kind 10002 events
-- Automatic reconnection with exponential backoff
-- Periodic full sync as safety net
+#### Equaliser peer relays (`PEER_RELAYS`)
 
-Also handles **outbound publishing** — when the orchestrator publishes an event to the local relay, the peer syncer forwards it to configured external relays for federation.
+Connections to other Equaliser content nodes. These relays support full tag indexing, so the syncer subscribes using `#app: ["Equaliser"]` — efficient relay-side filtering that returns only Equaliser events.
 
-**Cross-node caching:** Events arriving from other Equaliser nodes (peer relays) follow the exact same path as locally-created events — signature validation, deduplication, raw storage, and denormalised parsing. There is no distinction between "local event" and "remote event" in the storage layer. This means an artist's catalogue published on Node A is automatically available as structured, queryable data on Node B the moment it syncs — no separate cache-building step. The relay's peer subscriptions (Equaliser-tagged events from configured relays) ensure that content from across the network is ingested, indexed, and immediately servable via both WebSocket and REST API.
+- All Equaliser event kinds sync: profiles (Kind 0), posts (Kind 1), follows (Kind 3), deletions (Kind 5), tracks (Kind 30050), albums (Kind 30051), playlists (Kind 30001)
+- Outbound forwarding: locally published events are forwarded to all connected Equaliser peers
+- This is the primary distribution mechanism for Equaliser-specific kinds (30050, 30051, 30001) which only exist on Equaliser relays
+
+#### Standard NOSTR relays (`STANDARD_RELAYS`)
+
+Connections to standard relays like Damus, nos.lol, Primal. These relays do not index multi-character tags — tested against `wss://relay.damus.io` which rejected `#app` subscriptions with `"bad req: unindexed tag filter"`. The syncer uses a different strategy:
+
+- Subscribes by **known pubkeys** from `node_artists` + `registered_users` tables
+- Only **common NOSTR kinds**: Kind 0 (profiles), Kind 1 (posts), Kind 3 (follows), Kind 5 (deletions)
+- Equaliser-specific kinds (30050, 30051, 30001) are NOT fetched from standard relays — they only exist on Equaliser nodes
+- Events received are **filtered locally** for the `["app", "Equaliser"]` tag before ingesting — the existing `EVENT_POLICY` check in `ProcessInboundEvent` handles this automatically
+- **Dynamic subscriptions**: when a new artist or user registers on this node, the syncer updates its subscription on standard relays to include the new pubkey
+- Outbound forwarding: locally published events are also forwarded to standard relays for NOSTR interoperability
+
+#### Common features (both types)
+
+- Automatic reconnection with exponential backoff (5s initial, doubles, 5min cap)
+- Periodic full resync as safety net (configurable via `SYNC_INTERVAL`)
+- Peer status tracking in `peer_relays` table (connection status, event counts, errors)
+- Events from both sources follow the same inbound pipeline: validate → policy check → store → denorm parse → notify
+
+#### Cross-node distribution
+
+Events arriving from any source (local publish, Equaliser peer, or standard relay) follow the exact same processing path. There is no distinction between "local event" and "remote event" in the storage layer.
+
+**The cascade:** Each node independently pulls common events from standard relays for its own known pubkeys. Those events are then distributed across the Equaliser peer mesh. If Relay A pulls an artist's Kind 1 post from Damus, Relay B gets it from Relay A via the `#app` peer sync — Relay B doesn't need its own Damus connection for that artist.
+
+**Kind 0 denorm routing:** Artist profiles and fan profiles are both Kind 0 events. The denorm parser distinguishes them by checking whether the pubkey exists in `node_artists` (→ `cached_artists`) or `registered_users` (→ `cached_users`). Artist profiles typically contain richer Equaliser-specific metadata (genres, bio, pricing currency).
+
+**Feed thresholds:** User feed caching (Kind 1 posts from followed accounts) is bounded by `USER_FEED_DAYS` (default 30 days) and `USER_FEED_LIMIT` (default 500 events per user) to prevent unbounded storage growth.
 
 ---
 
@@ -261,14 +294,23 @@ Orchestrator publishes event (track release, profile update)
     → Event available on NOSTR network
 ```
 
-### User registration
+### User data caching
+
+All Equaliser user events (profiles, posts, follows, playlists) carry the `["app", "Equaliser"]` tag because they are created through the Equaliser client. User data reaches the node via two paths:
+
+**Direct path (standard relays):** When a user posts from the Equaliser client, the event is published to both the local relay and external standard relays (Damus, nos.lol, etc.) for NOSTR interoperability. If this node has the user in `registered_users` or `node_artists`, the syncer's pubkey-based subscription on standard relays picks up those events and ingests them (after local app-tag filtering).
+
+**Cascade path (Equaliser peers):** Events pulled from standard relays by one Equaliser node are distributed to other Equaliser nodes via the `#app` peer subscription. Relay B doesn't need a Damus connection for users it doesn't know about — it gets their events transitively from Relay A.
 
 ```
-Fan authenticates → Orchestrator writes to registered_users
-    → Relay detects new registration
-    → Subscribes to user's events on peer relays (Kind 0, 3, 30001)
-    → Subscribes to feed (Kind 1 from follow list)
-    → Data flows in and is parsed into denormalised tables
+Fan authenticates on Node A
+    → Orchestrator calls relay's /api/internal/users/register
+    → Relay records pubkey in registered_users
+    → Syncer updates standard relay subscriptions to include new pubkey
+    → Fan's events on Damus/nos.lol pulled in via pubkey subscription
+    → Filtered locally for ["app", "Equaliser"] tag → ingested
+    → Forwarded to Equaliser peer nodes via #app subscription
+    → Node B receives events transitively (no Damus connection needed for this user)
 ```
 
 ---
@@ -285,7 +327,8 @@ equaliser-relay:
     - RELAY_NAME=Equaliser Relay
     - RELAY_DESCRIPTION=Equaliser content node relay
     - EVENT_POLICY=equaliser_only    # or: open, hybrid
-    - PEER_RELAYS=wss://relay.damus.io,wss://nos.lol,wss://relay.nostr.band
+    - PEER_RELAYS=wss://node-b.example.com/relay,wss://node-c.example.com/relay
+    - STANDARD_RELAYS=wss://relay.damus.io,wss://nos.lol
     - SYNC_INTERVAL=3600
     - USER_FEED_DAYS=30
     - USER_FEED_LIMIT=500
@@ -371,7 +414,8 @@ RELAY_DESCRIPTION=Equaliser content node relay
 EVENT_POLICY=equaliser_only   # equaliser_only | open | hybrid
 
 # Peer syncing
-PEER_RELAYS=                  # comma-separated WebSocket URLs (empty = syncer disabled)
+PEER_RELAYS=                  # comma-separated Equaliser relay URLs (uses #app filter, empty = disabled)
+STANDARD_RELAYS=              # comma-separated standard NOSTR relays (uses pubkey filter, empty = disabled)
 SYNC_INTERVAL=3600            # seconds between periodic full resyncs
 
 # User caching (Phase B.3)
@@ -396,15 +440,13 @@ This doesn't need to be built all at once. A phased approach:
 - No peer syncing — drop-in replacement for nostr-rs-relay
 - Replaces nostr-rs-relay in the Docker stack
 
-### Phase 2: Peer syncing ✅
-- Peer syncer (`internal/syncer/`) with persistent WebSocket connections to configured peer relays
-- Inbound: subscribe to Equaliser-tagged events on peer relays (`#app` filter — works with other Equaliser relays that support full tag indexing)
-- Outbound: locally published events forwarded to all connected peers via SubscriptionManager hook
-- Auto-reconnection with exponential backoff (5s initial, 5min cap)
-- Peer status tracking in `peer_relays` table (connection status, event counts, errors)
+### Phase 2: Peer syncing (Equaliser peers ✅, standard relays pending)
+- Peer syncer (`internal/syncer/`) with persistent WebSocket connections and auto-reconnection (exponential backoff: 5s initial, 5min cap)
 - `ProcessInboundEvent` extracted from handler — shared pipeline for WebSocket clients and peer syncer
-- Configured via `PEER_RELAYS` (comma-separated URLs) and `SYNC_INTERVAL` env vars
-- User data subscriptions (Kind 0/3/30001 by pubkey) deferred to user registration API phase — syncer infrastructure supports it, just needs registered_users to be populated
+- Peer status tracking in `peer_relays` table (connection status, event counts, errors)
+- **Equaliser peers ✅:** `PEER_RELAYS` — subscribe using `#app` filter, all Equaliser event kinds sync, outbound forwarding via SubscriptionManager hook
+- **Standard relays (pending):** `STANDARD_RELAYS` — subscribe by known pubkeys (from `node_artists` + `registered_users`), common kinds only (0, 1, 3, 5), filter locally for app tag. Standard relays reject `#app` subscriptions (tested against `wss://relay.damus.io` — returned `"bad req: unindexed tag filter"`). Dynamic subscription updates when artists/users register.
+- Events from standard relays cascade to Equaliser peers — Relay B gets Relay A's Damus events transitively via `#app` peer sync
 
 ### Phase 3: REST API + client migration
 - Serve REST API at `/api/catalogue/*` for the web client
@@ -515,7 +557,7 @@ Export all events from nostr-rs-relay's SQLite and replay them into the Equalise
 
 #### Option C: Peer syncer recovery (supplement only)
 
-If events were published to external relays, the peer syncer will re-ingest them automatically. Start Equaliser Relay with `PEER_RELAYS` configured and events flow in. However, local-only events (playlists, DMs) are NOT recoverable this way. Best used alongside Option A, not as a replacement.
+If events were published to other Equaliser peer nodes or standard NOSTR relays, the peer syncer will re-ingest them automatically. Configure `PEER_RELAYS` for other Equaliser nodes (`#app` filter) and `STANDARD_RELAYS` for standard relays like Damus (pubkey-based filter for known artists/users). However, local-only events (playlists, DMs not published externally) are NOT recoverable this way. Best used alongside Option A, not as a replacement.
 
 ### Orchestrator Changes
 
@@ -590,7 +632,7 @@ Aligned with the [Migration Path](#migration-path) phases above, with verificati
 
 **Phase 1 — Drop-in replacement:** Swap nostr-rs-relay for Equaliser Relay. WebSocket on port 8080, same NIP-01 protocol. No client changes. Verify: all admin/client pages load, track upload-publish flow works, social features work, external clients can connect via `/relay`.
 
-**Phase 2 — Peer syncing:** Configure `PEER_RELAYS`. Verify: local events appear on external relays, external events appear locally, reconnection works after network interruption.
+**Phase 2 — Peer syncing:** Configure `PEER_RELAYS` with other Equaliser node URLs and `STANDARD_RELAYS` with standard NOSTR relays (Damus, nos.lol, etc.). Equaliser peers use `#app` filter; standard relays use pubkey-based subscriptions with local app-tag filtering. Verify: local events appear on peer nodes, peer events appear locally, standard relay events ingested for known pubkeys, events cascade from standard relays through Equaliser peer mesh, reconnection works after network interruption.
 
 **Phase 3 — REST API + client migration:** Relay serves REST API at `/api/catalogue/*` on port 8008. Add nginx route for `/api/catalogue/` prefix. Add `catalogue-api.js` client module. Migrate admin pages and public client reads to REST API. Update WebSocket queries to use multi-char tag filters. Remove client-side filtering workarounds. Verify: REST API returns correct data, performance improvement measurable.
 
