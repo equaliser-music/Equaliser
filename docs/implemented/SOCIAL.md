@@ -147,15 +147,15 @@ The wider NOSTR ecosystem includes public relays and standard NOSTR clients.
 
 ### Standard Events (Used in Both Layers)
 
-| Kind | Name | Purpose |
-|------|------|---------|
-| 0 | Profile | Artist/user metadata (name, bio, avatar) |
+| Kind | Name | Purpose | Tags |
+|------|------|---------|------|
+| 0 | Profile | Artist/user metadata (name, bio, avatar) | `["app", "Equaliser"]`, `["user-type", "artist"]` (artists only — listeners omit `user-type`) |
 | 1 | Short Text Note | Posts, replies, community threads |
-| 3 | Contact List | Following/followers |
-| 4 | Encrypted DM | NIP-04 encrypted direct messages |
-| 6 | Repost | Sharing others' content |
-| 7 | Reaction | Likes, emoji reactions |
-| 10002 | Relay List | NIP-65 relay preferences |
+| 3 | Contact List | Following/followers | |
+| 4 | Encrypted DM | NIP-04 encrypted direct messages | |
+| 6 | Repost | Sharing others' content | |
+| 7 | Reaction | Likes, emoji reactions | |
+| 10002 | Relay List | NIP-65 relay preferences | |
 
 ### Content-Type Tags (Kind 1 Subtypes)
 
@@ -417,6 +417,30 @@ Community uses the same session system as the rest of Equaliser:
 - Pin threads
 - Board management UI (add/remove/rename boards)
 - Cross-node community aggregation (fan client queries multiple relays)
+
+### External Replies — "Replies from wider Nostr"
+
+Conversations on NOSTR cross application boundaries. An artist posts from Equaliser (with `["app", "Equaliser"]` tag), but fans may reply from Damus, Primal, or Amethyst — those replies lack the app tag. Without handling this, threads appear incomplete on Equaliser and important replies are invisible.
+
+**Solution: triggered checking + on-demand fetch.**
+
+The Equaliser Relay does NOT permanently cache untagged external replies. Instead:
+
+1. **Triggered check:** When an Equaliser-tagged reply arrives on a thread, the relay queries standard relays in the background for other replies to the same root event. It counts untagged replies and stores just the count in `thread_external_refs`.
+
+2. **UI indicator:** The client shows the count below the Equaliser thread — e.g. "4 replies from the wider Nostr network". The default thread view remains clean, showing only Equaliser-tagged content.
+
+3. **On-demand fetch:** When the user clicks the indicator, the client calls `GET /api/catalogue/threads/{event_id}/external`, which fetches external replies live from standard relays (with short-lived caching). These are displayed inline but not permanently stored.
+
+**UX benefits:**
+- Default experience stays curated — only Equaliser content in threads
+- Users are aware that external conversation exists (not silently hidden)
+- Full conversation available on demand — no censorship of non-Equaliser replies
+- Storage stays lean — only counts cached, not full events
+
+**Context-aware acceptance:** The relay's tiered event acceptance policy also accepts untagged Kind 1 events if they reply to an existing event in `raw_events`. This means direct replies from Damus users are accepted and visible in threads alongside Equaliser replies. The external reply indicator covers replies that are further out in the network (not yet ingested). See [EQUALISER_RELAY.md](../EQUALISER_RELAY.md) for the full tiered acceptance policy.
+
+---
 
 ### 4. Direct Messages (Implemented)
 
