@@ -116,10 +116,20 @@ Social NIPs (NIP-04 DMs, NIP-10 threading, NIP-25 reactions) work automatically 
 
 `RELAY_NAME` and `RELAY_DESCRIPTION` are configurable via environment variables (shared with `/api/access/node-info`).
 
-**Event acceptance policy:**
-- Events with `["app", "Equaliser"]` tag → stored in optimised schema + raw event table
-- Events without the tag → optionally accepted into a raw-only table (for NOSTR interop) or rejected
-- Configurable per-node: open (accept all), filtered (Equaliser only), or hybrid
+**Event acceptance policy (tiered by kind):**
+
+The relay applies different acceptance rules depending on event kind, balancing curation with conversation completeness:
+
+| Tier | Kinds | Rule | Rationale |
+|------|-------|------|-----------|
+| **Strict** | 30050, 30051, 30001 | `["app", "Equaliser"]` tag required | Music metadata is Equaliser-native — no legitimate untagged events |
+| **Context-aware** | 1, 7, 5 | Accept if the event references (replies to / reacts to / deletes) an event already in `raw_events` | Preserves complete conversation threads even when replies come from Damus, Primal, etc. |
+| **Known-pubkey** | 0, 3 | Accept from any pubkey in `node_artists` or `registered_users` | Users may update profiles or follow lists from other clients |
+| **Equaliser-tagged** | All other kinds | `["app", "Equaliser"]` tag required | Default safe policy for unrecognised kinds |
+
+The context-aware tier solves the "broken thread" problem: when an Equaliser user posts a Kind 1 and someone replies from Damus (without the app tag), that reply is still accepted because it references an existing event. Without this, conversations would appear incomplete — potentially important replies would be invisible, which is worse than showing untagged content.
+
+Node operators can override to strict Equaliser-only for all kinds via `EVENT_POLICY=equaliser_only` if they prefer a fully curated experience at the cost of conversation completeness.
 
 ### 2. Optimised Storage (PostgreSQL)
 
@@ -169,6 +179,7 @@ GET /api/catalogue/search                     - Search artists and tracks
 GET /api/catalogue/users/me?pubkey={hex}      - Cached user profile
 GET /api/catalogue/users/{pubkey}/feed        - User's cached feed
 GET /api/catalogue/users/{pubkey}/playlists   - User's playlists
+GET /api/catalogue/threads/{event_id}/external - Fetch external (non-Equaliser) replies live from standard relays
 ```
 
 **Public — `/api/access/*`** (proxied by nginx, rate limited)
@@ -235,9 +246,58 @@ Events arriving from any source (local publish, Equaliser peer, or standard rela
 
 **The cascade:** Each node independently pulls common events from standard relays for its own known pubkeys. Those events are then distributed across the Equaliser peer mesh. If Relay A pulls an artist's Kind 1 post from Damus, Relay B gets it from Relay A via the `#app` peer sync — Relay B doesn't need its own Damus connection for that artist.
 
-**Kind 0 denorm routing:** Artist profiles and fan profiles are both Kind 0 events. The denorm parser distinguishes them by checking whether the pubkey exists in `node_artists` (→ `cached_artists`) or `registered_users` (→ `cached_users`). Artist profiles typically contain richer Equaliser-specific metadata (genres, bio, pricing currency).
+**Kind 0 denorm routing:** Artist profiles and fan profiles are both Kind 0 events. The denorm parser routes them using the `["user-type", "artist"]` tag:
+
+- Event has `["user-type", "artist"]` tag → `cached_artists`
+- No `user-type` tag → `cached_users` (if pubkey is in `registered_users`)
+- Unknown pubkey with no `user-type` tag → raw storage only (not denormalised)
+
+This tag-based routing means profiles are correctly categorised even when they arrive via peer sync before the pubkey is registered locally. The `user-type` tag pattern is extensible — future values like `"label"` or `"node-admin"` can be added without changing the routing logic.
 
 **Feed thresholds:** User feed caching (Kind 1 posts from followed accounts) is bounded by `USER_FEED_DAYS` (default 30 days) and `USER_FEED_LIMIT` (default 500 events per user) to prevent unbounded storage growth.
+
+#### Triggered external reply checking
+
+When an Equaliser-tagged reply (Kind 1 with `e` tag) arrives, the relay kicks off a background check for external replies to the same thread root. This powers the "replies from wider Nostr" indicator in the client UI without permanently caching untagged content.
+
+**Trigger:** An Equaliser-tagged Kind 1 event arrives that references a root event via `e` tag.
+
+**Background check:**
+1. Extract the root event ID from the reply's `e` tags
+2. Query connected standard relays for Kind 1 events referencing that root (`#e` filter)
+3. Count events that are NOT already in `raw_events` and do NOT have `["app", "Equaliser"]` tag
+4. Upsert the count into `thread_external_refs`
+
+**Storage:** Only the count is stored permanently — not the full external events. This keeps the DB lean.
+
+```sql
+CREATE TABLE thread_external_refs (
+    root_event_id TEXT PRIMARY KEY,
+    external_reply_count INTEGER DEFAULT 0,
+    checked_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+**REST API integration:** The catalogue API includes the external reply count when serving thread data:
+
+```json
+{
+  "event_id": "abc123",
+  "content": "Great show last night!",
+  "replies": [...],
+  "external_reply_count": 4
+}
+```
+
+**On-demand fetch:** When a user clicks "View replies from wider Nostr", the client calls a dedicated endpoint that fetches external replies live from standard relays:
+
+```
+GET /api/catalogue/threads/{event_id}/external
+```
+
+This endpoint queries standard relays in real time (or serves from a short-lived cache with ~10 minute TTL), returning the full external reply events. These are not permanently stored — they are transient, fetched on demand.
+
+**Re-check:** The count is also refreshed when the client requests the thread view, so it stays reasonably current without constant polling. The `checked_at` timestamp lets the relay skip re-checks if the last check was recent (e.g. within 5 minutes).
 
 ---
 
@@ -436,7 +496,7 @@ This doesn't need to be built all at once. A phased approach:
 - Build NIP-01 relay in Go with PostgreSQL storage
 - Full schema from day one: `raw_events`, `event_tags`, plus denormalised tables (`cached_artists`, `cached_tracks`, `cached_albums`)
 - Events parsed into denormalised tables on arrival (best-effort — raw event always stored even if parse fails)
-- Event acceptance policy (Equaliser-only / open / hybrid)
+- Event acceptance policy: tiered by kind (strict for music metadata, context-aware for social, known-pubkey for profiles/follows)
 - No peer syncing — drop-in replacement for nostr-rs-relay
 - Replaces nostr-rs-relay in the Docker stack
 

@@ -26,6 +26,10 @@ type Handler struct {
 	subMgr  *SubscriptionManager
 	cfg     *config.Config
 	nip11   []byte // pre-built NIP-11 response
+
+	// OnEventStored is called asynchronously after a new event is committed.
+	// Used by the syncer for triggered external reply checking.
+	OnEventStored func(event *nostr.Event)
 }
 
 // NewHandler creates a new relay handler.
@@ -55,6 +59,11 @@ func NewHandler(store *storage.EventStore, denorm *storage.DenormParser, subMgr 
 	h.nip11, _ = json.MarshalIndent(nip11, "", "  ")
 
 	return h
+}
+
+// Store returns the event store (used by syncer for external reply checking).
+func (h *Handler) Store() *storage.EventStore {
+	return h.store
 }
 
 // ServeHTTP handles incoming HTTP requests.
@@ -256,8 +265,11 @@ func (h *Handler) ProcessInboundEvent(ctx context.Context, event *nostr.Event, s
 		return ProcessResult{Accepted: true, Message: "duplicate:"}
 	}
 
-	// Parse into denorm tables (best-effort, only for Equaliser-tagged events)
-	if event.HasEqualiserTag() {
+	// Parse into denorm tables (best-effort).
+	// Equaliser-tagged events are always parsed. Untagged events are parsed for
+	// kinds that use context-aware or known-pubkey acceptance (profiles, follows,
+	// feed posts, reactions) — the denorm parser checks registration internally.
+	if event.HasEqualiserTag() || event.Kind == 0 || event.Kind == 1 || event.Kind == 3 {
 		h.denorm.ParseEvent(ctx, tx, event)
 	}
 
@@ -273,6 +285,11 @@ func (h *Handler) ProcessInboundEvent(ctx context.Context, event *nostr.Event, s
 	// Notify matching subscriptions
 	rawJSON, _ := event.MarshalRaw()
 	h.subMgr.NotifyNewEvent(event, rawJSON, sourceID)
+
+	// Trigger async post-store callback (e.g. external reply checking)
+	if h.OnEventStored != nil {
+		go h.OnEventStored(event)
+	}
 
 	return ProcessResult{Stored: true, Accepted: true}
 }
@@ -365,18 +382,74 @@ func (h *Handler) handleCount(ctx context.Context, conn *Connection, data []byte
 	h.send(conn, msg)
 }
 
-// checkEventPolicy checks if an event is allowed by the configured acceptance policy.
+// checkEventPolicy checks if an event is allowed by the tiered acceptance policy.
+//
+// Tiers (applied when EventPolicy is not "open"):
+//   - Strict (Kind 30050, 30051, 30001): requires ["app", "Equaliser"] tag
+//   - Context-aware (Kind 1, 7, 5): accept if event references an existing event in raw_events
+//   - Known-pubkey (Kind 0, 3): accept from pubkeys in node_artists or registered_users
+//   - Default: requires ["app", "Equaliser"] tag
 func (h *Handler) checkEventPolicy(event *nostr.Event) bool {
 	switch h.cfg.EventPolicy {
-	case "equaliser_only":
-		return event.HasEqualiserTag()
 	case "open":
 		return true
 	case "hybrid":
 		return true // Accept all, but only denorm parse Equaliser-tagged events
-	default:
-		return event.HasEqualiserTag()
 	}
+
+	// equaliser_only (default): tiered acceptance
+	if event.HasEqualiserTag() {
+		return true // Always accept Equaliser-tagged events
+	}
+
+	switch event.Kind {
+	case 30050, 30051, 30001:
+		// Strict: music metadata requires app tag — already checked above
+		return false
+
+	case 1, 7, 5:
+		// Context-aware: accept if the event references an existing event
+		return h.referencesExistingEvent(event)
+
+	case 0, 3:
+		// Known-pubkey: accept from registered artists or users
+		return h.isKnownPubkey(event.PubKey)
+
+	default:
+		// All other kinds require app tag — already checked above
+		return false
+	}
+}
+
+// referencesExistingEvent checks if an event references (via "e" tags) any event
+// already stored in raw_events. Used for context-aware acceptance of replies/reactions.
+func (h *Handler) referencesExistingEvent(event *nostr.Event) bool {
+	eventIDs := event.GetTagValues("e")
+	if len(eventIDs) == 0 {
+		return false
+	}
+
+	for _, refID := range eventIDs {
+		exists, err := h.store.EventExists(context.Background(), refID)
+		if err != nil {
+			log.Printf("Context-aware policy check failed for %s: %v", refID, err)
+			continue
+		}
+		if exists {
+			return true
+		}
+	}
+	return false
+}
+
+// isKnownPubkey checks if a pubkey exists in node_artists or registered_users.
+func (h *Handler) isKnownPubkey(pubkey string) bool {
+	known, err := h.store.IsKnownPubkey(context.Background(), pubkey)
+	if err != nil {
+		log.Printf("Known-pubkey policy check failed for %s: %v", pubkey, err)
+		return false
+	}
+	return known
 }
 
 // send writes a message to a connection's write channel.

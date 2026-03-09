@@ -19,6 +19,6 @@ RUN apk add --no-cache wget
 COPY --from=builder /relay /relay
 COPY migrations/ /migrations/
 
-EXPOSE 8080
+EXPOSE 8080 8008
 
 CMD ["/relay"]

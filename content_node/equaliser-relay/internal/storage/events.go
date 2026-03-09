@@ -212,7 +212,15 @@ func (s *EventStore) deleteDenormEntry(ctx context.Context, tx pgx.Tx, eventID s
 
 	switch kind {
 	case 0:
+		// Could be in either table — try both
 		_, err = tx.Exec(ctx, "DELETE FROM cached_artists WHERE event_id = $1", eventID)
+		if err == nil {
+			_, err = tx.Exec(ctx, "DELETE FROM cached_users WHERE event_id = $1", eventID)
+		}
+	case 1:
+		_, err = tx.Exec(ctx, "DELETE FROM cached_user_feed WHERE event_id = $1", eventID)
+	case 30001:
+		_, err = tx.Exec(ctx, "DELETE FROM cached_user_playlists WHERE event_id = $1", eventID)
 	case 30050:
 		_, err = tx.Exec(ctx, "DELETE FROM cached_tracks WHERE event_id = $1", eventID)
 	case 30051:
@@ -250,6 +258,19 @@ func (s *EventStore) CountEvents(ctx context.Context, filters []nostr.Filter) (i
 	var count int64
 	err := s.pool.QueryRow(ctx, query, args...).Scan(&count)
 	return count, err
+}
+
+// IsKnownPubkey checks if a pubkey exists in node_artists or registered_users.
+func (s *EventStore) IsKnownPubkey(ctx context.Context, pubkey string) (bool, error) {
+	var exists bool
+	err := s.pool.QueryRow(ctx, `
+		SELECT EXISTS(
+			SELECT 1 FROM node_artists WHERE pubkey = $1
+			UNION ALL
+			SELECT 1 FROM registered_users WHERE pubkey = $1
+		)
+	`, pubkey).Scan(&exists)
+	return exists, err
 }
 
 // LogEvent records an event processing action in the event_log table.

@@ -282,10 +282,12 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - Document recovery path first, automate tooling in later phase
   - See [BLOSSOM_INTEGRATION_IDEAS.md](docs/archive/BLOSSOM_INTEGRATION_IDEAS.md)
 
-- [x] **Relay Spam Management**: App-tag filtering at ingestion
+- [x] **Relay Spam Management**: Tiered event acceptance policy
   - All Equaliser events tagged with `["app", "equaliser"]` before signing
-  - UI feeds filter exclusively on this tag — untagged events are invisible to users
-  - Equaliser Relay handles filtering at ingestion via configurable event acceptance policy (`equaliser_only`, `open`, or `hybrid` mode)
+  - Artist Kind 0 profiles additionally tagged with `["user-type", "artist"]` (listeners omit `user-type` — extensible to `"label"`, `"node-admin"`, etc.)
+  - Tiered acceptance policy by event kind: strict (music metadata requires app tag), context-aware (social replies accepted if they reference an existing event), known-pubkey (profiles/follows from registered users)
+  - Triggered external reply checking: when an Equaliser reply arrives, relay checks standard relays for untagged replies to the same thread; stores count only, full events fetched on demand
+  - UI shows "replies from wider Nostr" indicator — clean default experience with full conversation available on click
   - `cleanup-relay.sh` deprecated — no longer needed with ingestion-level filtering
   - This creates an application-level overlay network on standard NOSTR infrastructure
 
@@ -343,7 +345,7 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - See [NODE-MANAGEMENT-SPEC.md](docs/NODE-MANAGEMENT-SPEC.md) Section 5
 
 - [ ] **Equaliser Relay (Phase B)**: Custom NOSTR relay with built-in cache and peer syncing
-  - **Phase 1 (done):** NIP-01 WebSocket relay in Go, PostgreSQL storage with full tag indexing, denormalised parsing (Kind 0/30050/30051), event acceptance policy, replaces nostr-rs-relay
+  - **Phase 1 (done):** NIP-01 WebSocket relay in Go, PostgreSQL storage with full tag indexing, denormalised parsing (Kind 0/30050/30051), tiered event acceptance policy (strict for music metadata, context-aware for social, known-pubkey for profiles), `["user-type", "artist"]` tag for Kind 0 denorm routing, replaces nostr-rs-relay
   - **Phase 2 (done):** Peer syncer — persistent WebSocket connections to configured peer relays, inbound Equaliser event sync, outbound event forwarding, exponential backoff reconnection, peer status tracking in `peer_relays` table
   - **Phase 3 (todo):** REST API at `/api/catalogue/*`, `catalogue-api.js` client module, migrate reads from WebSocket to REST
   - **Phase 4 (todo):** Connection pooling, query optimisation, caching hot paths

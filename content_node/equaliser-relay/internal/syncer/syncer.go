@@ -22,6 +22,7 @@ type Syncer struct {
 	handler   *relay.Handler
 	subMgr    *relay.SubscriptionManager
 	peerStore *storage.PeerStore
+	userStore *storage.UserStore
 	cfg       *config.Config
 
 	// Active peer connections for outbound forwarding
@@ -37,11 +38,12 @@ type Syncer struct {
 }
 
 // New creates a new Syncer.
-func New(handler *relay.Handler, subMgr *relay.SubscriptionManager, peerStore *storage.PeerStore, cfg *config.Config) *Syncer {
+func New(handler *relay.Handler, subMgr *relay.SubscriptionManager, peerStore *storage.PeerStore, userStore *storage.UserStore, cfg *config.Config) *Syncer {
 	return &Syncer{
 		handler:   handler,
 		subMgr:    subMgr,
 		peerStore: peerStore,
+		userStore: userStore,
 		cfg:       cfg,
 		peerConns: make(map[string]*websocket.Conn),
 		connID:    "syncer-outbound",
@@ -57,6 +59,11 @@ func (s *Syncer) Start(ctx context.Context) {
 	for _, url := range s.cfg.PeerRelays {
 		if err := s.peerStore.UpsertPeer(ctx, url, false); err != nil {
 			log.Printf("Syncer: failed to seed peer %s: %v", url, err)
+		}
+	}
+	for _, url := range s.cfg.StandardRelays {
+		if err := s.peerStore.UpsertPeer(ctx, url, false); err != nil {
+			log.Printf("Syncer: failed to seed standard relay %s: %v", url, err)
 		}
 	}
 
@@ -78,10 +85,16 @@ func (s *Syncer) Start(ctx context.Context) {
 	s.wg.Add(1)
 	go s.outboundForwarder(ctx)
 
-	// Start one goroutine per peer relay
+	// Start one goroutine per Equaliser peer relay
 	for _, url := range s.cfg.PeerRelays {
 		s.wg.Add(1)
 		go s.peerLoop(ctx, url)
+	}
+
+	// Start one goroutine per standard relay
+	for _, url := range s.cfg.StandardRelays {
+		s.wg.Add(1)
+		go s.standardRelayLoop(ctx, url)
 	}
 }
 
@@ -144,8 +157,8 @@ func (s *Syncer) forwardToAllPeers(ctx context.Context, relayEventMsg []byte) {
 	}
 }
 
-// peerLoop manages the connection lifecycle for a single peer relay.
-// It reconnects with exponential backoff on failure.
+// peerLoop manages the connection lifecycle for a single Equaliser peer relay.
+// Subscribes using #app filter. Reconnects with exponential backoff on failure.
 func (s *Syncer) peerLoop(ctx context.Context, url string) {
 	defer s.wg.Done()
 
@@ -159,7 +172,7 @@ func (s *Syncer) peerLoop(ctx context.Context, url string) {
 		default:
 		}
 
-		err := s.connectAndSync(ctx, url, bo)
+		err := s.connectAndSyncPeer(ctx, url, bo)
 		if err != nil {
 			if ctx.Err() != nil {
 				s.peerStore.UpdateDisconnected(context.Background(), url)
@@ -180,26 +193,19 @@ func (s *Syncer) peerLoop(ctx context.Context, url string) {
 	}
 }
 
-// connectAndSync establishes a WebSocket connection to a peer relay,
-// subscribes to Equaliser events, and processes inbound messages.
-func (s *Syncer) connectAndSync(ctx context.Context, url string, bo *backoff) error {
-	// Connect via WebSocket
-	dialCtx, dialCancel := context.WithTimeout(ctx, 30*time.Second)
-	ws, _, err := websocket.Dial(dialCtx, url, nil)
-	dialCancel()
+// connectAndSyncPeer establishes a WebSocket connection to an Equaliser peer relay,
+// subscribes to Equaliser events via #app filter, and processes inbound messages.
+func (s *Syncer) connectAndSyncPeer(ctx context.Context, url string, bo *backoff) error {
+	ws, err := s.dialPeer(ctx, url)
 	if err != nil {
-		return fmt.Errorf("dial: %w", err)
+		return err
 	}
 	defer ws.CloseNow()
 
-	// Set read limit to match our max message length
-	ws.SetReadLimit(int64(s.cfg.MaxMessageLength))
-
-	// Update peer status
 	s.peerStore.UpdateConnected(ctx, url)
 	bo.reset()
 
-	log.Printf("Syncer: connected to %s", url)
+	log.Printf("Syncer: connected to Equaliser peer %s", url)
 
 	// Register this peer for outbound forwarding
 	s.peerConnsMu.Lock()
@@ -223,6 +229,141 @@ func (s *Syncer) connectAndSync(ctx context.Context, url string, bo *backoff) er
 
 	// Send REQ
 	subID := "eq-sync"
+	if err := s.sendReq(ctx, ws, subID, filter); err != nil {
+		return err
+	}
+
+	log.Printf("Syncer: subscribed to %s (since=%d)", url, since)
+
+	return s.readLoop(ctx, ws, url, subID, func() nostr.Filter {
+		since, _ := s.peerStore.GetLastEventAt(ctx, url)
+		f := nostr.Filter{
+			Tags: map[string][]string{"app": {"Equaliser", "equaliser"}},
+		}
+		if since > 0 {
+			f.Since = &since
+		}
+		return f
+	})
+}
+
+// standardRelayLoop manages the connection lifecycle for a single standard NOSTR relay.
+// Subscribes using pubkey-based filter for known artists and registered users.
+func (s *Syncer) standardRelayLoop(ctx context.Context, url string) {
+	defer s.wg.Done()
+
+	bo := newBackoff(5*time.Second, 5*time.Minute)
+
+	for {
+		select {
+		case <-ctx.Done():
+			s.peerStore.UpdateDisconnected(context.Background(), url)
+			return
+		default:
+		}
+
+		err := s.connectAndSyncStandard(ctx, url, bo)
+		if err != nil {
+			if ctx.Err() != nil {
+				s.peerStore.UpdateDisconnected(context.Background(), url)
+				return
+			}
+			log.Printf("Syncer: standard relay %s disconnected: %v", url, err)
+			s.peerStore.UpdateError(context.Background(), url, err.Error())
+		}
+
+		delay := bo.next()
+		log.Printf("Syncer: reconnecting to standard relay %s in %v", url, delay)
+		select {
+		case <-time.After(delay):
+		case <-ctx.Done():
+			s.peerStore.UpdateDisconnected(context.Background(), url)
+			return
+		}
+	}
+}
+
+// connectAndSyncStandard establishes a WebSocket connection to a standard NOSTR relay,
+// subscribes by known pubkeys for common kinds, and processes inbound messages.
+func (s *Syncer) connectAndSyncStandard(ctx context.Context, url string, bo *backoff) error {
+	// Get all known pubkeys
+	pubkeys, err := s.userStore.GetAllKnownPubkeys(ctx)
+	if err != nil {
+		return fmt.Errorf("get known pubkeys: %w", err)
+	}
+	if len(pubkeys) == 0 {
+		log.Printf("Syncer: no known pubkeys, skipping standard relay %s", url)
+		// Wait before retrying so we don't spin
+		select {
+		case <-time.After(60 * time.Second):
+			return fmt.Errorf("no known pubkeys")
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+
+	ws, err := s.dialPeer(ctx, url)
+	if err != nil {
+		return err
+	}
+	defer ws.CloseNow()
+
+	s.peerStore.UpdateConnected(ctx, url)
+	bo.reset()
+
+	log.Printf("Syncer: connected to standard relay %s (%d pubkeys)", url, len(pubkeys))
+
+	defer s.peerStore.UpdateDisconnected(context.Background(), url)
+
+	// Build subscription: common NOSTR kinds only, filtered by known pubkeys
+	since, _ := s.peerStore.GetLastEventAt(ctx, url)
+	filter := nostr.Filter{
+		Authors: pubkeys,
+		Kinds:   []int{0, 1, 3, 5}, // Profiles, posts, follows, deletions
+	}
+	if since > 0 {
+		filter.Since = &since
+	}
+
+	subID := "std-sync"
+	if err := s.sendReq(ctx, ws, subID, filter); err != nil {
+		return err
+	}
+
+	log.Printf("Syncer: subscribed to standard relay %s (%d pubkeys, since=%d)", url, len(pubkeys), since)
+
+	return s.readLoop(ctx, ws, url, subID, func() nostr.Filter {
+		// Refresh pubkeys on periodic resync
+		pks, _ := s.userStore.GetAllKnownPubkeys(ctx)
+		if len(pks) == 0 {
+			pks = pubkeys // Fall back to original list
+		}
+		since, _ := s.peerStore.GetLastEventAt(ctx, url)
+		f := nostr.Filter{
+			Authors: pks,
+			Kinds:   []int{0, 1, 3, 5},
+		}
+		if since > 0 {
+			f.Since = &since
+		}
+		return f
+	})
+}
+
+// dialPeer dials a WebSocket connection to a relay URL.
+func (s *Syncer) dialPeer(ctx context.Context, url string) (*websocket.Conn, error) {
+	dialCtx, dialCancel := context.WithTimeout(ctx, 30*time.Second)
+	ws, _, err := websocket.Dial(dialCtx, url, nil)
+	dialCancel()
+	if err != nil {
+		return nil, fmt.Errorf("dial: %w", err)
+	}
+	ws.SetReadLimit(int64(s.cfg.MaxMessageLength))
+	return ws, nil
+}
+
+// sendReq sends a REQ subscription to a relay.
+func (s *Syncer) sendReq(ctx context.Context, ws *websocket.Conn, subID string, filter nostr.Filter) error {
 	reqMsg, err := nostr.BuildReqMessage(subID, filter)
 	if err != nil {
 		return fmt.Errorf("build REQ: %w", err)
@@ -230,19 +371,20 @@ func (s *Syncer) connectAndSync(ctx context.Context, url string, bo *backoff) er
 	if err := ws.Write(ctx, websocket.MessageText, reqMsg); err != nil {
 		return fmt.Errorf("send REQ: %w", err)
 	}
+	return nil
+}
 
-	log.Printf("Syncer: subscribed to %s (since=%d)", url, since)
-
-	// Periodic resync timer
+// readLoop reads messages from a peer relay and processes them.
+// buildResyncFilter is called when periodic resync is needed.
+func (s *Syncer) readLoop(ctx context.Context, ws *websocket.Conn, url string, subID string, buildResyncFilter func() nostr.Filter) error {
 	syncTicker := time.NewTicker(time.Duration(s.cfg.SyncInterval) * time.Second)
 	defer syncTicker.Stop()
 
-	// Read loop
 	for {
 		// Check for periodic resync (non-blocking)
 		select {
 		case <-syncTicker.C:
-			s.sendPeriodicResync(ctx, ws, url, subID)
+			s.sendPeriodicResync(ctx, ws, url, subID, buildResyncFilter())
 		case <-ctx.Done():
 			ws.Close(websocket.StatusNormalClosure, "shutting down")
 			return ctx.Err()
@@ -312,26 +454,15 @@ func (s *Syncer) handlePeerEvent(ctx context.Context, peerURL string, data []byt
 }
 
 // sendPeriodicResync closes the current subscription and opens a new one
-// with an updated since timestamp.
-func (s *Syncer) sendPeriodicResync(ctx context.Context, ws *websocket.Conn, url string, subID string) {
-	// Close current subscription
+// with an updated filter.
+func (s *Syncer) sendPeriodicResync(ctx context.Context, ws *websocket.Conn, url string, subID string, filter nostr.Filter) {
 	closeMsg, _ := nostr.BuildCloseMessage(subID)
 	ws.Write(ctx, websocket.MessageText, closeMsg)
-
-	// Get updated last_event_at
-	since, _ := s.peerStore.GetLastEventAt(ctx, url)
-
-	filter := nostr.Filter{
-		Tags: map[string][]string{"app": {"Equaliser", "equaliser"}},
-	}
-	if since > 0 {
-		filter.Since = &since
-	}
 
 	reqMsg, _ := nostr.BuildReqMessage(subID, filter)
 	ws.Write(ctx, websocket.MessageText, reqMsg)
 
-	log.Printf("Syncer: periodic resync to %s (since=%d)", url, since)
+	log.Printf("Syncer: periodic resync to %s", url)
 }
 
 // isExpectedDuplicate checks if an OK rejection message indicates a normal

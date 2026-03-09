@@ -295,6 +295,18 @@ CREATE TABLE peer_relays (
 );
 ```
 
+#### thread_external_refs
+
+Tracks the count of external (non-Equaliser) replies to thread root events. Populated by triggered background checks when an Equaliser-tagged reply arrives on a thread. The full external events are NOT cached — only the count is stored. External replies are fetched on demand via `/api/catalogue/threads/{event_id}/external`. See [EQUALISER_RELAY.md](EQUALISER_RELAY.md) (Triggered external reply checking).
+
+```sql
+CREATE TABLE thread_external_refs (
+    root_event_id TEXT PRIMARY KEY,
+    external_reply_count INTEGER DEFAULT 0,
+    checked_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
 #### event_log
 
 Debug and monitoring log for event processing.

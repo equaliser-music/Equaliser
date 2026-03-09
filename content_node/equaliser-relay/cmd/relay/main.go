@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"equaliser-relay/internal/api"
 	"equaliser-relay/internal/config"
 	"equaliser-relay/internal/relay"
 	"equaliser-relay/internal/storage"
@@ -22,7 +23,7 @@ func main() {
 
 	// Load configuration
 	cfg := config.Load()
-	log.Printf("Config: name=%s, policy=%s, port=%d", cfg.RelayName, cfg.EventPolicy, cfg.WSPort)
+	log.Printf("Config: name=%s, policy=%s, ws_port=%d, rest_port=%d", cfg.RelayName, cfg.EventPolicy, cfg.WSPort, cfg.RESTAPIPort)
 
 	// Connect to PostgreSQL
 	ctx := context.Background()
@@ -44,30 +45,46 @@ func main() {
 
 	// Create services
 	eventStore := storage.NewEventStore(pool)
-	denormParser := storage.NewDenormParser()
+	userStore := storage.NewUserStore(pool)
+	denormParser := storage.NewDenormParser(pool, cfg)
 	subMgr := relay.NewSubscriptionManager()
 	handler := relay.NewHandler(eventStore, denormParser, subMgr, cfg)
 
-	// Start peer syncer (only if peer relays are configured)
+	// Start peer syncer (Equaliser peers and/or standard relays)
 	peerStore := storage.NewPeerStore(pool)
 	var peerSyncer *syncer.Syncer
-	if len(cfg.PeerRelays) > 0 {
-		peerSyncer = syncer.New(handler, subMgr, peerStore, cfg)
+	if len(cfg.PeerRelays) > 0 || len(cfg.StandardRelays) > 0 {
+		peerSyncer = syncer.New(handler, subMgr, peerStore, userStore, cfg)
 		peerSyncer.Start(ctx)
-		log.Printf("Peer syncer started with %d relay(s)", len(cfg.PeerRelays))
+		log.Printf("Peer syncer started: %d Equaliser peer(s), %d standard relay(s)", len(cfg.PeerRelays), len(cfg.StandardRelays))
 	} else {
 		log.Println("No peer relays configured, syncer disabled")
 	}
 
-	// Set up HTTP server
-	mux := http.NewServeMux()
-	mux.Handle("/", handler)
+	// Wire up external reply checking (triggered when Equaliser-tagged replies are stored)
+	if peerSyncer != nil {
+		handler.OnEventStored = peerSyncer.OnEventStored
+	}
 
-	server := &http.Server{
+	// Set up WebSocket server
+	wsMux := http.NewServeMux()
+	wsMux.Handle("/", handler)
+
+	wsServer := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.WSPort),
-		Handler:      mux,
+		Handler:      wsMux,
 		ReadTimeout:  0, // No read timeout for WebSocket
 		WriteTimeout: 0, // No write timeout for WebSocket
+		IdleTimeout:  120 * time.Second,
+	}
+
+	// Set up REST API server
+	apiServer := api.NewServer(userStore)
+	restServer := &http.Server{
+		Addr:         fmt.Sprintf(":%d", cfg.RESTAPIPort),
+		Handler:      apiServer.Handler(),
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
 
@@ -86,14 +103,25 @@ func main() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		if err := server.Shutdown(shutdownCtx); err != nil {
-			log.Printf("Shutdown error: %v", err)
+		if err := wsServer.Shutdown(shutdownCtx); err != nil {
+			log.Printf("WS shutdown error: %v", err)
+		}
+		if err := restServer.Shutdown(shutdownCtx); err != nil {
+			log.Printf("REST shutdown error: %v", err)
 		}
 	}()
 
-	log.Printf("Equaliser Relay listening on :%d", cfg.WSPort)
-	if err := server.ListenAndServe(); err != http.ErrServerClosed {
-		log.Fatalf("Server error: %v", err)
+	// Start REST API server in background
+	go func() {
+		log.Printf("REST API listening on :%d", cfg.RESTAPIPort)
+		if err := restServer.ListenAndServe(); err != http.ErrServerClosed {
+			log.Fatalf("REST server error: %v", err)
+		}
+	}()
+
+	log.Printf("Equaliser Relay WebSocket listening on :%d", cfg.WSPort)
+	if err := wsServer.ListenAndServe(); err != http.ErrServerClosed {
+		log.Fatalf("WS server error: %v", err)
 	}
 
 	log.Println("Equaliser Relay stopped")

@@ -1082,7 +1082,7 @@
             const event = {
                 kind: 0,
                 created_at: Math.floor(Date.now() / 1000),
-                tags: [['app', 'Equaliser']],
+                tags: [['app', 'Equaliser'], ['user-type', 'artist']],
                 content: JSON.stringify(profileContent),
                 pubkey: SessionManager.getSession().publicKey
             };

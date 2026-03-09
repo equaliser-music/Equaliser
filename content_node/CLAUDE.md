@@ -105,6 +105,7 @@ All pages use shared `js/session.js` and `js/admin-sidebar.js`.
 
 | Kind | Purpose | Tags |
 |------|---------|------|
+| 0 | Artist profile | `app`, `user-type` (`"artist"` for artists, omitted for listeners) |
 | 30050 | Track metadata (replaceable) | `d`, `app`, `title`, `artist`, `duration`, `ipfs_manifest_cid`, `ipfs_preview_cid`, `price`, `price_currency`, `album`, `genre`, `cover_art_cid`, `blossom_audio_hash`, `blossom_cover_hash`, `track_number` |
 | 30051 | Release metadata (album grouping) | `d`, `app`, `title`, `artist`, `release_type` |
 | 24242 | Blossom auth (BUD-03) | `t` (upload/delete), `x` (file hash), `expiration` |

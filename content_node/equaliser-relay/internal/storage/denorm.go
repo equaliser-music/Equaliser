@@ -6,18 +6,24 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
+	"equaliser-relay/internal/config"
 	"equaliser-relay/internal/nostr"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // DenormParser handles parsing events into denormalised cache tables.
-type DenormParser struct{}
+type DenormParser struct {
+	pool *pgxpool.Pool
+	cfg  *config.Config
+}
 
 // NewDenormParser creates a new DenormParser.
-func NewDenormParser() *DenormParser {
-	return &DenormParser{}
+func NewDenormParser(pool *pgxpool.Pool, cfg *config.Config) *DenormParser {
+	return &DenormParser{pool: pool, cfg: cfg}
 }
 
 // ParseEvent routes an event to the appropriate kind-specific parser.
@@ -27,13 +33,19 @@ func (p *DenormParser) ParseEvent(ctx context.Context, tx pgx.Tx, event *nostr.E
 
 	switch {
 	case event.Kind == 0:
-		err = p.parseArtistProfile(ctx, tx, event)
+		err = p.parseProfile(ctx, tx, event)
+	case event.Kind == 3:
+		err = p.parseFollowList(ctx, tx, event)
+	case event.Kind == 1:
+		err = p.parseFeedEvent(ctx, tx, event)
+	case event.Kind == 30001:
+		err = p.parsePlaylist(ctx, tx, event)
 	case event.Kind == 30050:
 		err = p.parseTrack(ctx, tx, event)
 	case event.Kind == 30051:
 		err = p.parseAlbum(ctx, tx, event)
 	default:
-		return // No denorm parsing for other kinds in Phase B.0
+		return
 	}
 
 	if err != nil {
@@ -41,9 +53,21 @@ func (p *DenormParser) ParseEvent(ctx context.Context, tx pgx.Tx, event *nostr.E
 	}
 }
 
+// parseProfile routes a Kind 0 event to cached_artists or cached_users
+// based on the ["user-type", "artist"] tag.
+func (p *DenormParser) parseProfile(ctx context.Context, tx pgx.Tx, event *nostr.Event) error {
+	userType := event.GetTagValue("user-type")
+
+	if userType == "artist" {
+		return p.parseArtistProfile(ctx, tx, event)
+	}
+
+	// No user-type tag → listener profile. Only cache if registered.
+	return p.parseUserProfile(ctx, tx, event)
+}
+
 // parseArtistProfile parses a Kind 0 event into cached_artists.
 func (p *DenormParser) parseArtistProfile(ctx context.Context, tx pgx.Tx, event *nostr.Event) error {
-	// Parse content JSON
 	var profile struct {
 		Name        string `json:"name"`
 		DisplayName string `json:"display_name"`
@@ -59,7 +83,6 @@ func (p *DenormParser) parseArtistProfile(ctx context.Context, tx pgx.Tx, event 
 		return fmt.Errorf("parse profile content: %w", err)
 	}
 
-	// Use display_name, fall back to name
 	displayName := profile.DisplayName
 	if displayName == "" {
 		displayName = profile.Name
@@ -91,6 +114,225 @@ func (p *DenormParser) parseArtistProfile(ctx context.Context, tx pgx.Tx, event 
 	return err
 }
 
+// parseUserProfile parses a Kind 0 event into cached_users (only if pubkey is registered).
+func (p *DenormParser) parseUserProfile(ctx context.Context, tx pgx.Tx, event *nostr.Event) error {
+	// Check if pubkey is a registered user
+	var exists bool
+	err := tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM registered_users WHERE pubkey = $1)", event.PubKey).Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("check registered user: %w", err)
+	}
+	if !exists {
+		return nil // Not a registered user, skip
+	}
+
+	var profile struct {
+		Name        string `json:"name"`
+		DisplayName string `json:"display_name"`
+		About       string `json:"about"`
+		Picture     string `json:"picture"`
+		LUD16       string `json:"lud16"`
+	}
+
+	if err := json.Unmarshal([]byte(event.Content), &profile); err != nil {
+		return fmt.Errorf("parse user profile content: %w", err)
+	}
+
+	displayName := profile.DisplayName
+	if displayName == "" {
+		displayName = profile.Name
+	}
+
+	rawJSON, err := event.MarshalRaw()
+	if err != nil {
+		return fmt.Errorf("marshal raw event: %w", err)
+	}
+
+	// Get npub from registered_users
+	var npub string
+	_ = tx.QueryRow(ctx, "SELECT npub FROM registered_users WHERE pubkey = $1", event.PubKey).Scan(&npub)
+
+	_, err = tx.Exec(ctx, `
+		INSERT INTO cached_users (pubkey, npub, display_name, name, picture, lightning_address, about, raw_event, event_id, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		ON CONFLICT (pubkey) DO UPDATE SET
+			display_name = EXCLUDED.display_name,
+			name = EXCLUDED.name,
+			picture = EXCLUDED.picture,
+			lightning_address = EXCLUDED.lightning_address,
+			about = EXCLUDED.about,
+			raw_event = EXCLUDED.raw_event,
+			event_id = EXCLUDED.event_id,
+			created_at = EXCLUDED.created_at,
+			cached_at = NOW()
+	`, event.PubKey, npub, displayName, profile.Name, profile.Picture, profile.LUD16,
+		profile.About, rawJSON, event.ID, event.CreatedAt)
+
+	return err
+}
+
+// parseFollowList parses a Kind 3 event into cached_user_follows.
+// Only processes follow lists for registered users.
+func (p *DenormParser) parseFollowList(ctx context.Context, tx pgx.Tx, event *nostr.Event) error {
+	// Only cache follow lists for registered users
+	var exists bool
+	err := tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM registered_users WHERE pubkey = $1)", event.PubKey).Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("check registered user: %w", err)
+	}
+	if !exists {
+		return nil
+	}
+
+	// Delete existing follows for this user (replaceable event — full replace)
+	_, err = tx.Exec(ctx, "DELETE FROM cached_user_follows WHERE pubkey = $1", event.PubKey)
+	if err != nil {
+		return fmt.Errorf("delete old follows: %w", err)
+	}
+
+	// Parse "p" tags into follow rows
+	rows := [][]interface{}{}
+	for _, tag := range event.Tags {
+		if len(tag) >= 2 && tag[0] == "p" {
+			relayHint := ""
+			if len(tag) >= 3 {
+				relayHint = tag[2]
+			}
+			rows = append(rows, []interface{}{event.PubKey, tag[1], relayHint, event.CreatedAt})
+		}
+	}
+
+	if len(rows) == 0 {
+		return nil
+	}
+
+	_, err = tx.CopyFrom(
+		ctx,
+		pgx.Identifier{"cached_user_follows"},
+		[]string{"pubkey", "follows_pubkey", "relay_hint", "updated_at"},
+		pgx.CopyFromRows(rows),
+	)
+
+	return err
+}
+
+// parseFeedEvent caches a Kind 1 event in cached_user_feed for registered users
+// who follow the author. Enforces USER_FEED_DAYS and USER_FEED_LIMIT thresholds.
+func (p *DenormParser) parseFeedEvent(ctx context.Context, tx pgx.Tx, event *nostr.Event) error {
+	// Check age threshold
+	cutoff := time.Now().AddDate(0, 0, -p.cfg.UserFeedDays).Unix()
+	if event.CreatedAt < cutoff {
+		return nil // Too old to cache
+	}
+
+	// Find registered users who follow this author
+	rows, err := tx.Query(ctx, `
+		SELECT cuf.pubkey FROM cached_user_follows cuf
+		JOIN registered_users ru ON ru.pubkey = cuf.pubkey AND ru.enabled = TRUE
+		WHERE cuf.follows_pubkey = $1
+	`, event.PubKey)
+	if err != nil {
+		return fmt.Errorf("find followers: %w", err)
+	}
+	defer rows.Close()
+
+	var followers []string
+	for rows.Next() {
+		var pubkey string
+		if err := rows.Scan(&pubkey); err != nil {
+			return fmt.Errorf("scan follower: %w", err)
+		}
+		followers = append(followers, pubkey)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	if len(followers) == 0 {
+		return nil // Nobody on this node follows this author
+	}
+
+	for _, forUser := range followers {
+		// Enforce per-user feed limit by deleting oldest if at capacity
+		_, err := tx.Exec(ctx, `
+			DELETE FROM cached_user_feed
+			WHERE event_id IN (
+				SELECT event_id FROM cached_user_feed
+				WHERE for_user_pubkey = $1
+				ORDER BY created_at ASC
+				LIMIT GREATEST(0, (SELECT COUNT(*) FROM cached_user_feed WHERE for_user_pubkey = $1) - $2 + 1)
+			)
+		`, forUser, p.cfg.UserFeedLimit)
+		if err != nil {
+			log.Printf("Feed limit enforcement failed for %s: %v", forUser, err)
+		}
+
+		_, err = tx.Exec(ctx, `
+			INSERT INTO cached_user_feed (event_id, pubkey, for_user_pubkey, content, created_at)
+			VALUES ($1, $2, $3, $4, $5)
+			ON CONFLICT (event_id) DO NOTHING
+		`, event.ID, event.PubKey, forUser, event.Content, event.CreatedAt)
+		if err != nil {
+			log.Printf("Feed insert failed for user %s: %v", forUser, err)
+		}
+	}
+
+	return nil
+}
+
+// parsePlaylist parses a Kind 30001 event into cached_user_playlists.
+// Only processes playlists for registered users.
+func (p *DenormParser) parsePlaylist(ctx context.Context, tx pgx.Tx, event *nostr.Event) error {
+	// Only cache playlists for registered users
+	var exists bool
+	err := tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM registered_users WHERE pubkey = $1)", event.PubKey).Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("check registered user: %w", err)
+	}
+	if !exists {
+		return nil
+	}
+
+	dTag := event.GetDTag()
+	if dTag == "" {
+		return fmt.Errorf("missing d tag")
+	}
+
+	name := event.GetTagValue("title")
+	if name == "" {
+		name = event.GetTagValue("name")
+	}
+
+	// Extract track references from "a" or "e" tags
+	var trackRefs []string
+	for _, tag := range event.Tags {
+		if len(tag) >= 2 && (tag[0] == "a" || tag[0] == "e") {
+			trackRefs = append(trackRefs, tag[1])
+		}
+	}
+	trackRefsJSON, _ := json.Marshal(trackRefs)
+
+	rawJSON, err := event.MarshalRaw()
+	if err != nil {
+		return fmt.Errorf("marshal raw event: %w", err)
+	}
+
+	// Get npub from registered_users (for the FK)
+	_, err = tx.Exec(ctx, `
+		INSERT INTO cached_user_playlists (event_id, pubkey, playlist_id, name, track_refs, raw_event, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		ON CONFLICT (pubkey, playlist_id) DO UPDATE SET
+			event_id = EXCLUDED.event_id,
+			name = EXCLUDED.name,
+			track_refs = EXCLUDED.track_refs,
+			raw_event = EXCLUDED.raw_event,
+			created_at = EXCLUDED.created_at,
+			cached_at = NOW()
+	`, event.ID, event.PubKey, dTag, name, trackRefsJSON, rawJSON, event.CreatedAt)
+
+	return err
+}
+
 // parseTrack parses a Kind 30050 event into cached_tracks.
 func (p *DenormParser) parseTrack(ctx context.Context, tx pgx.Tx, event *nostr.Event) error {
 	dTag := event.GetDTag()
@@ -106,7 +348,6 @@ func (p *DenormParser) parseTrack(ctx context.Context, tx pgx.Tx, event *nostr.E
 	coverArt := event.GetTagValue("cover_art")
 	releaseDate := event.GetTagValue("release_date")
 
-	// Parse duration (optional)
 	var duration *int
 	if d := event.GetTagValue("duration"); d != "" {
 		if n, err := strconv.Atoi(d); err == nil {
@@ -114,10 +355,9 @@ func (p *DenormParser) parseTrack(ctx context.Context, tx pgx.Tx, event *nostr.E
 		}
 	}
 
-	// Parse price (optional)
 	var priceSats *int
-	if p := event.GetTagValue("price"); p != "" {
-		if n, err := strconv.Atoi(p); err == nil {
+	if pr := event.GetTagValue("price"); pr != "" {
+		if n, err := strconv.Atoi(pr); err == nil {
 			priceSats = &n
 		}
 	}

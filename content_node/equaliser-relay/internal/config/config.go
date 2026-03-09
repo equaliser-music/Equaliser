@@ -10,6 +10,7 @@ import (
 type Config struct {
 	DatabaseURL      string
 	WSPort           int
+	RESTAPIPort      int
 	RelayName        string
 	RelayDescription string
 	EventPolicy      string // equaliser_only, open, hybrid
@@ -17,8 +18,11 @@ type Config struct {
 	MaxFilters       int
 	MaxMessageLength int
 	MaxEventTags     int
-	PeerRelays       []string // WebSocket URLs of peer relays (from PEER_RELAYS env)
+	PeerRelays       []string // WebSocket URLs of Equaliser peer relays (from PEER_RELAYS env)
+	StandardRelays   []string // WebSocket URLs of standard NOSTR relays (from STANDARD_RELAYS env)
 	SyncInterval     int      // seconds between periodic full syncs (from SYNC_INTERVAL env)
+	UserFeedDays     int      // max age of feed events to cache (from USER_FEED_DAYS env)
+	UserFeedLimit    int      // max feed events per user (from USER_FEED_LIMIT env)
 }
 
 func Load() *Config {
@@ -34,6 +38,8 @@ func Load() *Config {
 		MaxEventTags:     getEnvInt("MAX_EVENT_TAGS", 2000),
 	}
 
+	cfg.RESTAPIPort = getEnvInt("REST_API_PORT", 8008)
+
 	// Parse PEER_RELAYS (comma-separated, empty = no syncing)
 	if peerRelaysStr := getEnv("PEER_RELAYS", ""); peerRelaysStr != "" {
 		for _, url := range strings.Split(peerRelaysStr, ",") {
@@ -43,7 +49,20 @@ func Load() *Config {
 			}
 		}
 	}
+
+	// Parse STANDARD_RELAYS (comma-separated, empty = disabled)
+	if stdRelaysStr := getEnv("STANDARD_RELAYS", ""); stdRelaysStr != "" {
+		for _, url := range strings.Split(stdRelaysStr, ",") {
+			url = strings.TrimSpace(url)
+			if url != "" {
+				cfg.StandardRelays = append(cfg.StandardRelays, url)
+			}
+		}
+	}
+
 	cfg.SyncInterval = getEnvInt("SYNC_INTERVAL", 3600)
+	cfg.UserFeedDays = getEnvInt("USER_FEED_DAYS", 30)
+	cfg.UserFeedLimit = getEnvInt("USER_FEED_LIMIT", 500)
 
 	if cfg.DatabaseURL == "" {
 		log.Fatal("DATABASE_URL environment variable is required")
