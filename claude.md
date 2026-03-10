@@ -347,6 +347,7 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
 - [ ] **Equaliser Relay (Phase B)**: Custom NOSTR relay with built-in cache and peer syncing
   - **Phase 1 (done):** NIP-01 WebSocket relay in Go, PostgreSQL storage with full tag indexing, denormalised parsing (Kind 0/30050/30051), tiered event acceptance policy (strict for music metadata, context-aware for social, known-pubkey for profiles), `["user-type", "artist"]` tag for Kind 0 denorm routing, replaces nostr-rs-relay
   - **Phase 2 (done):** Peer syncer — persistent WebSocket connections to configured peer relays, inbound Equaliser event sync, outbound event forwarding, exponential backoff reconnection, peer status tracking in `peer_relays` table
+  - **Bug: Peer syncer connection drops every ~30s** — persistent WebSocket to peer relay disconnects with "use of closed network connection" every ~30 seconds. Reconnects fine with 5s backoff and incremental `since` ensures no events are lost, but the constant churn is wasteful. Investigate: could be VPS nginx idle timeout, relay-side read timeout, or the periodic resync (SYNC_INTERVAL) closing connections prematurely
   - **Phase 3 (todo):** REST API at `/api/catalogue/*`, `catalogue-api.js` client module, migrate reads from WebSocket to REST
   - **Phase 4 (todo):** Connection pooling, query optimisation, caching hot paths
   - See [EQUALISER_RELAY.md](docs/EQUALISER_RELAY.md), [DATABASE.md](docs/DATABASE.md), [NODE-MANAGEMENT-SPEC.md](docs/NODE-MANAGEMENT-SPEC.md) Sections 2-4
