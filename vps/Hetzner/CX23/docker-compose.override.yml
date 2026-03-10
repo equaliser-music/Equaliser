@@ -13,6 +13,6 @@ services:
       - RELAY_DESCRIPTION=A NOSTR relay for the Equaliser music platform content node
       - REST_API_PORT=8008
       - EVENT_POLICY=equaliser_only
-      - PEER_RELAYS=ws://46.225.52.198/relay
+      - PEER_RELAYS=wss://equaliser.app/relay
       - STANDARD_RELAYS=
       - SYNC_INTERVAL=3600
