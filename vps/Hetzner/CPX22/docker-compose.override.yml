@@ -5,3 +5,14 @@ services:
   web:
     ports: !override
       - "8080:80"
+  equaliser-relay:
+    environment:
+      - DATABASE_URL=postgresql://equaliser:equaliser@postgres:5432/equaliser
+      - WS_PORT=8080
+      - RELAY_NAME=Equaliser Content Node Relay
+      - RELAY_DESCRIPTION=A NOSTR relay for the Equaliser music platform content node
+      - REST_API_PORT=8008
+      - EVENT_POLICY=equaliser_only
+      - PEER_RELAYS=
+      - STANDARD_RELAYS=
+      - SYNC_INTERVAL=3600
