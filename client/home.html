@@ -1239,7 +1239,8 @@
         function renderCoverImg(blossomUrl, blossomHash, ipfsCid, altText) {
             const url = getCoverArtUrl(blossomUrl, blossomHash, ipfsCid);
             if (url) {
-                return `<img src="${url}" alt="${escapeHtml(altText)}" onerror="this.style.display='none'">`;
+                const fallback = ipfsCid && url !== `/ipfs/${ipfsCid}` ? ` data-fallback="/ipfs/${ipfsCid}"` : '';
+                return `<img src="${url}" alt="${escapeHtml(altText)}"${fallback} onerror="if(this.dataset.fallback){this.onerror=null;this.src=this.dataset.fallback}else{this.style.display='none'}">`;
             }
             return '';
         }
@@ -1875,14 +1876,16 @@
             document.querySelector('.now-playing-artist').textContent =
                 getArtistDisplayName(track.pubkey, track.artist);
 
+            const coverIpfsCid = track.coverArtCid || allAlbums[selectedAlbumIndex]?.coverArtCid;
             const coverUrl = getCoverArtUrl(
                 track.blossomCoverUrl || allAlbums[selectedAlbumIndex]?.blossomCoverUrl,
                 track.blossomCoverHash || allAlbums[selectedAlbumIndex]?.blossomCoverHash,
-                track.coverArtCid || allAlbums[selectedAlbumIndex]?.coverArtCid
+                coverIpfsCid
             );
             const coverEl = document.querySelector('.now-playing-cover');
             if (coverUrl) {
-                coverEl.innerHTML = `<img src="${coverUrl}" alt="${escapeHtml(track.title)}">`;
+                const fallback = coverIpfsCid && coverUrl !== `/ipfs/${coverIpfsCid}` ? ` data-fallback="/ipfs/${coverIpfsCid}"` : '';
+                coverEl.innerHTML = `<img src="${coverUrl}" alt="${escapeHtml(track.title)}"${fallback} onerror="if(this.dataset.fallback){this.onerror=null;this.src=this.dataset.fallback}else{this.style.display='none'}">`;
             }
 
             // Update playing state in track list

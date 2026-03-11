@@ -161,7 +161,8 @@ const EqualiserPlayer = {
         if (coverEl) {
             const coverUrl = this._getCoverUrl(track.blossomCoverUrl, track.blossomCoverHash, track.coverArtCid);
             if (coverUrl) {
-                coverEl.innerHTML = `<img src="${coverUrl}" alt="${this._escapeHtml(track.title || '')}">`;
+                const fallback = track.coverArtCid && coverUrl !== `/ipfs/${track.coverArtCid}` ? ` data-fallback="/ipfs/${track.coverArtCid}"` : '';
+                coverEl.innerHTML = `<img src="${coverUrl}" alt="${this._escapeHtml(track.title || '')}"${fallback} onerror="if(this.dataset.fallback){this.onerror=null;this.src=this.dataset.fallback}else{this.style.display='none'}">`;
             } else {
                 coverEl.innerHTML = this._getEqIcon();
             }

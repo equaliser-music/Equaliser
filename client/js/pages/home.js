@@ -102,7 +102,8 @@
         _renderCoverImg(blossomUrl, blossomHash, ipfsCid, altText) {
             const url = this._getCoverArtUrl(blossomUrl, blossomHash, ipfsCid);
             if (url) {
-                return `<img src="${url}" alt="${this._escapeHtml(altText)}" onerror="this.style.display='none'">`;
+                const fallback = ipfsCid && url !== `/ipfs/${ipfsCid}` ? ` data-fallback="/ipfs/${ipfsCid}"` : '';
+                return `<img src="${url}" alt="${this._escapeHtml(altText)}"${fallback} onerror="if(this.dataset.fallback){this.onerror=null;this.src=this.dataset.fallback}else{this.style.display='none'}">`;
             }
             return '';
         },
