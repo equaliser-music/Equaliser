@@ -43,7 +43,7 @@ from services.blossom import (
     check_blob_exists,
 )
 from services.hls import encode_to_hls, get_audio_duration
-from services.ipfs import upload_directory_to_ipfs
+from services.ipfs import upload_directory_to_ipfs, upload_file_to_ipfs
 
 logger = logging.getLogger(__name__)
 
@@ -454,6 +454,10 @@ async def import_package(
                     blossom_cover_hash = await upload_to_blossom(cover_path)
                 except Exception as e:
                     logger.warning(f"Failed to upload cover art to Blossom: {e}")
+                try:
+                    cover_art_cid = await upload_file_to_ipfs(cover_path)
+                except Exception as e:
+                    logger.warning(f"Failed to upload cover art to IPFS: {e}")
 
         # Process each track
         draft_ids = []
