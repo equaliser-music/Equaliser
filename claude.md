@@ -259,7 +259,10 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - Blossom Docker service with BUD-03 auth (node identity keypair)
   - Original audio preserved on Blossom during track upload
   - Cover art uploaded to Blossom (primary) + IPFS (fallback)
-  - NOSTR events include `blossom_audio_hash` and `blossom_cover_hash` tags
+  - NOSTR events include `blossom_audio_hash`, `blossom_cover_hash`, and `blossom_cover_url` tags
+  - `blossom_cover_url` contains absolute URL (via `PUBLIC_BASE_URL`) for cross-node cover art display
+  - Client-side IPFS fallback: `<img>` onerror tries `/ipfs/{cid}` when Blossom URL fails
+  - Package import uploads cover art to both Blossom and IPFS
   - See [BLOSSOM.md](docs/implemented/BLOSSOM.md)
 
 - [x] **Release Package System**: Export/import releases as signed `.eqpkg.zip`
@@ -309,14 +312,15 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - Security hardening (rate limiting, input validation, container isolation)
 
 - [ ] **Multi-Node Architecture**: Scaling beyond single content node
-  - **Equaliser relay network**: Two-tier relay architecture — standard NOSTR relays for social interop, Equaliser peer relays for music metadata replication
+  - **Equaliser relay network** (done): Two-tier relay architecture — standard NOSTR relays for social interop, Equaliser peer relays for music metadata replication. Two nodes deployed (CPX22 + CX23) with bidirectional peer sync.
+  - **Cross-node cover art** (done): Absolute Blossom URLs (`blossom_cover_url` tag) for cross-node display, IPFS fallback (`cover_art_cid` tag) when origin Blossom is down. No Blossom mirroring — storage is a valuable resource.
   - Artists configure peer relays (other content nodes); Equaliser Relay publishes music events to configured peer relays via its built-in peer syncer
-  - NOSTR relay replication for metadata + IPFS cross-pinning for audio = full redundancy
-  - Federation between content nodes (mutual content pinning)
-  - Load balancing for high-traffic artists/labels
-  - Geographic distribution for lower latency
-  - Database scaling (PostgreSQL for labels, read replicas)
-  - CDN integration for mainstream traffic levels
+  - `PUBLIC_BASE_URL` env var on orchestrator enables absolute Blossom URLs in NOSTR events
+  - TODO: Federation between content nodes (mutual IPFS pinning for audio)
+  - TODO: Load balancing for high-traffic artists/labels
+  - TODO: Geographic distribution for lower latency
+  - TODO: Database scaling (PostgreSQL for labels, read replicas)
+  - TODO: CDN integration for mainstream traffic levels
   - See [SCALING.md — Equaliser Relay Network](docs/SCALING.md#equaliser-relay-network)
 
 - [x] **Social Features**: Artist-fan interaction via NOSTR

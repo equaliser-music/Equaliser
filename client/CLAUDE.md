@@ -53,11 +53,19 @@ Each is an IIFE registering with `window.EqualiserPages`. Has `init(params)` and
 
 ## Content URL Patterns
 
-| Content | Primary | Fallback |
-|---------|---------|----------|
-| Cover art | `/blossom/{hash}` (blossom_cover_hash tag) | `/ipfs/{cid}` (cover_art_cid tag) |
-| HLS streams | `/ipfs/{cid}/playlist.m3u8` (ipfs_preview_cid or ipfs_manifest_cid tag) | — |
-| Avatars/banners | `/ipfs/{cid}` or `/blossom/{hash}` from Kind 0 profile | Gradient placeholder |
+| Content | Primary | Fallback | Final Fallback |
+|---------|---------|----------|----------------|
+| Cover art | Absolute Blossom URL (blossom_cover_url tag) | `/blossom/{hash}` (blossom_cover_hash tag) | `/ipfs/{cid}` (cover_art_cid tag) |
+| HLS streams | `/ipfs/{cid}/playlist.m3u8` (ipfs_preview_cid or ipfs_manifest_cid tag) | — | — |
+| Avatars/banners | `/ipfs/{cid}` or `/blossom/{hash}` from Kind 0 profile | Gradient placeholder | — |
+
+### Cross-Node Cover Art Resilience
+
+Cover art `<img>` tags use a `data-fallback` attribute with the IPFS URL. When the primary Blossom URL fails (e.g. origin node is down), the `onerror` handler swaps to the IPFS fallback before hiding the image. This enables cover art to work across peer nodes without mirroring Blossom data:
+
+1. `blossom_cover_url` (absolute URL to origin node's Blossom) — fast, works cross-node
+2. `blossom_cover_hash` (relative `/blossom/{hash}`) — works on the origin node only
+3. `cover_art_cid` (IPFS `/ipfs/{cid}`) — resilient fallback via content-addressed network
 
 ## Key Patterns
 

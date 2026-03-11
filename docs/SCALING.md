@@ -328,24 +328,35 @@ The orchestrator publishes music events to the local relay AND the configured Eq
 
 ### Complementary to IPFS Pinning
 
-This relay network handles **metadata** replication. Combined with IPFS cross-pinning between nodes, you get full redundancy:
+This relay network handles **metadata** replication. Combined with IPFS for content availability, you get full redundancy:
 
 | Layer | What It Replicates | Technology |
 |-------|--------------------|------------|
-| Metadata | Track info, pricing, profiles | NOSTR relay network |
-| Audio content | HLS segments, original files | IPFS mutual pinning |
-| Original masters | Lossless audio files | Blossom cross-server |
+| Metadata | Track info, pricing, profiles | NOSTR relay network (peer syncer) |
+| Cover art display | Album artwork across nodes | Absolute Blossom URLs + IPFS fallback |
+| Audio streaming | HLS segments | IPFS (content-addressed) |
+| Original masters | Lossless audio files | Blossom (origin node only, no mirroring) |
+
+### Cross-Node Content Availability
+
+Storage is a valuable resource — Blossom data is **not mirrored** between nodes. Instead, cover art is made available cross-node via:
+
+1. **Absolute Blossom URLs** in NOSTR events (`blossom_cover_url` tag) — peer nodes load images directly from the origin node's Blossom server
+2. **IPFS fallback** (`cover_art_cid` tag) — if the origin Blossom is down, the client falls back to IPFS via the local gateway
+3. **Client-side onerror** — `<img>` tags include a `data-fallback` attribute with the IPFS URL, tried automatically when the primary URL fails
+
+This approach avoids duplicating storage across nodes while maintaining cover art availability.
 
 ### Implementation Notes
 
-- Could use a dedicated tag (e.g. `["equaliser-relay", "wss://..."]`) on the artist's Kind 0 profile
-- Or a custom event kind for Equaliser relay lists (similar to Kind 10002 for standard relays)
+- Peer relay lists configured via `PEER_RELAYS` env var on the Equaliser Relay
 - The `["app", "Equaliser"]` tag on events ensures only Equaliser content is replicated
-- Peer relay lists could be managed in the admin settings UI
+- `PUBLIC_BASE_URL` env var on the orchestrator enables absolute Blossom URLs in NOSTR events
+- Peer relay lists could be managed in the admin settings UI (future)
 
 ### Status
 
-Future phase. Depends on having multiple active content nodes to federate between. Current single-node deployments publish music events to local relay only, with social events going to standard NOSTR relays.
+**Implemented.** Two content nodes (CPX22 at equaliser.app, CX23 at 46.225.52.198) running with bidirectional peer sync. Music metadata replicates via the Equaliser Relay's peer syncer. Cover art displays cross-node via absolute Blossom URLs with IPFS fallback.
 
 ---
 

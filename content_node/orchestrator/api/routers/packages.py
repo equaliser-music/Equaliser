@@ -81,6 +81,7 @@ class ImportResponse(BaseModel):
     track_count: int
     album: str
     artist: str
+    warnings: list[str] = []
 
 
 # --- Export Endpoints ---
@@ -444,6 +445,7 @@ async def import_package(
         # Import cover art if present
         blossom_cover_hash = None
         cover_art_cid = None
+        import_warnings = []
         cover_art = release.get("cover_art", {})
         cover_filename = cover_art.get("filename")
 
@@ -453,11 +455,15 @@ async def import_package(
                 try:
                     blossom_cover_hash = await upload_to_blossom(cover_path)
                 except Exception as e:
-                    logger.warning(f"Failed to upload cover art to Blossom: {e}")
+                    msg = f"Blossom cover art upload failed: {e}"
+                    logger.warning(msg)
+                    import_warnings.append(msg)
                 try:
                     cover_art_cid = await upload_file_to_ipfs(cover_path)
                 except Exception as e:
-                    logger.warning(f"Failed to upload cover art to IPFS: {e}")
+                    msg = f"IPFS cover art upload failed: {e}"
+                    logger.warning(msg)
+                    import_warnings.append(msg)
 
         # Process each track
         draft_ids = []
@@ -563,6 +569,7 @@ async def import_package(
             track_count=len(draft_ids),
             album=album_name,
             artist=artist_name,
+            warnings=import_warnings,
         )
 
     finally:

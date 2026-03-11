@@ -1688,6 +1688,11 @@
                     'success'
                 );
 
+                // Show any warnings from the import
+                if (result.warnings && result.warnings.length > 0) {
+                    result.warnings.forEach(w => showNotification(w, 'warning'));
+                }
+
                 // Refresh after a short delay
                 setTimeout(async () => {
                     hideImportModal();
