@@ -21,6 +21,7 @@ from services.database import (
     mark_released,
 )
 from services.nostr import create_track_event
+from services.blossom import get_blob_url
 
 router = APIRouter()
 
@@ -199,6 +200,7 @@ async def prepare_release(
         track_number=draft.track_number,
         blossom_audio_hash=draft.blossom_audio_hash,
         blossom_cover_hash=draft.blossom_cover_hash,
+        blossom_cover_url=get_blob_url(draft.blossom_cover_hash) if draft.blossom_cover_hash else None,
     )
 
     return ReleaseResponse(
@@ -245,6 +247,7 @@ async def prepare_album_release(request: AlbumReleaseRequest):
             track_number=track_num,
             blossom_audio_hash=draft.blossom_audio_hash,
             blossom_cover_hash=draft.blossom_cover_hash,
+            blossom_cover_url=get_blob_url(draft.blossom_cover_hash) if draft.blossom_cover_hash else None,
         )
 
         tracks.append(ReleaseResponse(

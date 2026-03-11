@@ -24,6 +24,11 @@ logger = logging.getLogger(__name__)
 # Blossom server URL (internal Docker network)
 BLOSSOM_URL = os.getenv("BLOSSOM_URL", "http://blossom:3000")
 
+# Public base URL for this node (e.g. "https://equaliser.app")
+# When set, Blossom URLs in NOSTR events use absolute paths so they
+# resolve correctly on peer nodes that sync our events.
+PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "").rstrip("/")
+
 
 def _compute_sha256(file_path: Path) -> str:
     """Compute SHA-256 hash of a file."""
@@ -182,13 +187,18 @@ def get_blob_url(sha256_hash: str, extension: str = "") -> str:
     """
     Construct the public URL for a blob.
 
-    Uses the nginx proxy path so URLs work from the browser.
+    When PUBLIC_BASE_URL is set, returns an absolute URL (e.g.
+    https://equaliser.app/blossom/{hash}) so that NOSTR events
+    work on peer nodes. Otherwise returns a relative path.
 
     Args:
         sha256_hash: SHA-256 hash of the blob
         extension: Optional file extension (e.g. ".mp3", ".jpg")
 
     Returns:
-        URL path like /blossom/{hash}{ext}
+        Absolute or relative URL to the blob
     """
-    return f"/blossom/{sha256_hash}{extension}"
+    path = f"/blossom/{sha256_hash}{extension}"
+    if PUBLIC_BASE_URL:
+        return f"{PUBLIC_BASE_URL}{path}"
+    return path

@@ -415,6 +415,7 @@
                 releaseDate: g('release_date') || '',
                 coverArtCid: g('cover_art_cid') || '',
                 blossomCoverHash: g('blossom_cover_hash') || '',
+                blossomCoverUrl: g('blossom_cover_url') || '',
                 trackNumber: parseInt(g('track_number')) || 0
             };
         },
@@ -439,6 +440,7 @@
                         releaseDate: track.releaseDate,
                         coverArtCid: track.coverArtCid,
                         blossomCoverHash: track.blossomCoverHash,
+                        blossomCoverUrl: track.blossomCoverUrl,
                         tracks: [],
                         createdAt: track.createdAt,
                         isSingle: !isAlbumOrEp
@@ -448,6 +450,7 @@
                 const album = albumMap.get(albumKey);
                 album.tracks.push(track);
 
+                if (!album.blossomCoverUrl && track.blossomCoverUrl) album.blossomCoverUrl = track.blossomCoverUrl;
                 if (!album.blossomCoverHash && track.blossomCoverHash) album.blossomCoverHash = track.blossomCoverHash;
                 if (!album.coverArtCid && track.coverArtCid) album.coverArtCid = track.coverArtCid;
                 if (track.createdAt > album.createdAt) album.createdAt = track.createdAt;
@@ -460,7 +463,8 @@
             return Array.from(albumMap.values()).sort((a, b) => b.createdAt - a.createdAt);
         },
 
-        _getCoverUrl(blossomHash, ipfsCid) {
+        _getCoverUrl(blossomUrl, blossomHash, ipfsCid) {
+            if (blossomUrl) return blossomUrl;
             if (blossomHash) return `/blossom/${blossomHash}`;
             if (ipfsCid) return `/ipfs/${ipfsCid}`;
             return null;
@@ -521,7 +525,7 @@
 
             container.innerHTML = `<div class="discography-grid">
                 ${this._artistReleases.map((release, index) => {
-                    const coverUrl = this._getCoverUrl(release.blossomCoverHash, release.coverArtCid);
+                    const coverUrl = this._getCoverUrl(release.blossomCoverUrl, release.blossomCoverHash, release.coverArtCid);
                     const trackCount = release.tracks.length;
                     const typeLabel = release.isSingle ? 'Single' : (release.releaseType === 'ep' ? 'EP' : 'Album');
                     const countLabel = release.isSingle ? 'Single' : `${typeLabel} \u00b7 ${trackCount} track${trackCount !== 1 ? 's' : ''}`;
@@ -564,7 +568,7 @@
 
             this._selectedReleaseIndex = index;
             const escapeHtml = this._escapeHtml;
-            const coverUrl = this._getCoverUrl(release.blossomCoverHash, release.coverArtCid);
+            const coverUrl = this._getCoverUrl(release.blossomCoverUrl, release.blossomCoverHash, release.coverArtCid);
             const totalSeconds = release.tracks.reduce((sum, t) => sum + t.duration, 0);
             const trackCount = release.tracks.length;
 
@@ -618,6 +622,7 @@
                     artist: t.artist || release.artist,
                     previewCid: t.previewCid,
                     manifestCid: t.manifestCid || '',
+                    blossomCoverUrl: t.blossomCoverUrl || release.blossomCoverUrl,
                     blossomCoverHash: t.blossomCoverHash || release.blossomCoverHash,
                     coverArtCid: t.coverArtCid || release.coverArtCid,
                     duration: t.duration

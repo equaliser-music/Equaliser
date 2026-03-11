@@ -16,3 +16,11 @@ services:
       - PEER_RELAYS=wss://equaliser.app/relay
       - STANDARD_RELAYS=
       - SYNC_INTERVAL=3600
+  orchestrator:
+    environment:
+      - IPFS_API_URL=http://ipfs:5001
+      - NOSTR_RELAY_URL=ws://equaliser-relay:8080
+      - RELAY_API_URL=http://equaliser-relay:8008
+      - BLOSSOM_URL=http://blossom:3000
+      - PUBLIC_BASE_URL=http://46.225.52.198
+      - DATABASE_PATH=/data/drafts.db

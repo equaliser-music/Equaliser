@@ -159,7 +159,7 @@ const EqualiserPlayer = {
         }
 
         if (coverEl) {
-            const coverUrl = this._getCoverUrl(track.blossomCoverHash, track.coverArtCid);
+            const coverUrl = this._getCoverUrl(track.blossomCoverUrl, track.blossomCoverHash, track.coverArtCid);
             if (coverUrl) {
                 coverEl.innerHTML = `<img src="${coverUrl}" alt="${this._escapeHtml(track.title || '')}">`;
             } else {
@@ -358,7 +358,8 @@ const EqualiserPlayer = {
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     },
 
-    _getCoverUrl(blossomHash, ipfsCid) {
+    _getCoverUrl(blossomUrl, blossomHash, ipfsCid) {
+        if (blossomUrl) return blossomUrl;
         if (blossomHash) return `/blossom/${blossomHash}`;
         if (ipfsCid) return `/ipfs/${ipfsCid}`;
         return null;

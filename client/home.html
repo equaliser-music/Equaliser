@@ -1229,14 +1229,15 @@
             return tag ? tag[1] : null;
         }
 
-        function getCoverArtUrl(blossomHash, ipfsCid) {
+        function getCoverArtUrl(blossomUrl, blossomHash, ipfsCid) {
+            if (blossomUrl) return blossomUrl;
             if (blossomHash) return `/blossom/${blossomHash}`;
             if (ipfsCid) return `/ipfs/${ipfsCid}`;
             return null;
         }
 
-        function renderCoverImg(blossomHash, ipfsCid, altText) {
-            const url = getCoverArtUrl(blossomHash, ipfsCid);
+        function renderCoverImg(blossomUrl, blossomHash, ipfsCid, altText) {
+            const url = getCoverArtUrl(blossomUrl, blossomHash, ipfsCid);
             if (url) {
                 return `<img src="${url}" alt="${escapeHtml(altText)}" onerror="this.style.display='none'">`;
             }
@@ -1623,6 +1624,7 @@
                 releaseDate: getTagValue(event.tags, 'release_date') || '',
                 coverArtCid: getTagValue(event.tags, 'cover_art_cid') || '',
                 blossomCoverHash: getTagValue(event.tags, 'blossom_cover_hash') || '',
+                blossomCoverUrl: getTagValue(event.tags, 'blossom_cover_url') || '',
                 trackNumber: parseInt(getTagValue(event.tags, 'track_number')) || 0
             };
         }
@@ -1647,6 +1649,7 @@
                         releaseDate: track.releaseDate,
                         coverArtCid: track.coverArtCid,
                         blossomCoverHash: track.blossomCoverHash,
+                        blossomCoverUrl: track.blossomCoverUrl,
                         tracks: [],
                         createdAt: track.createdAt,
                         isSingle: !isAlbumOrEp
@@ -1656,6 +1659,9 @@
                 const album = albumMap.get(albumKey);
                 album.tracks.push(track);
 
+                if (!album.blossomCoverUrl && track.blossomCoverUrl) {
+                    album.blossomCoverUrl = track.blossomCoverUrl;
+                }
                 if (!album.blossomCoverHash && track.blossomCoverHash) {
                     album.blossomCoverHash = track.blossomCoverHash;
                 }
@@ -1697,7 +1703,7 @@
 
             grid.innerHTML = albums.map((album, index) => {
                 const artistName = getArtistDisplayName(album.pubkey, album.artist);
-                const coverImg = renderCoverImg(album.blossomCoverHash, album.coverArtCid, album.title);
+                const coverImg = renderCoverImg(album.blossomCoverUrl, album.blossomCoverHash, album.coverArtCid, album.title);
                 const trackCount = album.tracks.length;
                 const price = album.tracks[0] ? formatPrice(album.tracks[0].priceAmount, album.tracks[0].priceCurrency) : '';
                 const typeLabel = album.isSingle ? 'Single' : `${trackCount} track${trackCount !== 1 ? 's' : ''}`;
@@ -1751,7 +1757,7 @@
             currentAlbumTracks = album.tracks;
 
             // Update track list header
-            const coverUrl = getCoverArtUrl(album.blossomCoverHash, album.coverArtCid);
+            const coverUrl = getCoverArtUrl(album.blossomCoverUrl, album.blossomCoverHash, album.coverArtCid);
             const coverEl = document.getElementById('track-list-cover');
             if (coverUrl) {
                 coverEl.src = coverUrl;
@@ -1771,7 +1777,7 @@
             // Render track list
             const trackListEl = document.getElementById('track-list');
             trackListEl.innerHTML = album.tracks.map((track, index) => {
-                const trackCoverImg = renderCoverImg(track.blossomCoverHash || album.blossomCoverHash, track.coverArtCid || album.coverArtCid, track.title);
+                const trackCoverImg = renderCoverImg(track.blossomCoverUrl || album.blossomCoverUrl, track.blossomCoverHash || album.blossomCoverHash, track.coverArtCid || album.coverArtCid, track.title);
                 const price = formatPrice(track.priceAmount, track.priceCurrency);
 
                 return `
@@ -1870,6 +1876,7 @@
                 getArtistDisplayName(track.pubkey, track.artist);
 
             const coverUrl = getCoverArtUrl(
+                track.blossomCoverUrl || allAlbums[selectedAlbumIndex]?.blossomCoverUrl,
                 track.blossomCoverHash || allAlbums[selectedAlbumIndex]?.blossomCoverHash,
                 track.coverArtCid || allAlbums[selectedAlbumIndex]?.coverArtCid
             );
