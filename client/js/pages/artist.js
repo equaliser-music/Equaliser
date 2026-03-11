@@ -526,6 +526,7 @@
             container.innerHTML = `<div class="discography-grid">
                 ${this._artistReleases.map((release, index) => {
                     const coverUrl = this._getCoverUrl(release.blossomCoverUrl, release.blossomCoverHash, release.coverArtCid);
+                    const ipfsFallback = release.coverArtCid && coverUrl !== `/ipfs/${release.coverArtCid}` ? ` data-fallback="/ipfs/${release.coverArtCid}"` : '';
                     const trackCount = release.tracks.length;
                     const typeLabel = release.isSingle ? 'Single' : (release.releaseType === 'ep' ? 'EP' : 'Album');
                     const countLabel = release.isSingle ? 'Single' : `${typeLabel} \u00b7 ${trackCount} track${trackCount !== 1 ? 's' : ''}`;
@@ -535,7 +536,7 @@
                     return `
                         <div class="release-card" onclick="selectRelease(${index})">
                             <div class="release-cover">
-                                ${coverUrl ? `<img src="${coverUrl}" alt="${escapeHtml(release.title)}" onerror="this.style.display='none'">` : ''}
+                                ${coverUrl ? `<img src="${coverUrl}" alt="${escapeHtml(release.title)}"${ipfsFallback} onerror="if(this.dataset.fallback){this.onerror=null;this.src=this.dataset.fallback}else{this.style.display='none'}">` : ''}
                                 <button class="release-play-btn" onclick="event.stopPropagation(); selectRelease(${index})">
                                     <svg width="18" height="18" fill="currentColor" viewBox="0 0 20 20">
                                         <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
@@ -569,13 +570,14 @@
             this._selectedReleaseIndex = index;
             const escapeHtml = this._escapeHtml;
             const coverUrl = this._getCoverUrl(release.blossomCoverUrl, release.blossomCoverHash, release.coverArtCid);
+            const ipfsFallback = release.coverArtCid && coverUrl !== `/ipfs/${release.coverArtCid}` ? ` data-fallback="/ipfs/${release.coverArtCid}"` : '';
             const totalSeconds = release.tracks.reduce((sum, t) => sum + t.duration, 0);
             const trackCount = release.tracks.length;
 
             tracklist.innerHTML = `
                 <div class="tracklist-header">
                     <div class="tracklist-cover">
-                        ${coverUrl ? `<img src="${coverUrl}" alt="${escapeHtml(release.title)}">` : ''}
+                        ${coverUrl ? `<img src="${coverUrl}" alt="${escapeHtml(release.title)}"${ipfsFallback} onerror="if(this.dataset.fallback){this.onerror=null;this.src=this.dataset.fallback}else{this.style.display='none'}">` : ''}
                     </div>
                     <div class="tracklist-info">
                         <h3>${escapeHtml(release.title)}</h3>

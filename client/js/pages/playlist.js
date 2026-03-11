@@ -190,7 +190,8 @@
 
             return covers.slice(0, 4).map(t => {
                 const url = t.blossomCoverUrl || (t.blossomCoverHash ? `/blossom/${t.blossomCoverHash}` : `/ipfs/${t.coverArtCid}`);
-                return `<img src="${url}" alt="">`;
+                const fallback = t.coverArtCid && url !== `/ipfs/${t.coverArtCid}` ? ` data-fallback="/ipfs/${t.coverArtCid}"` : '';
+                return `<img src="${url}" alt=""${fallback} onerror="if(this.dataset.fallback){this.onerror=null;this.src=this.dataset.fallback}else{this.style.display='none'}">`;
             }).join('');
         },
 
