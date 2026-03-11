@@ -6,9 +6,16 @@ Handles track uploads, HLS encoding, IPFS storage, and NOSTR event publishing.
 """
 
 import os
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+# Configure logging so all app loggers output to stdout
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(levelname)s:%(name)s: %(message)s"
+)
 
 from routers import tracks
 from routers import drafts

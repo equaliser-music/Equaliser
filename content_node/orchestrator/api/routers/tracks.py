@@ -352,6 +352,7 @@ async def process_track(
             blossom_audio_hash = await upload_to_blossom(input_path)
         except Exception as e:
             logger.warning(f"Blossom upload failed for {track_id}: {e}")
+            update_status(track_id, "uploading", 5, f"Warning: Blossom unavailable, continuing without original backup")
 
         # Step 2: Get duration
         update_status(track_id, "encoding", 10, "Analyzing audio file...")

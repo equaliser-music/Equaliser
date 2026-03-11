@@ -100,7 +100,10 @@ Kind 30050 track events include optional Blossom tags:
 ```json
 ["blossom_audio_hash", "abc123..."]
 ["blossom_cover_hash", "def456..."]
+["blossom_cover_url", "https://equaliser.app/blossom/def456..."]
 ```
+
+The `blossom_cover_url` tag contains an **absolute URL** to the cover art on the origin node's Blossom server. This is generated at release time using the `PUBLIC_BASE_URL` environment variable on the orchestrator. It enables peer nodes to load cover art directly from the origin without mirroring Blossom data.
 
 These are non-breaking additions - existing consumers ignore unknown tags.
 
@@ -128,7 +131,7 @@ The `blossom.py` service provides:
 | `upload_to_blossom(file_path)` | Upload file, returns SHA-256 hash |
 | `check_blob_exists(sha256)` | HEAD request to check if blob exists |
 | `download_from_blossom(sha256, output_path)` | Download blob to disk |
-| `get_blob_url(sha256, ext)` | Construct `/blossom/{hash}{ext}` URL |
+| `get_blob_url(sha256, ext)` | Construct Blossom URL — absolute (with `PUBLIC_BASE_URL`) or relative |
 
 ## Database Schema
 
@@ -184,9 +187,45 @@ If a content node is lost, Blossom data can be rebuilt:
 
 This is currently a manual process. Automated tooling is planned for a future phase.
 
+## Cross-Node Cover Art
+
+When multiple content nodes peer-sync via the Equaliser Relay network, cover art needs to work across nodes without mirroring Blossom data. This is handled by a three-tier URL strategy:
+
+### URL Priority (client-side)
+
+1. **`blossom_cover_url`** — Absolute URL (e.g. `https://equaliser.app/blossom/{hash}`). Works cross-node. Generated at release time using `PUBLIC_BASE_URL`.
+2. **`blossom_cover_hash`** — Relative URL (`/blossom/{hash}`). Works on the origin node only.
+3. **`cover_art_cid`** — IPFS URL (`/ipfs/{cid}`). Resilient fallback via content-addressed network.
+
+### Client Implementation
+
+All cover art `<img>` tags include a `data-fallback` attribute with the IPFS URL when available. The `onerror` handler tries the IPFS fallback before hiding the image:
+
+```html
+<img src="https://origin.example/blossom/abc123"
+     data-fallback="/ipfs/QmXyz..."
+     onerror="if(this.dataset.fallback){this.onerror=null;this.src=this.dataset.fallback}else{this.style.display='none'}">
+```
+
+### Orchestrator Configuration
+
+Set `PUBLIC_BASE_URL` on the orchestrator to enable absolute Blossom URLs:
+
+```yaml
+# docker-compose.override.yml
+orchestrator:
+  environment:
+    - PUBLIC_BASE_URL=https://equaliser.app
+```
+
+When set, `get_blob_url()` returns absolute URLs. When empty (local dev), returns relative `/blossom/{hash}` paths.
+
+### Package Import
+
+The `/api/releases/import` endpoint uploads cover art to both Blossom (primary) and IPFS (fallback), ensuring the `cover_art_cid` tag is always populated for cross-node resilience.
+
 ## Future Work
 
 - **Profile images on Blossom**: Migrate avatar/banner uploads to Blossom primary
-- **Client fallback pattern**: Blossom-first, IPFS-fallback image loading across all UI pages
 - **Automated disaster recovery**: Script to rebuild Blossom from NOSTR + IPFS
 - **Federation**: Mutual Blossom mirroring between artist content nodes
