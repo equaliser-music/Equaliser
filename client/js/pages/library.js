@@ -220,7 +220,7 @@
             }
 
             return covers.slice(0, 4).map(t => {
-                const url = t.blossomCoverHash ? `/blossom/${t.blossomCoverHash}` : `/ipfs/${t.coverArtCid}`;
+                const url = t.blossomCoverUrl || (t.blossomCoverHash ? `/blossom/${t.blossomCoverHash}` : `/ipfs/${t.coverArtCid}`);
                 return `<img src="${url}" alt="">`;
             }).join('');
         },

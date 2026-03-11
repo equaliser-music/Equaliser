@@ -176,7 +176,7 @@
 
         _renderCoverMosaic() {
             const covers = this._tracks
-                .filter(t => t.blossomCoverHash || t.coverArtCid)
+                .filter(t => t.blossomCoverUrl || t.blossomCoverHash || t.coverArtCid)
                 .slice(0, 4);
 
             if (covers.length === 0) {
@@ -189,7 +189,7 @@
             while (covers.length < 4) covers.push(covers[covers.length - 1]);
 
             return covers.slice(0, 4).map(t => {
-                const url = t.blossomCoverHash ? `/blossom/${t.blossomCoverHash}` : `/ipfs/${t.coverArtCid}`;
+                const url = t.blossomCoverUrl || (t.blossomCoverHash ? `/blossom/${t.blossomCoverHash}` : `/ipfs/${t.coverArtCid}`);
                 return `<img src="${url}" alt="">`;
             }).join('');
         },
@@ -204,9 +204,9 @@
             const currentTrack = playerState.track;
 
             return this._tracks.map((track, i) => {
-                const coverUrl = track.blossomCoverHash
-                    ? `/blossom/${track.blossomCoverHash}`
-                    : (track.coverArtCid ? `/ipfs/${track.coverArtCid}` : '');
+                const coverUrl = track.blossomCoverUrl
+                    || (track.blossomCoverHash ? `/blossom/${track.blossomCoverHash}` : '')
+                    || (track.coverArtCid ? `/ipfs/${track.coverArtCid}` : '');
 
                 const isPlaying = currentTrack &&
                     ((track.previewCid && track.previewCid === currentTrack.previewCid) ||
@@ -303,6 +303,7 @@
                 artist: t.artist || 'Unknown Artist',
                 previewCid: t.previewCid,
                 manifestCid: t.manifestCid,
+                blossomCoverUrl: t.blossomCoverUrl,
                 blossomCoverHash: t.blossomCoverHash,
                 coverArtCid: t.coverArtCid,
                 duration: t.duration
@@ -318,6 +319,7 @@
                 artist: t.artist || 'Unknown Artist',
                 previewCid: t.previewCid,
                 manifestCid: t.manifestCid,
+                blossomCoverUrl: t.blossomCoverUrl,
                 blossomCoverHash: t.blossomCoverHash,
                 coverArtCid: t.coverArtCid,
                 duration: t.duration
@@ -332,6 +334,7 @@
                 artist: t.artist || 'Unknown Artist',
                 previewCid: t.previewCid,
                 manifestCid: t.manifestCid,
+                blossomCoverUrl: t.blossomCoverUrl,
                 blossomCoverHash: t.blossomCoverHash,
                 coverArtCid: t.coverArtCid,
                 duration: t.duration

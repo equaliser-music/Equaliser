@@ -290,6 +290,7 @@ const NostrPlaylists = (() => {
                     previewCid: _getTag(ev, 'ipfs_preview_cid') || '',
                     manifestCid: _getTag(ev, 'ipfs_manifest_cid') || '',
                     blossomCoverHash: _getTag(ev, 'blossom_cover_hash') || '',
+                    blossomCoverUrl: _getTag(ev, 'blossom_cover_url') || '',
                     coverArtCid: _getTag(ev, 'cover_art_cid') || '',
                     duration: parseFloat(_getTag(ev, 'duration') || '0'),
                     priceAmount: _getTag(ev, 'price') || '',

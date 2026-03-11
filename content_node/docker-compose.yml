@@ -104,6 +104,7 @@ services:
       - NOSTR_RELAY_URL=ws://equaliser-relay:8080
       - RELAY_API_URL=http://equaliser-relay:8008
       - BLOSSOM_URL=http://blossom:3000
+      - PUBLIC_BASE_URL=
       - DATABASE_PATH=/data/drafts.db
     volumes:
       - orchestrator-uploads:/tmp/equaliser/uploads

@@ -92,14 +92,15 @@
             return tag ? tag[1] : null;
         },
 
-        _getCoverArtUrl(blossomHash, ipfsCid) {
+        _getCoverArtUrl(blossomUrl, blossomHash, ipfsCid) {
+            if (blossomUrl) return blossomUrl;
             if (blossomHash) return `/blossom/${blossomHash}`;
             if (ipfsCid) return `/ipfs/${ipfsCid}`;
             return null;
         },
 
-        _renderCoverImg(blossomHash, ipfsCid, altText) {
-            const url = this._getCoverArtUrl(blossomHash, ipfsCid);
+        _renderCoverImg(blossomUrl, blossomHash, ipfsCid, altText) {
+            const url = this._getCoverArtUrl(blossomUrl, blossomHash, ipfsCid);
             if (url) {
                 return `<img src="${url}" alt="${this._escapeHtml(altText)}" onerror="this.style.display='none'">`;
             }
@@ -480,6 +481,7 @@
                 releaseDate: this._getTagValue(event.tags, 'release_date') || '',
                 coverArtCid: this._getTagValue(event.tags, 'cover_art_cid') || '',
                 blossomCoverHash: this._getTagValue(event.tags, 'blossom_cover_hash') || '',
+                blossomCoverUrl: this._getTagValue(event.tags, 'blossom_cover_url') || '',
                 trackNumber: parseInt(this._getTagValue(event.tags, 'track_number')) || 0
             };
         },
@@ -504,6 +506,7 @@
                         releaseDate: track.releaseDate,
                         coverArtCid: track.coverArtCid,
                         blossomCoverHash: track.blossomCoverHash,
+                        blossomCoverUrl: track.blossomCoverUrl,
                         tracks: [],
                         createdAt: track.createdAt,
                         isSingle: !isAlbumOrEp
@@ -513,6 +516,9 @@
                 const album = albumMap.get(albumKey);
                 album.tracks.push(track);
 
+                if (!album.blossomCoverUrl && track.blossomCoverUrl) {
+                    album.blossomCoverUrl = track.blossomCoverUrl;
+                }
                 if (!album.blossomCoverHash && track.blossomCoverHash) {
                     album.blossomCoverHash = track.blossomCoverHash;
                 }
@@ -553,7 +559,7 @@
 
             grid.innerHTML = albums.map((album, index) => {
                 const artistName = this._getArtistDisplayName(album.pubkey, album.artist);
-                const coverImg = this._renderCoverImg(album.blossomCoverHash, album.coverArtCid, album.title);
+                const coverImg = this._renderCoverImg(album.blossomCoverUrl, album.blossomCoverHash, album.coverArtCid, album.title);
                 const trackCount = album.tracks.length;
                 const price = album.tracks[0] ? this._formatPrice(album.tracks[0].priceAmount, album.tracks[0].priceCurrency) : '';
                 const typeLabel = album.isSingle ? 'Single' : `${trackCount} track${trackCount !== 1 ? 's' : ''}`;
@@ -606,7 +612,7 @@
             this._currentAlbumTracks = album.tracks;
 
             // Update track list header
-            const coverUrl = this._getCoverArtUrl(album.blossomCoverHash, album.coverArtCid);
+            const coverUrl = this._getCoverArtUrl(album.blossomCoverUrl, album.blossomCoverHash, album.coverArtCid);
             const coverEl = document.getElementById('track-list-cover');
             if (coverEl) {
                 if (coverUrl) {
@@ -639,6 +645,7 @@
 
                 trackListEl.innerHTML = album.tracks.map((track, index) => {
                     const trackCoverImg = this._renderCoverImg(
+                        track.blossomCoverUrl || album.blossomCoverUrl,
                         track.blossomCoverHash || album.blossomCoverHash,
                         track.coverArtCid || album.coverArtCid,
                         track.title
@@ -705,6 +712,7 @@
             // Build track info for the player, including artist display name
             const trackForPlayer = Object.assign({}, track, {
                 artist: this._getArtistDisplayName(track.pubkey, track.artist),
+                blossomCoverUrl: track.blossomCoverUrl || this._allAlbums[this._selectedAlbumIndex]?.blossomCoverUrl,
                 blossomCoverHash: track.blossomCoverHash || this._allAlbums[this._selectedAlbumIndex]?.blossomCoverHash,
                 coverArtCid: track.coverArtCid || this._allAlbums[this._selectedAlbumIndex]?.coverArtCid
             });
@@ -712,6 +720,7 @@
             // Set the full album as the playlist in the player
             const playlist = this._currentAlbumTracks.map(t => Object.assign({}, t, {
                 artist: this._getArtistDisplayName(t.pubkey, t.artist),
+                blossomCoverUrl: t.blossomCoverUrl || this._allAlbums[this._selectedAlbumIndex]?.blossomCoverUrl,
                 blossomCoverHash: t.blossomCoverHash || this._allAlbums[this._selectedAlbumIndex]?.blossomCoverHash,
                 coverArtCid: t.coverArtCid || this._allAlbums[this._selectedAlbumIndex]?.coverArtCid
             }));
