@@ -39,10 +39,11 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS for local development
+# CORS — restrict origins via ALLOWED_ORIGINS env var (comma-separated)
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost,http://localhost:80").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, restrict to specific origins
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

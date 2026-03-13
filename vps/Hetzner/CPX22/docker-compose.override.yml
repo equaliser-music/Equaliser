@@ -7,7 +7,7 @@ services:
       - "8080:80"
   equaliser-relay:
     environment:
-      - DATABASE_URL=postgresql://equaliser:equaliser@postgres:5432/equaliser
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-equaliser}:${POSTGRES_PASSWORD:-equaliser}@postgres:5432/${POSTGRES_DB:-equaliser}
       - WS_PORT=8080
       - RELAY_NAME=Equaliser Content Node Relay
       - RELAY_DESCRIPTION=A NOSTR relay for the Equaliser music platform content node
@@ -23,4 +23,5 @@ services:
       - RELAY_API_URL=http://equaliser-relay:8008
       - BLOSSOM_URL=http://blossom:3000
       - PUBLIC_BASE_URL=https://equaliser.app
+      - ALLOWED_ORIGINS=https://equaliser.app
       - DATABASE_PATH=/data/drafts.db

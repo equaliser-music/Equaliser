@@ -307,9 +307,9 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
 
 - [ ] **Security Hardening**: Address findings from security review (see [SECURITY_REVIEW.md](docs/SECURITY_REVIEW.md))
   - **Critical**: Add API authentication (NIP-98 HTTP Auth) for all write endpoints
-  - **Critical**: Remove `artist_privkey` form parameter from track upload endpoint
-  - **Critical**: Restrict CORS to actual domains (replace `allow_origins=["*"]`)
-  - **Critical**: Move DB credentials to `.env` file excluded from git
+  - ~~**Critical**: Remove `artist_privkey` form parameter from track upload endpoint~~ (done)
+  - ~~**Critical**: Restrict CORS to actual domains~~ (done — `ALLOWED_ORIGINS` env var)
+  - ~~**Critical**: Move DB credentials to `.env` file excluded from git~~ (done — `${VAR:-default}` syntax, `.env.example` template)
   - **High**: Add upload rate limiting (`limit_req_zone` in nginx) and server-side file size validation
   - **High**: Add server-side session validation (challenge-response or NIP-98)
   - **High**: Migrate from sessionStorage keys to NIP-07 browser extension auth
