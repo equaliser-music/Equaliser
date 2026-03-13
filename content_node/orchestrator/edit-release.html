@@ -138,6 +138,16 @@
             box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4);
         }
 
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #ffffff;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
+        }
+
         .draft-banner {
             background: rgba(251, 191, 36, 0.1);
             border: 1px solid rgba(251, 191, 36, 0.3);
@@ -1130,6 +1140,12 @@
             const headerActions = document.getElementById('header-actions');
             if (isDraftMode) {
                 headerActions.innerHTML = `
+                    <button type="button" class="btn btn-danger" id="delete-btn" onclick="deleteDraft()">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        Delete
+                    </button>
                     <a href="releases.html" class="btn btn-secondary">Cancel</a>
                     <button type="button" class="btn btn-primary" id="save-btn" onclick="saveDraft()">
                         <svg fill="currentColor" viewBox="0 0 20 20">
@@ -1311,12 +1327,12 @@
                     <span class="col-num">${index + 1}</span>
                     <div class="col-title">
                         <input type="text" class="track-title-input" value="${escapeHtml(track.title)}"
-                               onchange="updateTrackField('${track.d}', 'title', this.value)">
+                               oninput="updateTrackField('${track.d}', 'title', this.value)">
                     </div>
                     <span class="col-duration">${formatDuration(track.duration)}</span>
                     <div class="col-price">
                         <input type="number" class="price-input" value="${track.priceAmount}" min="0" step="any"
-                               onchange="updateTrackField('${track.d}', 'priceAmount', parseFloat(this.value) || 0)">
+                               oninput="updateTrackField('${track.d}', 'priceAmount', parseFloat(this.value) || 0)">
                         <span class="price-label">${track.priceCurrency}</span>
                     </div>
                     <div class="col-actions">
@@ -1645,6 +1661,37 @@
             }
 
             return response.json();
+        }
+
+        // Delete all draft tracks in this release
+        async function deleteDraft() {
+            if (!confirm('Delete this draft? This cannot be undone.')) return;
+
+            const deleteBtn = document.getElementById('delete-btn');
+            deleteBtn.disabled = true;
+            deleteBtn.innerHTML = '<div class="loading-spinner" style="width:16px;height:16px;border-width:2px;margin:0;"></div> Deleting...';
+
+            try {
+                let deletedCount = 0;
+                for (const track of editingTracks) {
+                    const response = await SessionManager.authFetch(`/api/drafts/${track.id}`, {
+                        method: 'DELETE'
+                    });
+                    if (response.ok) deletedCount++;
+                    else console.error(`Failed to delete track ${track.title}:`, await response.text());
+                }
+
+                if (deletedCount > 0) {
+                    showNotification('Draft deleted', 'success');
+                    setTimeout(() => window.location.href = 'releases.html', 1000);
+                } else {
+                    throw new Error('Failed to delete any tracks');
+                }
+            } catch (error) {
+                showNotification('Failed to delete: ' + error.message, 'error');
+                deleteBtn.disabled = false;
+                deleteBtn.innerHTML = '<svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg> Delete';
+            }
         }
 
         // Save draft to database (without releasing)
