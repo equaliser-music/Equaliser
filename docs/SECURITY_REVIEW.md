@@ -24,56 +24,21 @@ All orchestrator endpoints accept `artist_pubkey` as a form/query parameter with
 
 ---
 
-### 2. Private Key Accepted Over HTTP
+### ~~2. Private Key Accepted Over HTTP~~ FIXED
 
-**File:** `content_node/orchestrator/api/routers/tracks.py` (line 95)
-
-```python
-artist_privkey: Optional[str] = Form(None),  # Optional: for server-side signing
-```
-
-The track upload endpoint accepts a private key as a form parameter for server-side signing. Even over TLS, transmitting private keys to a server is dangerous — they can be logged, cached by proxies, or exposed in error traces.
-
-**Risk:** Key theft via server logs, request caching, or memory dumps.
-
-**Recommendation:** Remove this parameter entirely. Use client-side signing (NIP-07 browser extension) or session-based signing where the server never sees the raw private key in an API call.
+**Status:** Resolved — `artist_privkey` parameter removed from upload endpoint. Was dead code (never used in `process_track()`). Client-side signing is the established pattern.
 
 ---
 
-### 3. Unrestricted CORS
+### ~~3. Unrestricted CORS~~ FIXED
 
-**File:** `content_node/orchestrator/api/main.py` (lines 43–49)
-
-```python
-allow_origins=["*"],
-allow_credentials=True,
-allow_methods=["*"],
-allow_headers=["*"],
-```
-
-Any website can make cross-origin requests to the API, enabling CSRF-style attacks where a malicious page performs actions on behalf of a logged-in artist.
-
-**Risk:** Cross-site request forgery, data exfiltration from any origin.
-
-**Recommendation:** Restrict `allow_origins` to actual domains (`https://equaliser.app`, `https://node2.equaliser.app`, `http://localhost:*` for dev).
+**Status:** Resolved — CORS origins now read from `ALLOWED_ORIGINS` env var. Defaults to `http://localhost,http://localhost:80` for local dev. VPS overrides set to `https://equaliser.app` (CPX22) and `http://46.225.52.198` (CX23).
 
 ---
 
-### 4. Hardcoded Database Credentials
+### ~~4. Hardcoded Database Credentials~~ FIXED
 
-**File:** `content_node/docker-compose.yml` (lines 45–47)
-
-```yaml
-POSTGRES_USER=equaliser
-POSTGRES_PASSWORD=equaliser
-POSTGRES_DB=equaliser
-```
-
-Database credentials are hardcoded in plaintext and committed to version control.
-
-**Risk:** Anyone with repo access has full database credentials.
-
-**Recommendation:** Move credentials to a `.env` file excluded from git (`.gitignore`). Reference via `${POSTGRES_PASSWORD}` in docker-compose. Use different passwords per environment.
+**Status:** Resolved — DB credentials use `${POSTGRES_PASSWORD:-equaliser}` syntax with defaults for local dev. `.env.example` template created. `.env` files excluded from git. VPS overrides also updated. Production VPS nodes should create a `.env` file with strong passwords.
 
 ---
 
@@ -252,7 +217,7 @@ SSH key file paths are hardcoded in deployment scripts committed to version cont
 | Content defacement/deletion | Very High | High | None — no auth on write/delete |
 | Disk exhaustion via spam | High | High | 500M nginx limit only |
 | XSS stealing artist keys | Medium | Critical | None — keys in sessionStorage, no CSP |
-| Database access via compromised container | Medium | High | Default credentials |
+| Database access via compromised container | Medium | High | Credentials externalised to `.env` (defaults still weak for local dev) |
 | IPFS node abuse | Low–Medium | Medium | Open swarm port |
 | Peer relay MITM | Low | Medium | Standard TLS |
 
@@ -263,13 +228,13 @@ SSH key file paths are hardcoded in deployment scripts committed to version cont
 ### Immediate (before any public use)
 
 1. **Add API authentication** — NIP-98 HTTP Auth requiring signed events for all write endpoints
-2. **Remove `artist_privkey` parameter** from track upload endpoint
-3. **Restrict CORS** to actual domains
+2. ~~**Remove `artist_privkey` parameter**~~ — DONE
+3. ~~**Restrict CORS**~~ — DONE (`ALLOWED_ORIGINS` env var)
 4. **Add security headers** to nginx configs
 
 ### Short-term (next development cycle)
 
-5. **Move DB credentials** to `.env` files excluded from git
+5. ~~**Move DB credentials**~~ — DONE (`.env` with `${VAR:-default}` syntax)
 6. **Add upload rate limiting** via nginx `limit_req_zone`
 7. **Add server-side session validation** (challenge-response or NIP-98)
 8. **Add structured logging** for all write operations

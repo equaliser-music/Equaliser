@@ -92,7 +92,6 @@ async def upload_track(
     cover_art_cid: Optional[str] = Form(None),  # IPFS CID of cover art
     blossom_cover_hash: Optional[str] = Form(None),  # SHA-256 hash on Blossom
     artist_pubkey: str = Form(...),
-    artist_privkey: Optional[str] = Form(None),  # Optional: for server-side signing
 ):
     """
     Upload a track for processing.
@@ -160,8 +159,7 @@ async def upload_track(
         input_path=input_path,
         track_dir=track_dir,
         metadata=metadata,
-        artist_pubkey=artist_pubkey,
-        artist_privkey=artist_privkey
+        artist_pubkey=artist_pubkey
     )
 
     return upload_status[track_id]
@@ -332,8 +330,7 @@ async def process_track(
     input_path: Path,
     track_dir: Path,
     metadata: TrackMetadata,
-    artist_pubkey: str,
-    artist_privkey: Optional[str] = None
+    artist_pubkey: str
 ):
     """
     Background task to process an uploaded track.
