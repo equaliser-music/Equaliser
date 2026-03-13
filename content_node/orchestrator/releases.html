@@ -1399,7 +1399,7 @@
                 for (const track of release.tracks) {
                     try {
                         // Get unsigned event from API
-                        const prepResponse = await fetch(`/api/drafts/${track.id}/release?pubkey=${session.publicKey}`, {
+                        const prepResponse = await SessionManager.authFetch(`/api/drafts/${track.id}/release`, {
                             method: 'POST'
                         });
 
@@ -1420,7 +1420,7 @@
                         });
 
                         // Publish to NOSTR
-                        const publishResponse = await fetch('/api/tracks/publish', {
+                        const publishResponse = await SessionManager.authFetch('/api/tracks/publish', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -1500,12 +1500,11 @@
 
             try {
                 // Step 1: Prepare export (get manifest + unsigned event)
-                const prepResponse = await fetch('/api/releases/export-prepare', {
+                const prepResponse = await SessionManager.authFetch('/api/releases/export-prepare', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         album: release.title,
-                        pubkey: session.publicKey,
                         source: source
                     })
                 });
@@ -1529,7 +1528,7 @@
                 showNotification('Building package (this may take a while for large albums)...', 'success', 120000);
 
                 // Step 3: Download the package
-                const downloadResponse = await fetch('/api/releases/export-download', {
+                const downloadResponse = await SessionManager.authFetch('/api/releases/export-download', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1663,12 +1662,11 @@
             try {
                 const formData = new FormData();
                 formData.append('file', importFile);
-                formData.append('pubkey', session.publicKey);
 
                 progressFill.style.width = '50%';
                 progressText.textContent = 'Processing tracks...';
 
-                const response = await fetch('/api/releases/import', {
+                const response = await SessionManager.authFetch('/api/releases/import', {
                     method: 'POST',
                     body: formData,
                 });

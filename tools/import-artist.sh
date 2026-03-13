@@ -305,6 +305,65 @@ load_identity() {
     echo -e "    npub: ${CYAN}$GENERATED_NPUB${NC}"
 }
 
+# Generate NIP-98 Authorization header for an API request
+# Args: $1 = URL, $2 = HTTP method
+generate_nip98_auth() {
+    local url="$1"
+    local method="$2"
+
+    python3 << PYTHON
+import json, time, hashlib, base64, sys
+
+try:
+    from coincurve import PrivateKey
+    HAS_COINCURVE = True
+except ImportError:
+    HAS_COINCURVE = False
+    try:
+        import secp256k1
+        HAS_SECP256K1 = True
+    except ImportError:
+        HAS_SECP256K1 = False
+
+pubkey = "$GENERATED_PUBKEY_HEX"
+privkey_hex = "$GENERATED_PRIVKEY_HEX"
+
+event = {
+    "kind": 27235,
+    "pubkey": pubkey,
+    "created_at": int(time.time()),
+    "tags": [["u", "$url"], ["method", "$method"]],
+    "content": ""
+}
+
+serialized = json.dumps([
+    0, event["pubkey"], event["created_at"],
+    event["kind"], event["tags"], event["content"]
+], separators=(",", ":"), ensure_ascii=False)
+
+event_id = hashlib.sha256(serialized.encode()).hexdigest()
+event["id"] = event_id
+
+privkey_bytes = bytes.fromhex(privkey_hex)
+id_bytes = bytes.fromhex(event_id)
+
+if HAS_COINCURVE:
+    pk = PrivateKey(privkey_bytes)
+    sig = pk.sign_schnorr(id_bytes)
+    event["sig"] = sig.hex()
+elif HAS_SECP256K1:
+    pk = secp256k1.PrivateKey(privkey_bytes)
+    sig = pk.schnorr_sign(id_bytes, bip340tag=None, raw=True)
+    event["sig"] = sig.hex()
+else:
+    print("ERROR: No crypto library", file=sys.stderr)
+    sys.exit(1)
+
+token = base64.b64encode(json.dumps(event).encode()).decode()
+print(f"Nostr {token}")
+PYTHON
+}
+
 # Upload image to IPFS via orchestrator
 upload_image() {
     local image_path="$1"
@@ -320,7 +379,10 @@ upload_image() {
         return
     fi
 
+    local auth_header=$(generate_nip98_auth "$BASE_URL/api/tracks/cover-art" "POST")
+
     local response=$(curl -s -X POST "$BASE_URL/api/tracks/cover-art" \
+        -H "Authorization: $auth_header" \
         -F "file=@$image_path")
 
     local cid=$(echo "$response" | jq -r '.cid // empty')
@@ -515,13 +577,14 @@ import_release() {
     esac
 
     # Build form data for upload
+    local auth_header=$(generate_nip98_auth "$BASE_URL/api/tracks/upload" "POST")
     local form_args=(
+        -H "Authorization: $auth_header"
         -F "file=@$audio_path;type=$mime_type"
         -F "title=$title"
         -F "artist=$artist"
         -F "price_amount=$price_amount"
         -F "price_currency=$price_currency"
-        -F "artist_pubkey=$GENERATED_PUBKEY_HEX"
     )
 
     [[ -n "$album" ]] && form_args+=(-F "album=$album")
@@ -634,10 +697,12 @@ import_eqpkg() {
 
     echo -e "  Uploading and processing (this may take a few minutes)..."
 
+    local auth_header=$(generate_nip98_auth "$BASE_URL/api/releases/import" "POST")
+
     local response=$(curl -s --max-time 600 -w "\n%{http_code}" -X POST \
         "$BASE_URL/api/releases/import" \
-        -F "file=@$pkg_path;filename=$curl_filename" \
-        -F "pubkey=$GENERATED_PUBKEY_HEX")
+        -H "Authorization: $auth_header" \
+        -F "file=@$pkg_path;filename=$curl_filename")
 
     # Split response body and HTTP status
     local http_code=$(echo "$response" | tail -1)

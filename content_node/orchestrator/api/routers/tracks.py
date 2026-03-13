@@ -17,11 +17,12 @@ import hashlib
 from typing import Optional
 from pathlib import Path
 
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks, Depends
 from pydantic import BaseModel
 
 import logging
 
+from dependencies import require_auth
 from services.hls import encode_to_hls, get_audio_duration
 from services.ipfs import upload_directory_to_ipfs, upload_file_to_ipfs
 from services.nostr import create_track_event, publish_event, publish_signed_event
@@ -91,7 +92,7 @@ async def upload_track(
     release_type: Optional[str] = Form(None),  # single, album, ep
     cover_art_cid: Optional[str] = Form(None),  # IPFS CID of cover art
     blossom_cover_hash: Optional[str] = Form(None),  # SHA-256 hash on Blossom
-    artist_pubkey: str = Form(...),
+    artist_pubkey: str = Depends(require_auth),
 ):
     """
     Upload a track for processing.
@@ -197,7 +198,7 @@ class PublishEventResponse(BaseModel):
 
 
 @router.post("/publish", response_model=PublishEventResponse)
-async def publish_track_event(request: SignedEventRequest):
+async def publish_track_event(request: SignedEventRequest, pubkey: str = Depends(require_auth)):
     """
     Publish a pre-signed NOSTR event for a track.
 
@@ -208,6 +209,13 @@ async def publish_track_event(request: SignedEventRequest):
     (released tracks are sourced from NOSTR, not the database).
     """
     event = request.signed_event
+
+    # Verify the signed event belongs to the authenticated user
+    if event.get("pubkey") != pubkey:
+        raise HTTPException(
+            status_code=403,
+            detail="Signed event pubkey does not match authenticated user"
+        )
 
     # Validate event structure
     if "id" not in event or "sig" not in event:
@@ -255,6 +263,7 @@ class CoverArtResponse(BaseModel):
 @router.post("/cover-art", response_model=CoverArtResponse)
 async def upload_cover_art(
     file: UploadFile = File(...),
+    pubkey: str = Depends(require_auth),
 ):
     """
     Upload cover art image to Blossom (primary) and IPFS (fallback).

@@ -1509,7 +1509,7 @@
                 const formData = new FormData();
                 formData.append('file', file);
 
-                const response = await fetch('/api/tracks/cover-art', {
+                const response = await SessionManager.authFetch('/api/tracks/cover-art', {
                     method: 'POST',
                     body: formData
                 });
@@ -1634,7 +1634,7 @@
 
             const signedEvent = await session.sign(unsignedEvent);
 
-            const response = await fetch('/api/tracks/publish', {
+            const response = await SessionManager.authFetch('/api/tracks/publish', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ signed_event: signedEvent })
@@ -1692,7 +1692,7 @@
                     if (newBlossomCoverHash) {
                         updateData.blossom_cover_hash = newBlossomCoverHash;
                     }
-                    const response = await fetch(`/api/drafts/${track.id}?pubkey=${session.publicKey}`, {
+                    const response = await SessionManager.authFetch(`/api/drafts/${track.id}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(updateData)
@@ -1755,7 +1755,7 @@
                 for (const track of editingTracks) {
                     try {
                         // Get unsigned event from API
-                        const prepResponse = await fetch(`/api/drafts/${track.id}/release?pubkey=${session.publicKey}`, {
+                        const prepResponse = await SessionManager.authFetch(`/api/drafts/${track.id}/release`, {
                             method: 'POST'
                         });
 
@@ -1776,7 +1776,7 @@
                         });
 
                         // Publish to NOSTR (draft will be deleted from database)
-                        const publishResponse = await fetch('/api/tracks/publish', {
+                        const publishResponse = await SessionManager.authFetch('/api/tracks/publish', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
