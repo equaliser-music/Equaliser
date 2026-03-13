@@ -217,6 +217,47 @@ const SessionManager = {
         this._updateStoredActivity();
     },
 
+    /**
+     * Create a NIP-98 Authorization header for an API request.
+     * Signs a Kind 27235 event containing the URL and HTTP method.
+     * @param {string} url - The full request URL
+     * @param {string} method - The HTTP method (GET, POST, etc.)
+     * @returns {string} Authorization header value ("Nostr <base64>")
+     */
+    async createNip98Auth(url, method) {
+        if (!this._session) {
+            throw new Error('No active session');
+        }
+
+        const event = {
+            kind: 27235,
+            created_at: Math.floor(Date.now() / 1000),
+            tags: [
+                ['u', url],
+                ['method', method.toUpperCase()]
+            ],
+            content: ''
+        };
+
+        const signed = await this.signEvent(event);
+        return 'Nostr ' + btoa(JSON.stringify(signed));
+    },
+
+    /**
+     * Fetch wrapper that automatically adds NIP-98 auth headers.
+     * Use this for all authenticated API calls.
+     * @param {string} url - The request URL (relative or absolute)
+     * @param {object} options - Standard fetch options
+     * @returns {Promise<Response>} The fetch response
+     */
+    async authFetch(url, options = {}) {
+        const fullUrl = new URL(url, window.location.origin).href;
+        const method = (options.method || 'GET').toUpperCase();
+        const authHeader = await this.createNip98Auth(fullUrl, method);
+        options.headers = { ...options.headers, 'Authorization': authHeader };
+        return fetch(url, options);
+    },
+
     // ==================== Private Methods ====================
 
     /**

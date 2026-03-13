@@ -867,7 +867,7 @@
             formData.append('file', file);
 
             // Use the cover-art API endpoint which handles IPFS uploads
-            const response = await fetch('/api/tracks/cover-art', {
+            const response = await SessionManager.authFetch('/api/tracks/cover-art', {
                 method: 'POST',
                 body: formData
             });

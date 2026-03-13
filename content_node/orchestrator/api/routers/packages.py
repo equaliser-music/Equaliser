@@ -26,10 +26,11 @@ from io import BytesIO
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from dependencies import require_auth
 from services.database import (
     DraftTrack,
     get_album_drafts,
@@ -58,7 +59,6 @@ UPLOAD_DIR = Path("/tmp/equaliser/uploads")
 class ExportPrepareRequest(BaseModel):
     """Request to prepare a release for export."""
     album: str
-    pubkey: str
     source: str = "draft"  # "draft" or "nostr"
 
 
@@ -87,7 +87,7 @@ class ImportResponse(BaseModel):
 # --- Export Endpoints ---
 
 @router.post("/export-prepare", response_model=ExportPrepareResponse)
-async def export_prepare(request: ExportPrepareRequest):
+async def export_prepare(request: ExportPrepareRequest, pubkey: str = Depends(require_auth)):
     """
     Prepare a release for export.
 
@@ -106,10 +106,10 @@ async def export_prepare(request: ExportPrepareRequest):
     }
 
     if request.source == "draft":
-        drafts = await get_album_drafts(request.album, request.pubkey)
+        drafts = await get_album_drafts(request.album, pubkey)
         if not drafts:
             # Try as a single track
-            all_drafts = await list_drafts(request.pubkey, status="draft")
+            all_drafts = await list_drafts(pubkey, status="draft")
             drafts = [d for d in all_drafts if d.title == request.album]
 
         if not drafts:
@@ -162,7 +162,7 @@ async def export_prepare(request: ExportPrepareRequest):
                 }
 
     elif request.source == "nostr":
-        events = await fetch_track_events(pubkey=request.pubkey)
+        events = await fetch_track_events(pubkey=pubkey)
         # Filter to matching album
         album_events = [e for e in events if _get_tag(e, "album") == request.album]
 
@@ -233,7 +233,7 @@ async def export_prepare(request: ExportPrepareRequest):
     # Create unsigned event for client to sign
     unsigned_event = {
         "kind": 1,
-        "pubkey": request.pubkey,
+        "pubkey": pubkey,
         "created_at": int(time.time()),
         "tags": [
             ["app", "Equaliser"],
@@ -252,7 +252,7 @@ async def export_prepare(request: ExportPrepareRequest):
 
 
 @router.post("/export-download")
-async def export_download(request: ExportDownloadRequest):
+async def export_download(request: ExportDownloadRequest, pubkey: str = Depends(require_auth)):
     """
     Build and download the .eqpkg.zip package.
 
@@ -261,6 +261,13 @@ async def export_download(request: ExportDownloadRequest):
     """
     # Validate signed event
     event = request.signed_event
+
+    # Verify the signed event belongs to the authenticated user
+    if event.get("pubkey") != pubkey:
+        raise HTTPException(
+            status_code=403,
+            detail="Signed event pubkey does not match authenticated user"
+        )
     if "id" not in event or "sig" not in event:
         raise HTTPException(
             status_code=400,
@@ -373,7 +380,7 @@ async def export_download(request: ExportDownloadRequest):
 @router.post("/import", response_model=ImportResponse)
 async def import_package(
     file: UploadFile = File(...),
-    pubkey: str = Form(...),
+    pubkey: str = Depends(require_auth),
 ):
     """
     Import a .eqpkg.zip package as draft tracks.

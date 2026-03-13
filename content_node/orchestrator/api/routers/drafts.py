@@ -8,9 +8,10 @@ Handles:
 """
 
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel
 
+from dependencies import require_auth
 from services.database import (
     DraftTrack,
     get_draft,
@@ -88,7 +89,6 @@ class ReleaseResponse(BaseModel):
 class AlbumReleaseRequest(BaseModel):
     """Request to release all tracks in an album."""
     album: str
-    pubkey: str
 
 
 class AlbumReleaseResponse(BaseModel):
@@ -128,7 +128,7 @@ async def get_single_draft(
 async def update_single_draft(
     draft_id: str,
     updates: DraftUpdateRequest,
-    pubkey: str = Query(..., description="Artist public key"),
+    pubkey: str = Depends(require_auth),
 ):
     """Update a draft's metadata."""
     # Check draft exists
@@ -152,7 +152,7 @@ async def update_single_draft(
 @router.delete("/{draft_id}")
 async def delete_single_draft(
     draft_id: str,
-    pubkey: str = Query(..., description="Artist public key"),
+    pubkey: str = Depends(require_auth),
 ):
     """Delete a draft."""
     deleted = await delete_draft(draft_id, pubkey)
@@ -167,7 +167,7 @@ async def delete_single_draft(
 @router.post("/{draft_id}/release", response_model=ReleaseResponse)
 async def prepare_release(
     draft_id: str,
-    pubkey: str = Query(..., description="Artist public key"),
+    pubkey: str = Depends(require_auth),
 ):
     """
     Prepare a draft for release by generating an unsigned NOSTR event.
@@ -210,14 +210,14 @@ async def prepare_release(
 
 
 @router.post("/release-album", response_model=AlbumReleaseResponse)
-async def prepare_album_release(request: AlbumReleaseRequest):
+async def prepare_album_release(request: AlbumReleaseRequest, pubkey: str = Depends(require_auth)):
     """
     Prepare all tracks in an album for release.
 
     Returns unsigned events for all tracks. Client should sign each
     and publish via POST /api/tracks/publish.
     """
-    drafts = await get_album_drafts(request.album, request.pubkey)
+    drafts = await get_album_drafts(request.album, pubkey)
 
     if not drafts:
         raise HTTPException(
@@ -241,7 +241,7 @@ async def prepare_album_release(request: AlbumReleaseRequest):
             price_amount=draft.price_amount,
             price_currency=draft.price_currency,
             release_date=draft.release_date,
-            pubkey=request.pubkey,
+            pubkey=pubkey,
             release_type=draft.release_type,
             cover_art_cid=draft.cover_art_cid,
             track_number=track_num,
@@ -267,12 +267,18 @@ async def mark_draft_released(
     draft_id: str,
     nostr_event_id: str = Query(..., description="NOSTR event ID after publish"),
     nostr_d_tag: str = Query(..., description="NOSTR d-tag from event"),
+    pubkey: str = Depends(require_auth),
 ):
     """
     Mark a draft as released after successful NOSTR publication.
 
     Called after client publishes the signed event.
     """
+    # Verify ownership — draft must belong to authenticated user
+    existing = await get_draft(draft_id, pubkey)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Draft not found")
+
     draft = await mark_released(draft_id, nostr_event_id, nostr_d_tag)
     if not draft:
         raise HTTPException(status_code=404, detail="Draft not found")

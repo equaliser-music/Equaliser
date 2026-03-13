@@ -1331,7 +1331,6 @@
                 formData.append('file', track.file);
                 formData.append('title', track.title);
                 formData.append('artist', track.artist || document.getElementById('default-artist').value);
-                formData.append('artist_pubkey', session.publicKey);
                 formData.append('album', track.album);
                 formData.append('genre', track.genre);
                 formData.append('release_date', track.releaseDate);
@@ -1346,7 +1345,7 @@
                 }
 
                 // Upload file
-                const response = await fetch('/api/tracks/upload', {
+                const response = await SessionManager.authFetch('/api/tracks/upload', {
                     method: 'POST',
                     body: formData
                 });
@@ -1421,7 +1420,7 @@
             });
 
             // Publish the signed event
-            const response = await fetch('/api/tracks/publish', {
+            const response = await SessionManager.authFetch('/api/tracks/publish', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ signed_event: signedEvent })
@@ -1469,7 +1468,7 @@
                 const formData = new FormData();
                 formData.append('file', file);
 
-                const response = await fetch('/api/tracks/cover-art', {
+                const response = await SessionManager.authFetch('/api/tracks/cover-art', {
                     method: 'POST',
                     body: formData
                 });
