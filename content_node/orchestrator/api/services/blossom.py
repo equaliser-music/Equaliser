@@ -121,6 +121,7 @@ async def upload_to_blossom(file_path: Path) -> str:
                 headers={
                     "Authorization": auth_header,
                     "Content-Type": content_type,
+                    "X-SHA-256": sha256_hash,
                 },
             )
 
