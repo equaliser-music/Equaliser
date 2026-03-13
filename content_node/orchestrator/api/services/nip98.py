@@ -21,7 +21,9 @@ from fastapi import HTTPException
 logger = logging.getLogger(__name__)
 
 # Maximum age of a NIP-98 event (seconds) — prevents replay attacks
-MAX_EVENT_AGE = 60
+# 5 minutes to accommodate large file uploads (packages, audio) where
+# the token is generated before the upload transfer begins
+MAX_EVENT_AGE = 300
 
 
 def verify_nip98_token(auth_header: str, request_path: str, request_method: str) -> str:
