@@ -1724,8 +1724,12 @@
                 let savedCount = 0;
                 for (let i = 0; i < editingTracks.length; i++) {
                     const track = editingTracks[i];
+                    // For singles, the release title IS the track title
+                    const trackTitle = (newType === 'single' && editingTracks.length === 1)
+                        ? newTitle
+                        : track.title;
                     const updateData = {
-                        title: track.title,
+                        title: trackTitle,
                         artist_name: newArtist,
                         album: newType !== 'single' ? newTitle : null,
                         release_type: newType,
