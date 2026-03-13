@@ -167,9 +167,13 @@ async def export_prepare(request: ExportPrepareRequest, pubkey: str = Depends(re
         album_events = [e for e in events if _get_tag(e, "album") == request.album]
 
         if not album_events:
+            # Fallback: try matching by title (for singles which have no album tag)
+            album_events = [e for e in events if _get_tag(e, "title") == request.album]
+
+        if not album_events:
             raise HTTPException(
                 status_code=404,
-                detail=f"No released tracks found for album '{request.album}'"
+                detail=f"No released tracks found for '{request.album}'"
             )
 
         for i, event in enumerate(album_events, start=1):
