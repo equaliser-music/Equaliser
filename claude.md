@@ -11,7 +11,9 @@ Documentation exists in the `docs/` folder. Read the following at the start of e
 9. SCALING.md
 10. feature-proposals/FUTURE_FEATURES.md
 
-Implemented feature docs in `docs/implemented/` — consult when working on specific areas (Functional Specification, Technical Specification, ONBOARDING, SESSION_MANAGEMENT_FUNCTIONAL, PROFILE, SOCIAL, BLOSSOM, IPFS_CID_COMPATIBILITY, PRICING_CURRENCY).
+Implemented feature docs in `docs/implemented/` — consult when working on specific areas (ONBOARDING, SESSION_MANAGEMENT_FUNCTIONAL, PROFILE, SOCIAL, BLOSSOM, IPFS_CID_COMPATIBILITY, PRICING_CURRENCY).
+
+Original specification docs in `docs/original/` (Functional Specification, Technical Specification) — written pre-implementation, aspirational. Refer to for project vision and planned features (payments, encryption, subscriptions).
 
 Archived/deprecated docs in `docs/archive/` (NOSTR, BLOSSOM_INTEGRATION_IDEAS, README).
 
@@ -199,7 +201,7 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
 - [ ] **IPFS Resilience**: Implement reliable public content availability
   - Option A: Mutual pinning between artist content nodes (decentralised, no third-party dependency)
   - Option B: Integrate with a pinning service (Pinata, web3.storage) for automatic pinning
-  - Add `ipfs dht provide` call after uploads to announce content to DHT
+  - `announce_to_dht()` exists in `content_node/orchestrator/api/services/ipfs.py` but is never called — wire into track upload and cover art upload as a quick win
   - See [IPFS.md - Content Availability and Public Gateways](docs/IPFS.md#content-availability-and-public-gateways)
 
 - [x] **Track Upload API (Phase 1)**: Basic track upload without encryption
@@ -246,7 +248,7 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - Store encryption keys in SQLite
   - Payment webhook to release keys via NIP-44
   - Fiat → sats conversion at invoice time using live exchange rate (Strike API)
-  - See Technical Specification sections 4.3-4.4
+  - See original Technical Specification sections 4.3-4.4
 
 - [x] **Pricing Currency**: Artist-preferred currency for stream pricing
   - Currency selector (USD, GBP, EUR, JPY, SAT) in profile editor and track upload UI
@@ -303,13 +305,27 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - Handle artist departure: key export + profile migration documentation
   - Consider PostgreSQL for label nodes (higher concurrency than SQLite)
 
+- [ ] **Security Hardening**: Address findings from security review (see [SECURITY_REVIEW.md](docs/SECURITY_REVIEW.md))
+  - **Critical**: Add API authentication (NIP-98 HTTP Auth) for all write endpoints
+  - **Critical**: Remove `artist_privkey` form parameter from track upload endpoint
+  - **Critical**: Restrict CORS to actual domains (replace `allow_origins=["*"]`)
+  - **Critical**: Move DB credentials to `.env` file excluded from git
+  - **High**: Add upload rate limiting (`limit_req_zone` in nginx) and server-side file size validation
+  - **High**: Add server-side session validation (challenge-response or NIP-98)
+  - **High**: Migrate from sessionStorage keys to NIP-07 browser extension auth
+  - **Medium**: Add security headers to nginx (CSP, HSTS, X-Frame-Options, X-Content-Type-Options)
+  - **Medium**: Restrict IPFS swarm port (4001) to known peers or rate-limit
+  - **Medium**: Disable Blossom dashboard in production or add auth
+  - **Medium**: Add structured logging for all write operations (uploads, edits, deletes)
+  - **Low**: Document and encrypt backups, use SSH config aliases in deploy scripts
+
 - [ ] **Operational Considerations**: Production readiness improvements
   - Backup and restore procedures for IPFS data, NOSTR relay, and SQLite database
   - Monitoring and alerting (container health, disk usage, relay connectivity)
   - Log aggregation and retention policies
   - Failure recovery documentation (what to do when containers crash)
   - Data migration strategy between content node versions
-  - Security hardening (rate limiting, input validation, container isolation)
+  - See also **Security Hardening** TODO above for rate limiting, input validation, container isolation
 
 - [ ] **Multi-Node Architecture**: Scaling beyond single content node
   - **Equaliser relay network** (done): Two-tier relay architecture — standard NOSTR relays for social interop, Equaliser peer relays for music metadata replication. Two nodes deployed (CPX22 + CX23) with bidirectional peer sync.
@@ -334,6 +350,8 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - See [SOCIAL.md](docs/implemented/SOCIAL.md)
 
 - [ ] **User Data Caching (Phase B.1)**: Cache fan/listener NOSTR data on content node
+  - **Partial**: DB tables exist (`registered_users`, `cached_users`, `cached_user_follows`, `cached_user_feed`, `cached_user_playlists`) + relay endpoint `POST /api/internal/users/register`
+  - TODO: Orchestrator integration to call register endpoint on fan auth, peer syncer user subscriptions, admin controls
   - Fan authenticates via NIP-07/NIP-46, orchestrator writes pubkey to `registered_users`
   - Equaliser Relay's built-in peer syncer subscribes to user's Kind 0 (profile), Kind 3 (follows), Kind 30001 (playlists), Kind 1 (feed)
   - Follow list processing auto-discovers Equaliser artists not yet indexed
@@ -342,18 +360,19 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - See [DATABASE.md](docs/DATABASE.md) (User Cache Tables), [EQUALISER_RELAY.md](docs/EQUALISER_RELAY.md) (Peer Syncer & User Subscriptions), [ORCHESTRATOR.md](docs/ORCHESTRATOR.md) (User Registration)
 
 - [ ] **Access Control (Phase A)**: Gated onboarding with invite codes
+  - **Partial**: `access_requests` and `node_artists` tables exist in relay PostgreSQL migration
+  - TODO: `/join` route, invite code validation endpoint, admin approval workflow
   - Public request form at `/join` for artists to apply
   - Admin approval workflow via management console
   - Invite code generation and validation before onboarding
-  - `access_requests` and `node_artists` tables in PostgreSQL
   - See [NODE-MANAGEMENT-SPEC.md](docs/NODE-MANAGEMENT-SPEC.md) Section 5
 
 - [ ] **Equaliser Relay (Phase B)**: Custom NOSTR relay with built-in cache and peer syncing
   - **Phase 1 (done):** NIP-01 WebSocket relay in Go, PostgreSQL storage with full tag indexing, denormalised parsing (Kind 0/30050/30051), tiered event acceptance policy (strict for music metadata, context-aware for social, known-pubkey for profiles), `["user-type", "artist"]` tag for Kind 0 denorm routing, replaces nostr-rs-relay
   - **Phase 2 (done):** Peer syncer — persistent WebSocket connections to configured peer relays, inbound Equaliser event sync, outbound event forwarding, exponential backoff reconnection, peer status tracking in `peer_relays` table
   - **Bug: Peer syncer connection drops every ~30s** — persistent WebSocket to peer relay disconnects with "use of closed network connection" every ~30 seconds. Reconnects fine with 5s backoff and incremental `since` ensures no events are lost, but the constant churn is wasteful. Investigate: could be VPS nginx idle timeout, relay-side read timeout, or the periodic resync (SYNC_INTERVAL) closing connections prematurely
-  - **Phase 3 (todo):** REST API at `/api/catalogue/*`, `catalogue-api.js` client module, migrate reads from WebSocket to REST
-  - **Phase 4 (todo):** Connection pooling, query optimisation, caching hot paths
+  - **Phase 3 (partial):** Internal REST API exists (`POST /api/internal/users/register`, `GET /api/catalogue/threads/{id}/external`, health check). TODO: full public `/api/catalogue/*` endpoints, `catalogue-api.js` client module, migrate reads from WebSocket to REST
+  - **Phase 4 (done):** pgxpool connection pooling (MaxConns=20, MinConns=2), denormalised Kind 0/30050/30051 tables, user feed caching with configurable limits (USER_FEED_DAYS, USER_FEED_LIMIT)
   - See [EQUALISER_RELAY.md](docs/EQUALISER_RELAY.md), [DATABASE.md](docs/DATABASE.md), [NODE-MANAGEMENT-SPEC.md](docs/NODE-MANAGEMENT-SPEC.md) Sections 2-4
 
 - [ ] **Node Management Console (Phase C)**: Admin dashboard at `/admin/console`
