@@ -140,6 +140,21 @@ This script:
 
 **Pre-requisites:** Changes must be committed and pushed to origin. The script will refuse to deploy if there are uncommitted or unpushed changes.
 
+### reset-vps.sh
+Reset VPS content nodes to a fresh state. **Use when user asks to "clean VPS", "reset VPS", "wipe VPS nodes", or "fresh start on VPS".**
+
+Handles peer sync correctly: stops ALL targeted nodes first (preventing peer relays from re-syncing stale data during the wipe), then rebuilds and starts them.
+
+```bash
+./tools/reset-vps.sh              # Reset both VPS nodes (interactive)
+./tools/reset-vps.sh --force      # Skip confirmation
+./tools/reset-vps.sh cpx22        # Reset CPX22 only
+./tools/reset-vps.sh cx23         # Reset CX23 only
+./tools/reset-vps.sh --all        # Reset localhost + both VPS nodes
+./tools/reset-vps.sh --status     # Check status of all nodes
+./tools/reset-vps.sh -h           # Show help
+```
+
 ### cleanup-relay.sh
 **Deprecated** — the Equaliser Relay handles app-tag filtering at event ingestion via its event acceptance policy. This script is only needed for the legacy nostr-rs-relay setup.
 
@@ -273,6 +288,15 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - Packages contain manifest + original audio + signed NOSTR event
   - SHA-256 integrity verification, no private keys in packages
   - See [ARTIST_PACKAGE.md](docs/ARTIST_PACKAGE.md)
+
+- [ ] **Release Deletion**: Allow artists to delete released tracks from admin UI
+  - Kind 5 (NIP-09) deletion event signed client-side, published to relay
+  - Peer syncer propagates deletion to peer relays (existing behaviour)
+  - `POST /api/tracks/cleanup` endpoint: unpins IPFS CIDs + deletes Blossom blobs
+  - Cover art only cleaned up if no other release references it
+  - Add `unpin_cid()` to IPFS service, `delete_from_blossom()` to Blossom service
+  - Delete button in `edit-release.html` for released tracks (currently only drafts)
+  - See [DELETE_RELEASES.md](docs/DELETE_RELEASES.md)
 
 - [ ] **Blossom: Profile Images**: Migrate avatar/banner uploads to Blossom primary
   - Update profile editor image upload to use Blossom first
