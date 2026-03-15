@@ -20,8 +20,11 @@ logging.basicConfig(
 from routers import tracks
 from routers import drafts
 from routers import packages
+import asyncio
+
 from services.database import init_db
 from services.node_identity import init_node_identity
+from services.blossom_cleanup import run_cleanup_loop
 
 
 @asynccontextmanager
@@ -29,7 +32,18 @@ async def lifespan(app: FastAPI):
     """Initialize database and node identity on startup."""
     await init_db()
     await init_node_identity()
+
+    # Start Blossom orphan cleanup background task
+    cleanup_task = asyncio.create_task(run_cleanup_loop())
+
     yield
+
+    # Cancel cleanup task on shutdown
+    cleanup_task.cancel()
+    try:
+        await cleanup_task
+    except asyncio.CancelledError:
+        pass
 
 
 app = FastAPI(
