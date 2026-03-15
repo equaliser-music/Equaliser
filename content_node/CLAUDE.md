@@ -35,7 +35,8 @@ FastAPI app. CORS allow-all (dev). Initialises database + node identity on start
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
 | POST | `/api/tracks/upload` | Upload audio → background: Blossom original → HLS encode → IPFS → draft |
-| GET | `/api/tracks/status/{track_id}` | Poll upload progress |
+| POST | `/api/tracks/duplicate` | Duplicate draft with independent IPFS CIDs (shared Blossom hash). Background: Blossom download → HLS encode → IPFS → new draft |
+| GET | `/api/tracks/status/{track_id}` | Poll upload/duplicate progress |
 | GET | `/api/tracks/` | List completed uploads |
 | POST | `/api/tracks/publish` | Publish pre-signed Kind 30050 to relay, delete draft |
 | POST | `/api/tracks/cover-art` | Upload cover to Blossom (primary) + IPFS (fallback) |
@@ -70,7 +71,7 @@ All pages use shared `js/session.js` and `js/admin-sidebar.js`.
 | `onboarding.html` | First-time setup: generate identity, upload avatar/banner, publish Kind 0 |
 | `dashboard.html` | Home: recent releases (Kind 30050), profile (Kind 0), track count |
 | `releases.html` | Drafts + released tracks. Upload, edit, release, export |
-| `edit-release.html` | Edit metadata for draft or released track. Cover art upload |
+| `edit-release.html` | Edit metadata for draft or released track. Cover art upload. Add existing tracks (duplicated with independent IPFS CIDs) or upload new tracks directly into a release |
 | `profile.html` | Edit Kind 0 profile (name, bio, avatar, banner, socials) |
 | `upload.html` | Standalone track upload form |
 | `settings.html` | Placeholder for future settings |
@@ -115,4 +116,5 @@ All pages use shared `js/session.js` and `js/admin-sidebar.js`.
 - **Client-side signing**: Server returns unsigned events; browser signs (non-custodial)
 - **Draft → Release workflow**: SQLite for drafts, NOSTR relay becomes source of truth after publish
 - **Dual storage**: Blossom for originals (disaster recovery), IPFS for streaming (content-addressed)
+- **Storage ownership**: Each release owns its own IPFS CIDs (unique HLS encode). Blossom hashes may be shared across releases (content-addressed dedup). Deletion checks for shared Blossom references before removing.
 - **Node identity**: Persistent keypair for server-side Blossom auth (artists don't sign Blossom uploads)

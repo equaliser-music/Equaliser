@@ -299,13 +299,14 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - Delete button in `edit-release.html` for released tracks (currently only drafts)
   - See [DELETE_RELEASES.md](docs/DELETE_RELEASES.md)
 
-- [ ] **Add Existing Track to Release**: Duplicate a draft track into a different release
-  - "Add Existing Track" modal in `edit-release.html` shows draft singles available to add
+- [x] **Add Existing Track to Release**: Duplicate a draft track into a different release
+  - "Add Existing Track" modal in `edit-release.html` shows all artist drafts, filtered by blossom hash to prevent duplicates within a release
   - Adding creates a **new draft** with independent storage — not a reference to the original
   - Server-side `POST /api/tracks/duplicate` endpoint: downloads original audio from Blossom, re-encodes HLS, uploads to IPFS, creates new draft row
   - New draft gets unique IPFS CIDs; shares `blossom_audio_hash` (Blossom deduplicates identical content)
   - Original draft stays untouched in its original release
-  - Async operation (HLS encoding takes time) — needs progress indicator in UI
+  - Async with progress bar in modal (HLS encoding takes time)
+  - "Upload New Track" button also available for adding fresh audio directly to a release
   - Design rule: each release owns its own IPFS CIDs, Blossom hashes may be shared
   - Future: support adding already-released tracks (compilations, greatest hits)
 
