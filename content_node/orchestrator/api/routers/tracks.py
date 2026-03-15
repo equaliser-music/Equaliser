@@ -26,8 +26,8 @@ from dependencies import require_auth
 from services.hls import encode_to_hls, get_audio_duration
 from services.ipfs import upload_directory_to_ipfs, upload_file_to_ipfs
 from services.nostr import create_track_event, publish_event, publish_signed_event
-from services.database import DraftTrack, create_draft, mark_released
-from services.blossom import upload_to_blossom
+from services.database import DraftTrack, create_draft, mark_released, get_draft
+from services.blossom import upload_to_blossom, download_from_blossom
 
 logger = logging.getLogger(__name__)
 
@@ -457,3 +457,150 @@ def update_status(track_id: str, status: str, progress: int, message: str):
         upload_status[track_id].status = status
         upload_status[track_id].progress = progress
         upload_status[track_id].message = message
+
+
+class DuplicateRequest(BaseModel):
+    """Request to duplicate a draft track with independent IPFS CIDs."""
+    source_draft_id: str
+
+
+@router.post("/duplicate", response_model=UploadStatus)
+async def duplicate_track(
+    request: DuplicateRequest,
+    background_tasks: BackgroundTasks,
+    artist_pubkey: str = Depends(require_auth),
+):
+    """
+    Duplicate a draft track with new HLS encoding and IPFS CIDs.
+
+    Downloads original audio from Blossom, re-encodes to HLS, uploads to IPFS,
+    and creates a new draft. The new draft shares the same blossom_audio_hash
+    but has independent IPFS CIDs (safe to delete independently).
+    """
+    # Fetch source draft
+    source = await get_draft(request.source_draft_id, artist_pubkey)
+    if not source:
+        raise HTTPException(status_code=404, detail="Source draft not found")
+
+    if not source.blossom_audio_hash:
+        raise HTTPException(
+            status_code=400,
+            detail="Source track has no original audio on Blossom. Cannot duplicate."
+        )
+
+    track_id = str(uuid.uuid4())
+
+    upload_status[track_id] = UploadStatus(
+        track_id=track_id,
+        status="pending",
+        progress=0,
+        message="Queued for duplication"
+    )
+
+    background_tasks.add_task(process_duplicate, track_id, source, artist_pubkey)
+
+    return upload_status[track_id]
+
+
+async def process_duplicate(
+    track_id: str,
+    source: DraftTrack,
+    artist_pubkey: str
+):
+    """
+    Background task to duplicate a track with independent IPFS CIDs.
+
+    Steps:
+    1. Download original audio from Blossom
+    2. Get audio duration
+    3. Encode to HLS segments (new CIDs)
+    4. Upload to IPFS
+    5. Create new draft in database
+    """
+    try:
+        # Step 1: Download original from Blossom
+        update_status(track_id, "downloading", 5, "Downloading original audio from Blossom...")
+        track_dir = UPLOAD_DIR / track_id
+        track_dir.mkdir(parents=True, exist_ok=True)
+
+        # Determine file extension from original filename
+        ext = ".mp3"
+        if source.original_filename:
+            original_ext = Path(source.original_filename).suffix
+            if original_ext:
+                ext = original_ext
+
+        input_path = track_dir / f"original{ext}"
+        success = await download_from_blossom(source.blossom_audio_hash, input_path)
+        if not success:
+            raise RuntimeError("Failed to download original audio from Blossom")
+
+        # Step 2: Get duration
+        update_status(track_id, "encoding", 15, "Analyzing audio file...")
+        duration = await get_audio_duration(input_path)
+
+        # Step 3: Encode to HLS
+        update_status(track_id, "encoding", 20, "Encoding to HLS segments...")
+        hls_dir = track_dir / "hls"
+        preview_dir = track_dir / "preview"
+
+        await encode_to_hls(
+            input_path=input_path,
+            output_dir=hls_dir,
+            preview_dir=preview_dir,
+            preview_duration=30
+        )
+
+        # Step 4: Upload to IPFS (new CIDs)
+        update_status(track_id, "uploading", 50, "Uploading to IPFS...")
+        manifest_cid = await upload_directory_to_ipfs(hls_dir)
+        preview_cid = await upload_directory_to_ipfs(preview_dir)
+
+        # Step 5: Create new draft
+        update_status(track_id, "saving", 80, "Creating draft...")
+        draft = DraftTrack(
+            id=track_id,
+            artist_pubkey=artist_pubkey,
+            title=source.title,
+            artist_name=source.artist_name,
+            ipfs_manifest_cid=manifest_cid,
+            ipfs_preview_cid=preview_cid,
+            duration=duration,
+            price_amount=source.price_amount,
+            price_currency=source.price_currency,
+            blossom_audio_hash=source.blossom_audio_hash,
+            original_filename=source.original_filename,
+            genre=source.genre,
+            status="draft",
+        )
+
+        await create_draft(draft)
+
+        result = TrackUploadResponse(
+            track_id=track_id,
+            draft_id=track_id,
+            title=source.title,
+            artist=source.artist_name,
+            duration=duration,
+            ipfs_manifest_cid=manifest_cid,
+            ipfs_preview_cid=preview_cid,
+            blossom_audio_hash=source.blossom_audio_hash,
+            status="draft"
+        )
+
+        upload_status[track_id] = UploadStatus(
+            track_id=track_id,
+            status="complete",
+            progress=100,
+            message="Track duplicated successfully",
+            result=result
+        )
+
+    except Exception as e:
+        upload_status[track_id] = UploadStatus(
+            track_id=track_id,
+            status="error",
+            progress=0,
+            message=f"Duplication failed: {str(e)}"
+        )
+        raise

@@ -293,10 +293,21 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - Kind 5 (NIP-09) deletion event signed client-side, published to relay
   - Peer syncer propagates deletion to peer relays (existing behaviour)
   - `POST /api/tracks/cleanup` endpoint: unpins IPFS CIDs + deletes Blossom blobs
-  - Cover art only cleaned up if no other release references it
+  - IPFS CIDs always safe to unpin (unique per HLS encode)
+  - Blossom audio/cover hashes: client checks for shared references across releases before requesting deletion
   - Add `unpin_cid()` to IPFS service, `delete_from_blossom()` to Blossom service
   - Delete button in `edit-release.html` for released tracks (currently only drafts)
   - See [DELETE_RELEASES.md](docs/DELETE_RELEASES.md)
+
+- [ ] **Add Existing Track to Release**: Duplicate a draft track into a different release
+  - "Add Existing Track" modal in `edit-release.html` shows draft singles available to add
+  - Adding creates a **new draft** with independent storage — not a reference to the original
+  - Server-side `POST /api/tracks/duplicate` endpoint: downloads original audio from Blossom, re-encodes HLS, uploads to IPFS, creates new draft row
+  - New draft gets unique IPFS CIDs; shares `blossom_audio_hash` (Blossom deduplicates identical content)
+  - Original draft stays untouched in its original release
+  - Async operation (HLS encoding takes time) — needs progress indicator in UI
+  - Design rule: each release owns its own IPFS CIDs, Blossom hashes may be shared
+  - Future: support adding already-released tracks (compilations, greatest hits)
 
 - [ ] **Blossom: Profile Images**: Migrate avatar/banner uploads to Blossom primary
   - Update profile editor image upload to use Blossom first
