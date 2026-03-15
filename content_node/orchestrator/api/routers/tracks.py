@@ -24,10 +24,10 @@ import logging
 
 from dependencies import require_auth
 from services.hls import encode_to_hls, get_audio_duration
-from services.ipfs import upload_directory_to_ipfs, upload_file_to_ipfs
+from services.ipfs import upload_directory_to_ipfs, upload_file_to_ipfs, unpin_cid
 from services.nostr import create_track_event, publish_event, publish_signed_event
 from services.database import DraftTrack, create_draft, mark_released, get_draft
-from services.blossom import upload_to_blossom, download_from_blossom
+from services.blossom import upload_to_blossom, download_from_blossom, delete_from_blossom
 
 logger = logging.getLogger(__name__)
 
@@ -604,3 +604,93 @@ async def process_duplicate(
             message=f"Duplication failed: {str(e)}"
         )
         raise
+
+
+class TrackCleanupItem(BaseModel):
+    """A track's storage references for cleanup after deletion."""
+    ipfs_manifest_cid: str
+    ipfs_preview_cid: str
+    blossom_audio_hash: Optional[str] = None
+    cover_art_cid: Optional[str] = None
+    blossom_cover_hash: Optional[str] = None
+
+
+class CleanupRequest(BaseModel):
+    """Request to clean up storage for deleted tracks."""
+    tracks: list[TrackCleanupItem]
+
+
+class CleanupResponse(BaseModel):
+    """Response from storage cleanup."""
+    ipfs_unpinned: int
+    blossom_deleted: int
+    errors: list[str]
+
+
+@router.post("/cleanup", response_model=CleanupResponse)
+async def cleanup_deleted_tracks(
+    request: CleanupRequest,
+    pubkey: str = Depends(require_auth),
+):
+    """
+    Clean up IPFS pins and Blossom blobs for deleted tracks.
+
+    Called after the client publishes a Kind 5 deletion event.
+    IPFS CIDs are always safe to unpin (each release owns its own CIDs).
+    Blossom hashes should only be included if the client confirmed no
+    other release references them.
+
+    Best-effort: logs failures but returns success.
+    """
+    ipfs_unpinned = 0
+    blossom_deleted = 0
+    errors = []
+
+    for track in request.tracks:
+        # Unpin IPFS manifest and preview (always safe — unique per release)
+        for cid_name, cid in [("manifest", track.ipfs_manifest_cid), ("preview", track.ipfs_preview_cid)]:
+            if cid:
+                try:
+                    if await unpin_cid(cid):
+                        ipfs_unpinned += 1
+                    else:
+                        errors.append(f"IPFS unpin failed: {cid[:16]}...")
+                except Exception as e:
+                    errors.append(f"IPFS unpin error ({cid_name}): {str(e)}")
+
+        # Delete Blossom audio blob (only if client says it's safe)
+        if track.blossom_audio_hash:
+            try:
+                if await delete_from_blossom(track.blossom_audio_hash):
+                    blossom_deleted += 1
+                else:
+                    errors.append(f"Blossom delete failed: {track.blossom_audio_hash[:16]}...")
+            except Exception as e:
+                errors.append(f"Blossom audio delete error: {str(e)}")
+
+        # Unpin cover art from IPFS (only if client says it's safe)
+        if track.cover_art_cid:
+            try:
+                if await unpin_cid(track.cover_art_cid):
+                    ipfs_unpinned += 1
+            except Exception as e:
+                errors.append(f"IPFS cover unpin error: {str(e)}")
+
+        # Delete cover art from Blossom (only if client says it's safe)
+        if track.blossom_cover_hash:
+            try:
+                if await delete_from_blossom(track.blossom_cover_hash):
+                    blossom_deleted += 1
+            except Exception as e:
+                errors.append(f"Blossom cover delete error: {str(e)}")
+
+    if errors:
+        logger.warning(f"Cleanup completed with {len(errors)} errors: {errors}")
+    else:
+        logger.info(f"Cleanup complete: {ipfs_unpinned} IPFS unpins, {blossom_deleted} Blossom deletes")
+
+    return CleanupResponse(
+        ipfs_unpinned=ipfs_unpinned,
+        blossom_deleted=blossom_deleted,
+        errors=errors,
+    )

@@ -1079,6 +1079,7 @@
                 releaseDate: tags.release_date || '',
                 coverArtCid: tags.cover_art_cid || '',
                 blossomCoverHash: tags.blossom_cover_hash || '',
+                blossomAudioHash: tags.blossom_audio_hash || '',
                 trackNumber: parseInt(tags.track_number) || 0
             };
         }
@@ -1180,6 +1181,16 @@
                         </svg>
                         Release
                     </button>
+                `;
+            } else {
+                headerActions.innerHTML = `
+                    <button type="button" class="btn btn-danger" id="delete-btn" onclick="deleteRelease()">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        Delete Release
+                    </button>
+                    <a href="releases.html" class="btn btn-secondary">Back</a>
                 `;
             }
 
@@ -1915,6 +1926,149 @@
                 showNotification('Failed to delete: ' + error.message, 'error');
                 deleteBtn.disabled = false;
                 deleteBtn.innerHTML = '<svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg> Delete';
+            }
+        }
+
+        // Publish a signed event to the relay via WebSocket
+        async function publishToRelay(signedEvent) {
+            return new Promise((resolve, reject) => {
+                const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const ws = new WebSocket(`${protocol}//${location.host}/relay`);
+                const timeout = setTimeout(() => {
+                    ws.close();
+                    reject(new Error('Relay publish timeout'));
+                }, 10000);
+
+                ws.onopen = () => {
+                    ws.send(JSON.stringify(['EVENT', signedEvent]));
+                };
+
+                ws.onmessage = (e) => {
+                    const msg = JSON.parse(e.data);
+                    if (msg[0] === 'OK') {
+                        clearTimeout(timeout);
+                        ws.close();
+                        if (msg[2] === true) {
+                            resolve(msg[1]); // event ID
+                        } else {
+                            reject(new Error(msg[3] || 'Relay rejected event'));
+                        }
+                    }
+                };
+
+                ws.onerror = () => {
+                    clearTimeout(timeout);
+                    ws.close();
+                    reject(new Error('WebSocket error'));
+                };
+            });
+        }
+
+        // Delete a released track/album from NOSTR + clean up storage
+        async function deleteRelease() {
+            const session = SessionManager.getSession();
+            if (!session) {
+                showNotification('Not logged in', 'error');
+                return;
+            }
+
+            const trackCount = editingTracks.length;
+            const trackWord = trackCount === 1 ? 'track' : `${trackCount} tracks`;
+            if (!confirm(`Permanently delete this release (${trackWord})?\n\nThis removes it from NOSTR, deletes audio files, and cannot be undone.`)) {
+                return;
+            }
+
+            const deleteBtn = document.getElementById('delete-btn');
+            deleteBtn.disabled = true;
+            deleteBtn.innerHTML = '<div class="loading-spinner" style="width:16px;height:16px;border-width:2px;margin:0;"></div> Deleting...';
+
+            try {
+                // 1. Collect event IDs for Kind 5 deletion
+                const eventIds = editingTracks
+                    .map(t => t.eventId)
+                    .filter(id => id);
+
+                if (eventIds.length === 0) {
+                    throw new Error('No event IDs found for deletion');
+                }
+
+                // 2. Determine which Blossom hashes are safe to delete
+                //    Check all artist tracks to see if any OTHER release shares the same hash
+                const currentBlossomHashes = new Set(
+                    editingTracks.map(t => t.blossomAudioHash).filter(h => h)
+                );
+                const currentCoverHash = editingRelease.blossomCoverHash || '';
+                const currentCoverCid = editingRelease.coverArtCid || '';
+                const currentEventIds = new Set(eventIds);
+
+                // Check all tracks on relay for shared references
+                const otherTracks = allTracks.filter(t => !currentEventIds.has(t.eventId));
+                const sharedAudioHashes = new Set();
+                const sharedCoverHashes = new Set();
+                const sharedCoverCids = new Set();
+
+                otherTracks.forEach(t => {
+                    if (currentBlossomHashes.has(t.blossomAudioHash)) {
+                        sharedAudioHashes.add(t.blossomAudioHash);
+                    }
+                    if (currentCoverHash && t.blossomCoverHash === currentCoverHash) {
+                        sharedCoverHashes.add(t.blossomCoverHash);
+                    }
+                    if (currentCoverCid && t.coverArtCid === currentCoverCid) {
+                        sharedCoverCids.add(t.coverArtCid);
+                    }
+                });
+
+                // 3. Sign Kind 5 deletion event
+                const eTags = eventIds.map(id => ['e', id]);
+                const signedEvent = await session.sign({
+                    kind: 5,
+                    pubkey: session.pubkey,
+                    created_at: Math.floor(Date.now() / 1000),
+                    tags: [['app', 'Equaliser'], ...eTags],
+                    content: 'Release deleted by artist'
+                });
+
+                // 4. Publish Kind 5 to relay
+                await publishToRelay(signedEvent);
+
+                // 5. Build cleanup request — only include hashes that aren't shared
+                const cleanupTracks = editingTracks.map(track => {
+                    const item = {
+                        ipfs_manifest_cid: track.manifestCid,
+                        ipfs_preview_cid: track.previewCid,
+                    };
+                    // Only include Blossom audio hash if no other release uses it
+                    if (track.blossomAudioHash && !sharedAudioHashes.has(track.blossomAudioHash)) {
+                        item.blossom_audio_hash = track.blossomAudioHash;
+                    }
+                    return item;
+                });
+
+                // Add cover art cleanup to the first track item (only once)
+                if (cleanupTracks.length > 0) {
+                    if (currentCoverCid && !sharedCoverCids.has(currentCoverCid)) {
+                        cleanupTracks[0].cover_art_cid = currentCoverCid;
+                    }
+                    if (currentCoverHash && !sharedCoverHashes.has(currentCoverHash)) {
+                        cleanupTracks[0].blossom_cover_hash = currentCoverHash;
+                    }
+                }
+
+                // 6. Call cleanup endpoint
+                await SessionManager.authFetch('/api/tracks/cleanup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tracks: cleanupTracks })
+                });
+
+                showNotification('Release deleted successfully', 'success');
+                setTimeout(() => window.location.href = 'releases.html', 1500);
+
+            } catch (error) {
+                showNotification('Failed to delete: ' + error.message, 'error');
+                deleteBtn.disabled = false;
+                deleteBtn.innerHTML = '<svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg> Delete Release';
             }
         }
 
