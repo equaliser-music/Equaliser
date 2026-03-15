@@ -23,10 +23,11 @@ FastAPI app. CORS allow-all (dev). Initialises database + node identity on start
 |--------|---------|--------------|
 | `node_identity.py` | Persistent secp256k1 keypair for BUD-03 auth. Loads/generates from `/data/node_identity.json` | Blossom (signs Kind 24242 upload auth events) |
 | `database.py` | SQLite CRUD for `draft_tracks` table. Fields: metadata, IPFS CIDs, Blossom hashes, NOSTR event status | Local SQLite file |
-| `ipfs.py` | IPFS HTTP API client. `upload_file`, `upload_directory`, `pin_cid`, `announce_to_dht` | IPFS API (port 5001) |
+| `ipfs.py` | IPFS HTTP API client. `upload_file`, `upload_directory`, `pin_cid`, `unpin_cid`, `announce_to_dht` | IPFS API (port 5001) |
 | `nostr.py` | Event creation + WebSocket publishing. Kind 30050 (tracks), Kind 30051 (releases). `create_track_event()`, `sign_event()`, `publish_event()`, `fetch_track_events()` | NOSTR relay (WebSocket) |
 | `hls.py` | FFmpeg/ffprobe wrapper. `encode_to_hls()` produces full + 30s preview manifests. `get_audio_duration()` | FFmpeg binary in container |
-| `blossom.py` | Blossom client with BUD-03 auth. `upload_to_blossom()`, `check_blob_exists()`, `download_from_blossom()`. Deduplication via HEAD check before upload | Blossom (port 3000) |
+| `blossom.py` | Blossom client with BUD-03 auth. `upload_to_blossom()`, `check_blob_exists()`, `download_from_blossom()`, `delete_from_blossom()`. Deduplication via HEAD check before upload | Blossom (port 3000) |
+| `blossom_cleanup.py` | Periodic orphan blob cleanup. Scans Blossom SQLite for blobs with no owners, deletes files + DB records. Runs every 5 min (configurable via `BLOSSOM_CLEANUP_INTERVAL`) | Blossom data volume (`/blossom-data`) |
 
 ### API Endpoints (orchestrator/api/routers/)
 
@@ -40,6 +41,7 @@ FastAPI app. CORS allow-all (dev). Initialises database + node identity on start
 | GET | `/api/tracks/` | List completed uploads |
 | POST | `/api/tracks/publish` | Publish pre-signed Kind 30050 to relay, delete draft |
 | POST | `/api/tracks/cover-art` | Upload cover to Blossom (primary) + IPFS (fallback) |
+| POST | `/api/tracks/cleanup` | Unpin IPFS CIDs + delete Blossom blobs for deleted releases. Best-effort, client determines shared-reference safety |
 
 **drafts.py** — Draft management:
 
@@ -71,7 +73,7 @@ All pages use shared `js/session.js` and `js/admin-sidebar.js`.
 | `onboarding.html` | First-time setup: generate identity, upload avatar/banner, publish Kind 0 |
 | `dashboard.html` | Home: recent releases (Kind 30050), profile (Kind 0), track count |
 | `releases.html` | Drafts + released tracks. Upload, edit, release, export |
-| `edit-release.html` | Edit metadata for draft or released track. Cover art upload. Add existing tracks (duplicated with independent IPFS CIDs) or upload new tracks directly into a release |
+| `edit-release.html` | Edit metadata for draft or released track. Cover art upload. Add existing tracks (duplicated with independent IPFS CIDs) or upload new tracks directly into a release. Delete released tracks (Kind 5 + storage cleanup) |
 | `profile.html` | Edit Kind 0 profile (name, bio, avatar, banner, socials) |
 | `upload.html` | Standalone track upload form |
 | `settings.html` | Placeholder for future settings |
@@ -102,6 +104,8 @@ All pages use shared `js/session.js` and `js/admin-sidebar.js`.
 
 **Import**: `.eqpkg.zip` → validate → Blossom upload → HLS encode → IPFS → drafts
 
+**Delete**: Browser signs Kind 5 → publish to relay → `POST /api/tracks/cleanup` (unpin IPFS, delete Blossom) → orphan cleanup removes files from disk
+
 ## NOSTR Event Kinds
 
 | Kind | Purpose | Tags |
@@ -109,6 +113,7 @@ All pages use shared `js/session.js` and `js/admin-sidebar.js`.
 | 0 | Artist profile | `app`, `user-type` (`"artist"` for artists, omitted for listeners) |
 | 30050 | Track metadata (replaceable) | `d`, `app`, `title`, `artist`, `duration`, `ipfs_manifest_cid`, `ipfs_preview_cid`, `price`, `price_currency`, `album`, `genre`, `cover_art_cid`, `blossom_audio_hash`, `blossom_cover_hash`, `blossom_cover_url`, `track_number` |
 | 30051 | Release metadata (album grouping) | `d`, `app`, `title`, `artist`, `release_type` |
+| 5 | Deletion (NIP-09) | `app`, `e` (event IDs to delete) |
 | 24242 | Blossom auth (BUD-03) | `t` (upload/delete), `x` (file hash), `expiration` |
 
 ## Key Design Patterns
