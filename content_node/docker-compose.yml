@@ -110,6 +110,7 @@ services:
     volumes:
       - orchestrator-uploads:/tmp/equaliser/uploads
       - drafts-data:/data
+      - blossom-data:/blossom-data:rw
     depends_on:
       - ipfs
       - equaliser-relay
