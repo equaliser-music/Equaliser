@@ -5,10 +5,13 @@ Uploads files and directories to the local IPFS node via the HTTP API.
 """
 
 import os
+import logging
 from pathlib import Path
 from typing import Optional
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 # IPFS API endpoint (internal Docker network)
 IPFS_API_URL = os.getenv("IPFS_API_URL", "http://ipfs:5001")
@@ -140,6 +143,31 @@ async def pin_cid(cid: str) -> bool:
         )
 
         return response.status_code == 200
+
+
+async def unpin_cid(cid: str) -> bool:
+    """
+    Unpin a CID from IPFS. Content will be garbage collected.
+
+    Args:
+        cid: Content identifier to unpin
+
+    Returns:
+        True if unpinned successfully
+    """
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        try:
+            response = await client.post(
+                f"{IPFS_API_URL}/api/v0/pin/rm",
+                params={"arg": cid}
+            )
+            if response.status_code != 200:
+                logger.warning(f"IPFS unpin failed for {cid[:16]}: {response.text}")
+                return False
+            return True
+        except httpx.RequestError as e:
+            logger.warning(f"IPFS unpin error for {cid[:16]}: {e}")
+            return False
 
 
 async def announce_to_dht(cid: str) -> bool:

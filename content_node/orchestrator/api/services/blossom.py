@@ -184,6 +184,74 @@ async def download_from_blossom(sha256_hash: str, output_path: Path) -> bool:
         return True
 
 
+def _create_delete_auth(sha256_hash: str) -> str:
+    """
+    Create a BUD-03 delete authorization header.
+
+    Returns a base64-encoded signed NOSTR event (Kind 24242) that
+    authorizes the deletion of a specific blob.
+    """
+    import base64
+    import json
+
+    pubkey = get_node_pubkey()
+
+    auth_event = {
+        "kind": 24242,
+        "pubkey": pubkey,
+        "created_at": int(time.time()),
+        "tags": [
+            ["t", "delete"],
+            ["x", sha256_hash],
+            ["expiration", str(int(time.time()) + 600)],
+        ],
+        "content": f"Delete {sha256_hash[:16]}",
+    }
+
+    signed_event = sign_node_event(auth_event)
+
+    event_json = json.dumps(signed_event, separators=(",", ":"))
+    event_b64 = base64.b64encode(event_json.encode()).decode()
+
+    return f"Nostr {event_b64}"
+
+
+async def delete_from_blossom(sha256_hash: str) -> bool:
+    """
+    Delete a blob from Blossom with BUD-03 authentication.
+
+    Args:
+        sha256_hash: SHA-256 hash of the blob to delete
+
+    Returns:
+        True if deleted successfully
+    """
+    # Check if blob exists first
+    if not await check_blob_exists(sha256_hash):
+        logger.info(f"Blob not found on Blossom, nothing to delete: {sha256_hash[:16]}...")
+        return True
+
+    auth_header = _create_delete_auth(sha256_hash)
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            response = await client.delete(
+                f"{BLOSSOM_URL}/{sha256_hash}",
+                headers={"Authorization": auth_header},
+            )
+
+            if response.status_code in (200, 204):
+                logger.info(f"Deleted from Blossom: {sha256_hash[:16]}...")
+                return True
+            else:
+                reason = response.headers.get("x-reason", response.text[:200])
+                logger.warning(f"Blossom delete failed ({response.status_code}): {reason}")
+                return False
+        except httpx.RequestError as e:
+            logger.warning(f"Blossom delete error for {sha256_hash[:16]}: {e}")
+            return False
+
+
 def get_blob_url(sha256_hash: str, extension: str = "") -> str:
     """
     Construct the public URL for a blob.

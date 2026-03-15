@@ -11,8 +11,8 @@ storage:
   backend: local
   local:
     dir: ./data/blobs
-  # No expiration rules - we want to keep all content permanently
-  removeWhenNoOwners: false
+  # Remove blobs from disk when no pubkey owns them (after delete)
+  removeWhenNoOwners: true
   rules:
     - type: "audio/*"
     - type: "image/*"
