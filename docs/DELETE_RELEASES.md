@@ -78,13 +78,13 @@ async def cleanup_deleted_tracks(
 
 For each track:
 - Unpin `ipfs_manifest_cid` and `ipfs_preview_cid`
-- Delete `blossom_audio_hash` from Blossom
+- If `blossom_audio_hash` provided: delete from Blossom
 - If `cover_art_cid` provided: unpin from IPFS
 - If `blossom_cover_hash` provided: delete from Blossom
 - Best-effort — log failures but don't block the response
 - Also clean up any `mark_released` draft rows in SQLite matching these tracks
 
-**Cover art safety**: The client determines whether cover art is shared with other releases (it already has all tracks loaded). If shared, the client omits `cover_art_cid` and `blossom_cover_hash` from the request.
+**Shared reference safety**: Blossom is hash-addressed — identical audio content always produces the same hash. When a track appears on multiple releases (e.g. original album + compilation), they share the same `blossom_audio_hash` even though each has unique IPFS CIDs. The client determines whether audio or cover art hashes are shared with other releases (it already has all tracks loaded). If shared, the client omits the hash from the request. IPFS CIDs are always safe to unpin — each release gets its own HLS encode with unique CIDs.
 
 ### 4. `content_node/orchestrator/edit-release.html` — Delete button + Kind 5 flow
 
@@ -108,6 +108,12 @@ d) **Add `deleteRelease()` function**:
 6. Show success notification, redirect to releases.html
 
 **Track event IDs**: The `editingTracks` array already has `eventId` on each track (from `parseTrackEvent()`). For album releases, all tracks in the album are deleted in one Kind 5 event.
+
+## Design Rule: Storage Ownership
+
+**Each release owns its own IPFS CIDs.** When a track is added to a different release (e.g. compilation, greatest hits), the audio is re-encoded to HLS, producing new IPFS CIDs unique to that release. This means IPFS CIDs are always safe to unpin on deletion.
+
+**Blossom hashes may be shared across releases.** Blossom is content-addressed — identical audio bytes always produce the same SHA-256 hash. This is unavoidable and by design (deduplication at the storage layer). Deletion must check whether any other release references the same hash before removing it.
 
 ## What We're NOT Doing
 

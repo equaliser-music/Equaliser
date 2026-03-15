@@ -522,9 +522,9 @@
         }
 
         .add-track-btn {
-            width: 100%;
+            flex: 1;
             padding: 14px;
-            margin-top: 16px;
+            margin-top: 0;
             background: rgba(255, 255, 255, 0.03);
             border: 1px dashed rgba(255, 255, 255, 0.15);
             border-radius: 8px;
@@ -847,7 +847,7 @@
                     </svg>
                 </button>
             </div>
-            <p class="modal-description">Select singles to add to this release. Only tracks not already in an album are shown.</p>
+            <p class="modal-description">Select singles to add to this release. Each track is duplicated with independent storage.</p>
             <input type="text" class="form-input" id="add-track-search" placeholder="Search tracks..." style="margin-bottom: 12px;">
             <div class="add-track-list" id="add-track-list"></div>
             <div class="modal-actions">
@@ -951,7 +951,8 @@
                             previewCid: d.ipfs_preview_cid,
                             priceAmount: d.price_amount,
                             priceCurrency: d.price_currency || 'USD',
-                            trackNumber: d.track_number || 1
+                            trackNumber: d.track_number || 1,
+                            blossomAudioHash: d.blossom_audio_hash || ''
                         }));
                     }
                 }
@@ -968,7 +969,8 @@
                         previewCid: draftData.ipfs_preview_cid,
                         priceAmount: draftData.price_amount,
                         priceCurrency: draftData.price_currency || 'USD',
-                        trackNumber: draftData.track_number || 1
+                        trackNumber: draftData.track_number || 1,
+                        blossomAudioHash: draftData.blossom_audio_hash || ''
                     }];
                 }
 
@@ -989,6 +991,25 @@
                 editingTracks = [...editingRelease.tracks];
                 removedTracks = [];
                 addedTracks = [];
+
+                // Load all artist drafts so "Add Track" modal can find singles
+                const allDraftsResp = await fetch(`/api/drafts?pubkey=${session.publicKey}&status=draft`);
+                if (allDraftsResp.ok) {
+                    const allDraftsData = await allDraftsResp.json();
+                    allTracks = allDraftsData.drafts.map(d => ({
+                        id: d.id,
+                        d: d.id,
+                        title: d.title,
+                        artist: d.artist_name,
+                        duration: d.duration,
+                        releaseType: d.release_type || 'single',
+                        album: d.album || '',
+                        priceAmount: d.price_amount,
+                        priceCurrency: d.price_currency || 'USD',
+                        trackNumber: d.track_number || 1,
+                        blossomAudioHash: d.blossom_audio_hash || ''
+                    }));
+                }
 
                 document.getElementById('release-subtitle').textContent =
                     `${editingRelease.title} by ${editingRelease.artist} (Draft)`;
@@ -1293,12 +1314,21 @@
                         <span class="col-actions"></span>
                     </div>
                     <div class="tracklist-editor" id="tracklist-editor"></div>
-                    <button type="button" class="add-track-btn" onclick="openAddTrackModal()">
-                        <svg fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
-                        </svg>
-                        Add Existing Track
-                    </button>
+                    <div style="display:flex;gap:8px;margin-top:16px;">
+                        <button type="button" class="add-track-btn" onclick="openAddTrackModal()">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                            </svg>
+                            Add Existing Track
+                        </button>
+                        <button type="button" class="add-track-btn" onclick="document.getElementById('upload-track-input').click()">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            Upload New Track
+                        </button>
+                        <input type="file" id="upload-track-input" accept="audio/*" multiple style="display:none;" onchange="handleTrackUpload(event)">
+                    </div>
                 </div>
             `;
 
@@ -1450,17 +1480,20 @@
         function renderAvailableTracks(searchFilter = '') {
             const container = document.getElementById('add-track-list');
             const currentTrackIds = editingTracks.map(t => t.d);
+            const currentBlossomHashes = editingTracks
+                .map(t => t.blossomAudioHash)
+                .filter(h => h);
 
             const availableTracks = allTracks.filter(track => {
-                const isSingle = track.releaseType === 'single' || !track.album;
                 const notInCurrentRelease = !currentTrackIds.includes(track.d);
                 const notAlreadyAdded = !addedTracks.find(t => t.d === track.d);
+                const audioNotInRelease = !track.blossomAudioHash || !currentBlossomHashes.includes(track.blossomAudioHash);
                 const matchesSearch = !searchFilter || track.title.toLowerCase().includes(searchFilter);
-                return isSingle && notInCurrentRelease && notAlreadyAdded && matchesSearch;
+                return notInCurrentRelease && notAlreadyAdded && audioNotInRelease && matchesSearch;
             });
 
             if (availableTracks.length === 0) {
-                container.innerHTML = '<div class="no-tracks-available">No singles available to add.</div>';
+                container.innerHTML = '<div class="no-tracks-available">No tracks available to add.</div>';
                 return;
             }
 
@@ -1490,24 +1523,215 @@
             renderAvailableTracks(document.getElementById('add-track-search').value.toLowerCase());
         }
 
-        function confirmAddTracks() {
+        async function confirmAddTracks() {
             if (selectedTracksToAdd.length === 0) {
                 showNotification('No tracks selected', 'error');
                 return;
             }
 
-            selectedTracksToAdd.forEach(trackD => {
+            // Disable buttons during duplication
+            const addBtn = document.querySelector('#add-track-modal .btn-primary');
+            const cancelBtn = document.querySelector('#add-track-modal .btn-secondary');
+            const closeBtn = document.querySelector('#add-track-modal .modal-close');
+            addBtn.disabled = true;
+            addBtn.textContent = 'Duplicating...';
+            cancelBtn.disabled = true;
+            closeBtn.style.display = 'none';
+
+            // Show progress UI in modal
+            const container = document.getElementById('add-track-list');
+            const searchInput = document.getElementById('add-track-search');
+            searchInput.style.display = 'none';
+
+            container.innerHTML = selectedTracksToAdd.map(trackD => {
                 const track = allTracks.find(t => t.d === trackD);
-                if (track) {
-                    const trackCopy = {...track};
+                return `<div class="add-track-item" id="dup-${trackD}" style="cursor:default;">
+                    <div class="add-track-info" style="width:100%;">
+                        <div class="add-track-title">${escapeHtml(track.title)}</div>
+                        <div class="add-track-meta" id="dup-msg-${trackD}">Waiting...</div>
+                        <div style="height:4px;background:rgba(255,255,255,0.1);border-radius:2px;margin-top:8px;overflow:hidden;">
+                            <div id="dup-bar-${trackD}" style="width:0%;height:100%;background:linear-gradient(90deg,#8b5cf6,#6d28d9);border-radius:2px;transition:width 0.3s ease;"></div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            // Duplicate each track sequentially
+            let successCount = 0;
+            for (const trackD of selectedTracksToAdd) {
+                const sourceTrack = allTracks.find(t => t.d === trackD);
+                try {
+                    const result = await duplicateTrack(sourceTrack);
+                    const trackCopy = {
+                        id: result.draft_id,
+                        d: result.draft_id,
+                        title: sourceTrack.title,
+                        artist: sourceTrack.artist,
+                        duration: result.duration,
+                        manifestCid: result.ipfs_manifest_cid,
+                        previewCid: result.ipfs_preview_cid,
+                        priceAmount: sourceTrack.priceAmount,
+                        priceCurrency: sourceTrack.priceCurrency,
+                        trackNumber: editingTracks.length + 1
+                    };
                     editingTracks.push(trackCopy);
                     addedTracks.push(trackCopy);
+                    successCount++;
+
+                    // Mark as done in modal
+                    const msgEl = document.getElementById(`dup-msg-${trackD}`);
+                    if (msgEl) msgEl.textContent = 'Done';
+                } catch (e) {
+                    const msgEl = document.getElementById(`dup-msg-${trackD}`);
+                    if (msgEl) msgEl.textContent = 'Failed: ' + e.message;
+                    console.error(`Failed to duplicate ${sourceTrack.title}:`, e);
                 }
-            });
+            }
+
+            // Restore modal state
+            searchInput.style.display = '';
+            addBtn.disabled = false;
+            addBtn.textContent = 'Add Selected';
+            cancelBtn.disabled = false;
+            closeBtn.style.display = '';
 
             closeAddTrackModal();
             renderTracklist();
-            showNotification(`Added ${selectedTracksToAdd.length} track(s)`, 'success');
+            if (successCount > 0) {
+                showNotification(`Added ${successCount} track(s)`, 'success');
+            } else {
+                showNotification('Failed to add tracks', 'error');
+            }
+        }
+
+        async function duplicateTrack(sourceTrack) {
+            const response = await SessionManager.authFetch('/api/tracks/duplicate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ source_draft_id: sourceTrack.id })
+            });
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}));
+                throw new Error(err.detail || 'Failed to start duplication');
+            }
+            const { track_id } = await response.json();
+
+            return new Promise((resolve, reject) => {
+                const interval = setInterval(async () => {
+                    try {
+                        const statusResp = await fetch(`/api/tracks/status/${track_id}`);
+                        if (!statusResp.ok) throw new Error('Status check failed');
+                        const status = await statusResp.json();
+
+                        // Update progress bar
+                        const bar = document.getElementById(`dup-bar-${sourceTrack.d}`);
+                        if (bar) bar.style.width = status.progress + '%';
+                        const msg = document.getElementById(`dup-msg-${sourceTrack.d}`);
+                        if (msg) msg.textContent = status.message;
+
+                        if (status.status === 'complete') {
+                            clearInterval(interval);
+                            resolve(status.result);
+                        } else if (status.status === 'error') {
+                            clearInterval(interval);
+                            reject(new Error(status.message));
+                        }
+                    } catch (e) {
+                        clearInterval(interval);
+                        reject(e);
+                    }
+                }, 1000);
+            });
+        }
+
+        // Upload new track(s) directly into this release
+        async function handleTrackUpload(event) {
+            const files = Array.from(event.target.files);
+            if (!files.length) return;
+
+            const session = SessionManager.getSession();
+            if (!session) {
+                showNotification('Not logged in', 'error');
+                return;
+            }
+
+            const artist = document.getElementById('release-artist')?.value || editingRelease?.artist || '';
+
+            for (const file of files) {
+                // Derive title from filename (strip extension)
+                const title = file.name.replace(/\.[^/.]+$/, '');
+
+                showNotification(`Uploading "${title}"...`, 'success');
+
+                try {
+                    // Upload via tracks API
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('title', title);
+                    formData.append('artist', artist);
+
+                    const response = await SessionManager.authFetch('/api/tracks/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        const err = await response.json().catch(() => ({}));
+                        throw new Error(err.detail || 'Upload failed');
+                    }
+
+                    const result = await response.json();
+                    const trackId = result.track_id;
+
+                    // Poll for completion
+                    const draftResult = await new Promise((resolve, reject) => {
+                        const interval = setInterval(async () => {
+                            try {
+                                const statusResp = await fetch(`/api/tracks/status/${trackId}`);
+                                if (!statusResp.ok) throw new Error('Status check failed');
+                                const status = await statusResp.json();
+
+                                if (status.status === 'complete') {
+                                    clearInterval(interval);
+                                    resolve(status.result);
+                                } else if (status.status === 'error') {
+                                    clearInterval(interval);
+                                    reject(new Error(status.message));
+                                }
+                            } catch (e) {
+                                clearInterval(interval);
+                                reject(e);
+                            }
+                        }, 1000);
+                    });
+
+                    // Add to tracklist
+                    const trackCopy = {
+                        id: draftResult.draft_id,
+                        d: draftResult.draft_id,
+                        title: draftResult.title,
+                        artist: draftResult.artist,
+                        duration: draftResult.duration,
+                        manifestCid: draftResult.ipfs_manifest_cid,
+                        previewCid: draftResult.ipfs_preview_cid,
+                        priceAmount: editingRelease?.tracks?.[0]?.priceAmount || 0.05,
+                        priceCurrency: editingRelease?.tracks?.[0]?.priceCurrency || 'USD',
+                        trackNumber: editingTracks.length + 1,
+                        blossomAudioHash: draftResult.blossom_audio_hash || ''
+                    };
+                    editingTracks.push(trackCopy);
+                    addedTracks.push(trackCopy);
+                    renderTracklist();
+                    showNotification(`Added "${draftResult.title}"`, 'success');
+
+                } catch (e) {
+                    showNotification(`Failed to upload "${title}": ${e.message}`, 'error');
+                    console.error('Track upload failed:', e);
+                }
+            }
+
+            // Reset file input so the same file can be selected again
+            event.target.value = '';
         }
 
         // Cover Upload

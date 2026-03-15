@@ -139,8 +139,9 @@ async def update_single_draft(
     if existing.status == "released":
         raise HTTPException(status_code=400, detail="Cannot update released track")
 
-    # Apply updates
-    update_dict = {k: v for k, v in updates.model_dump().items() if v is not None}
+    # Apply updates (exclude_unset=True: only include fields the client sent,
+    # but DO allow null values — e.g. album: null to clear album when switching to single)
+    update_dict = updates.model_dump(exclude_unset=True)
     updated = await update_draft(draft_id, pubkey, update_dict)
 
     if not updated:

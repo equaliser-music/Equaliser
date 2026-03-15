@@ -516,6 +516,8 @@ The following features are planned but not yet implemented:
 - **Payment Integration**: Strike API for receiving payments
 - **Key Distribution**: NIP-44 encrypted keys sent after payment verification
 - **Track Cover Art**: Associate artwork with track uploads (profile images already supported)
+- **Track Duplication** (`POST /api/tracks/duplicate`): Create independent copy of a draft for a different release. Downloads original audio from Blossom, re-encodes HLS (new IPFS CIDs), creates new draft. Enables compilations and multi-release tracks while keeping storage ownership clean — each release owns its own IPFS CIDs, deletion is safe.
+- **Release Deletion** (`POST /api/tracks/cleanup`): Unpin IPFS CIDs and delete Blossom blobs after Kind 5 deletion event is published. Blossom hashes checked for shared references before removal. See [DELETE_RELEASES.md](DELETE_RELEASES.md).
 
 See [Technical Specification](./Technical%20Specification.md) sections 4.3-4.4 for the complete design.
 
