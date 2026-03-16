@@ -115,6 +115,18 @@ d) **Add `deleteRelease()` function**:
 
 **Blossom hashes may be shared across releases.** Blossom is content-addressed — identical audio bytes always produce the same SHA-256 hash. This is unavoidable and by design (deduplication at the storage layer). Deletion must check whether any other release references the same hash before removing it.
 
+## TODO: Cross-Node Storage Cleanup
+
+Currently, storage cleanup (IPFS unpin + Blossom delete) only runs on the node where the artist triggers deletion. The Kind 5 event propagates to peer relays via the peer syncer, so **metadata is cleaned up everywhere** — but storage is not.
+
+When cross-node IPFS pinning and/or Blossom mirroring are implemented (see [NODE-MANAGEMENT-SPEC.md](NODE-MANAGEMENT-SPEC.md) Section 7), peer nodes will hold copies of content that also need cleaning up on deletion. We need a pattern for this that integrates with the peer syncer:
+
+- **IPFS pinning**: If Node B pins Node A's CIDs (mutual pinning / IPFS cluster), Node B needs to unpin those CIDs when it receives a Kind 5 for the corresponding tracks. The relay could trigger a cleanup hook when processing inbound Kind 5 events, or the orchestrator could periodically reconcile pinned CIDs against the relay's catalogue.
+- **Blossom mirroring**: If Node B mirrors Node A's Blossom blobs, the mirrored copies need deleting. Same trigger options — relay hook on Kind 5 receipt, or periodic reconciliation.
+- **Pattern TBD**: The right approach depends on how pinning/mirroring are implemented. A relay-driven webhook (Kind 5 → notify orchestrator → clean storage) is the most responsive. A periodic reconciliation (diff pinned CIDs vs catalogue) is simpler but slower. Both may be needed — webhook for immediate cleanup, reconciliation as a safety net.
+
+For now, this is a non-issue: nodes don't cross-pin IPFS or mirror Blossom data. Peer sync only replicates NOSTR metadata.
+
 ## What We're NOT Doing
 
 - **Relay `a` tag deletion**: HandleDeletion() only processes `e` tags. We use concrete event IDs (which the UI already has), so `a` tag support isn't needed for this feature.
