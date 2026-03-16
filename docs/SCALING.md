@@ -347,6 +347,10 @@ Storage is a valuable resource — Blossom data is **not mirrored** between node
 
 This approach avoids duplicating storage across nodes while maintaining cover art availability.
 
+### Deletion and Cross-Node Storage
+
+Kind 5 (NIP-09) deletion events propagate via the peer syncer, so metadata is cleaned up on all nodes. However, storage cleanup (IPFS unpin, Blossom blob delete) currently only runs on the originating node. When cross-node IPFS pinning or Blossom mirroring is implemented, a pattern for propagating storage cleanup needs to be designed — likely a relay-driven webhook on Kind 5 receipt and/or periodic reconciliation of pinned CIDs against the catalogue. See [DELETE_RELEASES.md](DELETE_RELEASES.md#todo-cross-node-storage-cleanup).
+
 ### Implementation Notes
 
 - Peer relay lists configured via `PEER_RELAYS` env var on the Equaliser Relay
