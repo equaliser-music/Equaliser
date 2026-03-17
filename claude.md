@@ -289,14 +289,14 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - SHA-256 integrity verification, no private keys in packages
   - See [ARTIST_PACKAGE.md](docs/ARTIST_PACKAGE.md)
 
-- [ ] **Release Deletion**: Allow artists to delete released tracks from admin UI
+- [x] **Release Deletion**: Allow artists to delete released tracks from admin UI
   - Kind 5 (NIP-09) deletion event signed client-side, published to relay
   - Peer syncer propagates deletion to peer relays (existing behaviour)
   - `POST /api/tracks/cleanup` endpoint: unpins IPFS CIDs + deletes Blossom blobs
   - IPFS CIDs always safe to unpin (unique per HLS encode)
   - Blossom audio/cover hashes: client checks for shared references across releases before requesting deletion
-  - Add `unpin_cid()` to IPFS service, `delete_from_blossom()` to Blossom service
-  - Delete button in `edit-release.html` for released tracks (currently only drafts)
+  - `unpin_cid()` in IPFS service, `delete_from_blossom()` in Blossom service
+  - Delete button in `edit-release.html` for released tracks
   - See [DELETE_RELEASES.md](docs/DELETE_RELEASES.md)
 
 - [x] **Add Existing Track to Release**: Duplicate a draft track into a different release
