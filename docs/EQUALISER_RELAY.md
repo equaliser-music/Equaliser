@@ -500,12 +500,12 @@ This doesn't need to be built all at once. A phased approach:
 - No peer syncing — drop-in replacement for nostr-rs-relay
 - Replaces nostr-rs-relay in the Docker stack
 
-### Phase 2: Peer syncing (Equaliser peers ✅, standard relays pending)
+### Phase 2: Peer syncing (Equaliser peers ✅, standard relays ✅)
 - Peer syncer (`internal/syncer/`) with persistent WebSocket connections and auto-reconnection (exponential backoff: 5s initial, 5min cap)
 - `ProcessInboundEvent` extracted from handler — shared pipeline for WebSocket clients and peer syncer
 - Peer status tracking in `peer_relays` table (connection status, event counts, errors)
 - **Equaliser peers ✅:** `PEER_RELAYS` — subscribe using `#app` filter, all Equaliser event kinds sync, outbound forwarding via SubscriptionManager hook
-- **Standard relays (pending):** `STANDARD_RELAYS` — subscribe by known pubkeys (from `node_artists` + `registered_users`), common kinds only (0, 1, 3, 5), filter locally for app tag. Standard relays reject `#app` subscriptions (tested against `wss://relay.damus.io` — returned `"bad req: unindexed tag filter"`). Dynamic subscription updates when artists/users register.
+- **Standard relays ✅:** `STANDARD_RELAYS` — subscribe by known pubkeys (from `node_artists` + `registered_users`), common kinds only (0, 1, 3, 5), filter locally for app tag. Standard relays reject `#app` subscriptions (tested against `wss://relay.damus.io` — returned `"bad req: unindexed tag filter"`). Dynamic subscription updates when artists/users register. Deployed with `wss://relay.damus.io,wss://nos.lol,wss://relay.primal.net`.
 - Events from standard relays cascade to Equaliser peers — Relay B gets Relay A's Damus events transitively via `#app` peer sync
 
 ### Phase 3: REST API + client migration

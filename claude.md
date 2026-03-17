@@ -387,7 +387,8 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
 
 - [ ] **User Data Caching (Phase B.1)**: Cache fan/listener NOSTR data on content node
   - **Partial**: DB tables exist (`registered_users`, `cached_users`, `cached_user_follows`, `cached_user_feed`, `cached_user_playlists`) + relay endpoint `POST /api/internal/users/register`
-  - TODO: Orchestrator integration to call register endpoint on fan auth, peer syncer user subscriptions, admin controls
+  - **Done**: Orchestrator proxy (`POST /api/users/register`) forwards to relay internal API. Client auto-registers pubkey on login (fire-and-forget). Standard relay syncer enabled (`STANDARD_RELAYS` config) — connects to Damus, nos.lol, Primal for inbound Kind 0/1/3/5 by known pubkeys.
+  - TODO: Admin controls, outbound publishing to standard relays (feed posts only, not community threads)
   - Fan authenticates via NIP-07/NIP-46, orchestrator writes pubkey to `registered_users`
   - Equaliser Relay's built-in peer syncer subscribes to user's Kind 0 (profile), Kind 3 (follows), Kind 30001 (playlists), Kind 1 (feed)
   - Follow list processing auto-discovers Equaliser artists not yet indexed
