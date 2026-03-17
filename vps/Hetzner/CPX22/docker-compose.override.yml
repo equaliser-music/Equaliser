@@ -14,7 +14,7 @@ services:
       - REST_API_PORT=8008
       - EVENT_POLICY=equaliser_only
       - PEER_RELAYS=wss://test2.equaliser.app/relay
-      - STANDARD_RELAYS=
+      - STANDARD_RELAYS=wss://relay.damus.io,wss://nos.lol,wss://relay.primal.net
       - SYNC_INTERVAL=3600
   orchestrator:
     environment:

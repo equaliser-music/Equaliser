@@ -79,6 +79,7 @@ const SessionManager = {
         this._lastActivity = Date.now();
         this._persistSession(nsec);
         this._broadcastSessionChange('login');
+        this._registerWithRelay(publicKey);
 
         return this.getSession();
     },
@@ -110,6 +111,7 @@ const SessionManager = {
             this._lastActivity = Date.now();
             this._persistSession(null);
             this._broadcastSessionChange('login');
+            this._registerWithRelay(publicKey);
 
             return this.getSession();
         } catch (error) {
@@ -423,6 +425,20 @@ const SessionManager = {
                 }
             });
         }
+    },
+
+    /**
+     * Register user pubkey with the relay for data caching.
+     * Fire-and-forget — login succeeds regardless of registration outcome.
+     */
+    _registerWithRelay(pubkey) {
+        fetch('/api/users/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pubkey })
+        }).catch(() => {
+            // Silent failure — registration is best-effort
+        });
     },
 
     /**
