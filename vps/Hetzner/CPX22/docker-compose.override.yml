@@ -4,7 +4,7 @@
 services:
   web:
     ports: !override
-      - "8080:80"
+      - "127.0.0.1:8080:80"
   equaliser-relay:
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-equaliser}:${POSTGRES_PASSWORD:-equaliser}@postgres:5432/${POSTGRES_DB:-equaliser}

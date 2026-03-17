@@ -5,7 +5,7 @@ services:
     container_name: equaliser-ipfs
     ports:
       - "4001:4001"   # P2P swarm (libp2p)
-      - "5001:5001"   # API (for orchestrator to upload content)
+      - "127.0.0.1:5001:5001"   # API (localhost only — orchestrator uses Docker network)
     volumes:
       - ipfs-data:/data/ipfs
       - ./ipfs/configure-gateway.sh:/configure-gateway.sh:ro
