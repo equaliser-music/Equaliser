@@ -4,8 +4,8 @@ Each VPS has its own folder containing a `deploy.sh` script and node-specific co
 
 | Folder | VPS | Deploy |
 |--------|-----|--------|
-| `CPX22/` | CPX22 (equaliser.app) | `./vps/Hetzner/CPX22/deploy.sh` |
-| `CX23/` | CX23 (46.225.52.198) | `./vps/Hetzner/CX23/deploy.sh` |
+| `CPX22/` | CPX22 (test1.equaliser.app) | `./vps/Hetzner/CPX22/deploy.sh` |
+| `CX23/` | CX23 (test2.equaliser.app) | `./vps/Hetzner/CX23/deploy.sh` |
 
 Both scripts share the same SSH key (`~/.ssh/Hetzner_CPX22`). Run from the repo root.
 

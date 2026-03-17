@@ -1,4 +1,4 @@
-# equaliser.app - Reverse proxy to Docker content node
+# test1.equaliser.app - Reverse proxy to Docker content node
 #
 # The content node runs on localhost:8080 (Docker Compose)
 # This host-level nginx handles SSL termination and proxying
@@ -6,7 +6,7 @@
 server {
     listen 80;
     listen [::]:80;
-    server_name equaliser.app www.equaliser.app;
+    server_name test1.equaliser.app;
 
     # Certbot will add redirect to HTTPS here
     # Until SSL is set up, proxy directly

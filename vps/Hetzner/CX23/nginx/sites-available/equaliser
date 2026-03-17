@@ -1,12 +1,12 @@
-# equaliser - Reverse proxy to Docker content node
+# test2.equaliser.app - Reverse proxy to Docker content node
 #
 # The content node runs on localhost:8080 (Docker Compose)
-# This host-level nginx handles proxying (SSL added later when domain is configured)
+# This host-level nginx handles SSL termination and proxying
 
 server {
     listen 80;
     listen [::]:80;
-    server_name _;
+    server_name test2.equaliser.app;
 
     location / {
         proxy_pass http://127.0.0.1:8080;

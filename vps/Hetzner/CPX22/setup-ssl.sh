@@ -4,7 +4,7 @@
 #
 # Run AFTER:
 #   1. setup.sh has been run
-#   2. DNS A records are propagated (verify with: dig equaliser.app)
+#   2. DNS A records are propagated (verify with: dig test1.equaliser.app)
 #   3. nginx is running and serving both domains on port 80
 #
 # Usage:
@@ -52,7 +52,7 @@ log "Checking DNS resolution..."
 SERVER_IP=$(curl -s ifconfig.me)
 log "Server IP: $SERVER_IP"
 
-for domain in equaliser.app shibuyacrossings.com; do
+for domain in test1.equaliser.app shibuyacrossings.com; do
     RESOLVED=$(dig +short "$domain" | head -1)
     if [ "$RESOLVED" != "$SERVER_IP" ]; then
         warn "$domain resolves to '$RESOLVED' (expected $SERVER_IP)"
@@ -62,19 +62,18 @@ for domain in equaliser.app shibuyacrossings.com; do
             err "Aborted. Wait for DNS propagation and try again."
         fi
     else
-        log "$domain → $RESOLVED ✓"
+        log "$domain -> $RESOLVED OK"
     fi
 done
 
 # --- Obtain certificates ------------------------------------------------------
 
-log "Requesting SSL certificate for equaliser.app..."
+log "Requesting SSL certificate for test1.equaliser.app..."
 certbot --nginx \
     --non-interactive \
     --agree-tos \
     --email "$EMAIL" \
-    -d equaliser.app \
-    -d www.equaliser.app
+    -d test1.equaliser.app
 
 log "Requesting SSL certificate for shibuyacrossings.com..."
 certbot --nginx \
@@ -97,7 +96,7 @@ echo -e "${GREEN}SSL setup complete!${NC}"
 echo "=============================================="
 echo ""
 echo "Certificates installed:"
-echo "  https://equaliser.app"
+echo "  https://test1.equaliser.app"
 echo "  https://shibuyacrossings.com"
 echo ""
 echo "Auto-renewal is configured via certbot systemd timer."
