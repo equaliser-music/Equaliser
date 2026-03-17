@@ -63,6 +63,12 @@ FastAPI app. CORS allow-all (dev). Initialises database + node identity on start
 | POST | `/api/releases/export-download` | Download ZIP (manifest + signature + audio from Blossom) |
 | POST | `/api/releases/import` | Import ZIP → Blossom upload → HLS encode → IPFS → drafts |
 
+**users.py** — User registration:
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| POST | `/api/users/register` | Proxy user pubkey registration to relay internal API (for data caching) |
+
 ## Admin Pages (orchestrator/*.html)
 
 All pages use shared `js/session.js` and `js/admin-sidebar.js`.
