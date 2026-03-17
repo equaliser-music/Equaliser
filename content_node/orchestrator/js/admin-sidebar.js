@@ -131,6 +131,7 @@ const AdminSidebar = {
                     </svg>
                     Logout
                 </button>
+                <div class="sidebar-version">v0.1.0-alpha</div>
             </div>
         `;
     },
@@ -389,6 +390,14 @@ const AdminSidebar = {
             .sidebar .logout-btn svg {
                 width: 18px;
                 height: 18px;
+            }
+
+            .sidebar .sidebar-version {
+                text-align: center;
+                font-size: 10px;
+                color: rgba(255, 255, 255, 0.25);
+                letter-spacing: 0.5px;
+                margin-top: 8px;
             }
 
             /* Main content adjustment */

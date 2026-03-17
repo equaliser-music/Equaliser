@@ -132,6 +132,7 @@ const ClientSidebar = {
                         </svg>
                         Log Out
                     </button>
+                    <div class="sidebar-version">v0.1.0-alpha</div>
                 </div>
             `;
         } else {
@@ -139,6 +140,7 @@ const ClientSidebar = {
                 <div class="sidebar-footer">
                     <a href="/onboarding.html" class="sidebar-signup-btn">Sign Up</a>
                     <a href="/login.html" class="sidebar-login-link">Log in</a>
+                    <div class="sidebar-version">v0.1.0-alpha</div>
                 </div>
             `;
         }
@@ -486,6 +488,14 @@ const ClientSidebar = {
             .sidebar .logout-btn svg {
                 width: 18px;
                 height: 18px;
+            }
+
+            .sidebar .sidebar-version {
+                text-align: center;
+                font-size: 10px;
+                color: rgba(255, 255, 255, 0.25);
+                letter-spacing: 0.5px;
+                padding-top: 4px;
             }
 
             /* Main content adjustment */
