@@ -14,7 +14,7 @@ services:
       - REST_API_PORT=8008
       - EVENT_POLICY=equaliser_only
       - PEER_RELAYS=wss://test2.equaliser.app/relay
-      - STANDARD_RELAYS=wss://relay.damus.io,wss://nos.lol,wss://relay.primal.net
+      - STANDARD_RELAYS=wss://relay1.equaliser.app,wss://relay2.equaliser.app
       - SYNC_INTERVAL=3600
   orchestrator:
     environment:
@@ -25,3 +25,6 @@ services:
       - PUBLIC_BASE_URL=https://test1.equaliser.app
       - ALLOWED_ORIGINS=https://test1.equaliser.app
       - DATABASE_PATH=/data/drafts.db
+  nostr-rs-relay:
+    ports: !override
+      - "127.0.0.1:7700:8080"

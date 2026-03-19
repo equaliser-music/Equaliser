@@ -56,6 +56,7 @@ deploy_configs() {
     scp -i "$SSH_KEY" \
         "$SCRIPT_DIR/nginx/sites-available/equaliser.app" \
         "$SCRIPT_DIR/nginx/sites-available/shibuyacrossings.com" \
+        "$SCRIPT_DIR/nginx/sites-available/relay1.equaliser.app" \
         "$VPS_HOST:$VPS_CONFIG/nginx/sites-available/"
 
     log "Copying docker-compose override into content_node..."

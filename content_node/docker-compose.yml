@@ -67,7 +67,7 @@ services:
       - REST_API_PORT=8008
       - EVENT_POLICY=equaliser_only
       - PEER_RELAYS=               # comma-separated Equaliser node URLs (#app filter)
-      - STANDARD_RELAYS=               # comma-separated standard NOSTR relays (pubkey filter)
+      - STANDARD_RELAYS=${STANDARD_RELAYS:-}    # comma-separated standard NOSTR relays (pubkey filter)
       - SYNC_INTERVAL=60                # seconds between periodic full syncs (low for testing)
     depends_on:
       postgres:
@@ -94,6 +94,19 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+
+  # Standard NOSTR relay (nostr-rs-relay) - open relay for user data caching
+  # The Equaliser Relay syncer connects to this as a STANDARD_RELAY to pull
+  # Kind 0/1/3/5 events for registered users from the wider NOSTR network.
+  nostr-rs-relay:
+    image: scsibug/nostr-rs-relay:latest
+    container_name: equaliser-nostr-rs-relay
+    ports:
+      - "127.0.0.1:7700:8080"
+    volumes:
+      - nostr-rs-data:/usr/src/app/db
+      - ./config/nostr-rs-relay/config.toml:/usr/src/app/config.toml:ro
+    restart: unless-stopped
 
   # Orchestrator API - handles track uploads, encoding, and NOSTR publishing
   orchestrator:
@@ -133,4 +146,6 @@ volumes:
   drafts-data:
     driver: local
   blossom-data:
+    driver: local
+  nostr-rs-data:
     driver: local
