@@ -386,7 +386,8 @@ func (h *Handler) handleCount(ctx context.Context, conn *Connection, data []byte
 //
 // Tiers (applied when EventPolicy is not "open"):
 //   - Strict (Kind 30050, 30051, 30001): requires ["app", "Equaliser"] tag
-//   - Context-aware (Kind 1, 7, 5): accept if event references an existing event in raw_events
+//   - Known-pubkey + context-aware (Kind 1): accept from known pubkeys OR if referencing existing event
+//   - Context-aware (Kind 7, 5): accept if event references an existing event in raw_events
 //   - Known-pubkey (Kind 0, 3): accept from pubkeys in node_artists or registered_users
 //   - Default: requires ["app", "Equaliser"] tag
 func (h *Handler) checkEventPolicy(event *nostr.Event) bool {
@@ -407,7 +408,13 @@ func (h *Handler) checkEventPolicy(event *nostr.Event) bool {
 		// Strict: music metadata requires app tag — already checked above
 		return false
 
-	case 1, 7, 5:
+	case 1:
+		// Known-pubkey + context-aware: accept standalone posts from registered
+		// users/artists (needed for standard relay syncing of fan posts), or
+		// accept replies/threads that reference an existing event.
+		return h.isKnownPubkey(event.PubKey) || h.referencesExistingEvent(event)
+
+	case 7, 5:
 		// Context-aware: accept if the event references an existing event
 		return h.referencesExistingEvent(event)
 

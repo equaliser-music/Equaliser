@@ -54,6 +54,7 @@ deploy_configs() {
     log "Copying nginx configs..."
     scp -i "$SSH_KEY" \
         "$SCRIPT_DIR/nginx/sites-available/equaliser" \
+        "$SCRIPT_DIR/nginx/sites-available/relay2.equaliser.app" \
         "$VPS_HOST:$VPS_CONFIG/nginx/sites-available/"
 
     log "Copying docker-compose override into content_node..."
