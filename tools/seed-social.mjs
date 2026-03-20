@@ -11,7 +11,7 @@ import { encrypt as nip04Encrypt } from 'nostr-tools/nip04';
 import { hexToBytes } from '@noble/hashes/utils';
 import WebSocket from 'ws';
 
-const RELAY_URL = 'ws://localhost/relay';
+const RELAY_URL = process.env.RELAY_URL || 'ws://localhost/relay';
 
 // ===== All identities =====
 
@@ -91,46 +91,90 @@ async function publish(user, template) {
 // ===== 1. Feed Posts =====
 
 const FEED_POSTS = [
-    { author: 'Maya Chen', content: 'Just discovered Shibuya Crossings on Equaliser and I can\'t stop listening. That blend of electronic and indie is exactly what I needed today.', t: daysAgo(6) + jitter() },
-    { author: 'Tom Ashworth', content: 'The audio quality on Equaliser is genuinely impressive. Listening to Language of Flowers on vinyl is great, but the HLS streaming here is crystal clear too.', t: daysAgo(5) + jitter() },
-    { author: 'Priya Kapoor', content: 'Working on some new songs this evening. There\'s something about the Mumbai rain that makes melodies flow. Anyone else write better in bad weather?', t: daysAgo(5) + jitter() },
-    { author: 'Jake Morrison', content: 'As a sound engineer, I appreciate that Equaliser preserves the original audio files. Too many platforms compress everything to mush.', t: daysAgo(4) + jitter() },
-    { author: 'Suki Tanaka', content: 'Just saw Shibuya Crossings live in Shimokitazawa last week! They played some unreleased tracks that sounded incredible. Can\'t wait for the new EP.', t: daysAgo(4) + jitter() },
-    { author: 'Marcus Webb', content: 'Running a record shop for 20 years taught me one thing: people want to connect with the artists they love. Equaliser gets that right.', t: daysAgo(3) + jitter() },
-    { author: 'Ava Okonkwo', content: 'New playlist coming soon featuring all the best indie finds on Equaliser this month. Swansea Sound\'s new single is definitely on there.', t: daysAgo(3) + jitter() },
-    { author: 'Dan Kowalski', content: 'That bass line on Shibuya Crossings\' "Neon Reflections" is something else. Simple but so effective. The mark of great songwriting.', t: daysAgo(3) + jitter() },
-    { author: 'Lena Vasquez', content: 'Writing an article about the decentralised music movement. Equaliser is the most interesting platform I\'ve come across. The NOSTR integration is clever.', t: daysAgo(2) + jitter() },
-    { author: 'Ravi Patel', content: 'As a developer, the tech behind Equaliser fascinates me. IPFS for content, NOSTR for social, Blossom for originals. Smart architecture.', t: daysAgo(2) + jitter() },
-    { author: 'Decky', content: 'Excited to see the community growing here on Equaliser. So many great music fans discovering independent artists. This is what it\'s all about.', t: daysAgo(2) + jitter() },
-    { author: 'Maya Chen', content: 'Language of Flowers\' "Petals in the Rain" just hit different on a quiet Sunday afternoon. Pure magic.', t: daysAgo(1) + jitter() },
-    { author: 'Shibuya Crossings', content: 'Studio update: we\'ve been layering field recordings from the Shibuya crossing over synth pads. The new material is taking shape and we\'re really excited about the direction.', t: daysAgo(1) + jitter() },
-    { author: 'Language of Flowers', content: 'Thank you to everyone who\'s been listening to our tracks on Equaliser. Seeing the play counts tick up from real fans (not bots) means the world to us.', t: daysAgo(1) + jitter() },
-    { author: 'Swansea Sound', content: 'New 7" arriving from the pressing plant next week. Proper indie pop on proper vinyl. We\'ll have details on the Equaliser community board soon.', t: hoursAgo(18) + jitter(1800) },
-    { author: 'Jake Morrison', content: 'Spent the morning A/B testing the HLS streams on Equaliser vs other platforms. The difference is noticeable, especially on good headphones. Properly encoded audio matters.', t: hoursAgo(12) + jitter(1800) },
-    { author: 'Tom Ashworth', content: 'Added three more Swansea Sound tracks to my collection today. Their stuff reminds me of the best Sarah Records releases from the late 80s.', t: hoursAgo(8) + jitter(1800) },
-    { author: 'Priya Kapoor', content: 'Late night writing session turned into a full demo. The verse melody came from humming along to a Language of Flowers track. Inspiration is everywhere.', t: hoursAgo(4) + jitter(1800) },
-    { author: 'Decky', content: 'Just pushed some updates to the platform. Community message boards are now live! Head over to the Community page and start some discussions.', t: hoursAgo(2) + jitter(600) },
+    // Week 4 (28-22 days ago) — early community forming
+    { author: 'Decky', content: 'Welcome to Equaliser! We\'re building something different here — a music platform where artists own their content and fans connect directly. Excited to have you all here.', t: daysAgo(28) + jitter() },
+    { author: 'Shibuya Crossings', content: 'We\'re one of the first artists on Equaliser and the experience of uploading our music here feels completely different. No algorithms, no middlemen. Just us and the listeners.', t: daysAgo(27) + jitter() },
+    { author: 'Language of Flowers', content: 'Just uploaded our catalogue to Equaliser. The audio quality preservation is remarkable — every detail of the master comes through in the HLS stream.', t: daysAgo(26) + jitter() },
+    { author: 'Maya Chen', content: 'Signed up for Equaliser today. Already loving the vibe here — feels like early Bandcamp but with social features built in. Found two new artists in ten minutes.', t: daysAgo(25) + jitter() },
+    { author: 'Tom Ashworth', content: 'The audio quality on Equaliser is genuinely impressive. Listening to Language of Flowers on vinyl is great, but the HLS streaming here is crystal clear too.', t: daysAgo(24) + jitter() },
+    { author: 'Swansea Sound', content: 'Hello Equaliser! We\'re a three-piece from Swansea making jangly indie pop. Thrilled to be part of this community. First release going up this week.', t: daysAgo(23) + jitter() },
+    { author: 'Ravi Patel', content: 'As a developer, the tech behind Equaliser fascinates me. IPFS for content, NOSTR for social, Blossom for originals. Smart architecture.', t: daysAgo(22) + jitter() },
+
+    // Week 3 (21-15 days ago) — community growing
+    { author: 'Priya Kapoor', content: 'Working on some new songs this evening. There\'s something about the Mumbai rain that makes melodies flow. Anyone else write better in bad weather?', t: daysAgo(21) + jitter() },
+    { author: 'Jake Morrison', content: 'As a sound engineer, I appreciate that Equaliser preserves the original audio files. Too many platforms compress everything to mush.', t: daysAgo(20) + jitter() },
+    { author: 'Suki Tanaka', content: 'Just saw Shibuya Crossings live in Shimokitazawa last week! They played some unreleased tracks that sounded incredible. Can\'t wait for the new EP.', t: daysAgo(19) + jitter() },
+    { author: 'Marcus Webb', content: 'Running a record shop for 20 years taught me one thing: people want to connect with the artists they love. Equaliser gets that right.', t: daysAgo(18) + jitter() },
+    { author: 'Ava Okonkwo', content: 'Started curating a playlist of my favourite Equaliser finds. There\'s something special about discovering music on a platform that respects both artists and fans.', t: daysAgo(17) + jitter() },
+    { author: 'Dan Kowalski', content: 'That bass line on Shibuya Crossings\' "Neon Reflections" is something else. Simple but so effective. The mark of great songwriting.', t: daysAgo(16) + jitter() },
+    { author: 'Lena Vasquez', content: 'Writing an article about the decentralised music movement. Equaliser is the most interesting platform I\'ve come across. The NOSTR integration is clever.', t: daysAgo(15) + jitter() },
+    { author: 'Shibuya Crossings', content: 'Two weeks on Equaliser and we\'ve had more genuine fan interactions than six months on the big platforms. Quality over quantity every time.', t: daysAgo(15) + jitter() },
+
+    // Week 2 (14-8 days ago) — deeper engagement
+    { author: 'Decky', content: 'Excited to see the community growing here on Equaliser. So many great music fans discovering independent artists. This is what it\'s all about.', t: daysAgo(14) + jitter() },
+    { author: 'Maya Chen', content: 'Just discovered Shibuya Crossings on Equaliser and I can\'t stop listening. That blend of electronic and indie is exactly what I needed today.', t: daysAgo(13) + jitter() },
+    { author: 'Tom Ashworth', content: 'Been diving deep into the Equaliser catalogue this week. Language of Flowers is special — "Petals in the Rain" is pure magic on a quiet afternoon.', t: daysAgo(12) + jitter() },
+    { author: 'Language of Flowers', content: 'Thank you to everyone who\'s been listening to our tracks on Equaliser. Seeing the play counts tick up from real fans (not bots) means the world to us.', t: daysAgo(11) + jitter() },
+    { author: 'Priya Kapoor', content: 'Late night writing session turned into a full demo. The verse melody came from humming along to a Language of Flowers track. Inspiration is everywhere.', t: daysAgo(10) + jitter() },
+    { author: 'Jake Morrison', content: 'Spent the morning A/B testing the HLS streams on Equaliser vs other platforms. The difference is noticeable, especially on good headphones.', t: daysAgo(10) + jitter() },
+    { author: 'Marcus Webb', content: 'Had a customer in the shop today asking about Equaliser. Word is spreading in the indie music community. This is how good platforms grow — organically.', t: daysAgo(9) + jitter() },
+    { author: 'Suki Tanaka', content: 'My limited pressing collection is getting out of hand. But between vinyl and Equaliser streaming, I feel like I\'m supporting artists properly.', t: daysAgo(8) + jitter() },
+
+    // Week 1 (7-1 days ago) — active community
+    { author: 'Ava Okonkwo', content: 'New playlist coming soon featuring all the best indie finds on Equaliser this month. Swansea Sound\'s new single is definitely on there.', t: daysAgo(7) + jitter() },
+    { author: 'Swansea Sound', content: 'New 7" arriving from the pressing plant next week. Proper indie pop on proper vinyl. We\'ll have details on the Equaliser community board soon.', t: daysAgo(6) + jitter() },
+    { author: 'Dan Kowalski', content: 'The community here is incredible. Had a genuine conversation with Shibuya Crossings about their production process. Where else does that happen?', t: daysAgo(5) + jitter() },
+    { author: 'Lena Vasquez', content: 'My article on decentralised music platforms is live! Equaliser featured prominently. The response has been amazing — so many people interested in alternatives.', t: daysAgo(4) + jitter() },
+    { author: 'Ravi Patel', content: 'Been looking at the NOSTR protocol more deeply. The way Equaliser uses it for both social and music metadata is elegant. Open standards win.', t: daysAgo(4) + jitter() },
+    { author: 'Shibuya Crossings', content: 'Studio update: we\'ve been layering field recordings from the Shibuya crossing over synth pads. The new material is taking shape and we\'re really excited about the direction.', t: daysAgo(3) + jitter() },
+    { author: 'Maya Chen', content: 'Language of Flowers\' "Petals in the Rain" just hit different on a quiet Sunday afternoon. Pure magic. Third time listening today.', t: daysAgo(2) + jitter() },
+    { author: 'Tom Ashworth', content: 'Added three more Swansea Sound tracks to my collection today. Their stuff reminds me of the best Sarah Records releases from the late 80s.', t: daysAgo(2) + jitter() },
+    { author: 'Decky', content: 'Just pushed some updates to the platform. Community message boards are now live! Head over to the Community page and start some discussions.', t: daysAgo(1) + jitter() },
+    { author: 'Language of Flowers', content: 'Writing new material this week. The Cotswolds are at their most beautiful right now — every walk becomes a melody. New single coming soon.', t: hoursAgo(18) + jitter(1800) },
+    { author: 'Jake Morrison', content: 'PSA: if you are serious about music, invest in decent headphones before anything else. You would be amazed what you have been missing on Equaliser streams.', t: hoursAgo(8) + jitter(1800) },
+    { author: 'Priya Kapoor', content: 'Mumbai rain + good headphones + new music on Equaliser = perfect evening. Currently on repeat: Shibuya Crossings\' entire catalogue.', t: hoursAgo(4) + jitter(1800) },
 ];
 
 // ===== 2. Feed Replies =====
 
 const FEED_REPLIES = [
-    // Replies reference feed posts by index
-    { author: 'Tom Ashworth', parentIndex: 0, content: 'Same here! "Neon Reflections" has been on repeat all week. The production quality is top notch.' },
-    { author: 'Dan Kowalski', parentIndex: 0, content: 'The bass work on their tracks is phenomenal. Really intricate stuff if you listen closely.' },
-    { author: 'Suki Tanaka', parentIndex: 0, content: 'If you like Shibuya Crossings, you should check out their live recordings too. Completely different energy!' },
-    { author: 'Priya Kapoor', parentIndex: 2, content: 'Absolutely! Rain is the best songwriting companion. Something about the rhythm of it just opens up creativity.' },
-    { author: 'Marcus Webb', parentIndex: 2, content: 'I always found thunderstorms particularly inspiring. Something primal about it.' },
-    { author: 'Ravi Patel', parentIndex: 3, content: 'The original file preservation is huge. I\'ve been comparing waveforms and the Blossom copies are bit-perfect.' },
-    { author: 'Jake Morrison', parentIndex: 5, content: 'Exactly. Direct connection between artist and listener with no middleman algorithm deciding what you hear.' },
-    { author: 'Lena Vasquez', parentIndex: 5, content: 'I\'d love to interview you for my article! The record shop perspective on music discovery is invaluable.' },
-    { author: 'Marcus Webb', parentIndex: 5, content: 'Happy to chat anytime, Lena. Drop me a message.' },
-    { author: 'Maya Chen', parentIndex: 6, content: 'Ava, will you share the playlist link when it\'s ready? Your taste is always spot on.' },
-    { author: 'Ava Okonkwo', parentIndex: 6, content: 'Absolutely! Should be ready by the weekend. Got about 15 tracks so far.' },
-    { author: 'Shibuya Crossings', parentIndex: 4, content: 'Thanks for coming to the show, Suki! Those unreleased tracks should be on the EP dropping next month.' },
-    { author: 'Decky', parentIndex: 8, content: 'Great write-up incoming, I hope! The NOSTR protocol has been a perfect fit for what we\'re building.' },
-    { author: 'Ravi Patel', parentIndex: 8, content: 'Happy to help with technical details if you need them for the article. The architecture is really well thought out.' },
-    { author: 'Language of Flowers', parentIndex: 11, content: 'So glad it resonated! That song was written on a particularly grey afternoon in the Cotswolds.' },
+    // Replies reference feed posts by index (0-35)
+    // Week 4 replies
+    { author: 'Maya Chen', parentIndex: 0, content: 'This is exactly what we need! So tired of algorithms deciding what music I hear. Excited to explore.' },
+    { author: 'Tom Ashworth', parentIndex: 1, content: 'Same here! The production quality on your tracks is incredible. Sounds amazing even on laptop speakers.' },
+    { author: 'Dan Kowalski', parentIndex: 1, content: 'The bass work on your tracks is phenomenal. Really intricate stuff if you listen closely.' },
+    { author: 'Ravi Patel', parentIndex: 6, content: 'Absolutely. The architecture is well thought out. Would love to contribute to the open source side.' },
+    { author: 'Decky', parentIndex: 6, content: 'Thanks Ravi! We\'re considering opening parts of the codebase. Stay tuned.' },
+
+    // Week 3 replies
+    { author: 'Priya Kapoor', parentIndex: 7, content: 'Rain is the best songwriting companion. Something about the rhythm of it just opens up creativity.' },
+    { author: 'Marcus Webb', parentIndex: 7, content: 'I always found thunderstorms particularly inspiring. Something primal about it.' },
+    { author: 'Ravi Patel', parentIndex: 8, content: 'The original file preservation is huge. I\'ve been comparing waveforms and the Blossom copies are bit-perfect.' },
+    { author: 'Shibuya Crossings', parentIndex: 9, content: 'Thanks for coming to the show, Suki! Those unreleased tracks should be on the EP dropping next month.' },
+    { author: 'Jake Morrison', parentIndex: 10, content: 'Exactly. Direct connection between artist and listener with no middleman algorithm deciding what you hear.' },
+    { author: 'Lena Vasquez', parentIndex: 10, content: 'I\'d love to interview you for my article! The record shop perspective on music discovery is invaluable.' },
+    { author: 'Marcus Webb', parentIndex: 10, content: 'Happy to chat anytime, Lena. Drop me a message.' },
+    { author: 'Decky', parentIndex: 13, content: 'Great write-up incoming, I hope! The NOSTR protocol has been a perfect fit for what we\'re building.' },
+    { author: 'Ravi Patel', parentIndex: 13, content: 'Happy to help with technical details if you need them for the article. The architecture is really well thought out.' },
+
+    // Week 2 replies
+    { author: 'Maya Chen', parentIndex: 17, content: 'Me too! Their whole catalogue is incredible. "Neon Reflections" is my current obsession.' },
+    { author: 'Suki Tanaka', parentIndex: 17, content: 'If you like Shibuya Crossings, you should check out their live recordings too. Completely different energy!' },
+    { author: 'Language of Flowers', parentIndex: 18, content: 'Tom, that means so much to hear. We put a lot of care into the mastering.' },
+    { author: 'Shibuya Crossings', parentIndex: 14, content: 'The genuine connections here are what keep us going. Thanks for being part of this community.' },
+    { author: 'Ava Okonkwo', parentIndex: 19, content: 'I had the same reaction! "Petals in the Rain" is one of those songs that stops you in your tracks.' },
+
+    // Week 1 replies
+    { author: 'Maya Chen', parentIndex: 24, content: 'Ava, will you share the playlist link when it\'s ready? Your taste is always spot on.' },
+    { author: 'Ava Okonkwo', parentIndex: 24, content: 'Absolutely! Should be ready by the weekend. Got about 15 tracks so far.' },
+    { author: 'Dan Kowalski', parentIndex: 26, content: 'That\'s so cool! I had a similar conversation with Language of Flowers last week. This community is special.' },
+    { author: 'Ravi Patel', parentIndex: 27, content: 'Your article was brilliant, Lena. Shared it with my dev community. Lots of interest in the NOSTR angle.' },
+    { author: 'Lena Vasquez', parentIndex: 27, content: 'Thanks Ravi! The response has been overwhelming. People are hungry for alternatives.' },
+    { author: 'Maya Chen', parentIndex: 29, content: 'Can\'t wait to hear the new material! Field recordings over synths sounds incredible.' },
+    { author: 'Suki Tanaka', parentIndex: 30, content: 'Third time? I\'m on my fifth listen today. It gets better every time.' },
+    { author: 'Language of Flowers', parentIndex: 30, content: 'So glad it resonated! That song was written on a particularly grey afternoon in the Cotswolds.' },
+    { author: 'Marcus Webb', parentIndex: 31, content: 'Sarah Records comparison is spot on. I\'ve been thinking the exact same thing. Proper indie pop.' },
+    { author: 'Tom Ashworth', parentIndex: 33, content: 'Really looking forward to new Language of Flowers. Take your time though — the quality shows when you don\'t rush.' },
 ];
 
 // ===== 3. Community Threads =====
@@ -139,42 +183,42 @@ const COMMUNITY_THREADS = [
     {
         author: 'Decky', board: 'general', subject: 'Welcome to Equaliser Community!',
         content: 'Hey everyone! Welcome to the Equaliser community boards. This is a space for music fans, artists, and anyone interested in decentralised music to connect and discuss. Feel free to introduce yourself and share what you\'re listening to!\n\nA few ground rules:\n- Be respectful and supportive\n- Share your discoveries\n- Support independent artists\n\nLooking forward to great conversations!',
-        t: daysAgo(7),
+        t: daysAgo(28),
     },
     {
         author: 'Maya Chen', board: 'general', subject: 'What are you listening to right now?',
         content: 'Let\'s share what\'s on rotation! I\'ve been deep into Shibuya Crossings\' latest release. That electronic-indie blend is exactly my vibe. What about you all?',
-        t: daysAgo(5),
+        t: daysAgo(22),
     },
     {
         author: 'Ava Okonkwo', board: 'music', subject: 'Best independent releases this month',
         content: 'Compiling my monthly roundup of the best independent music. So far I\'ve got:\n\n1. Shibuya Crossings - Neon Reflections EP\n2. Language of Flowers - Petals in the Rain (single)\n3. Swansea Sound - Corporate Indie Band Part 2\n\nWhat else should I be listening to? Drop your recommendations below!',
-        t: daysAgo(4),
+        t: daysAgo(18),
     },
     {
         author: 'Jake Morrison', board: 'production', subject: 'Home studio setup tips for independent artists',
         content: 'I\'ve been helping a few artists set up home studios lately and thought I\'d share some tips:\n\n- You don\'t need expensive gear to make great music\n- Room treatment matters more than mic quality\n- A decent audio interface (even budget) is essential\n- Learn to use your DAW properly before buying plugins\n\nHappy to answer questions about specific setups!',
-        t: daysAgo(4),
+        t: daysAgo(15),
     },
     {
         author: 'Dan Kowalski', board: 'production', subject: 'What DAW do you use and why?',
         content: 'Curious what everyone\'s using for production. I\'ve been on Ableton for years but keep hearing great things about Bitwig. For bass recording I still go through a separate signal chain.\n\nWhat\'s your setup?',
-        t: daysAgo(3),
+        t: daysAgo(11),
     },
     {
         author: 'Swansea Sound', board: 'gigs', subject: 'Upcoming shows — share your gig calendar!',
         content: 'We\'ve got a few dates coming up:\n\n- March 15 — The Moon Club, Cardiff\n- March 22 — Windmill Brixton, London\n- April 5 — Broadcast, Glasgow\n\nAll ages, all welcome. Who else is playing shows? Let\'s support each other and go see some live music!',
-        t: daysAgo(2),
+        t: daysAgo(8),
     },
     {
         author: 'Lena Vasquez', board: 'music', subject: 'Genre recommendations: what to explore next?',
         content: 'I\'ve been mainly listening to indie pop and electronic music, but want to branch out. What genres or artists should I explore?\n\nParticularly interested in:\n- Anything with interesting production\n- Artists who are pushing boundaries\n- Stuff that doesn\'t fit neatly into one genre',
-        t: daysAgo(2),
+        t: daysAgo(5),
     },
     {
         author: 'Ravi Patel', board: 'general', subject: 'The future of music distribution',
         content: 'Been thinking a lot about where music distribution is heading. Platforms like Equaliser that use NOSTR and IPFS feel like the natural evolution — artists own their content, fans connect directly, no algorithm gatekeeping.\n\nWhat do you all think? Is decentralised music the future, or will the big platforms always dominate?',
-        t: daysAgo(1),
+        t: daysAgo(2),
     },
 ];
 
@@ -472,19 +516,37 @@ async function main() {
     let likeCount = 0;
     // Various users liking various posts
     const likePairs = [
-        // [liker, postIndex]
-        [1, 0], [2, 0], [3, 0], [5, 0],  // Maya's post about Shibuya gets lots of likes
-        [0, 2], [4, 2], [8, 2],           // Priya's songwriting post
-        [0, 3], [7, 3], [9, 3],           // Jake's audio quality post
-        [0, 5], [1, 5], [3, 5],           // Marcus's record shop post
-        [0, 6], [2, 6],                   // Ava's playlist post
-        [0, 7], [3, 7], [5, 7],           // Dan's bass line post
-        [0, 8], [2, 8], [4, 8], [9, 8],   // Lena's article post
-        [1, 10], [3, 10], [5, 10],        // Decky's community post
-        [0, 12], [4, 12],                 // Shibuya Crossings' studio update
-        [1, 13], [2, 13],                 // Language of Flowers' thank you
-        [0, 14], [1, 14], [5, 14],        // Swansea Sound's vinyl post
-        [1, 18], [3, 18], [5, 18], [7, 18], // Decky's community boards announcement
+        // [userIndex, postIndex] — spread across 30 days of posts (0-35)
+        // Week 4 posts
+        [0, 0], [3, 0], [6, 0],           // Decky's welcome post
+        [0, 1], [2, 1], [4, 1], [7, 1],   // Shibuya Crossings' first post
+        [1, 2], [3, 2], [9, 2],           // Language of Flowers' catalogue post
+        [1, 3], [5, 3],                   // Maya's signup post
+        [0, 4], [8, 4],                   // Tom's audio quality post
+        [0, 5], [3, 5], [7, 5],           // Swansea Sound's hello post
+        [0, 6], [1, 6], [4, 6],           // Ravi's tech architecture post
+        // Week 3 posts
+        [0, 7], [4, 7], [8, 7],           // Priya's songwriting post
+        [0, 8], [7, 8], [9, 8],           // Jake's audio quality post
+        [0, 9], [2, 9], [5, 9],           // Suki's live show post
+        [0, 10], [1, 10], [3, 10],        // Marcus's record shop post
+        [0, 12], [3, 12], [5, 12],        // Dan's bass line post
+        [0, 13], [2, 13], [4, 13], [9, 13], // Lena's article post
+        [0, 14], [1, 14],                 // SC's two weeks on Equaliser
+        // Week 2 posts
+        [1, 16], [3, 16], [5, 16],        // Decky's community growing
+        [1, 17], [4, 17], [7, 17],        // Maya discovers Shibuya
+        [0, 19], [2, 19],                 // Language of Flowers' thank you
+        [0, 20], [7, 20],                 // Priya's late night writing
+        [0, 22], [3, 22], [7, 22],        // Marcus's word spreading
+        // Week 1 posts
+        [0, 24], [2, 24],                 // Ava's playlist post
+        [0, 25], [1, 25], [5, 25],        // Swansea Sound's vinyl post
+        [1, 27], [3, 27], [5, 27], [9, 27], // Lena's article live
+        [0, 29], [4, 29],                 // SC's studio update
+        [1, 30], [4, 30],                 // Maya on Language of Flowers
+        [1, 32], [3, 32], [5, 32], [7, 32], // Decky's community boards
+        [0, 33], [2, 33],                 // LoF writing new material
     ];
 
     for (const [userIdx, postIdx] of likePairs) {
