@@ -142,41 +142,69 @@ const NostrSocial = (() => {
 
     /**
      * Fetch Kind 0 profiles for a list of pubkeys. Returns Map<pubkey, {name, picture, nip05}>.
+     * Tries cache API first, falls back to WebSocket for any pubkeys not in cache.
      */
     async function fetchProfiles(pubkeys) {
         if (pubkeys.length === 0) return new Map();
 
-        const allResults = await Promise.all(
-            DEFAULT_RELAYS.map(r => _queryRelay(r, {
-                kinds: [0],
-                authors: pubkeys,
-                limit: pubkeys.length
-            }, 6000))
-        );
-
         const profiles = new Map();
-        for (const events of allResults) {
-            for (const ev of events) {
-                try {
-                    const existing = profiles.get(ev.pubkey);
-                    if (!existing || ev.created_at > existing.created_at) {
-                        const p = JSON.parse(ev.content);
-                        profiles.set(ev.pubkey, {
-                            name: p.display_name || p.name || '',
+        let missingPubkeys = pubkeys;
+
+        // Try cache API first
+        if (typeof CacheAPI !== 'undefined') {
+            try {
+                const cached = await CacheAPI.getProfiles(pubkeys);
+                if (cached) {
+                    for (const [pk, p] of Object.entries(cached)) {
+                        profiles.set(pk, {
+                            name: p.name || '',
                             picture: p.picture || '',
                             nip05: p.nip05 || '',
-                            created_at: ev.created_at
+                            created_at: p.created_at || 0
                         });
                     }
-                } catch (err) {}
+                    missingPubkeys = pubkeys.filter(pk => !cached[pk]);
+                }
+            } catch (err) {
+                // Cache unavailable — fall through to WebSocket
             }
         }
+
+        // WebSocket fallback for any pubkeys not in cache
+        if (missingPubkeys.length > 0) {
+            const allResults = await Promise.all(
+                DEFAULT_RELAYS.map(r => _queryRelay(r, {
+                    kinds: [0],
+                    authors: missingPubkeys,
+                    limit: missingPubkeys.length
+                }, 6000))
+            );
+
+            for (const events of allResults) {
+                for (const ev of events) {
+                    try {
+                        const existing = profiles.get(ev.pubkey);
+                        if (!existing || ev.created_at > existing.created_at) {
+                            const p = JSON.parse(ev.content);
+                            profiles.set(ev.pubkey, {
+                                name: p.display_name || p.name || '',
+                                picture: p.picture || '',
+                                nip05: p.nip05 || '',
+                                created_at: ev.created_at
+                            });
+                        }
+                    } catch (err) {}
+                }
+            }
+        }
+
         return profiles;
     }
 
     /**
      * Fetch the followed pubkeys for the current logged-in user (from Kind 3 contact list).
      * Returns array of hex pubkey strings, or empty array if not logged in.
+     * Tries cache API first, falls back to WebSocket.
      */
     async function fetchContactList(pubkeyHex) {
         if (!pubkeyHex) {
@@ -185,6 +213,17 @@ const NostrSocial = (() => {
             pubkeyHex = session.publicKey;
         }
 
+        // Try cache API first
+        if (typeof CacheAPI !== 'undefined') {
+            try {
+                const cached = await CacheAPI.getUserFollows(pubkeyHex);
+                if (cached && cached.length > 0) return cached;
+            } catch (err) {
+                // Cache unavailable — fall through to WebSocket
+            }
+        }
+
+        // WebSocket fallback
         const allResults = await Promise.all(
             DEFAULT_RELAYS.map(r => _queryRelay(r, {
                 kinds: [3],
@@ -193,7 +232,6 @@ const NostrSocial = (() => {
             }, 5000))
         );
 
-        // Find the most recent contact list event
         let best = null;
         for (const events of allResults) {
             for (const ev of events) {
