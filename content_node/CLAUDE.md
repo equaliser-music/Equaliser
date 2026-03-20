@@ -1,15 +1,17 @@
 # Content Node (Artist Admin + Backend)
 
-Docker Compose stack: orchestrator (FastAPI), IPFS (Kubo), NOSTR relay (nostr-rs-relay), Blossom, nginx.
+Docker Compose stack: orchestrator (FastAPI), Equaliser Relay (Go), IPFS (Kubo), Blossom, nostr-rs-relay (standard relay), PostgreSQL, nginx.
 
 ## Docker Services
 
 | Service | Image | Port | Purpose |
 |---------|-------|------|---------|
 | orchestrator | FastAPI (Python) | 8000 | Track upload, HLS encoding, IPFS/Blossom coordination, draft management |
+| equaliser-relay | Custom Go binary | 8080 (WS), 8008 (REST) | NOSTR relay with PostgreSQL storage, full tag indexing, peer syncer, cache REST API |
 | ipfs | ipfs/kubo | 5001 (API), 8080 (gateway) | Content-addressed storage for HLS streams and cover art |
-| nostr-relay | scsibug/nostr-rs-relay | 8080 | Event storage (Kind 0 profiles, Kind 30050 tracks, Kind 1 posts, etc.) |
 | blossom | hzrd149/blossom-server | 3000 | Original audio + image storage by SHA-256 hash. BUD-03 auth |
+| nostr-rs-relay | scsibug/nostr-rs-relay | 7700→8080 | Open standard NOSTR relay for user data caching (syncer pulls from this) |
+| postgres | postgres:15-alpine | 5432 | PostgreSQL database owned by Equaliser Relay |
 | web | nginx:alpine | 80 | Reverse proxy routing to all services + static file serving |
 
 ## Orchestrator API (orchestrator/api/)
@@ -98,7 +100,7 @@ All pages use shared `js/session.js` and `js/admin-sidebar.js`.
 | `docker-compose.yml` | Service definitions, volumes, networking |
 | `config/blossom/config.yml` | Blossom rules: audio/* + image/* allowed, BUD-03 auth, local file storage |
 | `ipfs/configure-gateway.sh` | Startup script: path-style URLs, API on 0.0.0.0 |
-| `web/nginx.conf` | Proxy routes: `/api/` → orchestrator, `/relay` → nostr, `/ipfs/` → IPFS gateway, `/blossom/` → Blossom, `/admin/` → orchestrator static, `/` → client |
+| `web/nginx.conf` | Proxy routes: `/api/cache/` → relay REST API, `/api/` → orchestrator, `/relay` → relay WebSocket, `/ipfs/` → IPFS gateway, `/blossom/` → Blossom, `/admin/` → orchestrator static, `/` → client |
 
 ## Key Data Flows
 

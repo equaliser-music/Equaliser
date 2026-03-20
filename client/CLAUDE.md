@@ -7,14 +7,15 @@ SPA for listeners/fans. Served at `/` by nginx. No build step — vanilla JS + H
 `app.html` is the SPA shell. It loads the sidebar, player, and router, which dynamically loads page HTML into `#page-content`. Three standalone pages bypass the shell: `index.html` (landing), `login.html`, `onboarding.html`.
 
 Script load order in app.html:
-nostr-tools (CDN) → hls.js (CDN) → session.js → sidebar.js → nostr-social.js → nostr-dm.js → nostr-playlists.js → player.js → router.js
+nostr-tools (CDN) → hls.js (CDN) → session.js → sidebar.js → cache-api.js → nostr-social.js → nostr-dm.js → nostr-playlists.js → player.js → router.js
 
 ## Core Modules (js/)
 
 | Module | Purpose | Key Details |
 |--------|---------|-------------|
-| `session.js` | Session management | nsec or NIP-07 login. Keys in sessionStorage. Auto-adds `["app", "Equaliser"]` tag to all signed events. 30-min idle timeout, multi-tab logout via BroadcastChannel. API: `init()`, `signEvent()`, `getSession()`, `hasSession()`, `logout()` |
-| `nostr-social.js` | Relay communication | Fetch/publish events, profile caching, relay config. Local relay at `/relay`, fallback to damus.io/nos.lol/primal.net. API: `fetchNotes()`, `fetchProfiles()`, `fetchContactList()`, `fetchReactions()`, `publishEvent()`, `loadUserRelays()`. Utilities: `escapeHtml()`, `relativeTime()`, `linkifyContent()`, `isEqualiserEvent()` |
+| `session.js` | Session management | nsec or NIP-07 login. Keys in sessionStorage. Auto-adds `["app", "Equaliser"]` tag to all signed events. 30-min idle timeout, multi-tab logout via BroadcastChannel. Auto-registers pubkey with relay on login. API: `init()`, `signEvent()`, `getSession()`, `hasSession()`, `logout()` |
+| `cache-api.js` | Cache REST API client | Fetches cached user data from `/api/cache/` (relay REST API). 3s timeout, returns null on failure for graceful fallback. API: `getProfiles(pubkeys)`, `getUserFollows(pubkey)`, `getUserFeed(pubkey, limit)` |
+| `nostr-social.js` | Relay communication | Fetch/publish events, profile caching, relay config. Local relay at `/relay`, fallback to damus.io/nos.lol/primal.net. **Cache-first**: `fetchProfiles()` and `fetchContactList()` try cache API first, fall back to WebSocket for missing data. API: `fetchNotes()`, `fetchProfiles()`, `fetchContactList()`, `fetchReactions()`, `publishEvent()`, `loadUserRelays()`. Utilities: `escapeHtml()`, `relativeTime()`, `linkifyContent()`, `isEqualiserEvent()` |
 | `nostr-dm.js` | Direct messages (NIP-04) | Kind 4 encrypted DMs. Supports nsec and NIP-07 extension. API: `encrypt()`, `decrypt()`, `fetchAllDMs()`, `groupConversations()`, `sendDM()`, `canDM()` |
 | `nostr-playlists.js` | Playlist CRUD (NIP-51) | Kind 30001. Public/private playlists (private encrypts via NIP-04 to self). 60s cache TTL. API: `createPlaylist()`, `updatePlaylist()`, `deletePlaylist()`, `fetchMyPlaylists()`, `addTrackToPlaylist()`, `followPlaylist()` |
 | `sidebar.js` | Navigation sidebar | Renders nav links, user profile card, login/logout. Fetches Kind 0 for display. API: `init()`, `updateUserDisplay()` |
@@ -69,6 +70,7 @@ Cover art `<img>` tags use a `data-fallback` attribute with the IPFS URL. When t
 
 ## Key Patterns
 
+- **Cache-first data fetching**: `fetchProfiles()` and `fetchContactList()` try the cache REST API (`/api/cache/`) first, fall back to WebSocket for any data not in cache. 3s timeout ensures fast failover. All pages benefit automatically via the shared NostrSocial functions.
 - **Relay queries**: Fetch from all relays in parallel, deduplicate by event ID, sort newest-first
 - **Profile cache**: In-memory pubkey → {name, picture} map, avoids repeated fetches
 - **Client-side tag filtering**: Multi-char tags (`app`, `content-type`, `board`) are NOT relay-indexed — fetch broadly then filter in JS
