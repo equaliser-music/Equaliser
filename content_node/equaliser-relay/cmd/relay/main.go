@@ -79,7 +79,7 @@ func main() {
 	}
 
 	// Set up REST API server
-	apiServer := api.NewServer(userStore)
+	apiServer := api.NewServer(userStore, eventStore)
 	restServer := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.RESTAPIPort),
 		Handler:      apiServer.Handler(),

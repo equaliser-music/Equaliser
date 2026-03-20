@@ -9,30 +9,45 @@ import (
 	"strconv"
 	"strings"
 
+	"equaliser-relay/internal/nostr"
 	"equaliser-relay/internal/storage"
 )
 
 // Server serves the REST API endpoints.
 type Server struct {
-	userStore *storage.UserStore
-	mux       *http.ServeMux
+	userStore  *storage.UserStore
+	eventStore *storage.EventStore
+	mux        *http.ServeMux
 }
 
 // NewServer creates a new REST API server.
-func NewServer(userStore *storage.UserStore) *Server {
+func NewServer(userStore *storage.UserStore, eventStore *storage.EventStore) *Server {
 	s := &Server{
-		userStore: userStore,
-		mux:       http.NewServeMux(),
+		userStore:  userStore,
+		eventStore: eventStore,
+		mux:        http.NewServeMux(),
 	}
 
 	// Internal endpoints (Docker network only, not proxied by nginx)
 	s.mux.HandleFunc("POST /api/internal/users/register", s.handleRegisterUser)
 
 	// Cache endpoints (proxied by nginx at /api/cache/*)
+	// Profiles
 	s.mux.HandleFunc("GET /api/cache/profiles", s.handleGetProfiles)
 	s.mux.HandleFunc("GET /api/cache/profiles/{pubkey}", s.handleGetSingleProfile)
+	// User data
 	s.mux.HandleFunc("GET /api/cache/users/{pubkey}/follows", s.handleGetUserFollows)
 	s.mux.HandleFunc("GET /api/cache/users/{pubkey}/feed", s.handleGetUserFeed)
+	// Artists
+	s.mux.HandleFunc("GET /api/cache/artists", s.handleGetArtists)
+	s.mux.HandleFunc("GET /api/cache/artists/{pubkey}", s.handleGetArtist)
+	// Tracks & albums
+	s.mux.HandleFunc("GET /api/cache/tracks", s.handleGetTracks)
+	s.mux.HandleFunc("GET /api/cache/tracks/recent", s.handleGetRecentTracks)
+	s.mux.HandleFunc("GET /api/cache/albums", s.handleGetAlbums)
+	// General event query (replaces WebSocket REQ for reads)
+	s.mux.HandleFunc("GET /api/cache/events", s.handleQueryEvents)
+	// Thread external refs
 	s.mux.HandleFunc("GET /api/cache/threads/{eventID}/external", s.handleThreadExternal)
 
 	// Health check
@@ -68,6 +83,104 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
 }
 
+// ===== General Event Query =====
+
+// handleQueryEvents queries raw_events with NIP-01-style filter parameters.
+// GET /api/cache/events?kinds=1,7&authors=pk1,pk2&e=id1,id2&p=pk1&ids=id1&limit=50&since=ts&until=ts
+func (s *Server) handleQueryEvents(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	filter := nostr.Filter{}
+
+	if v := q.Get("kinds"); v != "" {
+		for _, k := range strings.Split(v, ",") {
+			if n, err := strconv.Atoi(strings.TrimSpace(k)); err == nil {
+				filter.Kinds = append(filter.Kinds, n)
+			}
+		}
+	}
+	if v := q.Get("authors"); v != "" {
+		for _, pk := range strings.Split(v, ",") {
+			pk = strings.TrimSpace(pk)
+			if validateHexPubkey(pk) {
+				filter.Authors = append(filter.Authors, pk)
+			}
+		}
+	}
+	if v := q.Get("ids"); v != "" {
+		for _, id := range strings.Split(v, ",") {
+			id = strings.TrimSpace(id)
+			if len(id) == 64 {
+				filter.IDs = append(filter.IDs, id)
+			}
+		}
+	}
+	// Tag filters: #e and #p
+	if v := q.Get("e"); v != "" {
+		if filter.Tags == nil {
+			filter.Tags = make(map[string][]string)
+		}
+		for _, id := range strings.Split(v, ",") {
+			id = strings.TrimSpace(id)
+			if len(id) == 64 {
+				filter.Tags["e"] = append(filter.Tags["e"], id)
+			}
+		}
+	}
+	if v := q.Get("p"); v != "" {
+		if filter.Tags == nil {
+			filter.Tags = make(map[string][]string)
+		}
+		for _, pk := range strings.Split(v, ",") {
+			pk = strings.TrimSpace(pk)
+			if validateHexPubkey(pk) {
+				filter.Tags["p"] = append(filter.Tags["p"], pk)
+			}
+		}
+	}
+	if v := q.Get("since"); v != "" {
+		if n, err := strconv.ParseInt(v, 10, 64); err == nil {
+			filter.Since = &n
+		}
+	}
+	if v := q.Get("until"); v != "" {
+		if n, err := strconv.ParseInt(v, 10, 64); err == nil {
+			filter.Until = &n
+		}
+	}
+	limit := 100
+	if v := q.Get("limit"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 500 {
+			limit = n
+		}
+	}
+	filter.Limit = &limit
+
+	// Must have at least one filter criterion
+	if len(filter.IDs) == 0 && len(filter.Authors) == 0 && len(filter.Kinds) == 0 && len(filter.Tags) == 0 {
+		http.Error(w, `{"error": "at least one filter parameter required (kinds, authors, ids, e, p)"}`, http.StatusBadRequest)
+		return
+	}
+
+	events, err := s.eventStore.QueryEvents(r.Context(), []nostr.Filter{filter})
+	if err != nil {
+		log.Printf("Failed to query events: %v", err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	if events == nil {
+		events = []json.RawMessage{}
+	}
+
+	setCacheHeaders(w)
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"events": events,
+	})
+}
+
+// ===== Profile Endpoints =====
+
 // handleGetProfiles returns cached profiles for a batch of pubkeys.
 // GET /api/cache/profiles?pubkeys=hex1,hex2,...
 func (s *Server) handleGetProfiles(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +200,7 @@ func (s *Server) handleGetProfiles(w http.ResponseWriter, r *http.Request) {
 	for _, pk := range parts {
 		pk = strings.TrimSpace(pk)
 		if !validateHexPubkey(pk) {
-			continue // skip invalid, don't fail entire request
+			continue
 		}
 		pubkeys = append(pubkeys, pk)
 	}
@@ -103,7 +216,6 @@ func (s *Server) handleGetProfiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build map keyed by pubkey
 	profileMap := make(map[string]storage.ProfileResult)
 	for _, p := range profiles {
 		profileMap[p.Pubkey] = p
@@ -144,6 +256,8 @@ func (s *Server) handleGetSingleProfile(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(profiles[0])
 }
 
+// ===== User Data Endpoints =====
+
 // handleGetUserFollows returns the cached follow list for a user.
 // GET /api/cache/users/{pubkey}/follows
 func (s *Server) handleGetUserFollows(w http.ResponseWriter, r *http.Request) {
@@ -161,7 +275,7 @@ func (s *Server) handleGetUserFollows(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if follows == nil {
-		follows = []string{} // ensure JSON array, not null
+		follows = []string{}
 	}
 
 	setCacheHeaders(w)
@@ -197,7 +311,7 @@ func (s *Server) handleGetUserFeed(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if events == nil {
-		events = []storage.FeedEvent{} // ensure JSON array, not null
+		events = []storage.FeedEvent{}
 	}
 
 	setCacheHeaders(w)
@@ -206,6 +320,154 @@ func (s *Server) handleGetUserFeed(w http.ResponseWriter, r *http.Request) {
 		"events": events,
 	})
 }
+
+// ===== Artist Endpoints =====
+
+// handleGetArtists returns all cached artist profiles.
+// GET /api/cache/artists
+func (s *Server) handleGetArtists(w http.ResponseWriter, r *http.Request) {
+	artists, err := s.userStore.GetAllArtists(r.Context())
+	if err != nil {
+		log.Printf("Failed to get artists: %v", err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	if artists == nil {
+		artists = []storage.ArtistResult{}
+	}
+
+	setCacheHeaders(w)
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"artists": artists,
+	})
+}
+
+// handleGetArtist returns a single cached artist profile.
+// GET /api/cache/artists/{pubkey}
+func (s *Server) handleGetArtist(w http.ResponseWriter, r *http.Request) {
+	pubkey := r.PathValue("pubkey")
+	if !validateHexPubkey(pubkey) {
+		http.Error(w, `{"error": "invalid pubkey"}`, http.StatusBadRequest)
+		return
+	}
+
+	profiles, err := s.userStore.GetProfiles(r.Context(), []string{pubkey})
+	if err != nil {
+		log.Printf("Failed to get artist %s: %v", pubkey, err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	// Find the artist profile (not user profile)
+	for _, p := range profiles {
+		if p.Type == "artist" {
+			setCacheHeaders(w)
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(p)
+			return
+		}
+	}
+
+	setCacheHeaders(w)
+	w.WriteHeader(http.StatusNotFound)
+	json.NewEncoder(w).Encode(map[string]string{"error": "not found"})
+}
+
+// ===== Track & Album Endpoints =====
+
+// handleGetTracks returns cached tracks, optionally filtered by artist.
+// GET /api/cache/tracks?artist={pubkey}
+func (s *Server) handleGetTracks(w http.ResponseWriter, r *http.Request) {
+	artist := r.URL.Query().Get("artist")
+	if artist == "" {
+		http.Error(w, `{"error": "artist query parameter is required"}`, http.StatusBadRequest)
+		return
+	}
+	if !validateHexPubkey(artist) {
+		http.Error(w, `{"error": "invalid artist pubkey"}`, http.StatusBadRequest)
+		return
+	}
+
+	tracks, err := s.userStore.GetTracksByArtist(r.Context(), artist)
+	if err != nil {
+		log.Printf("Failed to get tracks for %s: %v", artist, err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	if tracks == nil {
+		tracks = []storage.TrackResult{}
+	}
+
+	setCacheHeaders(w)
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"tracks": tracks,
+	})
+}
+
+// handleGetRecentTracks returns the most recent tracks across all artists.
+// GET /api/cache/tracks/recent?limit=50
+func (s *Server) handleGetRecentTracks(w http.ResponseWriter, r *http.Request) {
+	limit := 50
+	if l := r.URL.Query().Get("limit"); l != "" {
+		if n, err := strconv.Atoi(l); err == nil && n > 0 {
+			limit = n
+		}
+	}
+
+	tracks, err := s.userStore.GetRecentTracks(r.Context(), limit)
+	if err != nil {
+		log.Printf("Failed to get recent tracks: %v", err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	if tracks == nil {
+		tracks = []storage.TrackResult{}
+	}
+
+	setCacheHeaders(w)
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"tracks": tracks,
+	})
+}
+
+// handleGetAlbums returns cached albums for an artist.
+// GET /api/cache/albums?artist={pubkey}
+func (s *Server) handleGetAlbums(w http.ResponseWriter, r *http.Request) {
+	artist := r.URL.Query().Get("artist")
+	if artist == "" {
+		http.Error(w, `{"error": "artist query parameter is required"}`, http.StatusBadRequest)
+		return
+	}
+	if !validateHexPubkey(artist) {
+		http.Error(w, `{"error": "invalid artist pubkey"}`, http.StatusBadRequest)
+		return
+	}
+
+	albums, err := s.userStore.GetAlbumsByArtist(r.Context(), artist)
+	if err != nil {
+		log.Printf("Failed to get albums for %s: %v", artist, err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	if albums == nil {
+		albums = []storage.AlbumResult{}
+	}
+
+	setCacheHeaders(w)
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"albums": albums,
+	})
+}
+
+// ===== Thread External Refs =====
 
 // handleThreadExternal returns the external reply count for a thread root event.
 // GET /api/cache/threads/{eventID}/external
@@ -231,6 +493,8 @@ func (s *Server) handleThreadExternal(w http.ResponseWriter, r *http.Request) {
 		"checked":              found,
 	})
 }
+
+// ===== User Registration =====
 
 // handleRegisterUser registers a fan pubkey for data caching.
 // Called by the orchestrator when a fan authenticates.

@@ -49,7 +49,22 @@ const NostrSocial = (() => {
 
     // ===== Low-level relay communication =====
 
-    function _queryRelay(relayUrl, filter, timeoutMs = 8000) {
+    async function _queryRelay(relayUrl, filter, timeoutMs = 8000) {
+        // For the local relay, try REST cache API first (faster, no WebSocket overhead)
+        if (relayUrl === LOCAL_RELAY && typeof CacheAPI !== 'undefined') {
+            try {
+                const events = await CacheAPI.queryEvents(filter);
+                if (events !== null) return events;
+            } catch (err) {
+                // Cache API unavailable — fall through to WebSocket
+            }
+        }
+
+        // WebSocket fallback (for external relays or when cache API is unavailable)
+        return _queryRelayWS(relayUrl, filter, timeoutMs);
+    }
+
+    function _queryRelayWS(relayUrl, filter, timeoutMs = 8000) {
         return new Promise((resolve) => {
             const ws = new WebSocket(relayUrl);
             const events = [];
