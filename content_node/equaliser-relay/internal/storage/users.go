@@ -28,6 +28,48 @@ type FeedEvent struct {
 	CreatedAt int64  `json:"created_at"`
 }
 
+// ArtistResult is a cached artist profile from cached_artists.
+type ArtistResult struct {
+	Pubkey    string `json:"pubkey"`
+	Name      string `json:"name"`
+	About     string `json:"about,omitempty"`
+	Picture   string `json:"picture,omitempty"`
+	Banner    string `json:"banner,omitempty"`
+	Website   string `json:"website,omitempty"`
+	NIP05     string `json:"nip05,omitempty"`
+	LUD16     string `json:"lud16,omitempty"`
+	CreatedAt int64  `json:"created_at"`
+}
+
+// TrackResult is a cached track from cached_tracks.
+type TrackResult struct {
+	EventID         string `json:"event_id"`
+	ArtistPubkey    string `json:"artist_pubkey"`
+	DTag            string `json:"d_tag"`
+	Title           string `json:"title,omitempty"`
+	Album           string `json:"album,omitempty"`
+	Genre           string `json:"genre,omitempty"`
+	Duration        *int   `json:"duration,omitempty"`
+	PriceSats       *int   `json:"price_sats,omitempty"`
+	IPFSManifestCID string `json:"ipfs_manifest_cid,omitempty"`
+	IPFSPreviewCID  string `json:"ipfs_preview_cid,omitempty"`
+	CoverArtCID     string `json:"cover_art_cid,omitempty"`
+	ReleaseDate     string `json:"release_date,omitempty"`
+	CreatedAt       int64  `json:"created_at"`
+	RawEvent        json.RawMessage `json:"raw_event,omitempty"`
+}
+
+// AlbumResult is a cached album from cached_albums.
+type AlbumResult struct {
+	EventID      string `json:"event_id"`
+	ArtistPubkey string `json:"artist_pubkey"`
+	DTag         string `json:"d_tag"`
+	Title        string `json:"title,omitempty"`
+	CoverArtCID  string `json:"cover_art_cid,omitempty"`
+	CreatedAt    int64  `json:"created_at"`
+	RawEvent     json.RawMessage `json:"raw_event,omitempty"`
+}
+
 // UserStore handles CRUD operations on user-related tables.
 type UserStore struct {
 	pool *pgxpool.Pool
@@ -253,4 +295,106 @@ func (s *UserStore) GetUserFeed(ctx context.Context, pubkey string, limit int) (
 		events = append(events, e)
 	}
 	return events, rows.Err()
+}
+
+// GetAllArtists returns all cached artist profiles.
+func (s *UserStore) GetAllArtists(ctx context.Context) ([]ArtistResult, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT pubkey, display_name, about, picture_url, banner_url, website, nip05, lud16, created_at
+		FROM cached_artists
+		ORDER BY display_name ASC
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("get all artists: %w", err)
+	}
+	defer rows.Close()
+
+	var results []ArtistResult
+	for rows.Next() {
+		var a ArtistResult
+		var about, picture, banner, website, nip05, lud16 *string
+		if err := rows.Scan(&a.Pubkey, &a.Name, &about, &picture, &banner, &website, &nip05, &lud16, &a.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan artist: %w", err)
+		}
+		if about != nil { a.About = *about }
+		if picture != nil { a.Picture = *picture }
+		if banner != nil { a.Banner = *banner }
+		if website != nil { a.Website = *website }
+		if nip05 != nil { a.NIP05 = *nip05 }
+		if lud16 != nil { a.LUD16 = *lud16 }
+		results = append(results, a)
+	}
+	return results, rows.Err()
+}
+
+// GetTracksByArtist returns all cached tracks for an artist, newest first.
+func (s *UserStore) GetTracksByArtist(ctx context.Context, artistPubkey string) ([]TrackResult, error) {
+	return s.queryTracks(ctx, "WHERE artist_pubkey = $1 ORDER BY created_at DESC", artistPubkey)
+}
+
+// GetRecentTracks returns the most recent cached tracks across all artists.
+func (s *UserStore) GetRecentTracks(ctx context.Context, limit int) ([]TrackResult, error) {
+	if limit <= 0 || limit > 500 {
+		limit = 50
+	}
+	return s.queryTracks(ctx, "ORDER BY created_at DESC LIMIT $1", limit)
+}
+
+func (s *UserStore) queryTracks(ctx context.Context, whereClause string, args ...interface{}) ([]TrackResult, error) {
+	query := `
+		SELECT event_id, artist_pubkey, d_tag, title, album, genre, duration, price_sats,
+			ipfs_manifest_cid, ipfs_preview_cid, cover_art_cid, release_date, created_at, raw_event
+		FROM cached_tracks ` + whereClause
+
+	rows, err := s.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query tracks: %w", err)
+	}
+	defer rows.Close()
+
+	var results []TrackResult
+	for rows.Next() {
+		var t TrackResult
+		var title, album, genre, manifest, preview, cover, releaseDate *string
+		if err := rows.Scan(&t.EventID, &t.ArtistPubkey, &t.DTag, &title, &album, &genre,
+			&t.Duration, &t.PriceSats, &manifest, &preview, &cover, &releaseDate, &t.CreatedAt, &t.RawEvent); err != nil {
+			return nil, fmt.Errorf("scan track: %w", err)
+		}
+		if title != nil { t.Title = *title }
+		if album != nil { t.Album = *album }
+		if genre != nil { t.Genre = *genre }
+		if manifest != nil { t.IPFSManifestCID = *manifest }
+		if preview != nil { t.IPFSPreviewCID = *preview }
+		if cover != nil { t.CoverArtCID = *cover }
+		if releaseDate != nil { t.ReleaseDate = *releaseDate }
+		results = append(results, t)
+	}
+	return results, rows.Err()
+}
+
+// GetAlbumsByArtist returns all cached albums for an artist, newest first.
+func (s *UserStore) GetAlbumsByArtist(ctx context.Context, artistPubkey string) ([]AlbumResult, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT event_id, artist_pubkey, d_tag, title, cover_art_cid, created_at, raw_event
+		FROM cached_albums
+		WHERE artist_pubkey = $1
+		ORDER BY created_at DESC
+	`, artistPubkey)
+	if err != nil {
+		return nil, fmt.Errorf("get albums: %w", err)
+	}
+	defer rows.Close()
+
+	var results []AlbumResult
+	for rows.Next() {
+		var a AlbumResult
+		var title, cover *string
+		if err := rows.Scan(&a.EventID, &a.ArtistPubkey, &a.DTag, &title, &cover, &a.CreatedAt, &a.RawEvent); err != nil {
+			return nil, fmt.Errorf("scan album: %w", err)
+		}
+		if title != nil { a.Title = *title }
+		if cover != nil { a.CoverArtCID = *cover }
+		results = append(results, a)
+	}
+	return results, rows.Err()
 }
