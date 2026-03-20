@@ -165,22 +165,29 @@ When an event arrives (from WebSocket or peer sync), it's written to raw storage
 
 The relay serves four tiers of REST endpoints, each with different access controls:
 
-**Public — `/api/catalogue/*`** (proxied by nginx, rate limited, GET only, same-origin CORS)
+**Public — `/api/cache/*`** (proxied by nginx at `/api/cache/` → relay port 8008, GET only, `Access-Control-Allow-Origin: *`)
 
-Read-only endpoints for this node's own client. The data is publicly available via the WebSocket relay, but the catalogue API exists purely as a performance cache for the local client — not as a public API for other nodes or third-party clients. Each node builds its own cache from NOSTR events. nginx enforces same-origin CORS (`Access-Control-Allow-Origin` set to the node's own domain) and rate limiting.
+Read-only endpoints for the web client. Replaces WebSocket REQ for most read operations. The client's `cache-api.js` module calls these with a 3s timeout; `nostr-social.js` routes all local relay reads through the cache API, skipping external relay WebSocket connections entirely.
 
+**Denorm endpoints** (fast structured reads from denormalised cache tables):
 ```
-GET /api/catalogue/artists                    - List all cached artists
-GET /api/catalogue/artists/{npub}             - Single artist profile
-GET /api/catalogue/artists/{npub}/tracks      - Artist's tracks
-GET /api/catalogue/tracks/{event_id}          - Single track
-GET /api/catalogue/tracks                     - Tracks across all artists
-GET /api/catalogue/search                     - Search artists and tracks
-GET /api/catalogue/users/me?pubkey={hex}      - Cached user profile
-GET /api/catalogue/users/{pubkey}/feed        - User's cached feed
-GET /api/catalogue/users/{pubkey}/playlists   - User's playlists
-GET /api/catalogue/threads/{event_id}/external - Fetch external (non-Equaliser) replies live from standard relays
+GET /api/cache/profiles?pubkeys=hex1,hex2     - Batch profile lookup (artists + users)
+GET /api/cache/profiles/{pubkey}              - Single profile
+GET /api/cache/artists                        - All cached artists
+GET /api/cache/artists/{pubkey}               - Single artist profile
+GET /api/cache/tracks?artist={pubkey}         - Tracks by artist
+GET /api/cache/tracks/recent?limit=50         - Recent tracks across all artists
+GET /api/cache/albums?artist={pubkey}         - Albums by artist
+GET /api/cache/users/{pubkey}/follows         - Cached follow list
+GET /api/cache/users/{pubkey}/feed?limit=50   - Cached feed posts
+GET /api/cache/threads/{eventID}/external     - External reply count for thread
 ```
+
+**General event query** (queries `raw_events` with NIP-01-style filter params):
+```
+GET /api/cache/events?kinds=1,7&authors=pk1&e=id1,id2&p=pk1&limit=50&since=ts&until=ts
+```
+Maps query params to NIP-01 filters and calls the existing `QueryEvents()` function. Returns raw event JSON. This single endpoint replaces WebSocket REQ for reactions, reply counts, thread replies, community threads, and any other read query.
 
 **Public — `/api/access/*`** (proxied by nginx, rate limited)
 
@@ -206,9 +213,9 @@ GET  /api/internal/access/check?pubkey={hex}  - Check if pubkey is approved on t
 
 Node management endpoints for the admin console. See [NODE-MANAGEMENT-SPEC.md](NODE-MANAGEMENT-SPEC.md) Section 4.
 
-The orchestrator handles track uploads, draft management, and IPFS at `/api/*`. The relay handles all read-side data serving at `/api/catalogue/*`. No routing ambiguity in nginx.
+The orchestrator handles track uploads, draft management, and IPFS at `/api/*`. The relay handles all read-side data serving at `/api/cache/*`. No routing ambiguity in nginx.
 
-**Orchestrator data access:** The orchestrator does NOT connect to PostgreSQL directly. All data access goes through the relay's REST API (`/api/internal/*` for writes, `/api/catalogue/*` for reads). The relay is the sole owner of PostgreSQL.
+**Orchestrator data access:** The orchestrator does NOT connect to PostgreSQL directly. All data access goes through the relay's REST API (`/api/internal/*` for writes, `/api/cache/*` for reads). The relay is the sole owner of PostgreSQL.
 
 ### 4. Peer Syncer
 
@@ -292,7 +299,7 @@ CREATE TABLE thread_external_refs (
 **On-demand fetch:** When a user clicks "View replies from wider Nostr", the client calls a dedicated endpoint that fetches external replies live from standard relays:
 
 ```
-GET /api/catalogue/threads/{event_id}/external
+GET /api/cache/threads/{event_id}/external
 ```
 
 This endpoint queries standard relays in real time (or serves from a short-lived cache with ~10 minute TTL), returning the full external reply events. These are not permanently stored — they are transient, fetched on demand.
@@ -508,11 +515,13 @@ This doesn't need to be built all at once. A phased approach:
 - **Standard relays ✅:** `STANDARD_RELAYS` — subscribe by known pubkeys (from `node_artists` + `registered_users`), common kinds only (0, 1, 3, 5), filter locally for app tag. Standard relays reject `#app` subscriptions (tested against `wss://relay.damus.io` — returned `"bad req: unindexed tag filter"`). Dynamic subscription updates when artists/users register. Deployed with `wss://relay.damus.io,wss://nos.lol,wss://relay.primal.net`.
 - Events from standard relays cascade to Equaliser peers — Relay B gets Relay A's Damus events transitively via `#app` peer sync
 
-### Phase 3: REST API + client migration
-- Serve REST API at `/api/catalogue/*` for the web client
-- Add `catalogue-api.js` client module
-- Migrate admin pages and public client reads to REST API
-- Orchestrator focuses purely on uploads/drafts/IPFS
+### Phase 3: REST API + client migration ✅
+- REST API at `/api/cache/*` — denorm endpoints (profiles, artists, tracks, albums, follows, feed) + general event query with NIP-01 filter params
+- `cache-api.js` client module with `queryEvents()`, `getProfiles()`, `getArtists()`, `getTracksByArtist()`, `getRecentTracks()`, `getAlbumsByArtist()`, `getUserFollows()`, `getUserFeed()`
+- `nostr-social.js` `_queryRelay()` routes local relay reads through REST cache API, skips external relay WebSocket connections when cache is available
+- Profile backfill on registration (copies existing Kind 0 from raw_events into cached_users)
+- nginx routes `/api/cache/` to relay REST port (8008)
+- **Partial**: page-specific custom WebSocket queries remain in artist.js, home.js, user.js (direct Kind 0/30050 queries bypass NostrSocial). Admin pages not yet migrated. TODO: route through NostrSocial or use cache-api.js directly
 
 ### Phase 4: Optimise
 - Connection pooling, query optimisation, caching hot paths
@@ -583,7 +592,7 @@ The current nostr-rs-relay `config.toml` restricts accepted event kinds via an a
 
 ```
 /relay                    → equaliser-relay:8080    (WebSocket — unchanged behaviour)
-/api/catalogue/*          → equaliser-relay:8008    (public reads, rate limited)
+/api/cache/*          → equaliser-relay:8008    (public reads, rate limited)
 /api/access/*             → equaliser-relay:8008    (public access control, rate limited)
 /api/admin/*              → equaliser-relay:8008    (password authenticated)
 /api/*                    → orchestrator:8000       (Everything else — uploads, drafts, releases)
@@ -637,10 +646,10 @@ The orchestrator's relay interaction code (`publish_event`, `publish_signed_even
 - User registration (`/api/users/register`) — orchestrator authenticates the fan, then calls relay's `/api/internal/users/register` to record the pubkey
 
 **What moves to the relay:**
-- Read-side data serving: artist profiles, track listings, search, user feeds, playlists — all served by the relay's REST API at `/api/catalogue/*`
+- Read-side data serving: artist profiles, track listings, search, user feeds, playlists — all served by the relay's REST API at `/api/cache/*`
 - Access control: join requests and node info — served by the relay at `/api/access/*` (these read/write `access_requests` and `node_artists` in PostgreSQL)
 
-**No shared database access:** The orchestrator does NOT connect to PostgreSQL directly. The relay is the sole owner of the database. All orchestrator data access goes through the relay's REST API — reads via `/api/catalogue/*`, writes via `/api/internal/*` (Docker network only). This keeps a clean service boundary — one database owner, no shared schema coupling.
+**No shared database access:** The orchestrator does NOT connect to PostgreSQL directly. The relay is the sole owner of the database. All orchestrator data access goes through the relay's REST API — reads via `/api/cache/*`, writes via `/api/internal/*` (Docker network only). This keeps a clean service boundary — one database owner, no shared schema coupling.
 
 ### Client Changes — Admin Pages
 
@@ -648,10 +657,10 @@ The orchestrator's relay interaction code (`publish_event`, `publish_signed_even
 
 | Page | Current | After |
 |------|---------|-------|
-| `dashboard.html` | WebSocket `{kinds:[0], authors:[pk]}` | `fetch('/api/catalogue/artists/{npub}')` |
-| `dashboard.html` | WebSocket `{kinds:[30050], authors:[pk]}` | `fetch('/api/catalogue/artists/{npub}/tracks')` |
-| `releases.html` | WebSocket `{kinds:[30050], authors:[pk]}` | `fetch('/api/catalogue/artists/{npub}/tracks')` |
-| `profile.html` | Profile fetch via WebSocket | `fetch('/api/catalogue/artists/{npub}')` |
+| `dashboard.html` | WebSocket `{kinds:[0], authors:[pk]}` | `fetch('/api/cache/artists/{npub}')` |
+| `dashboard.html` | WebSocket `{kinds:[30050], authors:[pk]}` | `fetch('/api/cache/artists/{npub}/tracks')` |
+| `releases.html` | WebSocket `{kinds:[30050], authors:[pk]}` | `fetch('/api/cache/artists/{npub}/tracks')` |
+| `profile.html` | Profile fetch via WebSocket | `fetch('/api/cache/artists/{npub}')` |
 
 Pages unchanged: `upload.html`, `edit-release.html`, `login.html`, `onboarding.html`, `settings.html` (use orchestrator APIs, not relay).
 
@@ -665,11 +674,11 @@ Migration approach: replace the WebSocket promise wrappers with `fetch()` calls.
 
 | Page | Current WebSocket query | New REST call |
 |------|------------------------|---------------|
-| `home.js` | `{kinds:[30050], limit:500}` | `GET /api/catalogue/tracks` |
-| `home.js` | `{kinds:[0], authors:pubkeys}` | `GET /api/catalogue/artists` |
-| `artist.js` | `{kinds:[0], authors:[pk]}` | `GET /api/catalogue/artists/{npub}` |
-| `artist.js` | `{kinds:[30050], authors:[pk]}` | `GET /api/catalogue/artists/{npub}/tracks` |
-| `library.js` | `{kinds:[30001], authors:[pk]}` | `GET /api/catalogue/users/{pubkey}/playlists` |
+| `home.js` | `{kinds:[30050], limit:500}` | `GET /api/cache/tracks` |
+| `home.js` | `{kinds:[0], authors:pubkeys}` | `GET /api/cache/artists` |
+| `artist.js` | `{kinds:[0], authors:[pk]}` | `GET /api/cache/artists/{npub}` |
+| `artist.js` | `{kinds:[30050], authors:[pk]}` | `GET /api/cache/artists/{npub}/tracks` |
+| `library.js` | `{kinds:[30001], authors:[pk]}` | `GET /api/cache/users/{pubkey}/playlists` |
 
 #### WebSocket queries that stay (but benefit from full tag indexing)
 
@@ -682,7 +691,7 @@ Migration approach: replace the WebSocket promise wrappers with `fetch()` calls.
 
 **Client-side filtering removed:** The broad-fetch-then-filter pattern in `nostr-social.js` becomes unnecessary. Files affected: `js/nostr-social.js`, `js/pages/social.js`, `js/pages/home.js`, `js/pages/thread.js`, `js/pages/user.js`, `js/pages/artist.js`.
 
-**New module `client/js/catalogue-api.js`:** REST API wrapper (`CatalogueAPI.getArtists()`, `.getArtistTracks(npub)`, `.search(query)`, etc.) calling `/api/catalogue/*` for structured data reads.
+**New module `client/js/cache-api.js`:** REST API wrapper (`CacheAPI.getArtists()`, `.getArtistTracks(npub)`, `.search(query)`, etc.) calling `/api/cache/*` for structured data reads.
 
 **Publishing stays the same:** `NostrSocial.publishEvent()` sends signed events via WebSocket. The peer syncer handles federation. Auto-tagging `['app', 'Equaliser']` unchanged.
 
@@ -694,7 +703,7 @@ Aligned with the [Migration Path](#migration-path) phases above, with verificati
 
 **Phase 2 — Peer syncing:** Configure `PEER_RELAYS` with other Equaliser node URLs and `STANDARD_RELAYS` with standard NOSTR relays (Damus, nos.lol, etc.). Equaliser peers use `#app` filter; standard relays use pubkey-based subscriptions with local app-tag filtering. Verify: local events appear on peer nodes, peer events appear locally, standard relay events ingested for known pubkeys, events cascade from standard relays through Equaliser peer mesh, reconnection works after network interruption.
 
-**Phase 3 — REST API + client migration:** Relay serves REST API at `/api/catalogue/*` on port 8008. Add nginx route for `/api/catalogue/` prefix. Add `catalogue-api.js` client module. Migrate admin pages and public client reads to REST API. Update WebSocket queries to use multi-char tag filters. Remove client-side filtering workarounds. Verify: REST API returns correct data, performance improvement measurable.
+**Phase 3 — REST API + client migration (done):** REST API at `/api/cache/*` on port 8008 with denorm endpoints + general event query. `cache-api.js` client module. `_queryRelay()` REST-first for local relay, external relay WebSocket skipped. Profile backfill on registration. Partial: page-specific custom WebSocket queries (artist.js, home.js, user.js) and admin pages not yet migrated.
 
 **Phase 4 — Optimise:** Connection pooling, query optimisation, persistent WebSocket connections, cache hot paths. Benchmark and tune.
 
@@ -702,7 +711,7 @@ Aligned with the [Migration Path](#migration-path) phases above, with verificati
 
 - Keep nostr-rs-relay Docker image reference in a comment for quick rollback
 - PostgreSQL events can be exported and replayed to nostr-rs-relay if needed
-- Client REST API wrapper (`catalogue-api.js`) can fall back to WebSocket queries if REST API is unavailable
+- Client REST API wrapper (`cache-api.js`) can fall back to WebSocket queries if REST API is unavailable
 - Phase 1 is fully reversible — just swap the Docker Compose service back
 
 ---
