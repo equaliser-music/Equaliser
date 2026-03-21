@@ -71,9 +71,18 @@ const NostrSocial = (() => {
     }
 
     /**
+     * Check if a URL points to an image file.
+     */
+    function _isImageUrl(url) {
+        // Strip query string and fragment for extension check
+        const path = url.split('?')[0].split('#')[0].toLowerCase();
+        return /\.(jpg|jpeg|png|gif|webp|svg)$/.test(path);
+    }
+
+    /**
      * Generate link preview HTML for URLs found in note content.
      * Returns HTML string to append after the note content.
-     * Currently supports: YouTube (client-side thumbnail).
+     * Supports: inline images, YouTube thumbnails.
      */
     function generateLinkPreviews(rawText) {
         const urls = _extractUrls(rawText);
@@ -83,10 +92,22 @@ const NostrSocial = (() => {
         const seen = new Set();
 
         for (const url of urls) {
+            if (seen.has(url)) continue;
+            seen.add(url);
+
+            // Inline image
+            if (_isImageUrl(url)) {
+                previews.push(`
+                    <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="link-preview link-preview-inline-image" onclick="event.stopPropagation()">
+                        <img src="${escapeHtml(url)}" alt="" loading="lazy" onerror="this.parentElement.style.display='none'">
+                    </a>`);
+                continue;
+            }
+
             // YouTube preview
             const ytId = _getYouTubeId(url);
-            if (ytId && !seen.has(ytId)) {
-                seen.add(ytId);
+            if (ytId && !seen.has('yt:' + ytId)) {
+                seen.add('yt:' + ytId);
                 const thumb = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
                 previews.push(`
                     <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="link-preview" onclick="event.stopPropagation()">

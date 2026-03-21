@@ -339,8 +339,20 @@
                             </div>
                             <div class="composer-body">
                                 <textarea id="compose-text" placeholder="What's on your mind?" maxlength="1000"></textarea>
+                                <div class="composer-image-preview" id="composer-image-preview" style="display:none;"></div>
+                                <div class="composer-upload-status" id="composer-upload-status"></div>
                                 <div class="composer-footer">
-                                    <div>
+                                    <div style="display:flex;align-items:center;gap:8px;">
+                                        <div class="composer-actions">
+                                            <button class="composer-attach-btn" id="composer-attach-btn" title="Attach image" type="button">
+                                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                                                    <rect x="2" y="2" width="16" height="16" rx="3"/>
+                                                    <circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none"/>
+                                                    <path d="M2 14l4-4 3 3 4-5 5 6"/>
+                                                </svg>
+                                            </button>
+                                            <input type="file" id="composer-image-input" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none;">
+                                        </div>
                                         <span class="char-count" id="char-count">0 / 1000</span>
                                         <span class="post-success" id="post-success">Posted!</span>
                                     </div>
@@ -487,6 +499,7 @@
         let currentFeedTab = 'equaliser';
         let feedProfiles = new Map();
         let isPosting = false;
+        let attachedImageUrl = null;
 
         // ===== Composer =====
 
@@ -521,7 +534,7 @@
                 const len = textarea.value.length;
                 charCount.textContent = `${len} / 1000`;
                 charCount.className = 'char-count' + (len > 900 ? (len > 1000 ? ' over' : ' warn') : '');
-                postBtn.disabled = len === 0 || len > 1000 || isPosting;
+                postBtn.disabled = (len === 0 && !attachedImageUrl) || len > 1000 || isPosting;
             });
 
             postBtn.addEventListener('click', submitPost);
@@ -532,12 +545,77 @@
                     if (!postBtn.disabled) submitPost();
                 }
             });
+
+            // Image attach button
+            const attachBtn = document.getElementById('composer-attach-btn');
+            const imageInput = document.getElementById('composer-image-input');
+            if (attachBtn && imageInput) {
+                attachBtn.addEventListener('click', () => imageInput.click());
+                imageInput.addEventListener('change', handleImageAttach);
+            }
+        }
+
+        async function handleImageAttach(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const previewEl = document.getElementById('composer-image-preview');
+            const statusEl = document.getElementById('composer-upload-status');
+            const postBtn = document.getElementById('post-btn');
+
+            const localUrl = URL.createObjectURL(file);
+            if (previewEl) {
+                previewEl.style.display = 'block';
+                previewEl.innerHTML = `<img src="${localUrl}" alt=""><button class="composer-image-remove" onclick="event.preventDefault(); removeAttachedImage()">&times;</button>`;
+            }
+            if (statusEl) { statusEl.textContent = 'Uploading...'; statusEl.className = 'composer-upload-status uploading'; }
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                const response = await fetch('/api/upload/image', { method: 'POST', body: formData });
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({}));
+                    throw new Error(err.detail || `Upload failed: ${response.status}`);
+                }
+                const result = await response.json();
+                attachedImageUrl = result.blossom_url;
+                URL.revokeObjectURL(localUrl);
+
+                if (previewEl) {
+                    previewEl.innerHTML = `<img src="${attachedImageUrl}" alt=""><button class="composer-image-remove" onclick="event.preventDefault(); removeAttachedImage()">&times;</button>`;
+                }
+                if (statusEl) { statusEl.textContent = ''; statusEl.className = 'composer-upload-status'; }
+                if (postBtn) postBtn.disabled = false;
+            } catch (error) {
+                console.error('Image upload error:', error);
+                if (statusEl) { statusEl.textContent = 'Upload failed: ' + error.message; statusEl.className = 'composer-upload-status error'; }
+                removeAttachedImage();
+            }
+
+            event.target.value = '';
+        }
+
+        function removeAttachedImage() {
+            attachedImageUrl = null;
+            const previewEl = document.getElementById('composer-image-preview');
+            const statusEl = document.getElementById('composer-upload-status');
+            const postBtn = document.getElementById('post-btn');
+            const textarea = document.getElementById('compose-text');
+            if (previewEl) { previewEl.style.display = 'none'; previewEl.innerHTML = ''; }
+            if (statusEl) { statusEl.textContent = ''; statusEl.className = 'composer-upload-status'; }
+            if (postBtn && textarea) postBtn.disabled = textarea.value.trim().length === 0;
         }
 
         async function submitPost() {
             const textarea = document.getElementById('compose-text');
             const postBtn = document.getElementById('post-btn');
-            const content = textarea.value.trim();
+            let content = textarea.value.trim();
+
+            if (attachedImageUrl) {
+                content = content ? content + '\n' + attachedImageUrl : attachedImageUrl;
+            }
+
             if (!content || isPosting) return;
 
             const session = SessionManager.getSession();
@@ -559,6 +637,7 @@
                 await NostrSocial.publishEvent(signedEvent);
 
                 textarea.value = '';
+                removeAttachedImage();
                 document.getElementById('char-count').textContent = '0 / 1000';
                 document.getElementById('char-count').className = 'char-count';
 
@@ -716,6 +795,7 @@
                                     <span class="feed-time">${time}</span>
                                 </div>
                                 <div class="feed-content feed-post-clickable" onclick="navigateToThread('${note.id}')">${content}</div>
+                                ${NostrSocial.generateLinkPreviews(note.content)}
                                 <div class="feed-actions">
                                     <div class="feed-action reply-btn" onclick="navigateToThread('${note.id}')">
                                         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">

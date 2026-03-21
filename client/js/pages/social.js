@@ -15,6 +15,7 @@
         _currentFeedTab: 'equaliser',
         _feedProfiles: new Map(),
         _isPosting: false,
+        _attachedImageUrl: null,
 
         // Community state
         _currentBoard: 'all',
@@ -134,6 +135,7 @@
             this._feedNotes = [];
             this._feedReactionData = { likes: {}, reposts: {}, userLiked: new Set(), userReposted: new Set() };
             this._feedProfiles = new Map();
+            this._attachedImageUrl = null;
             this._threads = [];
             this._threadProfiles = new Map();
             this._threadReplyCounts = new Map();
@@ -226,7 +228,7 @@
                 const len = textarea.value.length;
                 charCount.textContent = `${len} / 1000`;
                 charCount.className = 'char-count' + (len > 900 ? (len > 1000 ? ' over' : ' warn') : '');
-                postBtn.disabled = len === 0 || len > 1000 || this._isPosting;
+                postBtn.disabled = (len === 0 && !this._attachedImageUrl) || len > 1000 || this._isPosting;
             });
 
             postBtn.addEventListener('click', () => this._submitPost());
@@ -237,12 +239,82 @@
                     if (!postBtn.disabled) this._submitPost();
                 }
             });
+
+            // Image attach button
+            const attachBtn = document.getElementById('composer-attach-btn');
+            const imageInput = document.getElementById('composer-image-input');
+            if (attachBtn && imageInput) {
+                attachBtn.addEventListener('click', () => imageInput.click());
+                imageInput.addEventListener('change', (e) => this._handleImageAttach(e));
+            }
+        },
+
+        async _handleImageAttach(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const previewEl = document.getElementById('composer-image-preview');
+            const statusEl = document.getElementById('composer-upload-status');
+            const postBtn = document.getElementById('post-btn');
+
+            // Show local preview immediately
+            const localUrl = URL.createObjectURL(file);
+            if (previewEl) {
+                previewEl.style.display = 'block';
+                previewEl.innerHTML = `<img src="${localUrl}" alt=""><button class="composer-image-remove" onclick="event.preventDefault(); EqualiserPages.social._removeAttachedImage()">&times;</button>`;
+            }
+            if (statusEl) { statusEl.textContent = 'Uploading...'; statusEl.className = 'composer-upload-status uploading'; }
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                const response = await fetch('/api/upload/image', { method: 'POST', body: formData });
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({}));
+                    throw new Error(err.detail || `Upload failed: ${response.status}`);
+                }
+                const result = await response.json();
+                this._attachedImageUrl = result.blossom_url;
+                URL.revokeObjectURL(localUrl);
+
+                if (previewEl) {
+                    previewEl.innerHTML = `<img src="${this._attachedImageUrl}" alt=""><button class="composer-image-remove" onclick="event.preventDefault(); EqualiserPages.social._removeAttachedImage()">&times;</button>`;
+                }
+                if (statusEl) { statusEl.textContent = ''; statusEl.className = 'composer-upload-status'; }
+
+                // Enable post button if image attached (even with empty text)
+                if (postBtn) postBtn.disabled = false;
+            } catch (error) {
+                console.error('Image upload error:', error);
+                if (statusEl) { statusEl.textContent = 'Upload failed: ' + error.message; statusEl.className = 'composer-upload-status error'; }
+                this._removeAttachedImage();
+            }
+
+            // Reset file input so same file can be re-selected
+            event.target.value = '';
+        },
+
+        _removeAttachedImage() {
+            this._attachedImageUrl = null;
+            const previewEl = document.getElementById('composer-image-preview');
+            const statusEl = document.getElementById('composer-upload-status');
+            const postBtn = document.getElementById('post-btn');
+            const textarea = document.getElementById('compose-text');
+            if (previewEl) { previewEl.style.display = 'none'; previewEl.innerHTML = ''; }
+            if (statusEl) { statusEl.textContent = ''; statusEl.className = 'composer-upload-status'; }
+            if (postBtn && textarea) postBtn.disabled = textarea.value.trim().length === 0;
         },
 
         async _submitPost() {
             const textarea = document.getElementById('compose-text');
             const postBtn = document.getElementById('post-btn');
-            const content = textarea.value.trim();
+            let content = textarea.value.trim();
+
+            // Append image URL if attached
+            if (this._attachedImageUrl) {
+                content = content ? content + '\n' + this._attachedImageUrl : this._attachedImageUrl;
+            }
+
             if (!content || this._isPosting) return;
 
             const session = SessionManager.getSession();
@@ -263,6 +335,7 @@
                 await NostrSocial.publishEvent(signedEvent);
 
                 textarea.value = '';
+                this._removeAttachedImage();
                 const charCount = document.getElementById('char-count');
                 if (charCount) { charCount.textContent = '0 / 1000'; charCount.className = 'char-count'; }
 
