@@ -376,9 +376,11 @@
                 emptyMessage = `<p>No posts yet</p><p class="sub">Community posts will appear here</p>`;
             } else {
                 const followedPubkeys = await NostrSocial.fetchContactList();
-                if (followedPubkeys.length > 0) {
-                    filter = { kinds: [1], authors: followedPubkeys, limit: 50 };
-                    emptyMessage = `<p>No posts yet</p><p class="sub">People you follow haven't posted yet</p>`;
+                const session = SessionManager.getSession();
+                const feedAuthors = session ? [session.publicKey, ...followedPubkeys] : [...followedPubkeys];
+                if (feedAuthors.length > 0) {
+                    filter = { kinds: [1], authors: feedAuthors, limit: 50 };
+                    emptyMessage = `<p>No posts yet</p><p class="sub">Follow some artists to see their posts here</p>`;
                 } else {
                     feedEl.innerHTML = `
                         <div class="empty-area">
