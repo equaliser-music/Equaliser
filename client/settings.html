@@ -393,6 +393,28 @@
                 </div>
 
                 <div class="form-group">
+                    <label class="form-label">Avatar</label>
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div id="avatar-preview" style="width: 80px; height: 80px; border-radius: 50%; background: rgba(139, 92, 246, 0.2); display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px solid rgba(255,255,255,0.1); cursor: pointer; position: relative;" onclick="document.getElementById('avatar-input').click()">
+                            <span id="avatar-placeholder" style="font-size: 28px; color: rgba(255,255,255,0.3);">+</span>
+                        </div>
+                        <div>
+                            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('avatar-input').click()">Upload Avatar</button>
+                            <p class="form-hint" style="margin-top: 4px;">JPEG, PNG, or WebP</p>
+                        </div>
+                        <input type="file" id="avatar-input" accept="image/jpeg,image/png,image/webp" style="display: none;" onchange="handleAvatarUpload(event)">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Banner</label>
+                    <div id="banner-preview" style="width: 100%; height: 120px; border-radius: 10px; background: rgba(139, 92, 246, 0.1); display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; position: relative;" onclick="document.getElementById('banner-input').click()">
+                        <span id="banner-placeholder" style="font-size: 14px; color: rgba(255,255,255,0.3);">Click to upload banner</span>
+                    </div>
+                    <input type="file" id="banner-input" accept="image/jpeg,image/png,image/webp" style="display: none;" onchange="handleBannerUpload(event)">
+                </div>
+
+                <div class="form-group">
                     <label class="form-label">Display Name</label>
                     <input type="text" class="form-input" id="edit-name" placeholder="Your display name">
                 </div>
@@ -533,6 +555,8 @@
         // State
         let currentProfile = {};
         let relays = [];
+        let avatarBlossomUrl = null;
+        let bannerBlossomUrl = null;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
@@ -597,6 +621,75 @@
             document.getElementById('edit-website').value = profile.website || '';
             document.getElementById('edit-lud16').value = profile.lud16 || '';
             document.getElementById('edit-nip05').value = profile.nip05 || '';
+
+            // Show existing avatar
+            if (profile.picture) {
+                const preview = document.getElementById('avatar-preview');
+                preview.innerHTML = `<img src="${profile.picture}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='<span style=\\'font-size:28px;color:rgba(255,255,255,0.3)\\'>+</span>'">`;
+            }
+
+            // Show existing banner
+            if (profile.banner) {
+                const preview = document.getElementById('banner-preview');
+                preview.innerHTML = `<img src="${profile.banner}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='<span style=\\'font-size:14px;color:rgba(255,255,255,0.3)\\'>Click to upload banner</span>'">`;
+            }
+        }
+
+        // ===== Image Upload =====
+
+        async function uploadImage(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('/api/upload/image', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.detail || `Upload failed: ${response.status}`);
+            }
+
+            return await response.json();
+        }
+
+        async function handleAvatarUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const preview = document.getElementById('avatar-preview');
+            const localPreview = URL.createObjectURL(file);
+            preview.innerHTML = `<img src="${localPreview}" style="width:100%;height:100%;object-fit:cover;">`;
+
+            try {
+                const result = await uploadImage(file);
+                avatarBlossomUrl = result.blossom_url;
+                URL.revokeObjectURL(localPreview);
+                preview.innerHTML = `<img src="${avatarBlossomUrl}" style="width:100%;height:100%;object-fit:cover;"><span style="position:absolute;bottom:4px;right:4px;background:#22c55e;color:white;font-size:10px;padding:2px 6px;border-radius:4px;">Uploaded</span>`;
+            } catch (error) {
+                console.error('Avatar upload error:', error);
+                alert('Failed to upload avatar: ' + error.message);
+            }
+        }
+
+        async function handleBannerUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const preview = document.getElementById('banner-preview');
+            const localPreview = URL.createObjectURL(file);
+            preview.innerHTML = `<img src="${localPreview}" style="width:100%;height:100%;object-fit:cover;">`;
+
+            try {
+                const result = await uploadImage(file);
+                bannerBlossomUrl = result.blossom_url;
+                URL.revokeObjectURL(localPreview);
+                preview.innerHTML = `<img src="${bannerBlossomUrl}" style="width:100%;height:100%;object-fit:cover;"><span style="position:absolute;bottom:4px;right:4px;background:#22c55e;color:white;font-size:10px;padding:2px 6px;border-radius:4px;">Uploaded</span>`;
+            } catch (error) {
+                console.error('Banner upload error:', error);
+                alert('Failed to upload banner: ' + error.message);
+            }
         }
 
         // ===== Save Profile =====
@@ -618,6 +711,10 @@
                 lud16: document.getElementById('edit-lud16').value.trim(),
                 nip05: document.getElementById('edit-nip05').value.trim()
             };
+
+            // Update image URLs if new uploads were made
+            if (avatarBlossomUrl) updatedProfile.picture = avatarBlossomUrl;
+            if (bannerBlossomUrl) updatedProfile.banner = bannerBlossomUrl;
 
             const event = {
                 kind: 0,
