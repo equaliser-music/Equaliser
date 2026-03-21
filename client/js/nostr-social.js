@@ -74,9 +74,12 @@ const NostrSocial = (() => {
      * Check if a URL points to an image file.
      */
     function _isImageUrl(url) {
-        // Strip query string and fragment for extension check
         const path = url.split('?')[0].split('#')[0].toLowerCase();
-        return /\.(jpg|jpeg|png|gif|webp|svg)$/.test(path);
+        // Standard image extensions
+        if (/\.(jpg|jpeg|png|gif|webp|svg)$/.test(path)) return true;
+        // Blossom URLs: /blossom/{sha256hash} — 64-char hex hash, no extension
+        if (/\/blossom\/[a-f0-9]{64}$/.test(path)) return true;
+        return false;
     }
 
     /**
