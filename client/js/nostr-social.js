@@ -47,6 +47,66 @@ const NostrSocial = (() => {
         );
     }
 
+    /**
+     * Extract URLs from plain text (before escaping).
+     */
+    function _extractUrls(text) {
+        const matches = text.match(/https?:\/\/[^\s<]+/g);
+        return matches || [];
+    }
+
+    /**
+     * Extract YouTube video ID from a URL.
+     * Supports youtube.com/watch, youtu.be, youtube.com/shorts, youtube.com/embed
+     */
+    function _getYouTubeId(url) {
+        const patterns = [
+            /(?:youtube\.com\/watch\?.*v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/
+        ];
+        for (const p of patterns) {
+            const m = url.match(p);
+            if (m) return m[1];
+        }
+        return null;
+    }
+
+    /**
+     * Generate link preview HTML for URLs found in note content.
+     * Returns HTML string to append after the note content.
+     * Currently supports: YouTube (client-side thumbnail).
+     */
+    function generateLinkPreviews(rawText) {
+        const urls = _extractUrls(rawText);
+        if (urls.length === 0) return '';
+
+        const previews = [];
+        const seen = new Set();
+
+        for (const url of urls) {
+            // YouTube preview
+            const ytId = _getYouTubeId(url);
+            if (ytId && !seen.has(ytId)) {
+                seen.add(ytId);
+                const thumb = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+                previews.push(`
+                    <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="link-preview" onclick="event.stopPropagation()">
+                        <div class="link-preview-image">
+                            <img src="${thumb}" alt="" loading="lazy">
+                            <div class="link-preview-play">
+                                <svg width="36" height="36" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                            </div>
+                        </div>
+                        <div class="link-preview-meta">
+                            <span class="link-preview-domain">youtube.com</span>
+                        </div>
+                    </a>`);
+                continue;
+            }
+        }
+
+        return previews.join('');
+    }
+
     // ===== Low-level relay communication =====
 
     async function _queryRelay(relayUrl, filter, timeoutMs = 8000) {
@@ -591,6 +651,7 @@ const NostrSocial = (() => {
         escapeHtml,
         relativeTime,
         linkifyContent,
+        generateLinkPreviews,
         isEqualiiserEvent,
         isTopLevelPost,
         parseThreadTags,

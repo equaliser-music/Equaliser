@@ -350,6 +350,7 @@
                             <div class="nostr-time">${time}</div>
                         </div>
                         <div class="nostr-content" style="cursor:pointer" onclick="Router.navigate('/thread.html?id=${note.id}')">${content}</div>
+                        ${NostrSocial.generateLinkPreviews(note.content)}
                         <div class="nostr-actions">
                             <div class="nostr-action reply-btn" onclick="Router.navigate('/thread.html?id=${note.id}')">
                                 <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">

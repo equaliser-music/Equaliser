@@ -429,6 +429,7 @@
                                     <span class="feed-time">${time}</span>
                                 </div>
                                 <div class="feed-content feed-post-clickable" onclick="navigateToThread('${note.id}')">${content}</div>
+                                ${NostrSocial.generateLinkPreviews(note.content)}
                                 ${isPlaylistShare ? this._renderPlaylistShareCard(note) : ''}
                                 <div class="feed-actions">
                                     <div class="feed-action reply-btn" onclick="navigateToThread('${note.id}')">

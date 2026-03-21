@@ -151,6 +151,7 @@
                         </div>
                     </div>
                     <div class="root-content">${content}</div>
+                    ${NostrSocial.generateLinkPreviews(ev.content)}
                     <div class="root-time">${timeStr}</div>
                     <div class="root-stats">
                         <span class="root-stat"><strong class="reply-count-display">${this._threadReplies.length}</strong> ${this._threadReplies.length === 1 ? 'Reply' : 'Replies'}</span>
@@ -210,6 +211,7 @@
                                 <span class="reply-time">${time}</span>
                             </div>
                             <div class="reply-content">${content}</div>
+                            ${NostrSocial.generateLinkPreviews(reply.content)}
                             <div class="reply-actions">
                                 <div class="reply-action like-btn${userLiked ? ' liked' : ''}" onclick="handleLike('${reply.id}', '${reply.pubkey}')">
                                     <svg viewBox="0 0 20 20" fill="${userLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.5">

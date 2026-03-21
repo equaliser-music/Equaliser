@@ -160,6 +160,60 @@
         }
 
         .eq-playlist-picker-create-save:disabled { opacity: 0.5; }
+
+        /* Link preview cards (shared across pages) */
+        .link-preview {
+            display: block;
+            margin: 8px 0 12px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.03);
+            text-decoration: none;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .link-preview:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.2);
+            text-decoration: none;
+        }
+        .link-preview-image {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background: rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        .link-preview-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .link-preview-play {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 56px;
+            height: 56px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .link-preview:hover .link-preview-play {
+            background: rgba(255, 0, 0, 0.85);
+        }
+        .link-preview-meta {
+            padding: 10px 14px;
+        }
+        .link-preview-domain {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+        }
     </style>
 </head>
 <body>
