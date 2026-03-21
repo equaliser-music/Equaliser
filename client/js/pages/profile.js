@@ -308,6 +308,7 @@
                         <span class="feed-time">${time}</span>
                     </div>
                     <div class="feed-item-content" style="cursor:pointer" onclick="Router.navigate('/thread.html?id=${item.noteId}')">${content}</div>
+                    ${NostrSocial.generateLinkPreviews(item.content)}
                     <div class="feed-actions">
                         <button class="feed-action-btn reply-btn" onclick="Router.navigate('/thread.html?id=${item.noteId}')">
                             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">

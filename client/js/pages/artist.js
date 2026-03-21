@@ -702,6 +702,7 @@
                                 <span class="feed-time">${time}</span>
                             </div>
                             <div class="feed-content">${content}</div>
+                            ${NostrSocial.generateLinkPreviews(note.content)}
                             <div class="feed-actions">
                                 <button class="feed-action-btn like-btn${userLiked ? ' liked' : ''}" onclick="handleLike('${note.id}', '${note.pubkey}')">
                                     <svg viewBox="0 0 20 20" fill="${userLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.5">
