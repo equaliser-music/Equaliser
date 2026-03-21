@@ -639,6 +639,10 @@
         let genres = [];
         let avatarCID = null;
         let bannerCID = null;
+        let avatarBlossomHash = null;
+        let avatarBlossomUrl = null;
+        let bannerBlossomHash = null;
+        let bannerBlossomUrl = null;
 
         // Configuration
         const localRelayUrl = (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/relay';
@@ -862,11 +866,31 @@
         }
 
         // IPFS Image Upload via orchestrator API
-        async function uploadToIPFS(file) {
+        async function uploadProfileImage(file) {
             const formData = new FormData();
             formData.append('file', file);
 
-            // Use the cover-art API endpoint which handles IPFS uploads
+            // Upload to Blossom via generic image upload endpoint
+            const response = await fetch('/api/upload/image', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.detail || `Upload failed: ${response.status}`);
+            }
+
+            const result = await response.json();
+            return { blossom_hash: result.blossom_hash, blossom_url: result.blossom_url };
+        }
+
+        // Legacy wrapper — also upload to IPFS via cover-art endpoint for fallback CID
+        async function uploadProfileImageWithIPFS(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Use cover-art endpoint which uploads to both Blossom + IPFS
             const response = await SessionManager.authFetch('/api/tracks/cover-art', {
                 method: 'POST',
                 body: formData
@@ -878,7 +902,11 @@
             }
 
             const result = await response.json();
-            return { cid: result.cid };
+            return {
+                cid: result.cid,
+                blossom_hash: result.blossom_hash,
+                blossom_url: result.url,
+            };
         }
 
         async function handleAvatarUpload(event) {
@@ -895,19 +923,21 @@
                 // Add uploading indicator
                 previewEl.innerHTML += '<span class="upload-status uploading"><span class="loading" style="width:12px;height:12px;border-width:1px;"></span></span>';
 
-                // Upload to IPFS
-                const { cid } = await uploadToIPFS(file);
-                avatarCID = cid;
+                // Upload to Blossom + IPFS (artist profiles get both for resilience)
+                const result = await uploadProfileImageWithIPFS(file);
+                avatarCID = result.cid;
+                avatarBlossomHash = result.blossom_hash;
+                avatarBlossomUrl = result.blossom_url;
 
-                // Update preview with local gateway URL (fast) and success indicator
+                // Update preview with Blossom URL and success indicator
                 URL.revokeObjectURL(localPreview);
-                const localUrl = getLocalGatewayUrl(cid);
-                showImagePreview('avatar-preview', localUrl);
+                const previewUrl = avatarBlossomUrl || getLocalGatewayUrl(avatarCID);
+                showImagePreview('avatar-preview', previewUrl);
                 previewEl.innerHTML += '<span class="upload-status success">&#10003;</span>';
 
                 // Update sidebar avatar too
                 const name = document.getElementById('name').value.trim() || 'Artist';
-                AdminSidebar.updateArtistDisplay(name, localUrl);
+                AdminSidebar.updateArtistDisplay(name, previewUrl);
 
             } catch (error) {
                 console.error('Avatar upload error:', error);
@@ -930,14 +960,16 @@
                 // Add uploading indicator
                 previewEl.innerHTML += '<span class="upload-status uploading"><span class="loading" style="width:12px;height:12px;border-width:1px;"></span></span>';
 
-                // Upload to IPFS
-                const { cid } = await uploadToIPFS(file);
-                bannerCID = cid;
+                // Upload to Blossom + IPFS (artist profiles get both for resilience)
+                const result = await uploadProfileImageWithIPFS(file);
+                bannerCID = result.cid;
+                bannerBlossomHash = result.blossom_hash;
+                bannerBlossomUrl = result.blossom_url;
 
-                // Update preview with local gateway URL (fast) and success indicator
+                // Update preview with Blossom URL and success indicator
                 URL.revokeObjectURL(localPreview);
-                const localUrl = getLocalGatewayUrl(cid);
-                showImagePreview('banner-preview', localUrl);
+                const previewUrl = bannerBlossomUrl || getLocalGatewayUrl(bannerCID);
+                showImagePreview('banner-preview', previewUrl);
                 previewEl.innerHTML += '<span class="upload-status success">&#10003;</span>';
 
             } catch (error) {
@@ -1000,25 +1032,41 @@
             // Always ensure equaliser namespace exists
             profile.equaliser = profile.equaliser || {};
 
-            // Determine picture CID: new upload, existing equaliser CID, or extract from URL
+            // Determine picture: prefer Blossom URL (cross-node), fall back to IPFS
             const pictureCid = avatarCID
                 || profile.equaliser.picture_cid
                 || extractCidFromUrl(profile.picture);
+            const pictureBlossomUrl = avatarBlossomUrl
+                || profile.equaliser.picture_blossom_url;
 
-            if (pictureCid) {
+            if (pictureBlossomUrl) {
+                profile.picture = pictureBlossomUrl;
+            } else if (pictureCid) {
                 profile.picture = `${PUBLIC_IPFS_GATEWAY}${pictureCid}`;
-                profile.equaliser.picture_cid = pictureCid;
             }
+            if (pictureCid) profile.equaliser.picture_cid = pictureCid;
+            if (avatarBlossomHash || profile.equaliser.picture_blossom_hash) {
+                profile.equaliser.picture_blossom_hash = avatarBlossomHash || profile.equaliser.picture_blossom_hash;
+            }
+            if (pictureBlossomUrl) profile.equaliser.picture_blossom_url = pictureBlossomUrl;
 
-            // Determine banner CID: new upload, existing equaliser CID, or extract from URL
+            // Determine banner: prefer Blossom URL (cross-node), fall back to IPFS
             const bannerCid = bannerCID
                 || profile.equaliser.banner_cid
                 || extractCidFromUrl(profile.banner);
+            const bannerBlossomUrlValue = bannerBlossomUrl
+                || profile.equaliser.banner_blossom_url;
 
-            if (bannerCid) {
+            if (bannerBlossomUrlValue) {
+                profile.banner = bannerBlossomUrlValue;
+            } else if (bannerCid) {
                 profile.banner = `${PUBLIC_IPFS_GATEWAY}${bannerCid}`;
-                profile.equaliser.banner_cid = bannerCid;
             }
+            if (bannerCid) profile.equaliser.banner_cid = bannerCid;
+            if (bannerBlossomHash || profile.equaliser.banner_blossom_hash) {
+                profile.equaliser.banner_blossom_hash = bannerBlossomHash || profile.equaliser.banner_blossom_hash;
+            }
+            if (bannerBlossomUrlValue) profile.equaliser.banner_blossom_url = bannerBlossomUrlValue;
 
             // Equaliser-specific fields
             const location = document.getElementById('location').value.trim();

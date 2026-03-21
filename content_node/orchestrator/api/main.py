@@ -21,6 +21,7 @@ from routers import tracks
 from routers import drafts
 from routers import packages
 from routers import users
+from routers import uploads
 import asyncio
 
 from services.database import init_db
@@ -69,6 +70,7 @@ app.include_router(tracks.router, prefix="/api/tracks", tags=["tracks"])
 app.include_router(drafts.router, prefix="/api/drafts", tags=["drafts"])
 app.include_router(packages.router, prefix="/api/releases", tags=["packages"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
+app.include_router(uploads.router, prefix="/api/upload", tags=["uploads"])
 
 
 @app.get("/health")

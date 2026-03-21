@@ -15,6 +15,8 @@
     const SettingsPage = {
         _currentProfile: {},
         _relays: [],
+        _avatarBlossomUrl: null,
+        _bannerBlossomUrl: null,
 
         init(params) {
             if (!SessionManager.hasSession()) {
@@ -31,6 +33,8 @@
             window.copyKey = (id) => this._copyKey(id);
             window.downloadBackup = () => this._downloadBackup();
             window.handleLogout = () => this._handleLogout();
+            window.handleAvatarUpload = (e) => this._handleAvatarUpload(e);
+            window.handleBannerUpload = (e) => this._handleBannerUpload(e);
 
             const session = SessionManager.getSession();
             const npubEl = document.getElementById('account-npub');
@@ -50,8 +54,12 @@
             delete window.copyKey;
             delete window.downloadBackup;
             delete window.handleLogout;
+            delete window.handleAvatarUpload;
+            delete window.handleBannerUpload;
             this._currentProfile = {};
             this._relays = [];
+            this._avatarBlossomUrl = null;
+            this._bannerBlossomUrl = null;
         },
 
         // ===== Load Profile =====
@@ -95,6 +103,70 @@
             setVal('edit-website', profile.website || '');
             setVal('edit-lud16', profile.lud16 || '');
             setVal('edit-nip05', profile.nip05 || '');
+
+            // Show existing avatar
+            if (profile.picture) {
+                const preview = document.getElementById('avatar-preview');
+                if (preview) preview.innerHTML = `<img src="${profile.picture}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='<span style=\\'font-size:28px;color:rgba(255,255,255,0.3)\\'>+</span>'">`;
+            }
+            // Show existing banner
+            if (profile.banner) {
+                const preview = document.getElementById('banner-preview');
+                if (preview) preview.innerHTML = `<img src="${profile.banner}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='<span style=\\'font-size:14px;color:rgba(255,255,255,0.3)\\'>Click to upload banner</span>'">`;
+            }
+        },
+
+        // ===== Image Upload =====
+
+        async _uploadImage(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            const response = await fetch('/api/upload/image', { method: 'POST', body: formData });
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.detail || `Upload failed: ${response.status}`);
+            }
+            return await response.json();
+        },
+
+        async _handleAvatarUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const preview = document.getElementById('avatar-preview');
+            if (!preview) return;
+            const localPreview = URL.createObjectURL(file);
+            preview.innerHTML = `<img src="${localPreview}" style="width:100%;height:100%;object-fit:cover;">`;
+
+            try {
+                const result = await this._uploadImage(file);
+                this._avatarBlossomUrl = result.blossom_url;
+                URL.revokeObjectURL(localPreview);
+                preview.innerHTML = `<img src="${this._avatarBlossomUrl}" style="width:100%;height:100%;object-fit:cover;"><span style="position:absolute;bottom:4px;right:4px;background:#22c55e;color:white;font-size:10px;padding:2px 6px;border-radius:4px;">Uploaded</span>`;
+            } catch (error) {
+                console.error('Avatar upload error:', error);
+                alert('Failed to upload avatar: ' + error.message);
+            }
+        },
+
+        async _handleBannerUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const preview = document.getElementById('banner-preview');
+            if (!preview) return;
+            const localPreview = URL.createObjectURL(file);
+            preview.innerHTML = `<img src="${localPreview}" style="width:100%;height:100%;object-fit:cover;">`;
+
+            try {
+                const result = await this._uploadImage(file);
+                this._bannerBlossomUrl = result.blossom_url;
+                URL.revokeObjectURL(localPreview);
+                preview.innerHTML = `<img src="${this._bannerBlossomUrl}" style="width:100%;height:100%;object-fit:cover;"><span style="position:absolute;bottom:4px;right:4px;background:#22c55e;color:white;font-size:10px;padding:2px 6px;border-radius:4px;">Uploaded</span>`;
+            } catch (error) {
+                console.error('Banner upload error:', error);
+                alert('Failed to upload banner: ' + error.message);
+            }
         },
 
         // ===== Save Profile =====
@@ -113,6 +185,10 @@
                 lud16: (document.getElementById('edit-lud16')?.value || '').trim(),
                 nip05: (document.getElementById('edit-nip05')?.value || '').trim()
             };
+
+            // Update image URLs if new uploads were made
+            if (this._avatarBlossomUrl) updatedProfile.picture = this._avatarBlossomUrl;
+            if (this._bannerBlossomUrl) updatedProfile.banner = this._bannerBlossomUrl;
 
             const event = {
                 kind: 0,
