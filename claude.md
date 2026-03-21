@@ -172,6 +172,19 @@ This script:
 - Shows breakdown by event kind before deleting
 - Dry run by default for safety
 
+### seed-user-cache.sh
+Seed a standard relay with test fan data and register pubkeys with the content node. **Use when testing user data caching pipeline.**
+
+```bash
+./tools/seed-user-cache.sh                                                    # Seed local standard relay + register locally
+./tools/seed-user-cache.sh --relay wss://relay1.equaliser.app --node https://test1.equaliser.app  # Seed VPS
+```
+
+This script:
+- Publishes Kind 0 (profiles), Kind 3 (follow lists), Kind 1 (posts) for 5 test fans to the standard relay
+- Registers each fan pubkey with the content node via `POST /api/users/register`
+- Prints verification commands and fan nsec keys for client login testing
+
 ### Artist Package Tools
 
 Tools for importing/exporting artist content as `.eqpkg.zip` release packages. See [ARTIST_PACKAGE.md](docs/ARTIST_PACKAGE.md) for format specification.
@@ -364,7 +377,7 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - See also **Security Hardening** TODO above for rate limiting, input validation, container isolation
 
 - [ ] **Multi-Node Architecture**: Scaling beyond single content node
-  - **Equaliser relay network** (done): Two-tier relay architecture — standard NOSTR relays for social interop, Equaliser peer relays for music metadata replication. Two nodes deployed (CPX22 + CX23) with bidirectional peer sync.
+  - **Equaliser relay network** (done): Two-tier relay architecture — standard NOSTR relays for social interop, Equaliser peer relays for music metadata replication. Two nodes deployed (CPX22 + CX23) with bidirectional peer sync. Self-hosted nostr-rs-relay on each VPS (`relay1.equaliser.app`, `relay2.equaliser.app`) as standard relays for user data caching.
   - **Cross-node cover art** (done): Absolute Blossom URLs (`blossom_cover_url` tag) for cross-node display, IPFS fallback (`cover_art_cid` tag) when origin Blossom is down. No Blossom mirroring — storage is a valuable resource.
   - Artists configure peer relays (other content nodes); Equaliser Relay publishes music events to configured peer relays via its built-in peer syncer
   - `PUBLIC_BASE_URL` env var on orchestrator enables absolute Blossom URLs in NOSTR events
@@ -386,14 +399,17 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - See [SOCIAL.md](docs/implemented/SOCIAL.md)
 
 - [ ] **User Data Caching (Phase B.1)**: Cache fan/listener NOSTR data on content node
-  - **Partial**: DB tables exist (`registered_users`, `cached_users`, `cached_user_follows`, `cached_user_feed`, `cached_user_playlists`) + relay endpoint `POST /api/internal/users/register`
-  - **Done**: Orchestrator proxy (`POST /api/users/register`) forwards to relay internal API. Client auto-registers pubkey on login (fire-and-forget). Standard relay syncer enabled (`STANDARD_RELAYS` config) — connects to Damus, nos.lol, Primal for inbound Kind 0/1/3/5 by known pubkeys.
-  - TODO: Admin controls, outbound publishing to standard relays (feed posts only, not community threads)
-  - Fan authenticates via NIP-07/NIP-46, orchestrator writes pubkey to `registered_users`
-  - Equaliser Relay's built-in peer syncer subscribes to user's Kind 0 (profile), Kind 3 (follows), Kind 30001 (playlists), Kind 1 (feed)
-  - Follow list processing auto-discovers Equaliser artists not yet indexed
+  - **Done**: DB tables (`registered_users`, `cached_users`, `cached_user_follows`, `cached_user_feed`, `cached_user_playlists`), relay internal API, orchestrator proxy, client auto-register on login
+  - **Done**: Standard relay infrastructure — self-hosted nostr-rs-relay on each VPS (`relay1.equaliser.app`, `relay2.equaliser.app`), `STANDARD_RELAYS` config points to them, syncer pulls Kind 0/1/3/5 by known pubkeys
+  - **Done**: Cache REST API (`/api/cache/`) — profiles (batch + single), follows, feed, artists, tracks (by artist + recent), albums, thread external refs. General-purpose event query (`GET /api/cache/events`) with NIP-01-style filter params replaces WebSocket REQ for reads. Nginx routes `/api/cache/` to relay REST port (8008).
+  - **Done**: Client REST-first migration — `cache-api.js` module with `queryEvents()` + denorm functions. `_queryRelay()` in nostr-social.js tries REST cache API for local relay reads; external relay WebSocket queries skipped entirely when cache API is available. All NostrSocial functions (fetchNotes, fetchReactions, fetchReplyCounts, fetchThreadReplies, etc.) automatically use REST. WebSocket retained only for event publishing.
+  - **Partial**: Some page-specific custom WebSocket queries remain (artist.js, home.js, user.js have direct WebSocket for Kind 0/30050). These bypass NostrSocial and still open WebSocket connections. TODO: migrate to cache API or route through NostrSocial.
+  - **Done**: Profile backfill on registration — copies existing Kind 0 from `raw_events` into `cached_users` at registration time (fixes onboarding timing gap)
+  - **Done**: Event acceptance policy fix — Kind 1 from known pubkeys (registered users/artists) accepted without app tag, enabling standard relay syncing of fan posts
+  - TODO: Admin controls (per-user enable/disable, force resync, remove user)
+  - TODO: Outbound publishing to standard relays (feed posts with `["content-type", "post"]` only, not community threads)
+  - TODO: Inbound reply/reaction caching — syncer `#e`-based subscription for Equaliser post IDs on standard relays, caching replies (Kind 1), likes (Kind 7), reposts (Kind 6) from wider NOSTR. Rule: complete the interaction tree for any `["app", "equaliser"]` originating post
   - Feed thresholds: `USER_FEED_DAYS` (default 30), `USER_FEED_LIMIT` (default 500)
-  - Admin controls: per-user enable/disable, feed thresholds, force resync, remove user
   - See [DATABASE.md](docs/DATABASE.md) (User Cache Tables), [EQUALISER_RELAY.md](docs/EQUALISER_RELAY.md) (Peer Syncer & User Subscriptions), [ORCHESTRATOR.md](docs/ORCHESTRATOR.md) (User Registration)
 
 - [ ] **Access Control (Phase A)**: Gated onboarding with invite codes
@@ -408,7 +424,7 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - **Phase 1 (done):** NIP-01 WebSocket relay in Go, PostgreSQL storage with full tag indexing, denormalised parsing (Kind 0/30050/30051), tiered event acceptance policy (strict for music metadata, context-aware for social, known-pubkey for profiles), `["user-type", "artist"]` tag for Kind 0 denorm routing, replaces nostr-rs-relay
   - **Phase 2 (done):** Peer syncer — persistent WebSocket connections to configured peer relays, inbound Equaliser event sync, outbound event forwarding, exponential backoff reconnection, peer status tracking in `peer_relays` table
   - **Bug: Peer syncer connection drops every ~30s** — persistent WebSocket to peer relay disconnects with "use of closed network connection" every ~30 seconds. Reconnects fine with 5s backoff and incremental `since` ensures no events are lost, but the constant churn is wasteful. Investigate: could be VPS nginx idle timeout, relay-side read timeout, or the periodic resync (SYNC_INTERVAL) closing connections prematurely
-  - **Phase 3 (partial):** Internal REST API exists (`POST /api/internal/users/register`, `GET /api/catalogue/threads/{id}/external`, health check). TODO: full public `/api/catalogue/*` endpoints, `catalogue-api.js` client module, migrate reads from WebSocket to REST
+  - **Phase 3 (done):** Cache REST API at `/api/cache/` — profiles (batch + single), follows, feed, artists, tracks (by artist + recent), albums, thread external refs. General event query (`GET /api/cache/events`) with NIP-01 filter params (kinds, authors, ids, #e, #p, limit, since, until) replaces WebSocket REQ for reads. Client `cache-api.js` + REST-first `_queryRelay()` eliminates external relay WebSocket connections. Internal: `POST /api/internal/users/register` with profile backfill
   - **Phase 4 (done):** pgxpool connection pooling (MaxConns=20, MinConns=2), denormalised Kind 0/30050/30051 tables, user feed caching with configurable limits (USER_FEED_DAYS, USER_FEED_LIMIT)
   - See [EQUALISER_RELAY.md](docs/EQUALISER_RELAY.md), [DATABASE.md](docs/DATABASE.md), [NODE-MANAGEMENT-SPEC.md](docs/NODE-MANAGEMENT-SPEC.md) Sections 2-4
 
