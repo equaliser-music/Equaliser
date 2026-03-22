@@ -699,7 +699,7 @@
             }
 
             let allNotes = await NostrSocial.fetchNotes(filter);
-            allNotes = allNotes.filter(n => NostrSocial.isEqualiiserEvent(n) && NostrSocial.isTopLevelPost(n));
+            allNotes = allNotes.filter(n => NostrSocial.isTopLevelPost(n));
 
             if (allNotes.length === 0) {
                 feedEl.innerHTML = `
@@ -793,6 +793,7 @@
                             <div class="feed-post-body">
                                 <div class="feed-post-header">
                                     <span class="feed-display-name">${npub ? `<a href="user.html?npub=${npub}">${escapeHtml(name)}</a>` : escapeHtml(name)}</span>
+                                    ${!NostrSocial.isEqualiiserEvent(note) ? '<span class="feed-nostr-badge">via NOSTR</span>' : ''}
                                     <span class="feed-handle">${npub ? npub.substring(0, 16) + '...' : ''}</span>
                                     <span class="feed-time">${time}</span>
                                 </div>

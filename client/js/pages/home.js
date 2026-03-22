@@ -256,7 +256,7 @@
             }
 
             let allNotes = await NostrSocial.fetchNotes(filter);
-            allNotes = allNotes.filter(n => NostrSocial.isEqualiiserEvent(n) && NostrSocial.isTopLevelPost(n));
+            allNotes = allNotes.filter(n => NostrSocial.isTopLevelPost(n));
 
             this._feedCache[tab] = allNotes;
 
@@ -347,6 +347,7 @@
                                 <div class="nostr-username">${npub ? `<a href="user.html?npub=${npub}">${this._escapeHtml(name)}</a>` : this._escapeHtml(name)}</div>
                                 <div class="nostr-handle">${npub ? npub.substring(0, 16) + '...' : ''}</div>
                             </div>
+                            ${!NostrSocial.isEqualiiserEvent(note) ? '<span class="feed-nostr-badge">via NOSTR</span>' : ''}
                             <div class="nostr-time">${time}</div>
                         </div>
                         <div class="nostr-content" style="cursor:pointer" onclick="Router.navigate('/thread.html?id=${note.id}')">${content}</div>

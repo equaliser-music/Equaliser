@@ -224,7 +224,7 @@
             const escapeHtml = NostrSocial.escapeHtml;
 
             let allNotes = await NostrSocial.fetchNotes({ kinds: [1], authors: [pubkeyHex], limit: 50 });
-            allNotes = allNotes.filter(n => NostrSocial.isEqualiiserEvent(n) && NostrSocial.isTopLevelPost(n));
+            allNotes = allNotes.filter(n => NostrSocial.isTopLevelPost(n));
 
             if (allNotes.length === 0) {
                 container.innerHTML = `
@@ -279,6 +279,7 @@
                                 }
                             </div>
                             <span class="feed-author-name">${escapeHtml(profile.name || 'User')}</span>
+                            ${!NostrSocial.isEqualiiserEvent(note) ? '<span class="feed-nostr-badge">via NOSTR</span>' : ''}
                             <span class="feed-time">${time}</span>
                         </div>
                         <div class="feed-content" style="cursor:pointer" onclick="Router.navigate('/thread.html?id=${note.id}')">${content}</div>

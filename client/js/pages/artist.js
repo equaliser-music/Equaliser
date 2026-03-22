@@ -628,7 +628,7 @@
             if (!container) return;
 
             let allNotes = await NostrSocial.fetchNotes({ kinds: [1], authors: [pubkeyHex], limit: 50 });
-            allNotes = allNotes.filter(n => NostrSocial.isEqualiiserEvent(n));
+            allNotes = allNotes.filter(n => NostrSocial.isTopLevelPost(n));
 
             if (allNotes.length === 0) {
                 container.innerHTML = `
@@ -675,6 +675,7 @@
                                     }
                                 </div>
                                 <span class="feed-author-name">${escapeHtml(profile.name || 'Artist')}</span>
+                                ${!NostrSocial.isEqualiiserEvent(note) ? '<span class="feed-nostr-badge">via NOSTR</span>' : ''}
                                 <span class="feed-time">${time}</span>
                             </div>
                             <div class="feed-content">${content}</div>
