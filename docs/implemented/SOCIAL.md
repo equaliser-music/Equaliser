@@ -704,6 +704,82 @@ Pulling external content into local relay:
 
 ---
 
+## Rich Feed Features (Implemented)
+
+### Link Previews
+
+URLs in note content are automatically rendered as rich previews across all feed pages.
+
+**YouTube**: Thumbnail card with play button overlay. Supports `youtube.com/watch`, `youtu.be`, `youtube.com/shorts`, `youtube.com/embed`.
+
+**Inline Images**: URLs ending in `.jpg`, `.png`, `.gif`, `.webp`, `.svg` render as inline images. Blossom hash URLs (`/blossom/{64-char-hex}`) are also detected as images.
+
+Implementation: `NostrSocial.generateLinkPreviews(rawText)` in `nostr-social.js`, called by all feed page renderers after content linkification.
+
+### Image Attach on Post Composer
+
+The social feed composer (`social.html`) includes an image attach button:
+1. User clicks image icon → file picker opens (JPEG, PNG, WebP, GIF)
+2. Image uploads to local Blossom via `POST /api/upload/image`
+3. Preview shown with remove button
+4. On post, absolute Blossom URL appended to note content
+5. Image renders inline via link preview detection on all feed pages
+
+### Release Announcements
+
+Artists can announce new releases to their social feed.
+
+**Admin flow**: After releasing tracks from `releases.html` or `edit-release.html`, a modal offers to post an announcement. Pre-filled message is customisable. Cover art preview shown.
+
+**Event structure**:
+```json
+{
+  "kind": 1,
+  "tags": [
+    ["app", "Equaliser"],
+    ["content-type", "release-announcement"],
+    ["e", "<track-event-id-1>"],
+    ["e", "<track-event-id-2>"]
+  ],
+  "content": "Just released 'Album Name' — 8 tracks! Listen now on Equaliser"
+}
+```
+
+**Client rendering**: All feed pages detect `["content-type", "release-announcement"]` and render a green-accented expandable card. Click to expand shows track list with cover art, play buttons, "Play All", and "Add to Library" button. Tracks resolved via `NostrPlaylists.resolveTrackEvents(eventIds)`.
+
+Implementation: `NostrSocial.generateReleaseAnnouncementCard(note)`, `expandReleaseCard()`, `playFromReleaseCard()`, `addReleaseToLibrary()`.
+
+### Expandable Playlist Cards
+
+Playlist share posts (`["content-type", "playlist-share"]`) render as expandable cards in feeds. Collapsed: music icon + "View Playlist" + chevron. Expanded: playlist title, track list with cover art/duration/play buttons, "Play All", "Open" link to playlist page, and "Add to Library" button.
+
+Implementation: `_renderPlaylistShareCard()` and `_expandPlaylistCard()` in `social.js`.
+
+### Follower/Following Counts & Modal
+
+Profile, user, and artist pages display **Following** and **Followers** counts.
+
+**Following count**: `p` tags in user's Kind 3 contact list.
+**Followers count**: Kind 3 events with `#p` tag matching user's pubkey (via `CacheAPI.queryEvents`).
+
+Clicking either count opens a modal listing users with avatar, display name, first 50 chars of bio, and follow/unfollow button. Follow actions update Kind 3 in real-time.
+
+Implementation: `NostrSocial.showFollowListModal(pubkey, type)` shared across all pages.
+
+### Add to Library
+
+**On release announcement cards**: "Add to Library" creates a new playlist from the release's track event IDs via `NostrPlaylists.createPlaylist()`. Appears in user's "My Playlists" tab.
+
+**On playlist share cards**: "Add to Library" follows the existing playlist via `NostrPlaylists.followPlaylist()`. Appears in user's "Following" tab.
+
+**On playlist page**: "Follow" button renamed to "Add to Library" / "In Library". Same follow behaviour.
+
+### Your Feed — Own Posts
+
+The "Your Feed" tab on the social page includes the user's own posts alongside posts from followed users. The user's pubkey is prepended to the `authors` filter when querying Kind 1 events.
+
+---
+
 ## Future Considerations
 
 ### Notifications

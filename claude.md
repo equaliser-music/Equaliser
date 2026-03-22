@@ -323,10 +323,12 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - Design rule: each release owns its own IPFS CIDs, Blossom hashes may be shared
   - Future: support adding already-released tracks (compilations, greatest hits)
 
-- [ ] **Blossom: Profile Images**: Migrate avatar/banner uploads to Blossom primary
-  - Update profile editor image upload to use Blossom first
-  - Store both Blossom URL and IPFS CID in Kind 0 events
-  - Client fallback: Blossom URL first, IPFS gateway fallback
+- [x] **Blossom: Profile Images**: Avatar/banner uploads via Blossom
+  - `POST /api/upload/image` endpoint (uploads.py) — uploads to Blossom, returns hash + URL
+  - Client settings page and admin profile page both use Blossom for avatar/banner
+  - Absolute URLs via `PUBLIC_BASE_URL` for cross-node display
+  - Blossom URL in Kind 0 `picture`/`banner` fields, IPFS CID in `equaliser` namespace for fallback
+  - See [BLOSSOM.md](docs/implemented/BLOSSOM.md)
 
 - [ ] **Blossom Disaster Recovery**: Rebuild content node from NOSTR + IPFS
   - Authenticate with nsec on fresh node → query relays for artist events
@@ -389,11 +391,17 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - See [SCALING.md — Equaliser Relay Network](docs/SCALING.md#equaliser-relay-network)
 
 - [x] **Social Features**: Artist-fan interaction via NOSTR
-  - **Feed**: Kind 1 posts with `["content-type", "post"]` tag, reply/like/repost actions, clickable posts to thread view
+  - **Feed**: Kind 1 posts with `["content-type", "post"]` tag, reply/like/repost actions, clickable posts to thread view. "Your Feed" tab includes own posts alongside followed users.
   - **Threaded Replies**: `thread.html` page showing root post + chronological replies using NIP-10 `e`/`p` tags
   - **Community Message Boards**: Community tab in `social.html` with board tabs (general/music/production/gigs), thread list + detail views, `["content-type", "thread"]` and `["content-type", "reply"]` tags
   - **Direct Messages**: `messages.html` with NIP-04 encrypted DMs (Kind 4), two-panel conversation list + chat UI, `nostr-dm.js` module
   - **Unified Social Page**: `social.html` combines Feed + Community as full-width tabs ("Timeline" / "Community Threads"). Single "Social" link in sidebar bottom nav (alongside Profile, Settings). Messages accessible from profile page.
+  - **Link Previews**: YouTube URLs render as thumbnail cards with play button. Image URLs (including Blossom hash URLs) render inline. Shared `generateLinkPreviews()` in nostr-social.js, used by all feed pages.
+  - **Image Attach**: Post composer has image attach button — uploads to Blossom via `/api/upload/image`, appends absolute URL to note content. Images render inline via link preview detection.
+  - **Release Announcements**: `["content-type", "release-announcement"]` tag with `["e", eventId]` references to Kind 30050 tracks. Admin modal on releases.html and edit-release.html after releasing. Client renders expandable rich card with cover art, track list, inline player, and "Add to Library" button.
+  - **Expandable Playlist Cards**: Playlist share posts (`["content-type", "playlist-share"]`) render as expandable cards with track list, play buttons, and "Add to Library" button.
+  - **Follower/Following**: Counts displayed on profile, user, and artist pages. Clickable to open modal with user list (avatar, name, bio snippet, follow/unfollow button). Uses Kind 3 `#p` query for followers count.
+  - **Add to Library**: On release announcement cards, creates a new playlist from track event IDs. On playlist share cards, follows the existing playlist. Playlist page "Follow" button renamed to "Add to Library" / "In Library".
   - **Relay Tag Filtering**: Multi-char tag filtering done client-side (Equaliser Relay provides full tag indexing)
   - **Seed Data**: `tools/seed-social.sh` populates relay with test posts, threads, DMs, reactions
   - See [SOCIAL.md](docs/implemented/SOCIAL.md)
@@ -403,7 +411,7 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - **Done**: Standard relay infrastructure — self-hosted nostr-rs-relay on each VPS (`relay1.equaliser.app`, `relay2.equaliser.app`), `STANDARD_RELAYS` config points to them, syncer pulls Kind 0/1/3/5 by known pubkeys
   - **Done**: Cache REST API (`/api/cache/`) — profiles (batch + single), follows, feed, artists, tracks (by artist + recent), albums, thread external refs. General-purpose event query (`GET /api/cache/events`) with NIP-01-style filter params replaces WebSocket REQ for reads. Nginx routes `/api/cache/` to relay REST port (8008).
   - **Done**: Client REST-first migration — `cache-api.js` module with `queryEvents()` + denorm functions. `_queryRelay()` in nostr-social.js tries REST cache API for local relay reads; external relay WebSocket queries skipped entirely when cache API is available. All NostrSocial functions (fetchNotes, fetchReactions, fetchReplyCounts, fetchThreadReplies, etc.) automatically use REST. WebSocket retained only for event publishing.
-  - **Partial**: Some page-specific custom WebSocket queries remain (artist.js, home.js, user.js have direct WebSocket for Kind 0/30050). These bypass NostrSocial and still open WebSocket connections. TODO: migrate to cache API or route through NostrSocial.
+  - **Partial**: artist.js migrated to Cache API (Kind 0 profile + Kind 30050 tracks). home.js and user.js still have direct WebSocket queries for Kind 0/30050 — TODO: migrate to cache API.
   - **Done**: Profile backfill on registration — copies existing Kind 0 from `raw_events` into `cached_users` at registration time (fixes onboarding timing gap)
   - **Done**: Event acceptance policy fix — Kind 1 from known pubkeys (registered users/artists) accepted without app tag, enabling standard relay syncing of fan posts
   - TODO: Admin controls (per-user enable/disable, force resync, remove user)
