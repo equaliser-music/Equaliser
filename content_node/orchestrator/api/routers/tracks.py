@@ -33,6 +33,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "")
+
 # Temporary upload directory
 UPLOAD_DIR = Path("/tmp/equaliser/uploads")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -316,8 +318,11 @@ async def upload_cover_art(
         if not blossom_hash and not cid:
             raise RuntimeError("Both Blossom and IPFS uploads failed")
 
-        # Prefer Blossom URL, fall back to IPFS
-        primary_url = f"/blossom/{blossom_hash}{ext}" if blossom_hash else f"/ipfs/{cid}"
+        # Prefer Blossom URL, fall back to IPFS — use absolute URL for cross-node display
+        if blossom_hash:
+            primary_url = f"{PUBLIC_BASE_URL}/blossom/{blossom_hash}" if PUBLIC_BASE_URL else f"/blossom/{blossom_hash}"
+        else:
+            primary_url = f"/ipfs/{cid}"
         ipfs_url = f"/ipfs/{cid}" if cid else None
 
         return CoverArtResponse(
