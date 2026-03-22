@@ -77,3 +77,4 @@ Cover art `<img>` tags use a `data-fallback` attribute with the IPFS URL. When t
 - **Profile cache**: In-memory pubkey → {name, picture} map, avoids repeated fetches
 - **Client-side tag filtering**: Multi-char tags (`app`, `content-type`, `board`) are NOT relay-indexed — fetch broadly then filter in JS
 - **App tag**: All events signed via SessionManager get `["app", "Equaliser"]` automatically
+- **Relay config flow**: `NostrSocial.loadServerConfig()` fetches `STANDARD_RELAYS` from `GET /api/config` on app init. These become the default outbound publishing relays (alongside the local relay). Users can customise via settings page (Kind 10002). On localhost (no `STANDARD_RELAYS`), events publish to local relay only. Posts without the app tag (from standard relays) display with a "via NOSTR" badge.
