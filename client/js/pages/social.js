@@ -478,6 +478,7 @@
                 const initial = name.charAt(0).toUpperCase();
                 const time = NostrSocial.relativeTime(note.created_at);
                 const isPlaylistShare = note.tags?.some(t => t[0] === 'content-type' && t[1] === 'playlist-share');
+                const isReleaseAnnouncement = note.tags?.some(t => t[0] === 'content-type' && t[1] === 'release-announcement');
                 const content = NostrSocial.linkifyContent(escapeHtml(note.content));
                 const likeCount = this._feedReactionData.likes[note.id] || 0;
                 const repostCount = this._feedReactionData.reposts[note.id] || 0;
@@ -510,6 +511,7 @@
                                 <div class="feed-content feed-post-clickable" onclick="navigateToThread('${note.id}')">${content}</div>
                                 ${NostrSocial.generateLinkPreviews(note.content)}
                                 ${isPlaylistShare ? this._renderPlaylistShareCard(note) : ''}
+                                ${isReleaseAnnouncement ? NostrSocial.generateReleaseAnnouncementCard(note) : ''}
                                 <div class="feed-actions">
                                     <div class="feed-action reply-btn" onclick="navigateToThread('${note.id}')">
                                         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -615,6 +617,7 @@
                         </button>
                         <span class="feed-playlist-count">${tracks.length} track${tracks.length !== 1 ? 's' : ''}</span>
                         <a href="/playlist.html?pubkey=${pubkey}&d=${dTag}" class="feed-playlist-open" onclick="event.stopPropagation()">Open</a>
+                        ${(typeof SessionManager !== 'undefined' && SessionManager.hasSession()) ? `<button class="add-to-library-btn" onclick="event.stopPropagation(); addPlaylistToLibrary('${pubkey}', '${dTag}', this)">+ Add to Library</button>` : ''}
                     </div>
                     ${trackListHtml}`;
 
