@@ -44,6 +44,8 @@
             window.navigateToThread = (id) => this._navigateToThread(id);
             window.handleFeedLike = (noteId, pubkey) => this._handleFeedLike(noteId, pubkey);
             window.handleFeedRepost = (noteId, pubkey) => this._handleFeedRepost(noteId, pubkey);
+            window.expandPlaylistCard = (cardId) => this._expandPlaylistCard(cardId);
+            window.playFromPlaylistCard = (cardId, index) => this._playFromPlaylistCard(cardId, index);
 
             // Set default feed tab
             this._currentFeedTab = SessionManager.hasSession() ? 'following' : 'equaliser';
@@ -131,6 +133,8 @@
             delete window.navigateToThread;
             delete window.handleFeedLike;
             delete window.handleFeedRepost;
+            delete window.expandPlaylistCard;
+            delete window.playFromPlaylistCard;
 
             this._feedNotes = [];
             this._feedReactionData = { likes: {}, reposts: {}, userLiked: new Set(), userReposted: new Set() };
@@ -539,12 +543,109 @@
             if (parts.length < 3 || parts[0] !== '30001') return '';
             const pubkey = parts[1];
             const dTag = parts[2];
+            const cardId = `playlist-card-${note.id.substring(0, 8)}`;
             return `
-                <div class="feed-playlist-card" onclick="Router.navigate('/playlist.html?pubkey=${pubkey}&d=${dTag}')">
+                <div class="feed-playlist-card" id="${cardId}" data-pubkey="${pubkey}" data-dtag="${dTag}" onclick="expandPlaylistCard('${cardId}')">
                     <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20" style="opacity:0.6;flex-shrink:0"><path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/></svg>
                     <span>View Playlist</span>
-                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20" style="opacity:0.4;margin-left:auto"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+                    <svg class="feed-playlist-chevron" width="16" height="16" fill="currentColor" viewBox="0 0 20 20" style="opacity:0.4;margin-left:auto;transition:transform 0.2s"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
                 </div>`;
+        },
+
+        async _expandPlaylistCard(cardId) {
+            const card = document.getElementById(cardId);
+            if (!card || card.dataset.expanded === 'true') return;
+            card.dataset.expanded = 'true';
+            card.onclick = null;
+
+            const pubkey = card.dataset.pubkey;
+            const dTag = card.dataset.dtag;
+
+            // Rotate chevron
+            const chevron = card.querySelector('.feed-playlist-chevron');
+            if (chevron) chevron.style.transform = 'rotate(180deg)';
+
+            // Show loading
+            const trackListId = `${cardId}-tracks`;
+            card.insertAdjacentHTML('afterend', `<div class="feed-playlist-tracklist" id="${trackListId}"><div style="padding:12px;color:rgba(255,255,255,0.4);font-size:13px;">Loading tracks...</div></div>`);
+
+            try {
+                const playlist = await NostrPlaylists.fetchPlaylist(pubkey, dTag);
+                if (!playlist || playlist.trackIds.length === 0) {
+                    document.getElementById(trackListId).innerHTML = `<div style="padding:12px;color:rgba(255,255,255,0.4);font-size:13px;">No tracks in this playlist</div>`;
+                    return;
+                }
+
+                // Update card header with playlist name
+                const nameSpan = card.querySelector('span');
+                if (nameSpan) nameSpan.textContent = playlist.title || 'Playlist';
+
+                const tracks = await NostrPlaylists.resolveTrackEvents(playlist.trackIds);
+                if (tracks.length === 0) {
+                    document.getElementById(trackListId).innerHTML = `<div style="padding:12px;color:rgba(255,255,255,0.4);font-size:13px;">Could not load tracks</div>`;
+                    return;
+                }
+
+                // Store tracks on card element for playback
+                card._resolvedTracks = tracks;
+
+                const escapeHtml = NostrSocial.escapeHtml;
+                const trackListHtml = tracks.map((t, i) => {
+                    const duration = t.duration ? `${Math.floor(t.duration / 60)}:${String(Math.floor(t.duration % 60)).padStart(2, '0')}` : '';
+                    const coverHtml = t.blossomCoverUrl
+                        ? `<img src="${escapeHtml(t.blossomCoverUrl)}" alt="" onerror="this.style.display='none'">`
+                        : (t.coverArtCid ? `<img src="/ipfs/${t.coverArtCid}" alt="" onerror="this.style.display='none'">` : '');
+                    return `
+                        <div class="feed-playlist-track" onclick="event.stopPropagation(); playFromPlaylistCard('${cardId}', ${i})">
+                            <div class="feed-playlist-track-cover">${coverHtml}</div>
+                            <div class="feed-playlist-track-info">
+                                <div class="feed-playlist-track-title">${escapeHtml(t.title)}</div>
+                                <div class="feed-playlist-track-artist">${escapeHtml(t.artist || 'Unknown Artist')}</div>
+                            </div>
+                            <div class="feed-playlist-track-duration">${duration}</div>
+                            <svg class="feed-playlist-track-play" width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M6.5 3.5v13l10-6.5z"/></svg>
+                        </div>`;
+                }).join('');
+
+                document.getElementById(trackListId).innerHTML = `
+                    <div class="feed-playlist-actions">
+                        <button class="feed-playlist-play-all" onclick="event.stopPropagation(); playFromPlaylistCard('${cardId}', 0)">
+                            <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d="M6.5 3.5v13l10-6.5z"/></svg>
+                            Play All
+                        </button>
+                        <span class="feed-playlist-count">${tracks.length} track${tracks.length !== 1 ? 's' : ''}</span>
+                        <a href="/playlist.html?pubkey=${pubkey}&d=${dTag}" class="feed-playlist-open" onclick="event.stopPropagation()">Open</a>
+                    </div>
+                    ${trackListHtml}`;
+
+                // Make card header toggle collapse
+                card.onclick = () => {
+                    const el = document.getElementById(trackListId);
+                    if (!el) return;
+                    const hidden = el.style.display === 'none';
+                    el.style.display = hidden ? '' : 'none';
+                    if (chevron) chevron.style.transform = hidden ? 'rotate(180deg)' : '';
+                };
+            } catch (err) {
+                console.error('Failed to load playlist:', err);
+                document.getElementById(trackListId).innerHTML = `<div style="padding:12px;color:rgba(255,255,255,0.4);font-size:13px;">Failed to load playlist</div>`;
+            }
+        },
+
+        _playFromPlaylistCard(cardId, index) {
+            const card = document.getElementById(cardId);
+            if (!card || !card._resolvedTracks) return;
+            const playerTracks = card._resolvedTracks.map(t => ({
+                title: t.title,
+                artist: t.artist || 'Unknown Artist',
+                previewCid: t.previewCid,
+                manifestCid: t.manifestCid,
+                blossomCoverUrl: t.blossomCoverUrl,
+                blossomCoverHash: t.blossomCoverHash,
+                coverArtCid: t.coverArtCid,
+                duration: t.duration
+            }));
+            EqualiserPlayer.setPlaylist(playerTracks, index);
         },
 
         // ===== Feed Reactions =====
