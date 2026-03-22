@@ -870,6 +870,164 @@ const NostrSocial = (() => {
         }
     }
 
+    // ===== Release Announcement Cards =====
+
+    /**
+     * Generate a collapsed release announcement card for a note with content-type: release-announcement.
+     */
+    function generateReleaseAnnouncementCard(note) {
+        const isRelease = note.tags?.some(t => t[0] === 'content-type' && t[1] === 'release-announcement');
+        if (!isRelease) return '';
+
+        const eventIds = note.tags.filter(t => t[0] === 'e').map(t => t[1]);
+        if (eventIds.length === 0) return '';
+
+        const cardId = `release-card-${note.id.substring(0, 8)}`;
+        const hasSession = typeof SessionManager !== 'undefined' && SessionManager.hasSession();
+
+        return `
+            <div class="feed-playlist-card feed-release-card" id="${cardId}" data-eids='${JSON.stringify(eventIds)}' onclick="expandReleaseCard('${cardId}')">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20" style="opacity:0.6;flex-shrink:0"><path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/></svg>
+                <span>New Release</span>
+                <svg class="feed-playlist-chevron" width="16" height="16" fill="currentColor" viewBox="0 0 20 20" style="opacity:0.4;margin-left:auto;transition:transform 0.2s"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+            </div>`;
+    }
+
+    /**
+     * Expand a release announcement card to show track list.
+     */
+    async function expandReleaseCard(cardId) {
+        const card = document.getElementById(cardId);
+        if (!card || card.dataset.expanded === 'true') return;
+        card.dataset.expanded = 'true';
+        card.onclick = null;
+
+        const eventIds = JSON.parse(card.dataset.eids || '[]');
+        const chevron = card.querySelector('.feed-playlist-chevron');
+        if (chevron) chevron.style.transform = 'rotate(180deg)';
+
+        const trackListId = `${cardId}-tracks`;
+        card.insertAdjacentHTML('afterend', `<div class="feed-playlist-tracklist" id="${trackListId}"><div style="padding:12px;color:rgba(255,255,255,0.4);font-size:13px;">Loading tracks...</div></div>`);
+
+        try {
+            const tracks = await NostrPlaylists.resolveTrackEvents(eventIds);
+            if (!tracks || tracks.length === 0) {
+                document.getElementById(trackListId).innerHTML = `<div style="padding:12px;color:rgba(255,255,255,0.4);font-size:13px;">Could not load tracks</div>`;
+                return;
+            }
+
+            card._resolvedTracks = tracks;
+
+            // Update card label with release info
+            const nameSpan = card.querySelector('span');
+            if (nameSpan) {
+                const firstTrack = tracks[0];
+                const albumName = firstTrack.album || firstTrack.title;
+                nameSpan.textContent = tracks.length === 1 ? firstTrack.title : albumName;
+            }
+
+            const hasSession = typeof SessionManager !== 'undefined' && SessionManager.hasSession();
+            const trackListHtml = tracks.map((t, i) => {
+                const duration = t.duration ? `${Math.floor(t.duration / 60)}:${String(Math.floor(t.duration % 60)).padStart(2, '0')}` : '';
+                const coverHtml = t.blossomCoverUrl
+                    ? `<img src="${escapeHtml(t.blossomCoverUrl)}" alt="" onerror="this.style.display='none'">`
+                    : (t.coverArtCid ? `<img src="/ipfs/${t.coverArtCid}" alt="" onerror="this.style.display='none'">` : '');
+                return `
+                    <div class="feed-playlist-track" onclick="event.stopPropagation(); playFromReleaseCard('${cardId}', ${i})">
+                        <div class="feed-playlist-track-cover">${coverHtml}</div>
+                        <div class="feed-playlist-track-info">
+                            <div class="feed-playlist-track-title">${escapeHtml(t.title)}</div>
+                            <div class="feed-playlist-track-artist">${escapeHtml(t.artist || 'Unknown Artist')}</div>
+                        </div>
+                        <div class="feed-playlist-track-duration">${duration}</div>
+                        <svg class="feed-playlist-track-play" width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M6.5 3.5v13l10-6.5z"/></svg>
+                    </div>`;
+            }).join('');
+
+            document.getElementById(trackListId).innerHTML = `
+                <div class="feed-playlist-actions">
+                    <button class="feed-playlist-play-all" onclick="event.stopPropagation(); playFromReleaseCard('${cardId}', 0)">
+                        <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d="M6.5 3.5v13l10-6.5z"/></svg>
+                        Play All
+                    </button>
+                    <span class="feed-playlist-count">${tracks.length} track${tracks.length !== 1 ? 's' : ''}</span>
+                    ${hasSession ? `<button class="add-to-library-btn" onclick="event.stopPropagation(); addReleaseToLibrary('${cardId}', this)">+ Add to Library</button>` : ''}
+                </div>
+                ${trackListHtml}`;
+
+            // Toggle collapse on card header click
+            card.onclick = () => {
+                const el = document.getElementById(trackListId);
+                if (!el) return;
+                const hidden = el.style.display === 'none';
+                el.style.display = hidden ? '' : 'none';
+                if (chevron) chevron.style.transform = hidden ? 'rotate(180deg)' : '';
+            };
+        } catch (err) {
+            console.error('Failed to load release tracks:', err);
+            document.getElementById(trackListId).innerHTML = `<div style="padding:12px;color:rgba(255,255,255,0.4);font-size:13px;">Failed to load tracks</div>`;
+        }
+    }
+
+    /**
+     * Play tracks from a release announcement card.
+     */
+    function playFromReleaseCard(cardId, index) {
+        const card = document.getElementById(cardId);
+        if (!card || !card._resolvedTracks) return;
+        const playerTracks = card._resolvedTracks.map(t => ({
+            title: t.title,
+            artist: t.artist || 'Unknown Artist',
+            previewCid: t.previewCid,
+            manifestCid: t.manifestCid,
+            blossomCoverUrl: t.blossomCoverUrl,
+            blossomCoverHash: t.blossomCoverHash,
+            coverArtCid: t.coverArtCid,
+            duration: t.duration
+        }));
+        EqualiserPlayer.setPlaylist(playerTracks, index);
+    }
+
+    /**
+     * Add a release's tracks to the user's library as a new playlist.
+     */
+    async function addReleaseToLibrary(cardId, btn) {
+        const card = document.getElementById(cardId);
+        if (!card || !card._resolvedTracks) return;
+        if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+
+        try {
+            const tracks = card._resolvedTracks;
+            const eventIds = tracks.map(t => t.eventId);
+            const firstTrack = tracks[0];
+            const title = tracks.length === 1
+                ? firstTrack.title
+                : (firstTrack.album || firstTrack.artist + ' — Release');
+
+            await NostrPlaylists.createPlaylist(title, eventIds);
+
+            if (btn) { btn.textContent = 'Added'; btn.className = 'add-to-library-btn added'; }
+        } catch (err) {
+            console.error('Failed to add to library:', err);
+            if (btn) { btn.disabled = false; btn.textContent = '+ Add to Library'; }
+        }
+    }
+
+    /**
+     * Follow a playlist and add it to the user's library.
+     */
+    async function addPlaylistToLibrary(pubkey, dTag, btn) {
+        if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+
+        try {
+            await NostrPlaylists.followPlaylist(pubkey, dTag);
+            if (btn) { btn.textContent = 'Added'; btn.className = 'add-to-library-btn added'; }
+        } catch (err) {
+            console.error('Failed to add playlist to library:', err);
+            if (btn) { btn.disabled = false; btn.textContent = '+ Add to Library'; }
+        }
+    }
+
     // ===== Expose public API =====
 
     return {
@@ -897,6 +1055,11 @@ const NostrSocial = (() => {
         publishToLocal,
         fetchFromLocal,
         showFollowListModal,
-        _toggleFollowInModal
+        _toggleFollowInModal,
+        generateReleaseAnnouncementCard,
+        expandReleaseCard,
+        playFromReleaseCard,
+        addReleaseToLibrary,
+        addPlaylistToLibrary
     };
 })();

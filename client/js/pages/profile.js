@@ -146,7 +146,7 @@
 
             const items = [];
             for (const note of ownNotes) {
-                items.push({ type: 'post', timestamp: note.created_at, noteId: note.id, authorPubkey: note.pubkey, content: note.content });
+                items.push({ type: 'post', timestamp: note.created_at, noteId: note.id, authorPubkey: note.pubkey, content: note.content, tags: note.tags });
             }
 
             for (const repost of reposts) {
@@ -313,6 +313,7 @@
                     </div>
                     <div class="feed-item-content" style="cursor:pointer" onclick="Router.navigate('/thread.html?id=${item.noteId}')">${content}</div>
                     ${NostrSocial.generateLinkPreviews(item.content)}
+                    ${NostrSocial.generateReleaseAnnouncementCard(item)}
                     <div class="feed-actions">
                         <button class="feed-action-btn reply-btn" onclick="Router.navigate('/thread.html?id=${item.noteId}')">
                             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">

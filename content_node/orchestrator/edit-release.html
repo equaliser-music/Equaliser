@@ -857,6 +857,32 @@
         </div>
     </div>
 
+    <!-- Release Announcement Modal -->
+    <div class="modal-overlay" id="announce-modal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 class="modal-title">Announce Release</h2>
+                <button class="modal-close" onclick="skipAnnouncement()">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            </div>
+            <p class="modal-description">Share this release with your fans on the social feed.</p>
+            <div id="announce-cover-preview" style="margin-bottom: 12px; text-align: center;"></div>
+            <textarea class="form-input" id="announce-message" rows="3" maxlength="500" style="resize: vertical;"></textarea>
+            <div class="modal-actions" style="margin-top: 16px;">
+                <button type="button" class="btn btn-secondary" onclick="skipAnnouncement()">Skip</button>
+                <button type="button" class="btn btn-primary" id="announce-btn" onclick="postAnnouncement()">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20" style="margin-right: 6px;">
+                        <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/>
+                    </svg>
+                    Post Announcement
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Notification -->
     <div class="notification" id="notification">
         <svg class="notification-icon" fill="currentColor" viewBox="0 0 20 20">
@@ -2180,6 +2206,7 @@
                 // Release ALL tracks in the release (not just the first one)
                 let successCount = 0;
                 const totalTracks = editingTracks.length;
+                const releasedEventIds = [];
 
                 for (const track of editingTracks) {
                     try {
@@ -2219,17 +2246,14 @@
                             throw new Error(error.detail || 'Failed to publish');
                         }
 
+                        releasedEventIds.push(signedEvent.id);
                         successCount++;
                     } catch (e) {
                         console.error(`Failed to release track ${track.title}:`, e);
                     }
                 }
 
-                if (successCount === totalTracks) {
-                    showNotification(`Released ${totalTracks === 1 ? 'track' : `all ${totalTracks} tracks`} successfully!`, 'success');
-                } else if (successCount > 0) {
-                    showNotification(`Released ${successCount}/${totalTracks} tracks`, 'success');
-                } else {
+                if (successCount === 0) {
                     showNotification('Failed to release tracks', 'error');
                     releaseBtn.disabled = false;
                     saveBtn.disabled = false;
@@ -2237,10 +2261,14 @@
                     return;
                 }
 
-                // Redirect back to releases page
-                setTimeout(() => {
-                    window.location.href = 'releases.html';
-                }, 1500);
+                if (successCount === totalTracks) {
+                    showNotification(`Released ${totalTracks === 1 ? 'track' : `all ${totalTracks} tracks`} successfully!`, 'success');
+                } else {
+                    showNotification(`Released ${successCount}/${totalTracks} tracks`, 'success');
+                }
+
+                // Show announcement modal
+                showAnnouncementModal(releasedEventIds, successCount);
 
             } catch (error) {
                 showNotification('Failed to release: ' + error.message, 'error');
@@ -2248,6 +2276,91 @@
                 saveBtn.disabled = false;
                 releaseBtn.innerHTML = `<svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd"/></svg> Release`;
             }
+        }
+
+        // ===== Release Announcement =====
+
+        let _announcementEventIds = [];
+
+        function showAnnouncementModal(eventIds, trackCount) {
+            _announcementEventIds = eventIds;
+            const modal = document.getElementById('announce-modal');
+
+            // Build default message
+            const title = document.getElementById('release-title').value.trim();
+            const isSingle = trackCount === 1;
+            const defaultMsg = isSingle
+                ? `Just released '${title}'! Listen now on Equaliser`
+                : `Just released '${title}' \u2014 ${trackCount} tracks! Listen now on Equaliser`;
+
+            document.getElementById('announce-message').value = defaultMsg;
+
+            // Show cover art preview if available
+            const coverPreview = document.getElementById('announce-cover-preview');
+            const coverUrl = editingRelease?.blossomCoverUrl || (editingRelease?.blossomCoverHash ? `/blossom/${editingRelease.blossomCoverHash}` : (editingRelease?.coverArtCid ? `/ipfs/${editingRelease.coverArtCid}` : null));
+            if (coverUrl && coverPreview) {
+                coverPreview.innerHTML = `<img src="${coverUrl}" style="max-width:200px;max-height:200px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);" onerror="this.parentElement.style.display='none'">`;
+            }
+
+            modal.classList.add('active');
+        }
+
+        function skipAnnouncement() {
+            document.getElementById('announce-modal').classList.remove('active');
+            window.location.href = 'releases.html';
+        }
+
+        async function postAnnouncement() {
+            const btn = document.getElementById('announce-btn');
+            const message = document.getElementById('announce-message').value.trim();
+            if (!message) { skipAnnouncement(); return; }
+
+            btn.disabled = true;
+            btn.innerHTML = '<div class="loading-spinner" style="width:14px;height:14px;border-width:2px;margin:0;display:inline-block;"></div> Posting...';
+
+            try {
+                const event = {
+                    kind: 1,
+                    created_at: Math.floor(Date.now() / 1000),
+                    tags: [
+                        ['app', 'Equaliser'],
+                        ['content-type', 'release-announcement'],
+                        ..._announcementEventIds.map(id => ['e', id])
+                    ],
+                    content: message
+                };
+
+                const signedEvent = await SessionManager.signEvent(event);
+                const ok = await publishToRelay(signedEvent);
+
+                if (ok) {
+                    showNotification('Announcement posted!', 'success');
+                } else {
+                    showNotification('Failed to post announcement', 'error');
+                }
+            } catch (err) {
+                console.error('Announcement failed:', err);
+                showNotification('Failed to post: ' + err.message, 'error');
+            }
+
+            setTimeout(() => { window.location.href = 'releases.html'; }, 1000);
+        }
+
+        function publishToRelay(signedEvent) {
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const relayUrl = `${wsProtocol}//${window.location.host}/relay`;
+            return new Promise((resolve) => {
+                const ws = new WebSocket(relayUrl);
+                const timeout = setTimeout(() => { try { ws.close(); } catch(e) {} resolve(false); }, 5000);
+                ws.onopen = () => ws.send(JSON.stringify(['EVENT', signedEvent]));
+                ws.onmessage = (e) => {
+                    try {
+                        const data = JSON.parse(e.data);
+                        if (data[0] === 'OK') { clearTimeout(timeout); ws.close(); resolve(data[2] === true); }
+                    } catch(err) {}
+                };
+                ws.onerror = () => { clearTimeout(timeout); resolve(false); };
+            });
         }
 
         // Utilities

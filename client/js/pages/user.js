@@ -283,6 +283,7 @@
                         </div>
                         <div class="feed-content" style="cursor:pointer" onclick="Router.navigate('/thread.html?id=${note.id}')">${content}</div>
                         ${NostrSocial.generateLinkPreviews(note.content)}
+                        ${NostrSocial.generateReleaseAnnouncementCard(note)}
                         <div class="feed-actions">
                             <button class="feed-action-btn reply-btn" onclick="Router.navigate('/thread.html?id=${note.id}')">
                                 <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">

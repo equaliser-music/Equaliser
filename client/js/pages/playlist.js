@@ -145,12 +145,12 @@
                 actionsHtml += `<button class="playlist-btn playlist-btn-danger" id="pl-delete">Delete</button>`;
             }
 
-            // Follow button for logged-in non-owners on public playlists
+            // Add to Library button for logged-in non-owners on public playlists
             if (this._isLoggedIn && !this._isOwner && pl.visibility !== 'private') {
                 if (this._isFollowing) {
-                    actionsHtml += `<button class="playlist-btn playlist-btn-following" id="pl-follow">Following</button>`;
+                    actionsHtml += `<button class="playlist-btn playlist-btn-following" id="pl-follow">In Library</button>`;
                 } else {
-                    actionsHtml += `<button class="playlist-btn playlist-btn-follow" id="pl-follow">Follow</button>`;
+                    actionsHtml += `<button class="playlist-btn playlist-btn-follow" id="pl-follow">Add to Library</button>`;
                 }
             }
 
@@ -511,13 +511,13 @@
                     await NostrPlaylists.unfollowPlaylist(this._playlist.pubkey, this._playlist.dTag);
                     this._isFollowing = false;
                     btn.className = 'playlist-btn playlist-btn-follow';
-                    btn.textContent = 'Follow';
-                    this._showToast('Unfollowed playlist');
+                    btn.textContent = 'Add to Library';
+                    this._showToast('Removed from library');
                 } else {
                     await NostrPlaylists.followPlaylist(this._playlist.pubkey, this._playlist.dTag);
                     this._isFollowing = true;
                     btn.className = 'playlist-btn playlist-btn-following';
-                    btn.textContent = 'Following';
+                    btn.textContent = 'In Library';
                     this._showToast('Following playlist');
                 }
             } catch (err) {
