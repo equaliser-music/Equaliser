@@ -524,30 +524,50 @@
         },
 
         async _loadFollowCounts() {
+            const pubkey = this._profilePubkey;
+
+            // Following count: user's Kind 3 contact list
+            const followingPromise = (typeof CacheAPI !== 'undefined')
+                ? CacheAPI.queryEvents({ kinds: [3], authors: [pubkey], limit: 1 })
+                : this._wsQuery({ kinds: [3], authors: [pubkey], limit: 1 });
+
+            // Followers count: Kind 3 events that tag this pubkey
+            const followersPromise = (typeof CacheAPI !== 'undefined')
+                ? CacheAPI.queryEvents({ kinds: [3], '#p': [pubkey], limit: 500 })
+                : this._wsQuery({ kinds: [3], '#p': [pubkey], limit: 500 });
+
+            const [followingEvents, followerEvents] = await Promise.all([followingPromise, followersPromise]);
+
+            if (followingEvents && followingEvents.length > 0) {
+                const followingCount = followingEvents[0].tags.filter(t => t[0] === 'p').length;
+                const el = document.getElementById('following-count');
+                if (el) el.textContent = followingCount;
+            }
+
+            if (followerEvents) {
+                // Deduplicate by pubkey (one Kind 3 per user)
+                const uniqueFollowers = new Set(followerEvents.map(ev => ev.pubkey));
+                const el = document.getElementById('followers-count');
+                if (el) el.textContent = uniqueFollowers.size;
+            }
+        },
+
+        _wsQuery(filter) {
             return new Promise((resolve) => {
                 const ws = new WebSocket(relayUrl);
-                const subId = 'follows-' + Math.random().toString(36).substring(7);
-                const timeout = setTimeout(() => { try { ws.close(); } catch(e) {} resolve(); }, 8000);
+                const events = [];
+                const subId = 'q-' + Math.random().toString(36).substring(7);
+                const timeout = setTimeout(() => { try { ws.close(); } catch(e) {} resolve(events); }, 8000);
 
-                ws.onopen = () => {
-                    ws.send(JSON.stringify(['REQ', subId, {
-                        kinds: [3], authors: [this._profilePubkey], limit: 1
-                    }]));
-                };
-
+                ws.onopen = () => { ws.send(JSON.stringify(['REQ', subId, filter])); };
                 ws.onmessage = (event) => {
                     try {
                         const msg = JSON.parse(event.data);
-                        if (msg[0] === 'EVENT' && msg[1] === subId && msg[2]) {
-                            const followingCount = msg[2].tags.filter(t => t[0] === 'p').length;
-                            const el = document.getElementById('following-count');
-                            if (el) el.textContent = followingCount;
-                        }
-                        if (msg[0] === 'EOSE') { clearTimeout(timeout); ws.close(); resolve(); }
+                        if (msg[0] === 'EVENT' && msg[1] === subId && msg[2]) events.push(msg[2]);
+                        if (msg[0] === 'EOSE') { clearTimeout(timeout); ws.close(); resolve(events); }
                     } catch (e) {}
                 };
-
-                ws.onerror = () => { clearTimeout(timeout); resolve(); };
+                ws.onerror = () => { clearTimeout(timeout); resolve(events); };
             });
         },
 
