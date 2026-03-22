@@ -253,9 +253,12 @@
         },
 
         _renderRelayDefaults() {
-            this._relays = [localRelayUrl];
-            if (!isLocalDev) {
-                this._relays.push('wss://relay.damus.io', 'wss://nos.lol');
+            // Use server-configured standard relays (loaded by NostrSocial.loadServerConfig)
+            // instead of hardcoded public relays
+            if (typeof NostrSocial !== 'undefined' && NostrSocial.DEFAULT_RELAYS) {
+                this._relays = [...NostrSocial.DEFAULT_RELAYS];
+            } else {
+                this._relays = [localRelayUrl];
             }
             this._renderRelays();
         },

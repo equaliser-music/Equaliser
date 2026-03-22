@@ -788,9 +788,10 @@
         }
 
         function renderRelayDefaults() {
-            relays = [localRelayUrl];
-            if (!isLocalDev) {
-                relays.push('wss://relay.damus.io', 'wss://nos.lol');
+            if (typeof NostrSocial !== 'undefined' && NostrSocial.DEFAULT_RELAYS) {
+                relays = [...NostrSocial.DEFAULT_RELAYS];
+            } else {
+                relays = [localRelayUrl];
             }
             renderRelays();
         }

@@ -703,10 +703,19 @@
             }
         }
 
-        // Default relays - local only in dev, local + public in production
-        const defaultRelays = isLocalDev
-            ? [localRelayUrl]
-            : [localRelayUrl, 'wss://relay.damus.io', 'wss://nos.lol'];
+        // Default relays - fetched from server config, local-only fallback
+        let defaultRelays = [localRelayUrl];
+        (async function loadDefaultRelays() {
+            try {
+                const cfgResp = await fetch('/api/config');
+                if (cfgResp.ok) {
+                    const cfg = await cfgResp.json();
+                    if (cfg.standard_relays && cfg.standard_relays.length > 0) {
+                        defaultRelays = [localRelayUrl, ...cfg.standard_relays];
+                    }
+                }
+            } catch (e) {}
+        })();
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -850,9 +859,7 @@
         // ===== Fetch Existing Profile =====
 
         async function fetchExistingProfile(pubkeyHex) {
-            const relaysToCheck = isLocalDev
-                ? [localRelayUrl]
-                : ['wss://relay.damus.io', 'wss://nos.lol', localRelayUrl];
+            const relaysToCheck = [...defaultRelays];
 
             for (const relayUrl of relaysToCheck) {
                 try {
