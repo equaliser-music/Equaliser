@@ -510,12 +510,12 @@
                         </span>
                     </div>
                     <div class="profile-bio" id="profile-bio"></div>
-                    <div class="profile-stats">
-                        <div class="profile-stat" style="cursor:pointer" onclick="NostrSocial.showFollowListModal(profilePubkey, 'following')">
+                    <div class="profile-stats" id="profile-stats">
+                        <div class="profile-stat" style="cursor:pointer" onclick="NostrSocial.showFollowListModal(document.getElementById('profile-stats').dataset.pubkey, 'following')">
                             <span class="profile-stat-value" id="following-count">0</span>
                             <span class="profile-stat-label">Following</span>
                         </div>
-                        <div class="profile-stat" style="cursor:pointer" onclick="NostrSocial.showFollowListModal(profilePubkey, 'followers')">
+                        <div class="profile-stat" style="cursor:pointer" onclick="NostrSocial.showFollowListModal(document.getElementById('profile-stats').dataset.pubkey, 'followers')">
                             <span class="profile-stat-value" id="followers-count">0</span>
                             <span class="profile-stat-label">Followers</span>
                         </div>
@@ -611,6 +611,10 @@
             document.querySelectorAll('.profile-tab').forEach(tab => {
                 tab.addEventListener('click', () => switchTab(tab.dataset.tab));
             });
+
+            // Set pubkey on stats container for onclick handlers
+            const statsEl = document.getElementById('profile-stats');
+            if (statsEl) statsEl.dataset.pubkey = profilePubkey;
 
             // Fetch profile data
             await loadProfile();

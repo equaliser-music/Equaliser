@@ -97,6 +97,10 @@
                 tab.addEventListener('click', () => this._switchTab(tab.dataset.tab));
             });
 
+            // Set pubkey on stats container for onclick handlers
+            const statsEl = document.getElementById('profile-stats');
+            if (statsEl) statsEl.dataset.pubkey = this._profilePubkey;
+
             await this._loadProfile();
             await this._loadFollowCounts();
 
