@@ -80,6 +80,19 @@ async def health_check():
     return {"status": "healthy"}
 
 
+# Client config — exposes non-sensitive environment settings for the browser client
+STANDARD_RELAYS = [r.strip() for r in os.getenv("STANDARD_RELAYS", "").split(",") if r.strip()]
+PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "")
+
+@app.get("/api/config")
+async def get_config():
+    """Return client-facing configuration derived from server environment."""
+    return {
+        "standard_relays": STANDARD_RELAYS,
+        "public_base_url": PUBLIC_BASE_URL,
+    }
+
+
 @app.get("/")
 @app.get("/api")
 async def root():
