@@ -124,38 +124,27 @@
 
         // ===== Profile Fetching =====
 
-        _fetchProfileFromRelay(relayUrl, pubkeyHex) {
-            return new Promise((resolve) => {
-                const ws = new WebSocket(relayUrl);
-                let profile = null;
-                const timeout = setTimeout(() => { ws.close(); resolve(null); }, 8000);
-
-                ws.onopen = () => {
-                    const subId = 'profile-' + Date.now();
-                    ws.send(JSON.stringify(['REQ', subId, { kinds: [0], authors: [pubkeyHex], limit: 1 }]));
-                };
-
-                ws.onmessage = (e) => {
-                    const data = JSON.parse(e.data);
-                    if (data[0] === 'EVENT') {
-                        try {
-                            profile = JSON.parse(data[2].content);
-                            profile._event = data[2];
-                        } catch (err) {}
-                    }
-                    if (data[0] === 'EOSE') { clearTimeout(timeout); ws.close(); resolve(profile); }
-                };
-
-                ws.onerror = () => { clearTimeout(timeout); resolve(null); };
-            });
-        },
-
         async _fetchProfile(pubkeyHex) {
-            const results = await Promise.all(
-                DEFAULT_RELAYS.map(relay => this._fetchProfileFromRelay(relay, pubkeyHex))
-            );
-            for (const profile of results) {
-                if (profile) return profile;
+            // Try Cache API first (REST — no WebSocket needed)
+            if (typeof CacheAPI !== 'undefined') {
+                try {
+                    const events = await CacheAPI.queryEvents({ kinds: [0], authors: [pubkeyHex], limit: 1 });
+                    if (events && events.length > 0) {
+                        const profile = JSON.parse(events[0].content);
+                        profile._event = events[0];
+                        return profile;
+                    }
+                } catch (e) {}
+            }
+
+            // Fallback: WebSocket via NostrSocial
+            const events = await NostrSocial.queryRelays({ kinds: [0], authors: [pubkeyHex], limit: 1 });
+            if (events && events.length > 0) {
+                try {
+                    const profile = JSON.parse(events[0].content);
+                    profile._event = events[0];
+                    return profile;
+                } catch (e) {}
             }
             return null;
         },
@@ -376,25 +365,18 @@
 
         // ===== Discography =====
 
-        _fetchArtistTracks(relayUrl, pubkeyHex) {
-            return new Promise((resolve) => {
-                const ws = new WebSocket(relayUrl);
-                const tracks = [];
-                const timeout = setTimeout(() => { ws.close(); resolve(tracks); }, 8000);
+        async _fetchArtistTracks(pubkeyHex) {
+            // Try Cache API first (REST)
+            if (typeof CacheAPI !== 'undefined') {
+                try {
+                    const events = await CacheAPI.queryEvents({ kinds: [30050], authors: [pubkeyHex], limit: 500 });
+                    if (events) return events;
+                } catch (e) {}
+            }
 
-                ws.onopen = () => {
-                    const subId = 'disco-' + Date.now();
-                    ws.send(JSON.stringify(['REQ', subId, { kinds: [30050], authors: [pubkeyHex], limit: 500 }]));
-                };
-
-                ws.onmessage = (e) => {
-                    const data = JSON.parse(e.data);
-                    if (data[0] === 'EVENT') tracks.push(data[2]);
-                    if (data[0] === 'EOSE') { clearTimeout(timeout); ws.close(); resolve(tracks); }
-                };
-
-                ws.onerror = () => { clearTimeout(timeout); resolve(tracks); };
-            });
+            // Fallback: WebSocket via NostrSocial
+            const events = await NostrSocial.queryRelays({ kinds: [30050], authors: [pubkeyHex], limit: 500 });
+            return events || [];
         },
 
         _getTagValue(tags, name) {
@@ -495,20 +477,7 @@
             const container = document.getElementById('discography-content');
             if (!container) return;
 
-            const allResults = await Promise.all(
-                DEFAULT_RELAYS.map(relay => this._fetchArtistTracks(relay, pubkeyHex))
-            );
-
-            const seen = new Set();
-            const allTracks = [];
-            for (const tracks of allResults) {
-                for (const track of tracks) {
-                    if (!seen.has(track.id)) {
-                        seen.add(track.id);
-                        allTracks.push(track);
-                    }
-                }
-            }
+            const allTracks = await this._fetchArtistTracks(pubkeyHex);
 
             if (allTracks.length === 0) {
                 container.innerHTML = `
