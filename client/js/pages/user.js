@@ -92,6 +92,7 @@
                 this._renderUser(npub, pubkeyHex);
 
                 this._checkFollowStatus(pubkeyHex);
+                this._loadFollowCounts(pubkeyHex);
                 this._loadFeed(pubkeyHex);
 
             } catch (error) {
@@ -203,6 +204,10 @@
                     <div class="user-bio">
                         <div class="bio-text">${NostrSocial.linkifyContent(escapeHtml(profile.about))}</div>
                     </div>` : ''}
+                <div class="user-follow-stats">
+                    <span class="user-follow-stat"><strong id="user-following-count">0</strong> Following</span>
+                    <span class="user-follow-stat"><strong id="user-followers-count">0</strong> Followers</span>
+                </div>
                 <div class="posts-section">
                     <h2 class="section-title">Posts</h2>
                     <div id="feed-content">
@@ -382,6 +387,33 @@
         _isOwnProfile(pubkeyHex) {
             const session = SessionManager.getSession();
             return session && session.publicKey === pubkeyHex;
+        },
+
+        async _loadFollowCounts(pubkeyHex) {
+            try {
+                const [followingEvents, followerEvents] = await Promise.all([
+                    (typeof CacheAPI !== 'undefined')
+                        ? CacheAPI.queryEvents({ kinds: [3], authors: [pubkeyHex], limit: 1 })
+                        : NostrSocial.queryRelays({ kinds: [3], authors: [pubkeyHex], limit: 1 }),
+                    (typeof CacheAPI !== 'undefined')
+                        ? CacheAPI.queryEvents({ kinds: [3], '#p': [pubkeyHex], limit: 500 })
+                        : NostrSocial.queryRelays({ kinds: [3], '#p': [pubkeyHex], limit: 500 })
+                ]);
+
+                if (followingEvents && followingEvents.length > 0) {
+                    const count = followingEvents[0].tags.filter(t => t[0] === 'p').length;
+                    const el = document.getElementById('user-following-count');
+                    if (el) el.textContent = count;
+                }
+
+                if (followerEvents) {
+                    const uniqueFollowers = new Set(followerEvents.map(ev => ev.pubkey));
+                    const el = document.getElementById('user-followers-count');
+                    if (el) el.textContent = uniqueFollowers.size;
+                }
+            } catch (err) {
+                console.error('Failed to load follow counts:', err);
+            }
         },
 
         async _checkFollowStatus(targetPubkeyHex) {

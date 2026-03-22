@@ -193,6 +193,20 @@
             padding: 0 32px 24px;
         }
 
+        .user-follow-stats {
+            padding: 0 32px 20px;
+            display: flex;
+            gap: 20px;
+        }
+        .user-follow-stat {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+        .user-follow-stat strong {
+            color: #ffffff;
+            font-weight: 600;
+        }
+
         .bio-text {
             color: rgba(255, 255, 255, 0.8);
             line-height: 1.7;
@@ -468,8 +482,9 @@
                 document.title = (profile.name || 'User') + ' - Equaliser';
                 renderUser(npub, pubkeyHex);
 
-                // Check follow status (non-blocking)
+                // Check follow status and counts (non-blocking)
                 checkFollowStatus(pubkeyHex);
+                loadFollowCounts(pubkeyHex);
 
                 // Load feed (non-blocking)
                 loadFeed(pubkeyHex);
@@ -610,6 +625,11 @@
                         <div class="bio-text">${NostrSocial.linkifyContent(escapeHtml(profile.about))}</div>
                     </div>
                 ` : ''}
+
+                <div class="user-follow-stats">
+                    <span class="user-follow-stat"><strong id="user-following-count">0</strong> Following</span>
+                    <span class="user-follow-stat"><strong id="user-followers-count">0</strong> Followers</span>
+                </div>
 
                 <!-- Posts -->
                 <div class="posts-section">
@@ -806,6 +826,33 @@
         function isOwnProfile(pubkeyHex) {
             const session = SessionManager.getSession();
             return session && session.publicKey === pubkeyHex;
+        }
+
+        async function loadFollowCounts(pubkeyHex) {
+            try {
+                const [followingEvents, followerEvents] = await Promise.all([
+                    (typeof CacheAPI !== 'undefined')
+                        ? CacheAPI.queryEvents({ kinds: [3], authors: [pubkeyHex], limit: 1 })
+                        : NostrSocial.queryRelays({ kinds: [3], authors: [pubkeyHex], limit: 1 }),
+                    (typeof CacheAPI !== 'undefined')
+                        ? CacheAPI.queryEvents({ kinds: [3], '#p': [pubkeyHex], limit: 500 })
+                        : NostrSocial.queryRelays({ kinds: [3], '#p': [pubkeyHex], limit: 500 })
+                ]);
+
+                if (followingEvents && followingEvents.length > 0) {
+                    const count = followingEvents[0].tags.filter(t => t[0] === 'p').length;
+                    const el = document.getElementById('user-following-count');
+                    if (el) el.textContent = count;
+                }
+
+                if (followerEvents) {
+                    const uniqueFollowers = new Set(followerEvents.map(ev => ev.pubkey));
+                    const el = document.getElementById('user-followers-count');
+                    if (el) el.textContent = uniqueFollowers.size;
+                }
+            } catch (err) {
+                console.error('Failed to load follow counts:', err);
+            }
         }
 
         async function checkFollowStatus(targetPubkeyHex) {
