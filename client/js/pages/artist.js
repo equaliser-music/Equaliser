@@ -241,6 +241,12 @@
                     </button>
                 </div>
 
+                <!-- Follow Stats -->
+                <div class="artist-follow-stats" id="artist-follow-stats" data-pubkey="${pubkeyHex}">
+                    <span class="artist-follow-stat" style="cursor:pointer" onclick="NostrSocial.showFollowListModal(document.getElementById('artist-follow-stats').dataset.pubkey, 'following')"><strong id="artist-following-count">0</strong> Following</span>
+                    <span class="artist-follow-stat" style="cursor:pointer" onclick="NostrSocial.showFollowListModal(document.getElementById('artist-follow-stats').dataset.pubkey, 'followers')"><strong id="artist-followers-count">0</strong> Followers</span>
+                </div>
+
                 <!-- Two-column body -->
                 <div class="artist-body">
                     <div class="artist-body-left">
@@ -327,9 +333,10 @@
                 this._checkFollowStatus(pubkeyHex);
             }
 
-            // Load discography and feed in parallel
+            // Load discography, feed, and follow counts in parallel
             this._loadDiscography(pubkeyHex);
             this._loadFeed(pubkeyHex);
+            this._loadFollowCounts(pubkeyHex);
         },
 
         _showSearch() {
@@ -811,6 +818,33 @@
         _isOwnProfile(pubkeyHex) {
             const session = SessionManager.getSession();
             return session && session.publicKey === pubkeyHex;
+        },
+
+        async _loadFollowCounts(pubkeyHex) {
+            try {
+                const [followingEvents, followerEvents] = await Promise.all([
+                    (typeof CacheAPI !== 'undefined')
+                        ? CacheAPI.queryEvents({ kinds: [3], authors: [pubkeyHex], limit: 1 })
+                        : NostrSocial.queryRelays({ kinds: [3], authors: [pubkeyHex], limit: 1 }),
+                    (typeof CacheAPI !== 'undefined')
+                        ? CacheAPI.queryEvents({ kinds: [3], '#p': [pubkeyHex], limit: 500 })
+                        : NostrSocial.queryRelays({ kinds: [3], '#p': [pubkeyHex], limit: 500 })
+                ]);
+
+                if (followingEvents && followingEvents.length > 0) {
+                    const count = followingEvents[0].tags.filter(t => t[0] === 'p').length;
+                    const el = document.getElementById('artist-following-count');
+                    if (el) el.textContent = count;
+                }
+
+                if (followerEvents) {
+                    const uniqueFollowers = new Set(followerEvents.map(ev => ev.pubkey));
+                    const el = document.getElementById('artist-followers-count');
+                    if (el) el.textContent = uniqueFollowers.size;
+                }
+            } catch (err) {
+                console.error('Failed to load follow counts:', err);
+            }
         },
 
         async _checkFollowStatus(artistPubkeyHex) {
