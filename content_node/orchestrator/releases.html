@@ -821,6 +821,20 @@
         </div>
     </div>
 
+    <!-- Release Announcement Modal -->
+    <div class="modal-overlay" id="announce-modal">
+        <div class="modal" style="max-width: 500px;">
+            <h2>Announce Release</h2>
+            <p>Share this release with your fans on the social feed.</p>
+            <div id="announce-cover-preview" style="margin-bottom: 12px; text-align: center;"></div>
+            <textarea class="form-input" id="announce-message" rows="3" maxlength="500" style="resize: vertical; width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; font-family: inherit; font-size: 14px;"></textarea>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="skipAnnouncement()">Skip</button>
+                <button class="btn btn-primary" id="announce-btn" onclick="postAnnouncement()">Post Announcement</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Notification -->
     <div class="notification" id="notification">
         <svg class="notification-icon" fill="currentColor" viewBox="0 0 20 20">
@@ -1396,6 +1410,7 @@
             try {
                 // Release each track in the release
                 let successCount = 0;
+                const releasedEventIds = [];
                 for (const track of release.tracks) {
                     try {
                         // Get unsigned event from API
@@ -1434,22 +1449,28 @@
                             throw new Error(error.detail || 'Failed to publish');
                         }
 
+                        releasedEventIds.push(signedEvent.id);
                         successCount++;
                     } catch (e) {
                         console.error(`Failed to release track ${track.title}:`, e);
                     }
                 }
 
-                if (successCount === release.tracks.length) {
-                    showNotification(`Released "${release.title}" successfully!`, 'success');
-                } else if (successCount > 0) {
-                    showNotification(`Released ${successCount}/${release.tracks.length} tracks`, 'success');
-                } else {
+                if (successCount === 0) {
                     showNotification('Failed to release tracks', 'error');
+                } else if (successCount === release.tracks.length) {
+                    showNotification(`Released "${release.title}" successfully!`, 'success');
+                } else {
+                    showNotification(`Released ${successCount}/${release.tracks.length} tracks`, 'success');
                 }
 
                 // Refresh to show updated status
                 await refreshReleases();
+
+                // Show announcement modal if any tracks were released
+                if (releasedEventIds.length > 0) {
+                    showAnnouncementModal(release.title, releasedEventIds, successCount, release);
+                }
 
             } catch (error) {
                 console.error('Release error:', error);
@@ -1458,6 +1479,93 @@
                 isReleasing = false;
                 renderReleases();
             }
+        }
+
+        // ===== Release Announcement =====
+
+        let _announcementEventIds = [];
+
+        function showAnnouncementModal(title, eventIds, trackCount, release) {
+            _announcementEventIds = eventIds;
+            const modal = document.getElementById('announce-modal');
+
+            const isSingle = trackCount === 1;
+            const defaultMsg = isSingle
+                ? `Just released '${title}'! Listen now on Equaliser`
+                : `Just released '${title}' \u2014 ${trackCount} tracks! Listen now on Equaliser`;
+
+            document.getElementById('announce-message').value = defaultMsg;
+
+            // Show cover art preview
+            const coverPreview = document.getElementById('announce-cover-preview');
+            const firstTrack = release?.tracks?.[0];
+            const coverUrl = firstTrack?.blossom_cover_url || (firstTrack?.blossom_cover_hash ? `/blossom/${firstTrack.blossom_cover_hash}` : (firstTrack?.cover_art_cid ? `/ipfs/${firstTrack.cover_art_cid}` : null));
+            if (coverUrl && coverPreview) {
+                coverPreview.innerHTML = `<img src="${coverUrl}" style="max-width:200px;max-height:200px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);" onerror="this.parentElement.style.display='none'">`;
+            } else if (coverPreview) {
+                coverPreview.innerHTML = '';
+            }
+
+            modal.classList.add('show');
+        }
+
+        function skipAnnouncement() {
+            document.getElementById('announce-modal').classList.remove('show');
+        }
+
+        async function postAnnouncement() {
+            const btn = document.getElementById('announce-btn');
+            const message = document.getElementById('announce-message').value.trim();
+            if (!message) { skipAnnouncement(); return; }
+
+            btn.disabled = true;
+            btn.textContent = 'Posting...';
+
+            try {
+                const event = {
+                    kind: 1,
+                    created_at: Math.floor(Date.now() / 1000),
+                    tags: [
+                        ['app', 'Equaliser'],
+                        ['content-type', 'release-announcement'],
+                        ..._announcementEventIds.map(id => ['e', id])
+                    ],
+                    content: message
+                };
+
+                const signedEvent = await SessionManager.signEvent(event);
+                const ok = await publishToRelay(signedEvent);
+
+                if (ok) {
+                    showNotification('Announcement posted!', 'success');
+                } else {
+                    showNotification('Failed to post announcement', 'error');
+                }
+            } catch (err) {
+                console.error('Announcement failed:', err);
+                showNotification('Failed to post: ' + err.message, 'error');
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Post Announcement';
+            document.getElementById('announce-modal').classList.remove('show');
+        }
+
+        function publishToRelay(signedEvent) {
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const relayUrl = `${wsProtocol}//${window.location.host}/relay`;
+            return new Promise((resolve) => {
+                const ws = new WebSocket(relayUrl);
+                const timeout = setTimeout(() => { try { ws.close(); } catch(e) {} resolve(false); }, 5000);
+                ws.onopen = () => ws.send(JSON.stringify(['EVENT', signedEvent]));
+                ws.onmessage = (e) => {
+                    try {
+                        const data = JSON.parse(e.data);
+                        if (data[0] === 'OK') { clearTimeout(timeout); ws.close(); resolve(data[2] === true); }
+                    } catch(err) {}
+                };
+                ws.onerror = () => { clearTimeout(timeout); resolve(false); };
+            });
         }
 
         // Utilities
