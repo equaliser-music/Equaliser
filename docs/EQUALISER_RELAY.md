@@ -231,14 +231,26 @@ Connections to other Equaliser content nodes. These relays support full tag inde
 
 #### Standard NOSTR relays (`STANDARD_RELAYS`)
 
-Connections to standard relays like Damus, nos.lol, Primal. These relays do not index multi-character tags — tested against `wss://relay.damus.io` which rejected `#app` subscriptions with `"bad req: unindexed tag filter"`. The syncer uses a different strategy:
+`STANDARD_RELAYS` serves two roles in the Equaliser architecture:
+
+**1. Relay syncer (inbound)** — The Equaliser relay's peer syncer pulls user data from these relays. Standard relays do not index multi-character tags, so the syncer uses a pubkey-based strategy:
 
 - Subscribes by **known pubkeys** from `node_artists` + `registered_users` tables
 - Only **common NOSTR kinds**: Kind 0 (profiles), Kind 1 (posts), Kind 3 (follows), Kind 5 (deletions)
 - Equaliser-specific kinds (30050, 30051, 30001) are NOT fetched from standard relays — they only exist on Equaliser nodes
-- Events received are **filtered locally** for the `["app", "Equaliser"]` tag before ingesting — the existing `EVENT_POLICY` check in `ProcessInboundEvent` handles this automatically
-- **Dynamic subscriptions**: when a new artist or user registers on this node, the syncer updates its subscription on standard relays to include the new pubkey
-- Outbound forwarding: locally published events are also forwarded to standard relays for NOSTR interoperability
+- Events received are processed through the normal inbound pipeline with `EVENT_POLICY` checks
+- **Dynamic subscriptions**: when a new artist or user registers on this node, the syncer updates its subscription to include the new pubkey
+
+**2. Client publishing defaults (outbound)** — The orchestrator also receives `STANDARD_RELAYS` as an env var and exposes it via `GET /api/config`. The client fetches this on app init and uses it as the default set of relays for outbound event publishing (posts, likes, follows). Users can customise their relay list in settings (Kind 10002), but `STANDARD_RELAYS` provides the out-of-box defaults.
+
+**Important**: Both the Equaliser relay and orchestrator services should have the same `STANDARD_RELAYS` value to ensure events published by users are pulled back in by the syncer (data round-trip). Set them to the same value in the docker-compose override.
+
+**Node operator choice**: `STANDARD_RELAYS` determines the level of wider NOSTR interop:
+- **Sandboxed testing**: Point to self-hosted relays (e.g. `wss://relay1.equaliser.app,wss://relay2.equaliser.app`) — events stay within your infrastructure
+- **Public NOSTR interop**: Point to public relays (e.g. `wss://relay.damus.io,wss://nos.lol`) — users' events are visible on the wider NOSTR network, attracting new users to Equaliser
+- **Empty/unset**: Local relay only — fully isolated node, no external publishing or syncing
+
+Posts from standard relays that lack the `["app", "Equaliser"]` tag are displayed in feeds with a "via NOSTR" badge, distinguishing them from native Equaliser posts.
 
 #### Common features (both types)
 
@@ -482,7 +494,8 @@ EVENT_POLICY=equaliser_only   # equaliser_only | open | hybrid
 
 # Peer syncing
 PEER_RELAYS=                  # comma-separated Equaliser relay URLs (uses #app filter, empty = disabled)
-STANDARD_RELAYS=              # comma-separated standard NOSTR relays (uses pubkey filter, empty = disabled)
+STANDARD_RELAYS=              # comma-separated standard NOSTR relays (inbound sync + client publish defaults, empty = disabled)
+                              # Set the SAME value on both equaliser-relay and orchestrator services
 SYNC_INTERVAL=3600            # seconds between periodic full resyncs
 
 # User caching (Phase B.3)

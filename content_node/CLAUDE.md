@@ -77,6 +77,13 @@ FastAPI app. CORS allow-all (dev). Initialises database + node identity on start
 |--------|----------|---------|
 | POST | `/api/users/register` | Proxy user pubkey registration to relay internal API (for data caching) |
 
+**main.py** — Config and health:
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| GET | `/api/health` | Health check for container orchestration |
+| GET | `/api/config` | Client-facing config: returns `{ standard_relays, public_base_url }` from env vars. Client uses `standard_relays` as default outbound publishing relays. Must match `STANDARD_RELAYS` on the Equaliser relay service. |
+
 ## Admin Pages (orchestrator/*.html)
 
 All pages use shared `js/session.js` and `js/admin-sidebar.js`.
