@@ -667,6 +667,209 @@ const NostrSocial = (() => {
         return events;
     }
 
+    // ===== Follow List Modal =====
+
+    /**
+     * Show a modal listing followers or following for a pubkey.
+     * @param {string} pubkey - hex pubkey
+     * @param {'following'|'followers'} type
+     * @param {Function} [onToggleFollow] - callback(targetPubkey, isNowFollowing) after follow/unfollow
+     */
+    async function showFollowListModal(pubkey, type, onToggleFollow) {
+        // Remove existing modal
+        const existing = document.getElementById('follow-list-modal');
+        if (existing) existing.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'follow-list-modal';
+        modal.className = 'follow-list-modal open';
+        modal.innerHTML = `
+            <div class="follow-list-modal-content">
+                <div class="follow-list-modal-header">
+                    <h3>${type === 'following' ? 'Following' : 'Followers'}</h3>
+                    <button class="follow-list-modal-close" id="follow-list-close">&times;</button>
+                </div>
+                <div class="follow-list-modal-body" id="follow-list-body">
+                    <div style="padding:24px;text-align:center;color:rgba(255,255,255,0.4);">Loading...</div>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+
+        // Close handlers
+        const close = () => modal.remove();
+        document.getElementById('follow-list-close').onclick = close;
+        modal.onclick = (e) => { if (e.target === modal) close(); };
+
+        try {
+            let pubkeys = [];
+
+            if (type === 'following') {
+                // Get the user's Kind 3 contact list
+                let events;
+                if (typeof CacheAPI !== 'undefined') {
+                    events = await CacheAPI.queryEvents({ kinds: [3], authors: [pubkey], limit: 1 });
+                } else {
+                    events = await queryRelays({ kinds: [3], authors: [pubkey], limit: 1 });
+                }
+                if (events && events.length > 0) {
+                    pubkeys = events[0].tags.filter(t => t[0] === 'p').map(t => t[1]);
+                }
+            } else {
+                // Get Kind 3 events that tag this pubkey
+                let events;
+                if (typeof CacheAPI !== 'undefined') {
+                    events = await CacheAPI.queryEvents({ kinds: [3], '#p': [pubkey], limit: 500 });
+                } else {
+                    events = await queryRelays({ kinds: [3], '#p': [pubkey], limit: 500 });
+                }
+                if (events) {
+                    const unique = new Map();
+                    for (const ev of events) {
+                        const ex = unique.get(ev.pubkey);
+                        if (!ex || ev.created_at > ex.created_at) unique.set(ev.pubkey, ev);
+                    }
+                    pubkeys = Array.from(unique.keys());
+                }
+            }
+
+            if (pubkeys.length === 0) {
+                document.getElementById('follow-list-body').innerHTML = `
+                    <div style="padding:32px;text-align:center;color:rgba(255,255,255,0.4);">
+                        ${type === 'following' ? 'Not following anyone yet' : 'No followers yet'}
+                    </div>`;
+                return;
+            }
+
+            // Fetch profiles with bios — try CacheAPI first for about field
+            const profileMap = new Map();
+            if (typeof CacheAPI !== 'undefined') {
+                try {
+                    const cached = await CacheAPI.getProfiles(pubkeys);
+                    if (cached) {
+                        for (const [pk, p] of Object.entries(cached)) {
+                            profileMap.set(pk, {
+                                name: p.name || '',
+                                picture: p.picture || '',
+                                about: p.about || '',
+                                nip05: p.nip05 || ''
+                            });
+                        }
+                    }
+                } catch (e) {}
+            }
+
+            // Fallback for missing profiles
+            const missing = pubkeys.filter(pk => !profileMap.has(pk));
+            if (missing.length > 0) {
+                const fetched = await fetchProfiles(missing);
+                fetched.forEach((p, pk) => {
+                    if (!profileMap.has(pk)) {
+                        profileMap.set(pk, { name: p.name || '', picture: p.picture || '', about: '', nip05: '' });
+                    }
+                });
+            }
+
+            // Get current user's follow list for follow/unfollow buttons
+            const session = SessionManager.getSession();
+            let myFollowing = new Set();
+            if (session) {
+                const myContact = (typeof CacheAPI !== 'undefined')
+                    ? await CacheAPI.queryEvents({ kinds: [3], authors: [session.publicKey], limit: 1 })
+                    : await queryRelays({ kinds: [3], authors: [session.publicKey], limit: 1 });
+                if (myContact && myContact.length > 0) {
+                    myContact[0].tags.filter(t => t[0] === 'p').forEach(t => myFollowing.add(t[1]));
+                }
+            }
+
+            // Render list
+            const body = document.getElementById('follow-list-body');
+            if (!body) return;
+
+            body.innerHTML = pubkeys.map(pk => {
+                const p = profileMap.get(pk) || {};
+                const name = p.name || 'Unknown';
+                const initial = name.charAt(0).toUpperCase();
+                let npub = '';
+                try { npub = window.NostrTools.nip19.npubEncode(pk); } catch (e) {}
+                const bio = p.about ? escapeHtml(p.about.substring(0, 50)) + (p.about.length > 50 ? '...' : '') : '';
+                const isMe = session && session.publicKey === pk;
+                const isFollowing = myFollowing.has(pk);
+
+                return `
+                    <div class="follow-list-item" data-pubkey="${pk}">
+                        <a href="/user.html?npub=${npub}" class="follow-list-avatar" onclick="document.getElementById('follow-list-modal').remove()">
+                            ${p.picture
+                                ? `<img src="${escapeHtml(p.picture)}" alt="" onerror="this.style.display='none';this.parentElement.textContent='${initial}'">`
+                                : initial}
+                        </a>
+                        <div class="follow-list-info">
+                            <a href="/user.html?npub=${npub}" class="follow-list-name" onclick="document.getElementById('follow-list-modal').remove()">${escapeHtml(name)}</a>
+                            ${bio ? `<div class="follow-list-bio">${bio}</div>` : ''}
+                        </div>
+                        ${!isMe && session ? `
+                            <button class="follow-list-btn ${isFollowing ? 'following' : ''}" data-target="${pk}" onclick="NostrSocial._toggleFollowInModal(this, '${pk}')">
+                                ${isFollowing ? 'Following' : 'Follow'}
+                            </button>` : ''}
+                    </div>`;
+            }).join('');
+
+        } catch (err) {
+            console.error('Failed to load follow list:', err);
+            const body = document.getElementById('follow-list-body');
+            if (body) body.innerHTML = `<div style="padding:24px;text-align:center;color:rgba(255,255,255,0.4);">Failed to load</div>`;
+        }
+    }
+
+    /**
+     * Toggle follow/unfollow from within the modal.
+     */
+    async function _toggleFollowInModal(btn, targetPubkey) {
+        const session = SessionManager.getSession();
+        if (!session) return;
+        btn.disabled = true;
+
+        try {
+            // Fetch current contact list
+            let contactEvents;
+            if (typeof CacheAPI !== 'undefined') {
+                contactEvents = await CacheAPI.queryEvents({ kinds: [3], authors: [session.publicKey], limit: 1 });
+            } else {
+                contactEvents = await queryRelays({ kinds: [3], authors: [session.publicKey], limit: 1 });
+            }
+
+            let tags = [['app', 'Equaliser']];
+            if (contactEvents && contactEvents.length > 0) {
+                tags = contactEvents[0].tags.filter(t => t[0] !== 'app');
+                tags.push(['app', 'Equaliser']);
+            }
+
+            const isFollowing = tags.some(t => t[0] === 'p' && t[1] === targetPubkey);
+            if (isFollowing) {
+                tags = tags.filter(t => !(t[0] === 'p' && t[1] === targetPubkey));
+            } else {
+                tags.push(['p', targetPubkey]);
+            }
+
+            const event = {
+                kind: 3,
+                created_at: Math.floor(Date.now() / 1000),
+                tags: tags,
+                content: ''
+            };
+
+            const signedEvent = await SessionManager.signEvent(event);
+            await publishEvent(signedEvent);
+
+            const nowFollowing = !isFollowing;
+            btn.className = `follow-list-btn ${nowFollowing ? 'following' : ''}`;
+            btn.textContent = nowFollowing ? 'Following' : 'Follow';
+        } catch (err) {
+            console.error('Follow toggle failed:', err);
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
     // ===== Expose public API =====
 
     return {
@@ -692,6 +895,8 @@ const NostrSocial = (() => {
         loadUserRelays,
         queryRelays,
         publishToLocal,
-        fetchFromLocal
+        fetchFromLocal,
+        showFollowListModal,
+        _toggleFollowInModal
     };
 })();

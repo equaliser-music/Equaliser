@@ -511,11 +511,11 @@
                     </div>
                     <div class="profile-bio" id="profile-bio"></div>
                     <div class="profile-stats">
-                        <div class="profile-stat">
+                        <div class="profile-stat" style="cursor:pointer" onclick="NostrSocial.showFollowListModal(profilePubkey, 'following')">
                             <span class="profile-stat-value" id="following-count">0</span>
                             <span class="profile-stat-label">Following</span>
                         </div>
-                        <div class="profile-stat">
+                        <div class="profile-stat" style="cursor:pointer" onclick="NostrSocial.showFollowListModal(profilePubkey, 'followers')">
                             <span class="profile-stat-value" id="followers-count">0</span>
                             <span class="profile-stat-label">Followers</span>
                         </div>

@@ -205,8 +205,8 @@
                         <div class="bio-text">${NostrSocial.linkifyContent(escapeHtml(profile.about))}</div>
                     </div>` : ''}
                 <div class="user-follow-stats">
-                    <span class="user-follow-stat"><strong id="user-following-count">0</strong> Following</span>
-                    <span class="user-follow-stat"><strong id="user-followers-count">0</strong> Followers</span>
+                    <span class="user-follow-stat" style="cursor:pointer" onclick="NostrSocial.showFollowListModal('${pubkeyHex}', 'following')"><strong id="user-following-count">0</strong> Following</span>
+                    <span class="user-follow-stat" style="cursor:pointer" onclick="NostrSocial.showFollowListModal('${pubkeyHex}', 'followers')"><strong id="user-followers-count">0</strong> Followers</span>
                 </div>
                 <div class="posts-section">
                     <h2 class="section-title">Posts</h2>
