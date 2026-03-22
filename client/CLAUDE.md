@@ -7,7 +7,9 @@ SPA for listeners/fans. Served at `/` by nginx. No build step — vanilla JS + H
 `app.html` is the SPA shell. It loads the sidebar, player, and router, which dynamically loads page HTML into `#page-content`. Three standalone pages bypass the shell: `index.html` (landing), `login.html`, `onboarding.html`.
 
 Script load order in app.html:
-nostr-tools (CDN) → hls.js (CDN) → session.js → sidebar.js → cache-api.js → nostr-social.js → nostr-dm.js → nostr-playlists.js → player.js → router.js
+nostr-tools (CDN) → hls.js (CDN) → session.js → sidebar.js → cache-api.js → nostr-social.js → [global registrations] → nostr-dm.js → nostr-playlists.js → player.js → router.js
+
+After nostr-social.js loads, app.html registers global onclick handlers: `expandReleaseCard`, `playFromReleaseCard`, `addReleaseToLibrary`, `addPlaylistToLibrary` (used by dynamically rendered HTML in feed cards).
 
 ## Core Modules (js/)
 
@@ -15,7 +17,7 @@ nostr-tools (CDN) → hls.js (CDN) → session.js → sidebar.js → cache-api.j
 |--------|---------|-------------|
 | `session.js` | Session management | nsec or NIP-07 login. Keys in sessionStorage. Auto-adds `["app", "Equaliser"]` tag to all signed events. 30-min idle timeout, multi-tab logout via BroadcastChannel. Auto-registers pubkey with relay on login. API: `init()`, `signEvent()`, `getSession()`, `hasSession()`, `logout()` |
 | `cache-api.js` | Cache REST API client | Fetches data from `/api/cache/` (relay REST API). 3s timeout, returns null on failure for graceful fallback. API: `queryEvents(filter)`, `getProfiles(pubkeys)`, `getUserFollows(pubkey)`, `getUserFeed(pubkey, limit)`, `getArtists()`, `getTracksByArtist(pubkey)`, `getRecentTracks(limit)`, `getAlbumsByArtist(pubkey)` |
-| `nostr-social.js` | Relay communication | Fetch/publish events, profile caching, relay config. **REST-first**: `_queryRelay()` uses cache API for local relay reads, skips external relay WebSocket entirely when cache is available. WebSocket only for publishing. API: `fetchNotes()`, `fetchProfiles()`, `fetchContactList()`, `fetchReactions()`, `publishEvent()`, `loadUserRelays()`. Utilities: `escapeHtml()`, `relativeTime()`, `linkifyContent()`, `isEqualiserEvent()` |
+| `nostr-social.js` | Relay communication + social UI | Fetch/publish events, profile caching, relay config. **REST-first**: `_queryRelay()` uses cache API for local relay reads, skips external relay WebSocket entirely when cache is available. WebSocket only for publishing. API: `fetchNotes()`, `fetchProfiles()`, `fetchContactList()`, `fetchReactions()`, `publishEvent()`, `loadUserRelays()`, `queryRelays()`. Utilities: `escapeHtml()`, `relativeTime()`, `linkifyContent()`, `isEqualiserEvent()`. Rich feed: `generateLinkPreviews()` (YouTube + inline images), `generateReleaseAnnouncementCard()`, `expandReleaseCard()`, `playFromReleaseCard()`, `addReleaseToLibrary()`, `addPlaylistToLibrary()`. Social UI: `showFollowListModal()` |
 | `nostr-dm.js` | Direct messages (NIP-04) | Kind 4 encrypted DMs. Supports nsec and NIP-07 extension. API: `encrypt()`, `decrypt()`, `fetchAllDMs()`, `groupConversations()`, `sendDM()`, `canDM()` |
 | `nostr-playlists.js` | Playlist CRUD (NIP-51) | Kind 30001. Public/private playlists (private encrypts via NIP-04 to self). 60s cache TTL. API: `createPlaylist()`, `updatePlaylist()`, `deletePlaylist()`, `fetchMyPlaylists()`, `addTrackToPlaylist()`, `followPlaylist()` |
 | `sidebar.js` | Navigation sidebar | Renders nav links, user profile card, login/logout. Fetches Kind 0 for display. API: `init()`, `updateUserDisplay()` |
@@ -35,9 +37,9 @@ Each is an IIFE registering with `window.EqualiserPages`. Has `init(params)` and
 | `messages.js` | `messages.html` | Conversation list + chat UI (NIP-04 encrypted) | 0, 4 |
 | `profile.js` | `profile.html` | Own profile. Posts/Likes tabs, follow stats | 0, 1, 3, 6, 7 |
 | `user.js` | `user.html` | Other user's profile. Follow, message, artist detection | 0, 1, 3, 7, 30050 |
-| `settings.js` | `settings.html` | Profile editor, relay management, NIP-05, account | 0, 10002 |
+| `settings.js` | `settings.html` | Profile editor (avatar/banner Blossom upload), relay management, NIP-05, account | 0, 10002 |
 | `library.js` | `library.html` | User's playlists + followed playlists | 30001 |
-| `playlist.js` | `playlist.html` | Single playlist: play, shuffle, edit, share | 30001, 30050 |
+| `playlist.js` | `playlist.html` | Single playlist: play, shuffle, edit, share, Add to Library | 30001, 30050 |
 
 ## Standalone Pages
 
@@ -58,7 +60,7 @@ Each is an IIFE registering with `window.EqualiserPages`. Has `init(params)` and
 |---------|---------|----------|----------------|
 | Cover art | Absolute Blossom URL (blossom_cover_url tag) | `/blossom/{hash}` (blossom_cover_hash tag) | `/ipfs/{cid}` (cover_art_cid tag) |
 | HLS streams | `/ipfs/{cid}/playlist.m3u8` (ipfs_preview_cid or ipfs_manifest_cid tag) | — | — |
-| Avatars/banners | `/ipfs/{cid}` or `/blossom/{hash}` from Kind 0 profile | Gradient placeholder | — |
+| Avatars/banners | Absolute Blossom URL from Kind 0 `picture`/`banner` fields | `/blossom/{hash}` (relative) | Gradient placeholder |
 
 ### Cross-Node Cover Art Resilience
 
@@ -70,7 +72,7 @@ Cover art `<img>` tags use a `data-fallback` attribute with the IPFS URL. When t
 
 ## Key Patterns
 
-- **REST-first data fetching**: `_queryRelay()` routes local relay reads through the cache REST API (`/api/cache/events`), skipping external relay WebSocket connections entirely. All NostrSocial functions benefit automatically. 3s timeout with WebSocket fallback if cache unavailable. Some pages (artist.js, home.js, user.js) still have custom WebSocket queries for Kind 0/30050 — TODO to migrate.
+- **REST-first data fetching**: `_queryRelay()` routes local relay reads through the cache REST API (`/api/cache/events`), skipping external relay WebSocket connections entirely. All NostrSocial functions benefit automatically. 3s timeout with WebSocket fallback if cache unavailable. artist.js migrated to Cache API. home.js and user.js still have custom WebSocket queries for Kind 0/30050 — TODO to migrate.
 - **Relay queries (WebSocket fallback)**: When cache API is unavailable, fetches from all relays in parallel, deduplicates by event ID, sorts newest-first
 - **Profile cache**: In-memory pubkey → {name, picture} map, avoids repeated fetches
 - **Client-side tag filtering**: Multi-char tags (`app`, `content-type`, `board`) are NOT relay-indexed — fetch broadly then filter in JS

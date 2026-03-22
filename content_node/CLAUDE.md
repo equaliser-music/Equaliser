@@ -42,7 +42,7 @@ FastAPI app. CORS allow-all (dev). Initialises database + node identity on start
 | GET | `/api/tracks/status/{track_id}` | Poll upload/duplicate progress |
 | GET | `/api/tracks/` | List completed uploads |
 | POST | `/api/tracks/publish` | Publish pre-signed Kind 30050 to relay, delete draft |
-| POST | `/api/tracks/cover-art` | Upload cover to Blossom (primary) + IPFS (fallback) |
+| POST | `/api/tracks/cover-art` | Upload cover to Blossom (primary) + IPFS (fallback). Absolute Blossom URL via `PUBLIC_BASE_URL` |
 | POST | `/api/tracks/cleanup` | Unpin IPFS CIDs + delete Blossom blobs for deleted releases. Best-effort, client determines shared-reference safety |
 
 **drafts.py** — Draft management:
@@ -65,6 +65,12 @@ FastAPI app. CORS allow-all (dev). Initialises database + node identity on start
 | POST | `/api/releases/export-download` | Download ZIP (manifest + signature + audio from Blossom) |
 | POST | `/api/releases/import` | Import ZIP → Blossom upload → HLS encode → IPFS → drafts |
 
+**uploads.py** — Image uploads:
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| POST | `/api/upload/image` | Upload image to Blossom. Returns `{ blossom_hash, blossom_url }`. Absolute URL when `PUBLIC_BASE_URL` is set. Used by client settings (avatar/banner) and social feed image attach. |
+
 **users.py** — User registration:
 
 | Method | Endpoint | Purpose |
@@ -80,11 +86,11 @@ All pages use shared `js/session.js` and `js/admin-sidebar.js`.
 | `login.html` | nsec / NIP-07 extension login. Session in sessionStorage |
 | `onboarding.html` | First-time setup: generate identity, upload avatar/banner, publish Kind 0 |
 | `dashboard.html` | Home: recent releases (Kind 30050), profile (Kind 0), track count |
-| `releases.html` | Drafts + released tracks. Upload, edit, release, export |
-| `edit-release.html` | Edit metadata for draft or released track. Cover art upload. Add existing tracks (duplicated with independent IPFS CIDs) or upload new tracks directly into a release. Delete released tracks (Kind 5 + storage cleanup) |
-| `profile.html` | Edit Kind 0 profile (name, bio, avatar, banner, socials) |
+| `releases.html` | Drafts + released tracks. Upload, edit, release, export. Release announcement modal (post Kind 1 to social feed after releasing) |
+| `edit-release.html` | Edit metadata for draft or released track. Cover art upload. Add existing tracks (duplicated with independent IPFS CIDs) or upload new tracks directly into a release. Delete released tracks (Kind 5 + storage cleanup). Release announcement modal |
+| `profile.html` | Edit Kind 0 profile (name, bio, avatar, banner via Blossom, socials). `ensureAbsoluteBlossomUrl()` converts relative Blossom URLs to absolute on save |
 | `upload.html` | Standalone track upload form |
-| `settings.html` | Placeholder for future settings |
+| `settings.html` | Placeholder for future settings (artist settings — listeners use client `/settings.html`) |
 
 ## Shared JS (orchestrator/js/)
 

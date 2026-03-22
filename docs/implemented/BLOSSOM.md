@@ -20,7 +20,7 @@ Content Node Docker Stack
 | Original audio (mp3/wav/flac) | Blossom | - | Preserved for export/download packages |
 | HLS segments (encrypted) | IPFS | - | Content-addressed streaming, cross-pinning |
 | Cover art / album art | Blossom | IPFS | Fast HTTP serving, IPFS as fallback |
-| Profile images | IPFS (for now) | - | TODO: migrate to Blossom primary |
+| Profile images (avatar/banner) | Blossom | IPFS | Absolute URL via `PUBLIC_BASE_URL` for cross-node, IPFS CID fallback |
 
 ## Node Identity
 
@@ -224,8 +224,21 @@ When set, `get_blob_url()` returns absolute URLs. When empty (local dev), return
 
 The `/api/releases/import` endpoint uploads cover art to both Blossom (primary) and IPFS (fallback), ensuring the `cover_art_cid` tag is always populated for cross-node resilience.
 
+## Profile Image Uploads
+
+Avatar and banner images are uploaded to Blossom for both artists (admin profile page) and listeners (client settings page).
+
+**Endpoints**:
+- `POST /api/upload/image` (uploads.py) — Generic image upload. Returns `{ blossom_hash, blossom_url }`. URL is absolute when `PUBLIC_BASE_URL` is set.
+- `POST /api/tracks/cover-art` (tracks.py) — Used by admin profile editor. Uploads to both Blossom + IPFS. Returns absolute Blossom URL via `PUBLIC_BASE_URL`.
+
+**Cross-node display**: Profile images use absolute Blossom URLs (e.g. `https://test1.equaliser.app/blossom/{hash}`) in Kind 0 `picture`/`banner` fields. The admin profile editor runs `ensureAbsoluteBlossomUrl()` on save to convert any legacy relative URLs to absolute. IPFS CIDs stored in `equaliser.picture_cid`/`banner_cid` for fallback.
+
+**Client settings page** (`client/settings.html`): Avatar and banner upload with Blossom preview, "Uploaded" badge on success. Uses `/api/upload/image` endpoint.
+
+**Social feed image attach**: Post composer image button also uses `/api/upload/image`, appending the absolute Blossom URL to note content.
+
 ## Future Work
 
-- **Profile images on Blossom**: Migrate avatar/banner uploads to Blossom primary
 - **Automated disaster recovery**: Script to rebuild Blossom from NOSTR + IPFS
 - **Federation**: Mutual Blossom mirroring between artist content nodes
