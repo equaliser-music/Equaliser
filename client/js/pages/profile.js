@@ -141,8 +141,8 @@
                 kinds: [1, 6], authors: [this._profilePubkey], limit: 100
             });
 
-            const ownNotes = events.filter(e => e.kind === 1 && NostrSocial.isEqualiiserEvent(e) && NostrSocial.isTopLevelPost(e));
-            const reposts = events.filter(e => e.kind === 6 && NostrSocial.isEqualiiserEvent(e));
+            const ownNotes = events.filter(e => e.kind === 1 && NostrSocial.isTopLevelPost(e));
+            const reposts = events.filter(e => e.kind === 6);
 
             const items = [];
             for (const note of ownNotes) {
@@ -309,6 +309,7 @@
                             }
                         </div>
                         <span class="feed-author-name"><a href="/user.html?npub=${authorNpub}">${escapeHtml(authorName)}</a></span>
+                        ${item.tags && !NostrSocial.isEqualiiserEvent(item) ? '<span class="feed-nostr-badge">via NOSTR</span>' : ''}
                         <span class="feed-time">${time}</span>
                     </div>
                     <div class="feed-item-content" style="cursor:pointer" onclick="Router.navigate('/thread.html?id=${item.noteId}')">${content}</div>
