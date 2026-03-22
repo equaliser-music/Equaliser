@@ -782,6 +782,15 @@
         const PUBLIC_IPFS_GATEWAY = 'https://ipfs.io/ipfs/';
         // Local IPFS gateway for fast preview display (content is on local node)
         const LOCAL_IPFS_GATEWAY = `${window.location.origin}/ipfs/`;
+        // Base URL for absolute Blossom URLs (cross-node display)
+        const PUBLIC_BASE_URL = window.location.origin;
+
+        // Ensure a Blossom URL is absolute for cross-node display
+        function ensureAbsoluteBlossomUrl(url) {
+            if (!url) return url;
+            if (url.startsWith('/blossom/')) return `${PUBLIC_BASE_URL}${url}`;
+            return url;
+        }
 
         // Extract CID from any IPFS URL format
         function extractCidFromUrl(url) {
@@ -1036,8 +1045,9 @@
             const pictureCid = avatarCID
                 || profile.equaliser.picture_cid
                 || extractCidFromUrl(profile.picture);
-            const pictureBlossomUrl = avatarBlossomUrl
-                || profile.equaliser.picture_blossom_url;
+            const pictureBlossomUrl = ensureAbsoluteBlossomUrl(
+                avatarBlossomUrl || profile.equaliser.picture_blossom_url
+            );
 
             if (pictureBlossomUrl) {
                 profile.picture = pictureBlossomUrl;
@@ -1054,8 +1064,9 @@
             const bannerCid = bannerCID
                 || profile.equaliser.banner_cid
                 || extractCidFromUrl(profile.banner);
-            const bannerBlossomUrlValue = bannerBlossomUrl
-                || profile.equaliser.banner_blossom_url;
+            const bannerBlossomUrlValue = ensureAbsoluteBlossomUrl(
+                bannerBlossomUrl || profile.equaliser.banner_blossom_url
+            );
 
             if (bannerBlossomUrlValue) {
                 profile.banner = bannerBlossomUrlValue;
