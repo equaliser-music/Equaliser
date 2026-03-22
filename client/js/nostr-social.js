@@ -12,13 +12,31 @@ const NostrSocial = (() => {
     const LOCAL_RELAY = `${wsProtocol}//${window.location.host}/relay`;
     const DEFAULT_RELAYS = [LOCAL_RELAY];
 
-    // Well-known public relays used as fallback when user has no Kind 10002
-    const FALLBACK_RELAYS = [
-        'wss://relay.damus.io',
-        'wss://nos.lol',
-        'wss://relay.primal.net'
-    ];
+    // Standard relays from server config (fetched on init via /api/config)
+    // Falls back to empty if not configured (localhost dev = local relay only)
+    let FALLBACK_RELAYS = [];
+    let _fallbacksLoaded = false;
     let _relaysLoaded = false;
+
+    /**
+     * Fetch standard relays from server config endpoint.
+     * Called once on app init before loadUserRelays.
+     */
+    async function loadServerConfig() {
+        if (_fallbacksLoaded) return;
+        _fallbacksLoaded = true;
+        try {
+            const resp = await fetch('/api/config');
+            if (resp.ok) {
+                const config = await resp.json();
+                if (config.standard_relays && config.standard_relays.length > 0) {
+                    FALLBACK_RELAYS = config.standard_relays;
+                }
+            }
+        } catch (e) {
+            // Config unavailable — stay with local relay only
+        }
+    }
 
     // ===== Utilities =====
 
@@ -1051,6 +1069,7 @@ const NostrSocial = (() => {
         fetchCommunityReplies,
         publishEvent,
         loadUserRelays,
+        loadServerConfig,
         queryRelays,
         publishToLocal,
         fetchFromLocal,

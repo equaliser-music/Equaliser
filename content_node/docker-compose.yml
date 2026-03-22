@@ -118,6 +118,7 @@ services:
       - RELAY_API_URL=http://equaliser-relay:8008
       - BLOSSOM_URL=http://blossom:3000
       - PUBLIC_BASE_URL=
+      - STANDARD_RELAYS=${STANDARD_RELAYS:-}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost,http://localhost:80}
       - DATABASE_PATH=/data/drafts.db
     volumes:

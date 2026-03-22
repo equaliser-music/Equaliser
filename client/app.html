@@ -588,8 +588,11 @@
         SessionManager.init();
         EqualiserPlayer.init();
 
-        // Load external relays BEFORE sidebar/router so profile fetches use them
+        // Load server config + user relays BEFORE sidebar/router so profile fetches use them
         (async () => {
+            if (typeof NostrSocial !== 'undefined') {
+                await NostrSocial.loadServerConfig();
+            }
             if (SessionManager.hasSession() && typeof NostrSocial !== 'undefined') {
                 await NostrSocial.loadUserRelays(SessionManager.getSession().publicKey);
             }
