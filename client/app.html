@@ -37,12 +37,12 @@
             overflow-y: auto;
             height: 100%;
         }
-        /* Spacer at bottom of scrollable content to clear the fixed player bar */
-        #page-content > .main-content::after {
-            content: '';
-            display: block;
-            height: 120px;
-            flex-shrink: 0;
+        /* Clear the fixed player bar on all page inner columns */
+        .social-column,
+        .thread-column,
+        .profile-column,
+        .user-column {
+            padding-bottom: 120px !important;
         }
 
         /* Loading state */
