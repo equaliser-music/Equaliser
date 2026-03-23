@@ -171,8 +171,14 @@ const Router = {
             // Inject styles
             this._pageStyleEl.textContent = styles;
 
-            // Inject content
+            // Inject content + player spacer
             this._contentEl.innerHTML = content;
+            const mainContent = this._contentEl.querySelector('.main-content');
+            if (mainContent) {
+                const spacer = document.createElement('div');
+                spacer.className = 'eq-player-spacer';
+                mainContent.appendChild(spacer);
+            }
 
             // Update page title
             if (title) document.title = title;

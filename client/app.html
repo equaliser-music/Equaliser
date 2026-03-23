@@ -37,12 +37,12 @@
             overflow-y: auto;
             height: 100%;
         }
-        /* Clear the fixed player bar on all page inner columns */
-        .social-column,
-        .thread-column,
-        .profile-column,
-        .user-column {
-            padding-bottom: 120px !important;
+        /* Spacer to clear fixed player bar — injected by router */
+        .eq-player-spacer {
+            height: 120px;
+            min-height: 120px;
+            flex-shrink: 0;
+            width: 100%;
         }
 
         /* Loading state */
