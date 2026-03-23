@@ -485,8 +485,7 @@ const NostrSocial = (() => {
             }, 8000))
         );
 
-        const allEvents = _deduplicateEvents(allResults)
-            .filter(ev => isEqualiiserEvent(ev));
+        const allEvents = _deduplicateEvents(allResults);
         const counts = new Map();
 
         for (const ev of allEvents) {
@@ -527,8 +526,7 @@ const NostrSocial = (() => {
                 limit: 500
             }, 10000))
         );
-        const events = _deduplicateEvents(allResults)
-            .filter(ev => isEqualiiserEvent(ev));
+        const events = _deduplicateEvents(allResults);
         events.sort((a, b) => a.created_at - b.created_at);
         return events;
     }
