@@ -36,7 +36,13 @@
         #page-content > .main-content {
             overflow-y: auto;
             height: 100%;
-            padding-bottom: 100px; /* Clear the fixed player bar */
+        }
+        /* Spacer at bottom of scrollable content to clear the fixed player bar */
+        #page-content > .main-content::after {
+            content: '';
+            display: block;
+            height: 120px;
+            flex-shrink: 0;
         }
 
         /* Loading state */
