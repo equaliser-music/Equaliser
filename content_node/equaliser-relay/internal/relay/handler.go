@@ -385,9 +385,9 @@ func (h *Handler) handleCount(ctx context.Context, conn *Connection, data []byte
 // checkEventPolicy checks if an event is allowed by the tiered acceptance policy.
 //
 // Tiers (applied when EventPolicy is not "open"):
-//   - Strict (Kind 30050, 30051, 30001): requires ["app", "Equaliser"] tag
-//   - Known-pubkey + context-aware (Kind 1): accept from known pubkeys OR if referencing existing event
-//   - Context-aware (Kind 7, 5): accept if event references an existing event in raw_events
+//   - Always accept: events with ["app", "Equaliser"] tag
+//   - Strict (Kind 30050, 30051, 30001): requires app tag (rejected if not tagged)
+//   - Context-aware (Kind 1, 6, 7, 5): accept if event references an existing event in raw_events
 //   - Known-pubkey (Kind 0, 3): accept from pubkeys in node_artists or registered_users
 //   - Default: requires ["app", "Equaliser"] tag
 func (h *Handler) checkEventPolicy(event *nostr.Event) bool {
@@ -409,14 +409,14 @@ func (h *Handler) checkEventPolicy(event *nostr.Event) bool {
 		return false
 
 	case 1:
-		// Known-pubkey + context-aware: accept standalone posts from registered
-		// users/artists (needed for standard relay syncing of fan posts), or
-		// accept replies/threads that reference an existing event.
-		return h.isKnownPubkey(event.PubKey) || h.referencesExistingEvent(event)
+		// Context-aware: accept replies/threads that reference an existing event.
+		// Standalone posts without app tag are rejected (app-tagged events
+		// are already accepted above at line 402).
+		return h.ReferencesExistingEvent(event)
 
-	case 7, 5:
+	case 7, 6, 5:
 		// Context-aware: accept if the event references an existing event
-		return h.referencesExistingEvent(event)
+		return h.ReferencesExistingEvent(event)
 
 	case 0, 3:
 		// Known-pubkey: accept from registered artists or users
@@ -428,9 +428,9 @@ func (h *Handler) checkEventPolicy(event *nostr.Event) bool {
 	}
 }
 
-// referencesExistingEvent checks if an event references (via "e" tags) any event
+// ReferencesExistingEvent checks if an event references (via "e" tags) any event
 // already stored in raw_events. Used for context-aware acceptance of replies/reactions.
-func (h *Handler) referencesExistingEvent(event *nostr.Event) bool {
+func (h *Handler) ReferencesExistingEvent(event *nostr.Event) bool {
 	eventIDs := event.GetTagValues("e")
 	if len(eventIDs) == 0 {
 		return false

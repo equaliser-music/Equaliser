@@ -33,20 +33,28 @@ type Syncer struct {
 	outboundConn *relay.Connection
 	connID       string
 
+	// Standard relay URLs for quick lookup (filter interactions only)
+	standardRelaySet map[string]bool
+
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 }
 
 // New creates a new Syncer.
 func New(handler *relay.Handler, subMgr *relay.SubscriptionManager, peerStore *storage.PeerStore, userStore *storage.UserStore, cfg *config.Config) *Syncer {
+	stdSet := make(map[string]bool, len(cfg.StandardRelays))
+	for _, url := range cfg.StandardRelays {
+		stdSet[url] = true
+	}
 	return &Syncer{
-		handler:   handler,
-		subMgr:    subMgr,
-		peerStore: peerStore,
-		userStore: userStore,
-		cfg:       cfg,
-		peerConns: make(map[string]*websocket.Conn),
-		connID:    "syncer-outbound",
+		handler:          handler,
+		subMgr:           subMgr,
+		peerStore:        peerStore,
+		userStore:        userStore,
+		cfg:              cfg,
+		peerConns:        make(map[string]*websocket.Conn),
+		connID:           "syncer-outbound",
+		standardRelaySet: stdSet,
 	}
 }
 
@@ -315,11 +323,12 @@ func (s *Syncer) connectAndSyncStandard(ctx context.Context, url string, bo *bac
 
 	defer s.peerStore.UpdateDisconnected(context.Background(), url)
 
-	// Build subscription: common NOSTR kinds only, filtered by known pubkeys
+	// Build subscription: common NOSTR kinds by known pubkeys.
+	// Kind 1/6/7 are filtered in handlePeerEvent to only accept interactions with Equaliser content.
 	since, _ := s.peerStore.GetLastEventAt(ctx, url)
 	filter := nostr.Filter{
 		Authors: pubkeys,
-		Kinds:   []int{0, 1, 3, 5}, // Profiles, posts, follows, deletions
+		Kinds:   []int{0, 1, 3, 5, 6, 7}, // Profiles, posts, follows, deletions, reposts, likes
 	}
 	if since > 0 {
 		filter.Since = &since
@@ -341,7 +350,7 @@ func (s *Syncer) connectAndSyncStandard(ctx context.Context, url string, bo *bac
 		since, _ := s.peerStore.GetLastEventAt(ctx, url)
 		f := nostr.Filter{
 			Authors: pks,
-			Kinds:   []int{0, 1, 3, 5},
+			Kinds:   []int{0, 1, 3, 5, 6, 7},
 		}
 		if since > 0 {
 			f.Since = &since
@@ -443,6 +452,16 @@ func (s *Syncer) handlePeerEvent(ctx context.Context, peerURL string, data []byt
 	if err != nil {
 		log.Printf("Syncer: invalid EVENT from %s: %v", peerURL, err)
 		return
+	}
+
+	// For standard relays: only accept Kind 1/6/7 if they reference an existing Equaliser event.
+	// This prevents standalone posts from flooding the feed — only interactions with Equaliser content are synced.
+	if s.standardRelaySet[peerURL] {
+		if event.Kind == 1 || event.Kind == 6 || event.Kind == 7 {
+			if !s.handler.ReferencesExistingEvent(event) {
+				return // Skip — not an interaction with Equaliser content
+			}
+		}
 	}
 
 	sourceID := "syncer-peer-" + peerURL
