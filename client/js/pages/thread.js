@@ -146,7 +146,7 @@
                             ${npub ? '</a>' : ''}
                         </div>
                         <div class="root-author-info">
-                            <div class="root-display-name">${npub ? `<a href="/user.html?npub=${npub}">${escapeHtml(name)}</a>` : escapeHtml(name)}</div>
+                            <div class="root-display-name">${npub ? `<a href="/user.html?npub=${npub}">${escapeHtml(name)}</a>` : escapeHtml(name)} ${!NostrSocial.isEqualiiserEvent(ev) ? '<span class="feed-nostr-badge">via NOSTR</span>' : ''}</div>
                             <div class="root-handle">${npub ? npub.substring(0, 20) + '...' : ''}</div>
                         </div>
                     </div>
@@ -208,6 +208,7 @@
                         <div class="reply-body">
                             <div class="reply-header">
                                 <span class="reply-name">${npub ? `<a href="/user.html?npub=${npub}">${escapeHtml(name)}</a>` : escapeHtml(name)}</span>
+                                ${!NostrSocial.isEqualiiserEvent(reply) ? '<span class="feed-nostr-badge">via NOSTR</span>' : ''}
                                 <span class="reply-handle">${npub ? npub.substring(0, 16) + '...' : ''}</span>
                                 <span class="reply-time">${time}</span>
                             </div>
