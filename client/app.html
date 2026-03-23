@@ -37,9 +37,9 @@
             overflow-y: auto;
             height: 100%;
         }
-        /* Clear fixed player bar — ensure last content is scrollable above it */
-        #page-content > .main-content > *:last-child {
-            margin-bottom: 120px;
+        /* Reserve space for the fixed player bar at the bottom */
+        .container {
+            padding-bottom: 90px;
         }
 
         /* Loading state */
