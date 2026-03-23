@@ -21,6 +21,11 @@
             window.submitReply = () => this._submitReply();
             window.handleLike = (id, pk) => this._handleLike(id, pk);
             window.handleRepost = (id, pk) => this._handleRepost(id, pk);
+            window.showReplyComposer = (id, pk) => this._showReplyComposer(id, pk);
+            window.submitReplyToReply = (id, pk) => this._submitReplyToReply(id, pk);
+            window.showRepostMenu = (id, pk, el) => this._showRepostMenu(id, pk, el);
+            window.handleQuoteRepost = (id, pk) => this._handleQuoteRepost(id, pk);
+            window.submitQuote = (id, pk) => this._submitQuote(id, pk);
 
             this._loadThread();
         },
@@ -29,6 +34,11 @@
             delete window.submitReply;
             delete window.handleLike;
             delete window.handleRepost;
+            delete window.showReplyComposer;
+            delete window.submitReplyToReply;
+            delete window.showRepostMenu;
+            delete window.handleQuoteRepost;
+            delete window.submitQuote;
             this._rootEvent = null;
             this._rootAuthorPubkey = null;
             this._rootEventId = null;
@@ -165,7 +175,7 @@
                                 <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
                             </svg>
                         </div>
-                        <div class="root-action repost-btn${userReposted ? ' reposted' : ''}" onclick="handleRepost('${ev.id}', '${ev.pubkey}')">
+                        <div class="root-action repost-btn${userReposted ? ' reposted' : ''}" style="position:relative" onclick="showRepostMenu('${ev.id}', '${ev.pubkey}', this)">
                             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
                                 <path d="M7 16V4m0 0L3 8m4-4l4 4M13 4v12m0 0l4-4m-4 4l-4-4"/>
                             </svg>
@@ -194,6 +204,21 @@
             let npub = '';
             try { npub = window.NostrTools.nip19.npubEncode(reply.pubkey); } catch (e) {}
 
+            // Check if this is a reply-to-reply (has 'reply' marker, not just 'root')
+            const replyToTag = reply.tags?.find(t => t[0] === 'e' && t[3] === 'reply');
+            let replyingToHtml = '';
+            if (replyToTag) {
+                const parentReply = this._threadReplies.find(r => r.id === replyToTag[1]);
+                if (parentReply) {
+                    const parentProfile = this._threadProfiles.get(parentReply.pubkey) || {};
+                    const parentName = parentProfile.name || 'someone';
+                    replyingToHtml = `<div class="reply-context">replying to ${escapeHtml(parentName)}</div>`;
+                }
+            }
+
+            const repostCount = this._threadReactionData.reposts[reply.id] || 0;
+            const userReposted = this._threadReactionData.userReposted.has(reply.id);
+
             return `
                 <div class="reply-item" data-note-id="${reply.id}">
                     <div class="reply-inner">
@@ -212,10 +237,23 @@
                                 <span class="reply-handle">${npub ? npub.substring(0, 16) + '...' : ''}</span>
                                 <span class="reply-time">${time}</span>
                             </div>
+                            ${replyingToHtml}
                             <div class="reply-content">${content}</div>
                             ${NostrSocial.generateLinkPreviews(reply.content)}
                             ${NostrSocial.generateReleaseAnnouncementCard(reply)}
+                            ${NostrSocial.generateQuotedPostCard ? NostrSocial.generateQuotedPostCard(reply) : ''}
                             <div class="reply-actions">
+                                <div class="reply-action reply-btn" onclick="showReplyComposer('${reply.id}', '${reply.pubkey}')">
+                                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7z"/>
+                                    </svg>
+                                </div>
+                                <div class="reply-action repost-btn${userReposted ? ' reposted' : ''}" style="position:relative" onclick="showRepostMenu('${reply.id}', '${reply.pubkey}', this)">
+                                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M7 16V4m0 0L3 8m4-4l4 4M13 4v12m0 0l4-4m-4 4l-4-4"/>
+                                    </svg>
+                                    <span>${repostCount || ''}</span>
+                                </div>
                                 <div class="reply-action like-btn${userLiked ? ' liked' : ''}" onclick="handleLike('${reply.id}', '${reply.pubkey}')">
                                     <svg viewBox="0 0 20 20" fill="${userLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.5">
                                         <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
@@ -340,6 +378,165 @@
                 console.error('Like failed:', error);
             }
         },
+
+        // ===== Reply to Reply =====
+
+        _showReplyComposer(replyId, replyPubkey) {
+            // Remove any existing inline composer
+            const existing = document.querySelector('.reply-inline-composer');
+            if (existing) {
+                if (existing.dataset.replyTo === replyId) { existing.remove(); return; } // toggle off
+                existing.remove();
+            }
+
+            const replyItem = document.querySelector(`.reply-item[data-note-id="${replyId}"]`);
+            if (!replyItem) return;
+
+            const composer = document.createElement('div');
+            composer.className = 'reply-inline-composer';
+            composer.dataset.replyTo = replyId;
+            composer.innerHTML = `
+                <textarea placeholder="Write a reply..." maxlength="1000" id="inline-reply-text"></textarea>
+                <div class="reply-inline-actions">
+                    <button class="reply-inline-submit" onclick="submitReplyToReply('${replyId}', '${replyPubkey}')">Reply</button>
+                </div>`;
+            replyItem.after(composer);
+            composer.querySelector('textarea').focus();
+        },
+
+        async _submitReplyToReply(replyId, replyPubkey) {
+            const textarea = document.getElementById('inline-reply-text');
+            const content = textarea?.value?.trim();
+            if (!content) return;
+
+            const session = SessionManager.getSession();
+            if (!session) return;
+
+            const submitBtn = textarea.parentElement.querySelector('.reply-inline-submit');
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Posting...'; }
+
+            try {
+                const tags = [
+                    ['content-type', 'post'],
+                    ['e', this._rootEventId, '', 'root'],
+                    ['e', replyId, '', 'reply'],
+                    ['p', this._rootAuthorPubkey]
+                ];
+                if (replyPubkey !== this._rootAuthorPubkey) {
+                    tags.push(['p', replyPubkey]);
+                }
+
+                const event = {
+                    kind: 1,
+                    created_at: Math.floor(Date.now() / 1000),
+                    tags: tags,
+                    content: content
+                };
+
+                const signedEvent = await SessionManager.signEvent(event);
+                await NostrSocial.publishEvent(signedEvent);
+
+                this._threadReplies.push(signedEvent);
+
+                if (!this._threadProfiles.has(signedEvent.pubkey)) {
+                    const profiles = await NostrSocial.fetchProfiles([signedEvent.pubkey]);
+                    profiles.forEach((v, k) => this._threadProfiles.set(k, v));
+                }
+
+                const composer = document.querySelector('.reply-inline-composer');
+                if (composer) composer.remove();
+                this._renderThread();
+            } catch (error) {
+                console.error('Reply failed:', error);
+                alert('Failed to post reply.');
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Reply'; }
+            }
+        },
+
+        // ===== Repost Menu + Quote =====
+
+        _showRepostMenu(noteId, authorPubkey, el) {
+            // Remove existing menu
+            const existing = document.querySelector('.repost-menu');
+            if (existing) { existing.remove(); return; }
+
+            const menu = document.createElement('div');
+            menu.className = 'repost-menu';
+            menu.innerHTML = `
+                <div class="repost-menu-item" onclick="event.stopPropagation(); handleRepost('${noteId}', '${authorPubkey}'); document.querySelector('.repost-menu')?.remove();">
+                    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 16V4m0 0L3 8m4-4l4 4M13 4v12m0 0l4-4m-4 4l-4-4"/></svg>
+                    Repost
+                </div>
+                <div class="repost-menu-item" onclick="event.stopPropagation(); handleQuoteRepost('${noteId}', '${authorPubkey}'); document.querySelector('.repost-menu')?.remove();">
+                    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    Quote
+                </div>`;
+            el.appendChild(menu);
+
+            // Close on click outside
+            const close = (e) => { if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', close); } };
+            setTimeout(() => document.addEventListener('click', close), 0);
+        },
+
+        _handleQuoteRepost(noteId, authorPubkey) {
+            // Remove any existing quote composer
+            const existing = document.querySelector('.quote-composer');
+            if (existing) existing.remove();
+
+            // Find the target note (could be root or a reply)
+            const targetEl = document.querySelector(`[data-note-id="${noteId}"]`);
+            if (!targetEl) return;
+
+            const composer = document.createElement('div');
+            composer.className = 'quote-composer';
+            composer.innerHTML = `
+                <textarea placeholder="Add a comment..." maxlength="1000" id="quote-text"></textarea>
+                <div class="reply-inline-actions">
+                    <button class="reply-inline-submit" onclick="submitQuote('${noteId}', '${authorPubkey}')">Quote</button>
+                </div>`;
+            targetEl.after(composer);
+            composer.querySelector('textarea').focus();
+        },
+
+        async _submitQuote(noteId, authorPubkey) {
+            const textarea = document.getElementById('quote-text');
+            const content = textarea?.value?.trim();
+            if (!content) return;
+
+            const session = SessionManager.getSession();
+            if (!session) return;
+
+            const submitBtn = textarea.parentElement.querySelector('.reply-inline-submit');
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Posting...'; }
+
+            try {
+                const event = {
+                    kind: 1,
+                    created_at: Math.floor(Date.now() / 1000),
+                    tags: [
+                        ['content-type', 'post'],
+                        ['q', noteId],
+                        ['p', authorPubkey]
+                    ],
+                    content: content
+                };
+
+                const signedEvent = await SessionManager.signEvent(event);
+                await NostrSocial.publishEvent(signedEvent);
+
+                const composer = document.querySelector('.quote-composer');
+                if (composer) composer.remove();
+
+                // Quote posts appear as new posts in the feed, not in the thread
+                alert('Quote posted to your feed!');
+            } catch (error) {
+                console.error('Quote failed:', error);
+                alert('Failed to post quote.');
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Quote'; }
+            }
+        },
+
+        // ===== Reactions =====
 
         async _handleRepost(noteId, authorPubkey) {
             const session = SessionManager.getSession();

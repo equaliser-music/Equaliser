@@ -152,12 +152,18 @@ const SessionManager = {
 
     /**
      * Sign an event using the session
+     * Auto-adds ['app', 'Equaliser'] tag if not already present.
      * @param {object} event - Unsigned NOSTR event
      * @returns {object} Signed event
      */
     async signEvent(event) {
         if (!this._session) {
             throw new Error('No active session');
+        }
+        // Auto-tag all Equaliser events before signing
+        event.tags = event.tags || [];
+        if (!event.tags.some(t => t[0] === 'app' && t[1] === 'Equaliser')) {
+            event.tags.push(['app', 'Equaliser']);
         }
         return await this._session.sign(event);
     },

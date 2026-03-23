@@ -886,6 +886,60 @@ const NostrSocial = (() => {
         }
     }
 
+    // ===== Quoted Post Cards =====
+
+    /**
+     * Generate a quoted post card if the note has a `q` tag (NIP-18 quote repost).
+     * Returns HTML string to append after note content. Fetches quoted event async.
+     */
+    function generateQuotedPostCard(note) {
+        const qTag = note.tags?.find(t => t[0] === 'q');
+        if (!qTag) return '';
+
+        const quotedId = qTag[1];
+        const cardId = `quote-card-${note.id.substring(0, 8)}`;
+
+        // Render placeholder, then load async
+        setTimeout(async () => {
+            const card = document.getElementById(cardId);
+            if (!card || card.dataset.loaded) return;
+            card.dataset.loaded = 'true';
+
+            try {
+                const quotedEvent = await fetchEventById(quotedId);
+                if (!quotedEvent) {
+                    card.innerHTML = '<div style="padding:10px;color:rgba(255,255,255,0.3);font-size:12px;">Quoted post not found</div>';
+                    return;
+                }
+
+                const profiles = await fetchProfiles([quotedEvent.pubkey]);
+                const profile = profiles.get(quotedEvent.pubkey) || {};
+                const name = profile.name || 'Unknown';
+                const time = relativeTime(quotedEvent.created_at);
+                const contentPreview = escapeHtml(quotedEvent.content.substring(0, 200)) + (quotedEvent.content.length > 200 ? '...' : '');
+
+                card.innerHTML = `
+                    <div class="quoted-post-author">
+                        ${profile.picture ? `<img src="${escapeHtml(profile.picture)}" alt="" onerror="this.style.display='none'">` : ''}
+                        <span class="quoted-post-name">${escapeHtml(name)}</span>
+                        <span class="quoted-post-time">${time}</span>
+                    </div>
+                    <div class="quoted-post-content">${linkifyContent(contentPreview)}</div>`;
+
+                card.style.cursor = 'pointer';
+                card.onclick = (e) => {
+                    e.stopPropagation();
+                    if (typeof Router !== 'undefined') Router.navigate('/thread.html?id=' + quotedEvent.id);
+                    else window.location.href = '/thread.html?id=' + quotedEvent.id;
+                };
+            } catch (err) {
+                card.innerHTML = '<div style="padding:10px;color:rgba(255,255,255,0.3);font-size:12px;">Could not load quoted post</div>';
+            }
+        }, 0);
+
+        return `<div class="quoted-post-card" id="${cardId}"><div style="padding:10px;color:rgba(255,255,255,0.3);font-size:12px;">Loading quote...</div></div>`;
+    }
+
     // ===== Release Announcement Cards =====
 
     /**
@@ -1077,6 +1131,7 @@ const NostrSocial = (() => {
         expandReleaseCard,
         playFromReleaseCard,
         addReleaseToLibrary,
-        addPlaylistToLibrary
+        addPlaylistToLibrary,
+        generateQuotedPostCard
     };
 })();

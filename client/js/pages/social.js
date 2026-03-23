@@ -44,6 +44,9 @@
             window.navigateToThread = (id) => this._navigateToThread(id);
             window.handleFeedLike = (noteId, pubkey) => this._handleFeedLike(noteId, pubkey);
             window.handleFeedRepost = (noteId, pubkey) => this._handleFeedRepost(noteId, pubkey);
+            window.showFeedRepostMenu = (noteId, pubkey, el) => this._showFeedRepostMenu(noteId, pubkey, el);
+            window.handleFeedQuote = (noteId, pubkey) => this._handleFeedQuote(noteId, pubkey);
+            window.submitFeedQuote = (noteId, pubkey) => this._submitFeedQuote(noteId, pubkey);
             window.expandPlaylistCard = (cardId) => this._expandPlaylistCard(cardId);
             window.playFromPlaylistCard = (cardId, index) => this._playFromPlaylistCard(cardId, index);
 
@@ -133,6 +136,9 @@
             delete window.navigateToThread;
             delete window.handleFeedLike;
             delete window.handleFeedRepost;
+            delete window.showFeedRepostMenu;
+            delete window.handleFeedQuote;
+            delete window.submitFeedQuote;
             delete window.expandPlaylistCard;
             delete window.playFromPlaylistCard;
 
@@ -513,6 +519,7 @@
                                 ${NostrSocial.generateLinkPreviews(note.content)}
                                 ${isPlaylistShare ? this._renderPlaylistShareCard(note) : ''}
                                 ${isReleaseAnnouncement ? NostrSocial.generateReleaseAnnouncementCard(note) : ''}
+                                ${NostrSocial.generateQuotedPostCard(note)}
                                 <div class="feed-actions" onclick="event.stopPropagation()">
                                     <div class="feed-action reply-btn" onclick="navigateToThread('${note.id}')">
                                         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -526,7 +533,7 @@
                                         </svg>
                                         <span class="like-count">${likeCount || ''}</span>
                                     </div>
-                                    <div class="feed-action repost-btn${userReposted ? ' reposted' : ''}" onclick="handleFeedRepost('${note.id}', '${note.pubkey}')">
+                                    <div class="feed-action repost-btn${userReposted ? ' reposted' : ''}" style="position:relative" onclick="event.stopPropagation(); showFeedRepostMenu('${note.id}', '${note.pubkey}', this)">
                                         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
                                             <path d="M7 16V4m0 0L3 8m4-4l4 4M13 4v12m0 0l4-4m-4 4l-4-4"/>
                                         </svg>
@@ -734,6 +741,89 @@
                 this._updateFeedReactionUI();
             } catch (error) {
                 console.error('Repost failed:', error);
+            }
+        },
+
+        _showFeedRepostMenu(noteId, authorPubkey, el) {
+            const existing = document.querySelector('.repost-menu');
+            if (existing) { existing.remove(); return; }
+
+            const menu = document.createElement('div');
+            menu.className = 'repost-menu';
+            menu.innerHTML = `
+                <div class="repost-menu-item" onclick="event.stopPropagation(); handleFeedRepost('${noteId}', '${authorPubkey}'); document.querySelector('.repost-menu')?.remove();">
+                    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 16V4m0 0L3 8m4-4l4 4M13 4v12m0 0l4-4m-4 4l-4-4"/></svg>
+                    Repost
+                </div>
+                <div class="repost-menu-item" onclick="event.stopPropagation(); handleFeedQuote('${noteId}', '${authorPubkey}'); document.querySelector('.repost-menu')?.remove();">
+                    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    Quote
+                </div>`;
+            el.appendChild(menu);
+
+            const close = (e) => { if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', close); } };
+            setTimeout(() => document.addEventListener('click', close), 0);
+        },
+
+        _handleFeedQuote(noteId, authorPubkey) {
+            const existing = document.querySelector('.quote-composer');
+            if (existing) existing.remove();
+
+            const post = document.querySelector(`.feed-post[data-note-id="${noteId}"]`);
+            if (!post) return;
+
+            const composer = document.createElement('div');
+            composer.className = 'quote-composer';
+            composer.style.padding = '12px 20px';
+            composer.innerHTML = `
+                <textarea placeholder="Add a comment..." maxlength="1000" id="feed-quote-text"></textarea>
+                <div class="reply-inline-actions">
+                    <button class="reply-inline-submit" onclick="event.stopPropagation(); submitFeedQuote('${noteId}', '${authorPubkey}')">Quote</button>
+                </div>`;
+            post.after(composer);
+            composer.querySelector('textarea').focus();
+        },
+
+        async _submitFeedQuote(noteId, authorPubkey) {
+            const textarea = document.getElementById('feed-quote-text');
+            const content = textarea?.value?.trim();
+            if (!content) return;
+
+            const session = SessionManager.getSession();
+            if (!session) return;
+
+            const submitBtn = textarea.parentElement.querySelector('.reply-inline-submit');
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Posting...'; }
+
+            try {
+                const event = {
+                    kind: 1,
+                    created_at: Math.floor(Date.now() / 1000),
+                    tags: [
+                        ['content-type', 'post'],
+                        ['q', noteId],
+                        ['p', authorPubkey]
+                    ],
+                    content: content
+                };
+
+                const signedEvent = await SessionManager.signEvent(event);
+                await NostrSocial.publishEvent(signedEvent);
+
+                const composer = document.querySelector('.quote-composer');
+                if (composer) composer.remove();
+
+                // Add to feed
+                this._feedNotes.unshift(signedEvent);
+                if (!this._feedProfiles.has(signedEvent.pubkey)) {
+                    const profiles = await NostrSocial.fetchProfiles([signedEvent.pubkey]);
+                    profiles.forEach((v, k) => this._feedProfiles.set(k, v));
+                }
+                this._renderFeed();
+            } catch (error) {
+                console.error('Quote failed:', error);
+                alert('Failed to post quote.');
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Quote'; }
             }
         },
 

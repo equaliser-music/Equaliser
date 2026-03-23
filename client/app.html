@@ -546,6 +546,122 @@
         }
         .add-to-library-btn:disabled { opacity: 0.5; cursor: default; }
 
+        /* Replying-to context label */
+        .reply-context {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.35);
+            margin-bottom: 4px;
+        }
+
+        /* Inline reply composer (reply-to-reply and quote) */
+        .reply-inline-composer, .quote-composer {
+            padding: 12px 20px 12px 72px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .reply-inline-composer textarea, .quote-composer textarea {
+            width: 100%;
+            min-height: 50px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            outline: none;
+        }
+        .reply-inline-composer textarea:focus, .quote-composer textarea:focus {
+            border-color: rgba(168, 85, 247, 0.4);
+        }
+        .reply-inline-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 8px;
+        }
+        .reply-inline-submit {
+            padding: 6px 16px;
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            border: none;
+            border-radius: 20px;
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .reply-inline-submit:disabled { opacity: 0.4; }
+
+        /* Repost dropdown menu */
+        .repost-menu {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20, 20, 35, 0.98);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            overflow: hidden;
+            z-index: 100;
+            min-width: 140px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+        .repost-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .repost-menu-item:hover {
+            background: rgba(139, 92, 246, 0.15);
+            color: #c084fc;
+        }
+
+        /* Quoted post card */
+        .quoted-post-card {
+            margin: 8px 0 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            overflow: hidden;
+        }
+        .quoted-post-card:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .quoted-post-author {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        .quoted-post-author img {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .quoted-post-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        .quoted-post-time {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+        .quoted-post-content {
+            font-size: 13px;
+            line-height: 1.5;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .quoted-post-content a { color: #60a5fa; text-decoration: none; }
+
         /* Via NOSTR badge for non-Equaliser tagged posts */
         .feed-nostr-badge {
             font-size: 10px;
@@ -588,6 +704,7 @@
         window.playFromReleaseCard = NostrSocial.playFromReleaseCard;
         window.addReleaseToLibrary = NostrSocial.addReleaseToLibrary;
         window.addPlaylistToLibrary = NostrSocial.addPlaylistToLibrary;
+        window.generateQuotedPostCard = NostrSocial.generateQuotedPostCard;
     </script>
     <script src="/js/nostr-dm.js?v=2"></script>
     <script src="/js/nostr-playlists.js?v=2"></script>
