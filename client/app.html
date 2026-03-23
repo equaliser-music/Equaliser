@@ -37,12 +37,9 @@
             overflow-y: auto;
             height: 100%;
         }
-        /* Spacer to clear fixed player bar — injected by router */
-        .eq-player-spacer {
-            height: 120px;
-            min-height: 120px;
-            flex-shrink: 0;
-            width: 100%;
+        /* Clear fixed player bar — ensure last content is scrollable above it */
+        #page-content > .main-content > *:last-child {
+            margin-bottom: 120px;
         }
 
         /* Loading state */
