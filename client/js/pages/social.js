@@ -1107,11 +1107,8 @@
                                     ${NostrSocial.generateLinkPreviews(reply.content)}
                                     ${NostrSocial.generateQuotedPostCard(reply)}
                                     <div class="reply-actions">
-                                        <div class="reply-action reply-btn" onclick="showCommunityReplyComposer('${reply.id}', '${reply.pubkey}')">
+                                        <div class="reply-action reply-btn" onclick="showCommunityQuoteReply('${reply.id}', '${reply.pubkey}')">
                                             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7z"/></svg>
-                                        </div>
-                                        <div class="reply-action quote-btn" onclick="showCommunityQuoteReply('${reply.id}', '${reply.pubkey}')" title="Quote reply">
-                                            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                         </div>
                                         <div class="reply-action like-btn${rUserLiked ? ' liked' : ''}" onclick="handleCommunityLike('${reply.id}', '${reply.pubkey}')">
                                             <svg viewBox="0 0 20 20" fill="${rUserLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.5"><path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/></svg>
