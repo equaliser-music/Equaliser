@@ -402,6 +402,11 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - **Expandable Playlist Cards**: Playlist share posts (`["content-type", "playlist-share"]`) render as expandable cards with track list, play buttons, and "Add to Library" button.
   - **Follower/Following**: Counts displayed on profile, user, and artist pages. Clickable to open modal with user list (avatar, name, bio snippet, follow/unfollow button). Uses Kind 3 `#p` query for followers count.
   - **Add to Library**: On release announcement cards, creates a new playlist from track event IDs. On playlist share cards, follows the existing playlist. Playlist page "Follow" button renamed to "Add to Library" / "In Library".
+  - **Thread Interactions**: Reply-to-reply with NIP-10 root+reply `e` tags and inline composer. Repost/Quote dropdown on social feed posts (Kind 6 silent repost or Kind 1 with NIP-18 `q` tag). "Replying to @name" indicator for nested replies.
+  - **Quoted Post Cards**: NIP-18 `q` tag on Kind 1 events. `generateQuotedPostCard()` renders embedded card with author, content snippet, timestamp. Clickable to thread. Works across all feed pages.
+  - **Community Thread Actions**: Reply button on community replies auto-quotes parent (shows preview + composer). Like button with reaction counts. Root post has like button. No repost in community context.
+  - **Clickable Post Cards**: Entire feed post card navigates to thread on click. Avatar, username links, and action buttons use `stopPropagation`.
+  - **Admin Auto-Tagging**: Admin `SessionManager.signEvent()` auto-adds `["app", "Equaliser"]` tag (matching client behaviour).
   - **Relay Tag Filtering**: Multi-char tag filtering done client-side (Equaliser Relay provides full tag indexing)
   - **Seed Data**: `tools/seed-social.sh` populates relay with test posts, threads, DMs, reactions
   - See [SOCIAL.md](docs/implemented/SOCIAL.md)
@@ -413,10 +418,10 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - **Done**: Client REST-first migration — `cache-api.js` module with `queryEvents()` + denorm functions. `_queryRelay()` in nostr-social.js tries REST cache API for local relay reads; external relay WebSocket queries skipped entirely when cache API is available. All NostrSocial functions (fetchNotes, fetchReactions, fetchReplyCounts, fetchThreadReplies, etc.) automatically use REST. WebSocket retained only for event publishing.
   - **Partial**: artist.js migrated to Cache API (Kind 0 profile + Kind 30050 tracks). home.js and user.js still have direct WebSocket queries for Kind 0/30050 — TODO: migrate to cache API.
   - **Done**: Profile backfill on registration — copies existing Kind 0 from `raw_events` into `cached_users` at registration time (fixes onboarding timing gap)
-  - **Done**: Event acceptance policy fix — Kind 1 from known pubkeys (registered users/artists) accepted without app tag, enabling standard relay syncing of fan posts
+  - **Done**: Event acceptance policy update — Kind 1 without app tag accepted only if it references an existing Equaliser event (reply/thread context). Standalone posts from known pubkeys no longer accepted. Kind 6 added as context-aware alongside Kind 7/5.
+  - **Done**: Inbound reply/reaction caching — syncer subscribes to Kind `[0, 1, 3, 5, 6, 7]` from known pubkeys on standard relays. Kind 1/6/7 pre-filtered in syncer handler: only accepted if they reference an existing Equaliser event via `#e` tag. Standalone posts silently dropped. Wider NOSTR replies/reactions display with "via NOSTR" badge.
   - TODO: Admin controls (per-user enable/disable, force resync, remove user)
   - TODO: Outbound publishing to standard relays (feed posts with `["content-type", "post"]` only, not community threads)
-  - TODO: Inbound reply/reaction caching — syncer `#e`-based subscription for Equaliser post IDs on standard relays, caching replies (Kind 1), likes (Kind 7), reposts (Kind 6) from wider NOSTR. Rule: complete the interaction tree for any `["app", "equaliser"]` originating post
   - Feed thresholds: `USER_FEED_DAYS` (default 30), `USER_FEED_LIMIT` (default 500)
   - See [DATABASE.md](docs/DATABASE.md) (User Cache Tables), [EQUALISER_RELAY.md](docs/EQUALISER_RELAY.md) (Peer Syncer & User Subscriptions), [ORCHESTRATOR.md](docs/ORCHESTRATOR.md) (User Registration)
 

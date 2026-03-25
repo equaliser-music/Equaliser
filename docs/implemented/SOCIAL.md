@@ -778,6 +778,56 @@ Implementation: `NostrSocial.showFollowListModal(pubkey, type)` shared across al
 
 The "Your Feed" tab on the social page includes the user's own posts alongside posts from followed users. The user's pubkey is prepended to the `authors` filter when querying Kind 1 events.
 
+### Thread Interactions
+
+**Reply-to-reply**: Each reply in a thread has reply, repost, and like buttons. Clicking reply on a reply opens an inline composer. The submitted reply uses NIP-10 tags with both `root` and `reply` markers:
+```json
+["e", "<root-event-id>", "", "root"],
+["e", "<parent-reply-id>", "", "reply"]
+```
+Nested replies display a "replying to @name" indicator above the content.
+
+**Repost/Quote dropdown**: On social feed posts and thread root/replies, the repost button shows a dropdown with:
+- **Repost** — silent Kind 6 event (original event JSON in content)
+- **Quote** — opens composer, publishes Kind 1 with NIP-18 `q` tag referencing the quoted event
+
+**Clickable post cards**: The entire feed post card navigates to the thread on click. Interactive elements (avatar links, action buttons, link previews) use `stopPropagation` for independent interaction.
+
+### Quoted Post Cards (NIP-18)
+
+Posts with a `q` tag render the quoted event as an embedded card below the content:
+```json
+{
+  "kind": 1,
+  "tags": [["q", "<quoted-event-id>"], ["p", "<quoted-author-pubkey>"]],
+  "content": "User's comment about the quoted post"
+}
+```
+
+The card shows the quoted author, content snippet (200 chars), and timestamp. Clickable to navigate to the quoted event's thread. Rendered via `NostrSocial.generateQuotedPostCard(note)` across all feed pages (social, profile, user, artist, home, thread).
+
+### Community Thread Actions
+
+Community thread replies have:
+- **Reply button** — opens inline composer with a quote preview of the parent reply. Submitted as a reply in the thread with both NIP-10 `e` tags (root + reply) and a `q` tag (quote reference). The quoted content renders as an embedded card within the thread.
+- **Like button** — Kind 7 with reaction count display
+
+Root community thread posts have a like button only. No repost in community context.
+
+Reactions (likes, reposts) are loaded via `NostrSocial.fetchReactions()` for all thread notes including root and replies.
+
+### Admin Auto-Tagging
+
+The admin `SessionManager.signEvent()` (`content_node/orchestrator/js/session.js`) auto-adds `["app", "Equaliser"]` to all signed events before signing, matching the client-side behaviour. This ensures all events created from admin pages (release announcements, future post features) are properly tagged.
+
+### Inbound Reply/Reaction Caching
+
+The Equaliser relay syncer filters Kind 1/6/7 events from standard relays:
+- Only events that **reference an existing Equaliser event** via `#e` tag are accepted (replies, likes, reposts)
+- Standalone posts from known users are silently dropped — prevents unrelated NOSTR activity from flooding the Equaliser feed
+- Accepted interactions display with the "via NOSTR" badge in feeds and threads
+- Subscription kinds: `[0, 1, 3, 5, 6, 7]` from known pubkeys, with handler-level filtering for Kind 1/6/7
+
 ---
 
 ## Future Considerations

@@ -236,8 +236,10 @@ Connections to other Equaliser content nodes. These relays support full tag inde
 **1. Relay syncer (inbound)** — The Equaliser relay's peer syncer pulls user data from these relays. Standard relays do not index multi-character tags, so the syncer uses a pubkey-based strategy:
 
 - Subscribes by **known pubkeys** from `node_artists` + `registered_users` tables
-- Only **common NOSTR kinds**: Kind 0 (profiles), Kind 1 (posts), Kind 3 (follows), Kind 5 (deletions)
+- **Subscription kinds**: `[0, 1, 3, 5, 6, 7]` — profiles, posts, follows, deletions, reposts, likes
 - Equaliser-specific kinds (30050, 30051, 30001) are NOT fetched from standard relays — they only exist on Equaliser nodes
+- **Handler-level filtering for Kind 1/6/7**: before calling `ProcessInboundEvent`, the syncer checks if the event references an existing Equaliser event via `#e` tag. Standalone posts (Kind 1 without `#e` reference to Equaliser content) are silently dropped. Only replies, likes, and reposts that interact with Equaliser content are accepted.
+- **Event acceptance policy**: Kind 1 without app tag accepted only via `ReferencesExistingEvent()` (app-tagged events already accepted earlier in the policy). Kind 6 added alongside Kind 7/5 as context-aware.
 - Events received are processed through the normal inbound pipeline with `EVENT_POLICY` checks
 - **Dynamic subscriptions**: when a new artist or user registers on this node, the syncer updates its subscription to include the new pubkey
 
@@ -525,7 +527,7 @@ This doesn't need to be built all at once. A phased approach:
 - `ProcessInboundEvent` extracted from handler — shared pipeline for WebSocket clients and peer syncer
 - Peer status tracking in `peer_relays` table (connection status, event counts, errors)
 - **Equaliser peers ✅:** `PEER_RELAYS` — subscribe using `#app` filter, all Equaliser event kinds sync, outbound forwarding via SubscriptionManager hook
-- **Standard relays ✅:** `STANDARD_RELAYS` — subscribe by known pubkeys (from `node_artists` + `registered_users`), common kinds only (0, 1, 3, 5), filter locally for app tag. Standard relays reject `#app` subscriptions (tested against `wss://relay.damus.io` — returned `"bad req: unindexed tag filter"`). Dynamic subscription updates when artists/users register. Deployed with `wss://relay.damus.io,wss://nos.lol,wss://relay.primal.net`.
+- **Standard relays ✅:** `STANDARD_RELAYS` — subscribe by known pubkeys (from `node_artists` + `registered_users`), kinds `[0, 1, 3, 5, 6, 7]`. Kind 1/6/7 pre-filtered in handler: only accepted if they reference existing Equaliser events via `#e` tag (standalone posts dropped). Also serves as client publishing defaults via `/api/config`. Dynamic subscription updates when artists/users register.
 - Events from standard relays cascade to Equaliser peers — Relay B gets Relay A's Damus events transitively via `#app` peer sync
 
 ### Phase 3: REST API + client migration ✅

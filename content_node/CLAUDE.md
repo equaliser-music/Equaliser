@@ -132,6 +132,9 @@ All pages use shared `js/session.js` and `js/admin-sidebar.js`.
 | Kind | Purpose | Tags |
 |------|---------|------|
 | 0 | Artist profile | `app`, `user-type` (`"artist"` for artists, omitted for listeners) |
+| 1 | Post / reply / quote | `app`, `content-type` (`post`, `reply`, `release-announcement`, `playlist-share`), `e` (NIP-10 root/reply), `p`, `q` (NIP-18 quote reference) |
+| 6 | Repost | `app`, `e` (reposted event ID), `p`. Content = JSON of original event |
+| 7 | Like / reaction | `app`, `e` (liked event ID), `p`. Content = `+` |
 | 30050 | Track metadata (replaceable) | `d`, `app`, `title`, `artist`, `duration`, `ipfs_manifest_cid`, `ipfs_preview_cid`, `price`, `price_currency`, `album`, `genre`, `cover_art_cid`, `blossom_audio_hash`, `blossom_cover_hash`, `blossom_cover_url`, `track_number` |
 | 30051 | Release metadata (album grouping) | `d`, `app`, `title`, `artist`, `release_type` |
 | 5 | Deletion (NIP-09) | `app`, `e` (event IDs to delete) |
