@@ -441,12 +441,13 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - **Phase 4 (done):** pgxpool connection pooling (MaxConns=20, MinConns=2), denormalised Kind 0/30050/30051 tables, user feed caching with configurable limits (USER_FEED_DAYS, USER_FEED_LIMIT)
   - See [EQUALISER_RELAY.md](docs/EQUALISER_RELAY.md), [DATABASE.md](docs/DATABASE.md), [NODE-MANAGEMENT-SPEC.md](docs/NODE-MANAGEMENT-SPEC.md) Sections 2-4
 
-- [ ] **Node Management Console (Phase C)**: Admin dashboard at `/admin/console`
-  - React SPA for node operators (separate from artist admin)
-  - Sections: Overview, Sync Manager, Artist Management, IPFS & Storage, Blossom Mirroring, Settings
-  - Admin authentication via `ADMIN_PASSWORD` env var
-  - WebSocket for real-time status updates
-  - See [NODE-MANAGEMENT-SPEC.md](docs/NODE-MANAGEMENT-SPEC.md) Section 6
+- [ ] **Node Management (Phases A-E)**: Three-tier role architecture (artist, label, node operator)
+  - **Done (Phase A)**: Role schema (`node_artists.role/custody/managed_by/derivation_index` columns, `node_operators` table), `OPERATOR_PUBKEYS` env bootstrap, relay `GET /api/internal/auth/role` endpoint, orchestrator `RoleContext`/`require_role`/`require_label`/`require_operator` dependencies, `GET /api/auth/whoami`
+  - TODO (Phase B): API permission model — migrate existing endpoints to `require_role`, new label/operator routers
+  - TODO (Phase C): UI role-aware sidebar with artist selector, role-conditional navigation
+  - TODO (Phase D): Label admin pages — artist management, access requests, fee models
+  - TODO (Phase E): Operator admin pages — node overview, sync manager, IPFS storage, Blossom config, user cache, node settings
+  - See [NODE_MANAGEMENT_ARCHITECTURE.md](docs/NODE_MANAGEMENT_ARCHITECTURE.md), [NODE-MANAGEMENT-SPEC.md](docs/NODE-MANAGEMENT-SPEC.md)
 
 - [ ] **IPFS Cluster & Blossom Mirroring (Phase D)**: Cross-node content redundancy
   - IPFS cluster pin request workflow (inbound/outbound)

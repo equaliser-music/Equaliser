@@ -50,6 +50,9 @@ func NewServer(userStore *storage.UserStore, eventStore *storage.EventStore) *Se
 	// Thread external refs
 	s.mux.HandleFunc("GET /api/cache/threads/{eventID}/external", s.handleThreadExternal)
 
+	// Role resolution (internal — called by orchestrator)
+	s.mux.HandleFunc("GET /api/internal/auth/role", s.handleResolveRole)
+
 	// Health check
 	s.mux.HandleFunc("GET /api/health", s.handleHealth)
 
@@ -492,6 +495,38 @@ func (s *Server) handleThreadExternal(w http.ResponseWriter, r *http.Request) {
 		"external_reply_count": count,
 		"checked":              found,
 	})
+}
+
+// ===== Role Resolution =====
+
+// handleResolveRole returns the role and managed artists for a pubkey.
+// GET /api/internal/auth/role?pubkey=hex64
+func (s *Server) handleResolveRole(w http.ResponseWriter, r *http.Request) {
+	pubkey := r.URL.Query().Get("pubkey")
+	if !validateHexPubkey(pubkey) {
+		http.Error(w, `{"error": "invalid or missing pubkey parameter"}`, http.StatusBadRequest)
+		return
+	}
+
+	role, err := s.userStore.ResolveRole(r.Context(), pubkey)
+	if err != nil {
+		log.Printf("Failed to resolve role for %s: %v", pubkey[:16], err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	if role == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "pubkey not recognized on this node",
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(role)
 }
 
 // ===== User Registration =====

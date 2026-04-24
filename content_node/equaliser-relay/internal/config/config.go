@@ -23,6 +23,7 @@ type Config struct {
 	SyncInterval     int      // seconds between periodic full syncs (from SYNC_INTERVAL env)
 	UserFeedDays     int      // max age of feed events to cache (from USER_FEED_DAYS env)
 	UserFeedLimit    int      // max feed events per user (from USER_FEED_LIMIT env)
+	OperatorPubkeys  []string // Hex pubkeys of node operators (from OPERATOR_PUBKEYS env)
 }
 
 func Load() *Config {
@@ -63,6 +64,16 @@ func Load() *Config {
 	cfg.SyncInterval = getEnvInt("SYNC_INTERVAL", 3600)
 	cfg.UserFeedDays = getEnvInt("USER_FEED_DAYS", 30)
 	cfg.UserFeedLimit = getEnvInt("USER_FEED_LIMIT", 500)
+
+	// Parse OPERATOR_PUBKEYS (comma-separated hex pubkeys, empty = none)
+	if opPubkeys := getEnv("OPERATOR_PUBKEYS", ""); opPubkeys != "" {
+		for _, pk := range strings.Split(opPubkeys, ",") {
+			pk = strings.TrimSpace(pk)
+			if pk != "" {
+				cfg.OperatorPubkeys = append(cfg.OperatorPubkeys, pk)
+			}
+		}
+	}
 
 	if cfg.DatabaseURL == "" {
 		log.Fatal("DATABASE_URL environment variable is required")

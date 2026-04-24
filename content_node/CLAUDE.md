@@ -71,6 +71,18 @@ FastAPI app. CORS allow-all (dev). Initialises database + node identity on start
 |--------|----------|---------|
 | POST | `/api/upload/image` | Upload image to Blossom. Returns `{ blossom_hash, blossom_url }`. Absolute URL when `PUBLIC_BASE_URL` is set. Used by client settings (avatar/banner) and social feed image attach. |
 
+**auth.py** — Role resolution:
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| GET | `/api/auth/whoami` | Returns authenticated user's role and managed artists. NIP-98 auth required. Response: `{ pubkey, role, managed_artists }` |
+
+**Authorization dependencies** (`dependencies.py`):
+- `require_auth` — NIP-98 only, returns pubkey (existing)
+- `require_role` — NIP-98 + role resolution from relay DB. Returns `RoleContext(pubkey, role, managed_artists)`
+- `require_label` — Requires `role` = `label` or `operator`
+- `require_operator` — Requires `role` = `operator`, or `X-Admin-Token` header matching `ADMIN_PASSWORD` env var
+
 **users.py** — User registration:
 
 | Method | Endpoint | Purpose |

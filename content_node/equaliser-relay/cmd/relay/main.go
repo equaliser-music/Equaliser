@@ -43,6 +43,13 @@ func main() {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
+	// Bootstrap node operators from env (idempotent — ON CONFLICT DO NOTHING)
+	if len(cfg.OperatorPubkeys) > 0 {
+		if err := storage.NewUserStore(pool).BootstrapOperators(ctx, cfg.OperatorPubkeys); err != nil {
+			log.Printf("Warning: failed to bootstrap operators: %v", err)
+		}
+	}
+
 	// Create services
 	eventStore := storage.NewEventStore(pool)
 	userStore := storage.NewUserStore(pool)

@@ -297,6 +297,115 @@ func (s *UserStore) GetUserFeed(ctx context.Context, pubkey string, limit int) (
 	return events, rows.Err()
 }
 
+// BootstrapOperators ensures OPERATOR_PUBKEYS from config exist in node_operators.
+func (s *UserStore) BootstrapOperators(ctx context.Context, pubkeys []string) error {
+	for _, pk := range pubkeys {
+		_, err := s.pool.Exec(ctx, `
+			INSERT INTO node_operators (pubkey, name)
+			VALUES ($1, 'Node Operator')
+			ON CONFLICT (pubkey) DO NOTHING
+		`, pk)
+		if err != nil {
+			return fmt.Errorf("bootstrap operator %s: %w", pk[:16], err)
+		}
+	}
+	if len(pubkeys) > 0 {
+		log.Printf("Bootstrapped %d node operator(s)", len(pubkeys))
+	}
+	return nil
+}
+
+// RoleInfo contains the resolved role for a pubkey on this node.
+type RoleInfo struct {
+	Pubkey         string   `json:"pubkey"`
+	Role           string   `json:"role"`            // "artist", "label", "operator"
+	ManagedArtists []string `json:"managed_artists"` // pubkeys this user can manage
+}
+
+// ResolveRole determines the role for a pubkey by checking node_operators then node_artists.
+func (s *UserStore) ResolveRole(ctx context.Context, pubkey string) (*RoleInfo, error) {
+	// 1. Check node_operators
+	var exists bool
+	err := s.pool.QueryRow(ctx,
+		"SELECT EXISTS(SELECT 1 FROM node_operators WHERE pubkey = $1)", pubkey,
+	).Scan(&exists)
+	if err != nil {
+		return nil, fmt.Errorf("check operator: %w", err)
+	}
+	if exists {
+		// Operator can manage ALL artists
+		artists, err := s.getAllArtistPubkeys(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return &RoleInfo{Pubkey: pubkey, Role: "operator", ManagedArtists: artists}, nil
+	}
+
+	// 2. Check node_artists
+	var role, status string
+	err = s.pool.QueryRow(ctx,
+		"SELECT role, status FROM node_artists WHERE pubkey = $1", pubkey,
+	).Scan(&role, &status)
+	if err != nil {
+		return nil, nil // Not found — no role on this node
+	}
+	if status != "active" {
+		return nil, nil // Suspended
+	}
+
+	if role == "label" {
+		// Label can manage artists where managed_by = label pubkey, plus self
+		managed, err := s.getManagedArtists(ctx, pubkey)
+		if err != nil {
+			return nil, err
+		}
+		managed = append(managed, pubkey) // label can also manage own content
+		return &RoleInfo{Pubkey: pubkey, Role: "label", ManagedArtists: managed}, nil
+	}
+
+	// Default: artist
+	return &RoleInfo{Pubkey: pubkey, Role: "artist", ManagedArtists: []string{pubkey}}, nil
+}
+
+// getAllArtistPubkeys returns all active artist pubkeys on the node.
+func (s *UserStore) getAllArtistPubkeys(ctx context.Context) ([]string, error) {
+	rows, err := s.pool.Query(ctx, "SELECT pubkey FROM node_artists WHERE status = 'active'")
+	if err != nil {
+		return nil, fmt.Errorf("get all artist pubkeys: %w", err)
+	}
+	defer rows.Close()
+	var pubkeys []string
+	for rows.Next() {
+		var pk string
+		if err := rows.Scan(&pk); err != nil {
+			return nil, err
+		}
+		pubkeys = append(pubkeys, pk)
+	}
+	return pubkeys, rows.Err()
+}
+
+// getManagedArtists returns artist pubkeys managed by a label.
+func (s *UserStore) getManagedArtists(ctx context.Context, labelPubkey string) ([]string, error) {
+	rows, err := s.pool.Query(ctx,
+		"SELECT pubkey FROM node_artists WHERE managed_by = $1 AND status = 'active'",
+		labelPubkey,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get managed artists: %w", err)
+	}
+	defer rows.Close()
+	var pubkeys []string
+	for rows.Next() {
+		var pk string
+		if err := rows.Scan(&pk); err != nil {
+			return nil, err
+		}
+		pubkeys = append(pubkeys, pk)
+	}
+	return pubkeys, rows.Err()
+}
+
 // GetAllArtists returns all cached artist profiles.
 func (s *UserStore) GetAllArtists(ctx context.Context) ([]ArtistResult, error) {
 	rows, err := s.pool.Query(ctx, `
