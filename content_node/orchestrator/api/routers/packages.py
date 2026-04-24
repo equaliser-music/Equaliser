@@ -30,7 +30,7 @@ from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from dependencies import require_auth
+from dependencies import require_auth, require_role, RoleContext
 from services.database import (
     DraftTrack,
     get_album_drafts,
@@ -60,6 +60,7 @@ class ExportPrepareRequest(BaseModel):
     """Request to prepare a release for export."""
     album: str
     source: str = "draft"  # "draft" or "nostr"
+    target_pubkey: Optional[str] = None  # Label exporting on behalf; defaults to caller
 
 
 class ExportPrepareResponse(BaseModel):
@@ -87,7 +88,7 @@ class ImportResponse(BaseModel):
 # --- Export Endpoints ---
 
 @router.post("/export-prepare", response_model=ExportPrepareResponse)
-async def export_prepare(request: ExportPrepareRequest, pubkey: str = Depends(require_auth)):
+async def export_prepare(request: ExportPrepareRequest, ctx: RoleContext = Depends(require_role)):
     """
     Prepare a release for export.
 
@@ -95,6 +96,10 @@ async def export_prepare(request: ExportPrepareRequest, pubkey: str = Depends(re
     NOSTR event for the client to sign. The signed event proves
     the package was created by the artist.
     """
+    pubkey = request.target_pubkey or ctx.pubkey
+    if not ctx.can_manage(pubkey):
+        raise HTTPException(status_code=403, detail="Cannot export for this artist")
+
     tracks_data = []
     cover_art_info = None
     release_info = {
@@ -256,7 +261,7 @@ async def export_prepare(request: ExportPrepareRequest, pubkey: str = Depends(re
 
 
 @router.post("/export-download")
-async def export_download(request: ExportDownloadRequest, pubkey: str = Depends(require_auth)):
+async def export_download(request: ExportDownloadRequest, ctx: RoleContext = Depends(require_role)):
     """
     Build and download the .eqpkg.zip package.
 
@@ -266,11 +271,12 @@ async def export_download(request: ExportDownloadRequest, pubkey: str = Depends(
     # Validate signed event
     event = request.signed_event
 
-    # Verify the signed event belongs to the authenticated user
-    if event.get("pubkey") != pubkey:
+    # Caller must be able to manage the artist who signed the event
+    event_pubkey = event.get("pubkey")
+    if not event_pubkey or not ctx.can_manage(event_pubkey):
         raise HTTPException(
             status_code=403,
-            detail="Signed event pubkey does not match authenticated user"
+            detail="Cannot export for this artist"
         )
     if "id" not in event or "sig" not in event:
         raise HTTPException(
@@ -384,14 +390,21 @@ async def export_download(request: ExportDownloadRequest, pubkey: str = Depends(
 @router.post("/import", response_model=ImportResponse)
 async def import_package(
     file: UploadFile = File(...),
-    pubkey: str = Depends(require_auth),
+    target_pubkey: Optional[str] = Form(None),
+    ctx: RoleContext = Depends(require_role),
 ):
     """
     Import a .eqpkg.zip package as draft tracks.
 
     Extracts the package, uploads audio to Blossom, encodes to HLS,
     uploads to IPFS, and creates draft entries in the database.
+
+    Labels can import for managed artists by passing target_pubkey.
     """
+    pubkey = target_pubkey or ctx.pubkey
+    if not ctx.can_manage(pubkey):
+        raise HTTPException(status_code=403, detail="Cannot import for this artist")
+
     if not file.filename or not file.filename.endswith(".eqpkg.zip"):
         raise HTTPException(
             status_code=400,

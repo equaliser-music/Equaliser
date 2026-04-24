@@ -23,6 +23,8 @@ from routers import packages
 from routers import users
 from routers import uploads
 from routers import auth
+from routers import label
+from routers import operator
 import asyncio
 
 from services.database import init_db
@@ -73,6 +75,8 @@ app.include_router(packages.router, prefix="/api/releases", tags=["packages"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
 app.include_router(uploads.router, prefix="/api/upload", tags=["uploads"])
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(label.router, prefix="/api/label", tags=["label"])
+app.include_router(operator.router, prefix="/api/operator", tags=["operator"])
 
 
 @app.get("/health")

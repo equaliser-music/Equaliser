@@ -53,6 +53,7 @@ func main() {
 	// Create services
 	eventStore := storage.NewEventStore(pool)
 	userStore := storage.NewUserStore(pool)
+	adminStore := storage.NewAdminStore(pool)
 	denormParser := storage.NewDenormParser(pool, cfg)
 	subMgr := relay.NewSubscriptionManager()
 	handler := relay.NewHandler(eventStore, denormParser, subMgr, cfg)
@@ -86,7 +87,7 @@ func main() {
 	}
 
 	// Set up REST API server
-	apiServer := api.NewServer(userStore, eventStore)
+	apiServer := api.NewServer(userStore, eventStore, adminStore)
 	restServer := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.RESTAPIPort),
 		Handler:      apiServer.Handler(),

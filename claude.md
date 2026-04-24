@@ -443,7 +443,7 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
 
 - [ ] **Node Management (Phases A-E)**: Three-tier role architecture (artist, label, node operator)
   - **Done (Phase A)**: Role schema (`node_artists.role/custody/managed_by/derivation_index` columns, `node_operators` table), `OPERATOR_PUBKEYS` env bootstrap, relay `GET /api/internal/auth/role` endpoint, orchestrator `RoleContext`/`require_role`/`require_label`/`require_operator` dependencies, `GET /api/auth/whoami`
-  - TODO (Phase B): API permission model — migrate existing endpoints to `require_role`, new label/operator routers
+  - **Done (Phase B)**: API permission model — `AdminStore` + 12 relay internal endpoints (artists, access-requests, invite-codes, registered-users, stats), orchestrator `relay_admin` client, `/api/label/*` router (artist CRUD, access-request approve/decline, invite codes), `/api/operator/*` router (overview, users, sync), migrated drafts/tracks/packages to `require_role` with `ctx.can_manage()`
   - TODO (Phase C): UI role-aware sidebar with artist selector, role-conditional navigation
   - TODO (Phase D): Label admin pages — artist management, access requests, fee models
   - TODO (Phase E): Operator admin pages — node overview, sync manager, IPFS storage, Blossom config, user cache, node settings

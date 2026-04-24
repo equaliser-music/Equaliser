@@ -77,11 +77,45 @@ FastAPI app. CORS allow-all (dev). Initialises database + node identity on start
 |--------|----------|---------|
 | GET | `/api/auth/whoami` | Returns authenticated user's role and managed artists. NIP-98 auth required. Response: `{ pubkey, role, managed_artists }` |
 
+**label.py** — Label admin (requires label or operator role):
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| GET | `/api/label/artists` | List managed artists. Operator sees all; label sees those where `managed_by` = caller pubkey |
+| GET | `/api/label/artists/{pubkey}` | Get single artist details |
+| PATCH | `/api/label/artists/{pubkey}` | Update status (active/suspended), fee_model (free/percentage/flat_rate), fee_value |
+| GET | `/api/label/access-requests?status=` | List access requests (filter: pending/approved/declined) |
+| GET | `/api/label/access-requests/{id}` | Get single request |
+| POST | `/api/label/access-requests/{id}/approve` | Approve, generate 12-char hex invite code |
+| POST | `/api/label/access-requests/{id}/decline` | Decline with optional admin_notes |
+| GET | `/api/label/invite-codes` | List unused invite codes |
+| POST | `/api/label/invite-codes` | Generate orphan invite code (no associated request) |
+
+**operator.py** — Operator admin (requires operator role or `X-Admin-Token`):
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| GET | `/api/operator/overview` | Node name, public URL, stats (artist/label/operator/user counts, events, releases) |
+| GET | `/api/operator/registered-users` | Paginated list of registered listeners |
+| GET | `/api/operator/sync/status` | Peer relay sync status (stub) |
+
 **Authorization dependencies** (`dependencies.py`):
 - `require_auth` — NIP-98 only, returns pubkey (existing)
 - `require_role` — NIP-98 + role resolution from relay DB. Returns `RoleContext(pubkey, role, managed_artists)`
 - `require_label` — Requires `role` = `label` or `operator`
 - `require_operator` — Requires `role` = `operator`, or `X-Admin-Token` header matching `ADMIN_PASSWORD` env var
+
+**Permission pattern** for existing endpoints (drafts, tracks, packages): each endpoint takes `ctx: RoleContext = Depends(require_role)` and calls `ctx.can_manage(target_pubkey)` before allowing access. Target pubkey is either passed explicitly (query/body) or derived from the resource (e.g. `draft.artist_pubkey`). Operator can manage any artist; label can manage their artists; artist can only manage themselves.
+
+**Relay internal admin API** (`/api/internal/*` — Docker network only):
+- `/api/internal/artists`, `/api/internal/artists/{pubkey}` (GET, PATCH)
+- `/api/internal/access-requests`, `/api/internal/access-requests/{id}`, `/{id}/approve`, `/{id}/decline`
+- `/api/internal/invite-codes` (GET, POST)
+- `/api/internal/registered-users`
+- `/api/internal/stats`
+- `/api/internal/auth/role`
+
+The orchestrator's `services/relay_admin.py` wraps these with httpx; orchestrator routers add NIP-98 auth + role checks before calling them.
 
 **users.py** — User registration:
 

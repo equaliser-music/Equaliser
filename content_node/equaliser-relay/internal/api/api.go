@@ -17,14 +17,16 @@ import (
 type Server struct {
 	userStore  *storage.UserStore
 	eventStore *storage.EventStore
+	adminStore *storage.AdminStore
 	mux        *http.ServeMux
 }
 
 // NewServer creates a new REST API server.
-func NewServer(userStore *storage.UserStore, eventStore *storage.EventStore) *Server {
+func NewServer(userStore *storage.UserStore, eventStore *storage.EventStore, adminStore *storage.AdminStore) *Server {
 	s := &Server{
 		userStore:  userStore,
 		eventStore: eventStore,
+		adminStore: adminStore,
 		mux:        http.NewServeMux(),
 	}
 
@@ -52,6 +54,20 @@ func NewServer(userStore *storage.UserStore, eventStore *storage.EventStore) *Se
 
 	// Role resolution (internal — called by orchestrator)
 	s.mux.HandleFunc("GET /api/internal/auth/role", s.handleResolveRole)
+
+	// Admin endpoints (internal — orchestrator wraps with role checks)
+	s.mux.HandleFunc("GET /api/internal/artists", s.handleAdminListArtists)
+	s.mux.HandleFunc("GET /api/internal/artists/{pubkey}", s.handleAdminGetArtist)
+	s.mux.HandleFunc("PATCH /api/internal/artists/{pubkey}", s.handleAdminUpdateArtist)
+	s.mux.HandleFunc("GET /api/internal/access-requests", s.handleListAccessRequests)
+	s.mux.HandleFunc("GET /api/internal/access-requests/{id}", s.handleGetAccessRequest)
+	s.mux.HandleFunc("POST /api/internal/access-requests", s.handleCreateAccessRequest)
+	s.mux.HandleFunc("POST /api/internal/access-requests/{id}/approve", s.handleApproveRequest)
+	s.mux.HandleFunc("POST /api/internal/access-requests/{id}/decline", s.handleDeclineRequest)
+	s.mux.HandleFunc("GET /api/internal/invite-codes", s.handleListInviteCodes)
+	s.mux.HandleFunc("POST /api/internal/invite-codes", s.handleCreateInviteCode)
+	s.mux.HandleFunc("GET /api/internal/registered-users", s.handleListRegisteredUsers)
+	s.mux.HandleFunc("GET /api/internal/stats", s.handleNodeStats)
 
 	// Health check
 	s.mux.HandleFunc("GET /api/health", s.handleHealth)
@@ -495,6 +511,305 @@ func (s *Server) handleThreadExternal(w http.ResponseWriter, r *http.Request) {
 		"external_reply_count": count,
 		"checked":              found,
 	})
+}
+
+// ===== Admin Endpoints (internal) =====
+
+// handleAdminListArtists returns artists from node_artists, optionally filtered.
+// GET /api/internal/artists?managed_by=&role=
+func (s *Server) handleAdminListArtists(w http.ResponseWriter, r *http.Request) {
+	managedBy := r.URL.Query().Get("managed_by")
+	role := r.URL.Query().Get("role")
+
+	if managedBy != "" && !validateHexPubkey(managedBy) {
+		http.Error(w, `{"error": "invalid managed_by pubkey"}`, http.StatusBadRequest)
+		return
+	}
+
+	artists, err := s.adminStore.ListArtists(r.Context(), managedBy, role)
+	if err != nil {
+		log.Printf("Failed to list artists: %v", err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+	if artists == nil {
+		artists = []storage.NodeArtist{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"artists": artists})
+}
+
+// handleAdminGetArtist returns a single node_artist by pubkey.
+// GET /api/internal/artists/{pubkey}
+func (s *Server) handleAdminGetArtist(w http.ResponseWriter, r *http.Request) {
+	pubkey := r.PathValue("pubkey")
+	if !validateHexPubkey(pubkey) {
+		http.Error(w, `{"error": "invalid pubkey"}`, http.StatusBadRequest)
+		return
+	}
+
+	artist, err := s.adminStore.GetArtist(r.Context(), pubkey)
+	if err != nil {
+		log.Printf("Failed to get artist: %v", err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+	if artist == nil {
+		http.Error(w, `{"error": "not found"}`, http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(artist)
+}
+
+// handleAdminUpdateArtist updates status, fee_model, and/or fee_value.
+// PATCH /api/internal/artists/{pubkey}
+// Body: { status?, fee_model?, fee_value? }
+func (s *Server) handleAdminUpdateArtist(w http.ResponseWriter, r *http.Request) {
+	pubkey := r.PathValue("pubkey")
+	if !validateHexPubkey(pubkey) {
+		http.Error(w, `{"error": "invalid pubkey"}`, http.StatusBadRequest)
+		return
+	}
+
+	var req struct {
+		Status   *string  `json:"status"`
+		FeeModel *string  `json:"fee_model"`
+		FeeValue *float64 `json:"fee_value"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error": "invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Validate enums
+	if req.Status != nil && *req.Status != "active" && *req.Status != "suspended" {
+		http.Error(w, `{"error": "status must be 'active' or 'suspended'"}`, http.StatusBadRequest)
+		return
+	}
+	if req.FeeModel != nil && *req.FeeModel != "free" && *req.FeeModel != "percentage" && *req.FeeModel != "flat_rate" {
+		http.Error(w, `{"error": "fee_model must be 'free', 'percentage', or 'flat_rate'"}`, http.StatusBadRequest)
+		return
+	}
+
+	if err := s.adminStore.UpdateArtist(r.Context(), pubkey, req.Status, req.FeeModel, req.FeeValue); err != nil {
+		log.Printf("Failed to update artist: %v", err)
+		http.Error(w, `{"error": "`+err.Error()+`"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"updated": true})
+}
+
+// handleListAccessRequests returns access requests, optionally filtered by status.
+// GET /api/internal/access-requests?status=pending
+func (s *Server) handleListAccessRequests(w http.ResponseWriter, r *http.Request) {
+	status := r.URL.Query().Get("status")
+	if status != "" && status != "pending" && status != "approved" && status != "declined" {
+		http.Error(w, `{"error": "invalid status"}`, http.StatusBadRequest)
+		return
+	}
+
+	requests, err := s.adminStore.ListAccessRequests(r.Context(), status)
+	if err != nil {
+		log.Printf("Failed to list access requests: %v", err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+	if requests == nil {
+		requests = []storage.AccessRequest{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"requests": requests})
+}
+
+// handleGetAccessRequest returns a single access request by ID.
+// GET /api/internal/access-requests/{id}
+func (s *Server) handleGetAccessRequest(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, `{"error": "invalid id"}`, http.StatusBadRequest)
+		return
+	}
+
+	req, err := s.adminStore.GetAccessRequest(r.Context(), id)
+	if err != nil {
+		log.Printf("Failed to get access request: %v", err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+	if req == nil {
+		http.Error(w, `{"error": "not found"}`, http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(req)
+}
+
+// handleCreateAccessRequest creates a new pending request.
+// POST /api/internal/access-requests
+// Body: { artist_name, email?, npub?, description?, links? }
+func (s *Server) handleCreateAccessRequest(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		ArtistName  string `json:"artist_name"`
+		Email       string `json:"email"`
+		Npub        string `json:"npub"`
+		Description string `json:"description"`
+		Links       string `json:"links"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error": "invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+	if req.ArtistName == "" {
+		http.Error(w, `{"error": "artist_name is required"}`, http.StatusBadRequest)
+		return
+	}
+
+	id, err := s.adminStore.CreateAccessRequest(r.Context(), req.ArtistName, req.Email, req.Npub, req.Description, req.Links)
+	if err != nil {
+		log.Printf("Failed to create access request: %v", err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]interface{}{"id": id, "status": "pending"})
+}
+
+// handleApproveRequest approves a request and generates an invite code.
+// POST /api/internal/access-requests/{id}/approve
+// Body: { admin_notes? }
+func (s *Server) handleApproveRequest(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, `{"error": "invalid id"}`, http.StatusBadRequest)
+		return
+	}
+
+	var req struct {
+		AdminNotes string `json:"admin_notes"`
+	}
+	json.NewDecoder(r.Body).Decode(&req) // body optional
+
+	code, err := s.adminStore.ApproveAccessRequest(r.Context(), id, req.AdminNotes)
+	if err != nil {
+		log.Printf("Failed to approve request: %v", err)
+		http.Error(w, `{"error": "`+err.Error()+`"}`, http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"id":          id,
+		"status":      "approved",
+		"invite_code": code,
+	})
+}
+
+// handleDeclineRequest declines a request.
+// POST /api/internal/access-requests/{id}/decline
+// Body: { admin_notes? }
+func (s *Server) handleDeclineRequest(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, `{"error": "invalid id"}`, http.StatusBadRequest)
+		return
+	}
+
+	var req struct {
+		AdminNotes string `json:"admin_notes"`
+	}
+	json.NewDecoder(r.Body).Decode(&req)
+
+	if err := s.adminStore.DeclineAccessRequest(r.Context(), id, req.AdminNotes); err != nil {
+		log.Printf("Failed to decline request: %v", err)
+		http.Error(w, `{"error": "`+err.Error()+`"}`, http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"id": id, "status": "declined"})
+}
+
+// handleListInviteCodes lists unused invite codes.
+// GET /api/internal/invite-codes
+func (s *Server) handleListInviteCodes(w http.ResponseWriter, r *http.Request) {
+	codes, err := s.adminStore.ListInviteCodes(r.Context())
+	if err != nil {
+		log.Printf("Failed to list invite codes: %v", err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+	if codes == nil {
+		codes = []map[string]interface{}{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"codes": codes})
+}
+
+// handleCreateInviteCode creates an orphan invite code (no associated request).
+// POST /api/internal/invite-codes
+func (s *Server) handleCreateInviteCode(w http.ResponseWriter, r *http.Request) {
+	code, err := s.adminStore.CreateOrphanInviteCode(r.Context())
+	if err != nil {
+		log.Printf("Failed to create invite code: %v", err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]interface{}{"invite_code": code})
+}
+
+// handleListRegisteredUsers lists registered listeners with pagination.
+// GET /api/internal/registered-users?limit=50&offset=0
+func (s *Server) handleListRegisteredUsers(w http.ResponseWriter, r *http.Request) {
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+
+	users, total, err := s.adminStore.ListRegisteredUsers(r.Context(), limit, offset)
+	if err != nil {
+		log.Printf("Failed to list registered users: %v", err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+	if users == nil {
+		users = []storage.RegisteredUser{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"users":  users,
+		"total":  total,
+		"limit":  limit,
+		"offset": offset,
+	})
+}
+
+// handleNodeStats returns counts for the operator overview.
+// GET /api/internal/stats
+func (s *Server) handleNodeStats(w http.ResponseWriter, r *http.Request) {
+	stats, err := s.adminStore.NodeStats(r.Context())
+	if err != nil {
+		log.Printf("Failed to get node stats: %v", err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(stats)
 }
 
 // ===== Role Resolution =====

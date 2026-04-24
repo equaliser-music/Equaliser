@@ -22,7 +22,7 @@ from pydantic import BaseModel
 
 import logging
 
-from dependencies import require_auth
+from dependencies import require_auth, require_role, RoleContext
 from services.hls import encode_to_hls, get_audio_duration
 from services.ipfs import upload_directory_to_ipfs, upload_file_to_ipfs, unpin_cid
 from services.nostr import create_track_event, publish_event, publish_signed_event
@@ -94,7 +94,8 @@ async def upload_track(
     release_type: Optional[str] = Form(None),  # single, album, ep
     cover_art_cid: Optional[str] = Form(None),  # IPFS CID of cover art
     blossom_cover_hash: Optional[str] = Form(None),  # SHA-256 hash on Blossom
-    artist_pubkey: str = Depends(require_auth),
+    target_artist_pubkey: Optional[str] = Form(None),  # Label uploading on behalf
+    ctx: RoleContext = Depends(require_role),
 ):
     """
     Upload a track for processing.
@@ -113,6 +114,11 @@ async def upload_track(
             status_code=400,
             detail=f"Invalid file type: {file.content_type}. Must be an audio file."
         )
+
+    # Determine which artist the upload is for. Labels can upload for managed artists.
+    artist_pubkey = target_artist_pubkey or ctx.pubkey
+    if not ctx.can_manage(artist_pubkey):
+        raise HTTPException(status_code=403, detail="Cannot upload for this artist")
 
     # Generate unique track ID
     track_id = str(uuid.uuid4())
@@ -200,7 +206,7 @@ class PublishEventResponse(BaseModel):
 
 
 @router.post("/publish", response_model=PublishEventResponse)
-async def publish_track_event(request: SignedEventRequest, pubkey: str = Depends(require_auth)):
+async def publish_track_event(request: SignedEventRequest, ctx: RoleContext = Depends(require_role)):
     """
     Publish a pre-signed NOSTR event for a track.
 
@@ -212,11 +218,12 @@ async def publish_track_event(request: SignedEventRequest, pubkey: str = Depends
     """
     event = request.signed_event
 
-    # Verify the signed event belongs to the authenticated user
-    if event.get("pubkey") != pubkey:
+    # The signed event's pubkey is the artist. Caller must be able to manage them.
+    event_pubkey = event.get("pubkey")
+    if not event_pubkey or not ctx.can_manage(event_pubkey):
         raise HTTPException(
             status_code=403,
-            detail="Signed event pubkey does not match authenticated user"
+            detail="Cannot publish events for this artist"
         )
 
     # Validate event structure
@@ -473,7 +480,7 @@ class DuplicateRequest(BaseModel):
 async def duplicate_track(
     request: DuplicateRequest,
     background_tasks: BackgroundTasks,
-    artist_pubkey: str = Depends(require_auth),
+    ctx: RoleContext = Depends(require_role),
 ):
     """
     Duplicate a draft track with new HLS encoding and IPFS CIDs.
@@ -482,10 +489,13 @@ async def duplicate_track(
     and creates a new draft. The new draft shares the same blossom_audio_hash
     but has independent IPFS CIDs (safe to delete independently).
     """
-    # Fetch source draft
-    source = await get_draft(request.source_draft_id, artist_pubkey)
+    # Fetch source draft (no ownership filter — we'll check via role)
+    source = await get_draft(request.source_draft_id)
     if not source:
         raise HTTPException(status_code=404, detail="Source draft not found")
+    if not ctx.can_manage(source.artist_pubkey):
+        raise HTTPException(status_code=403, detail="Cannot duplicate this draft")
+    artist_pubkey = source.artist_pubkey
 
     if not source.blossom_audio_hash:
         raise HTTPException(

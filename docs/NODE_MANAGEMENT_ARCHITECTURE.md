@@ -279,15 +279,37 @@ Artist holds their own key, signed up independently. Label can manage metadata (
 - Unknown pubkey: 404
 - Orchestrator `/api/auth/whoami`: returns 401 without auth (correct)
 
-### Phase B: API Permission Model (TODO)
+### Phase B: API Permission Model ✅
 
-Gradual migration of existing router endpoints from `require_auth` to `require_role` with role checks. New label and operator router files.
+**Done:**
 
-| File | Change needed |
+| File | What was done |
 |------|---------------|
-| `content_node/orchestrator/api/routers/label.py` | New: artist management, access requests, fee models |
-| `content_node/orchestrator/api/routers/operator.py` | New: infrastructure proxy endpoints |
-| Existing routers (drafts.py, tracks.py, etc.) | Swap `require_auth` → `require_role`, add `can_manage()` checks |
+| `content_node/equaliser-relay/internal/storage/admin.go` | `AdminStore` with all artist/access-request/invite-code/registered-user/stats queries |
+| `content_node/equaliser-relay/internal/api/api.go` | 12 new `/api/internal/*` endpoints for artists, access-requests, invite-codes, registered-users, stats |
+| `content_node/equaliser-relay/cmd/relay/main.go` | Wires up `AdminStore` |
+| `content_node/orchestrator/api/services/relay_admin.py` | HTTP client wrapping all relay internal admin endpoints |
+| `content_node/orchestrator/api/routers/label.py` | `/api/label/*` — artists CRUD, access-requests approve/decline, invite-codes |
+| `content_node/orchestrator/api/routers/operator.py` | `/api/operator/*` — overview, registered-users, sync/status |
+| `content_node/orchestrator/api/routers/drafts.py` | Migrated all endpoints to `require_role` with `ctx.can_manage()` checks |
+| `content_node/orchestrator/api/routers/tracks.py` | Migrated upload, publish, duplicate; supports `target_artist_pubkey` for label uploads |
+| `content_node/orchestrator/api/routers/packages.py` | Migrated export-prepare, export-download, import; supports `target_pubkey` |
+| `content_node/orchestrator/api/main.py` | Registered label + operator routers |
+
+**Permission model:**
+- Artist endpoints check `ctx.can_manage(target_pubkey)` where target is either explicit (query/body field) or derived from the resource (e.g. draft.artist_pubkey)
+- `can_manage()` returns true if `ctx.role == "operator"` OR `target_pubkey in ctx.managed_artists`
+- Label endpoints require `Depends(require_label)` — accepts label or operator role
+- Operator endpoints require `Depends(require_operator)` — NIP-98 (operator role) or `X-Admin-Token` header
+
+**Tested locally:**
+- Label sees managed artists via `/api/label/artists` (1 artist returned)
+- Approving access request generates 12-char hex invite code
+- Operator endpoints reject label callers (403)
+- After promoting label to operator, all operator endpoints return data
+- `whoami` correctly reflects role transitions
+
+**Backward compatibility preserved:** Unknown pubkeys default to artist role with self-only access — existing user flows work without changes.
 
 ### Phase C: UI Role-Aware Sidebar (TODO)
 
@@ -318,7 +340,7 @@ Gradual migration of existing router endpoints from `require_auth` to `require_r
 
 1. ~~Architecture doc reviewed and approved before any implementation~~ ✅
 2. ~~Phase A: DB migration + role resolution~~ ✅ Tested locally
-3. Phase B: API permission model — test with real NIP-98 auth
+3. ~~Phase B: API permission model~~ ✅ Tested locally with NIP-98 auth
 4. Phase C: UI role-aware sidebar — visual verification
 5. Phase D: Label pages — end-to-end artist management workflow
 6. Phase E: Operator pages — infrastructure visibility
