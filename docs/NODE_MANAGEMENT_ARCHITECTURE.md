@@ -311,12 +311,29 @@ Artist holds their own key, signed up independently. Label can manage metadata (
 
 **Backward compatibility preserved:** Unknown pubkeys default to artist role with self-only access — existing user flows work without changes.
 
-### Phase C: UI Role-Aware Sidebar (TODO)
+### Phase C: UI Role-Aware Sidebar ✅
 
-| File | Change needed |
+**Done:**
+
+| File | What was done |
 |------|---------------|
-| `content_node/orchestrator/js/admin-sidebar.js` | Fetch role via `/api/auth/whoami`, render role-appropriate nav, artist selector dropdown |
-| `content_node/orchestrator/js/session.js` | Store role + `selectedArtistPubkey` in session state |
+| `content_node/orchestrator/js/session.js` | Added `fetchRole()` (calls `/api/auth/whoami` via NIP-98), `getRole()`, `getManagedArtists()`, `getSelectedArtistPubkey()`, `setSelectedArtistPubkey()`. Persists `role`, `managedArtists`, `selectedArtistPubkey` in sessionStorage. Cross-tab `artist-switch` BroadcastChannel message + `equaliser:artist-switched` window event. Falls back to `role='artist'` with self-only access if whoami fails. |
+| `content_node/orchestrator/js/admin-sidebar.js` | Two-pass render: synchronous skeleton from cached role, async re-render after `fetchRole()`. Role-conditional subtitle (Artist Admin / Label Admin / Node Operator), colored role badge (purple/blue/green), artist selector dropdown for labels and operators with > 1 managed artist. Three nav section groups (`nav-manage`, `nav-label-admin`, `nav-node-admin`) with `data-testid` hooks. Preserves `sidebar-name`/`sidebar-avatar` IDs so `updateArtistDisplay()` still works after re-render. |
+
+**Behavior by role:**
+
+| Role | Subtitle | Badge | Artist selector | Nav sections |
+|------|----------|-------|-----------------|--------------|
+| artist | Artist Admin | purple | hidden | Manage |
+| label | Label Admin | blue | shown (managed artists + self) | Manage Artist + Label Admin |
+| operator | Node Operator | green | shown (all artists on node) | Manage Artist + Label Admin + Node Admin |
+
+**Verified with Playwright** against the local node — all three roles render correctly, role badge updates after `whoami` resolves, artist selector switches propagate to `SessionManager.getSelectedArtistPubkey()` and dispatch `equaliser:artist-switched` for downstream pages.
+
+**Important caveats for Phase D/E builders:**
+- The label/operator nav links point at pages that don't exist yet (`artist-management.html`, `access-requests.html`, `invite-codes.html`, `node-overview.html`, `sync-manager.html`, `ipfs-storage.html`, `blossom-config.html`, `user-cache.html`, `node-settings.html`). Clicking them 404s until those phases land — intentional.
+- Pages that need to scope data by selected artist (Phase D's artist-management views, eventually dashboard/releases for labels) should read `SessionManager.getSelectedArtistPubkey()` and listen for `window.addEventListener('equaliser:artist-switched', ...)` to refresh on switch.
+- The first paint uses cached role from sessionStorage if present, otherwise defaults to `'artist'` until `fetchRole()` resolves. Don't render role-gated UI without checking `SessionManager.getRole()` is non-null, or you may briefly flash artist-only UI to a label/operator.
 
 ### Phase D: Label Admin Pages (TODO)
 
@@ -341,6 +358,6 @@ Artist holds their own key, signed up independently. Label can manage metadata (
 1. ~~Architecture doc reviewed and approved before any implementation~~ ✅
 2. ~~Phase A: DB migration + role resolution~~ ✅ Tested locally
 3. ~~Phase B: API permission model~~ ✅ Tested locally with NIP-98 auth
-4. Phase C: UI role-aware sidebar — visual verification
+4. ~~Phase C: UI role-aware sidebar~~ ✅ Verified with Playwright across all 3 roles
 5. Phase D: Label pages — end-to-end artist management workflow
 6. Phase E: Operator pages — infrastructure visibility

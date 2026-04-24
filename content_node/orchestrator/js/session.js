@@ -22,6 +22,12 @@ const SessionManager = {
     _broadcastChannel: null,
     _storageKey: 'equaliser_session',
 
+    // Role state (populated by fetchRole() — see Node Management Phase C)
+    _role: null,                  // 'artist' | 'label' | 'operator'
+    _managedArtists: [],          // hex pubkeys this user can manage
+    _selectedArtistPubkey: null,  // currently active artist context (label/operator)
+    _rolePromise: null,           // in-flight fetchRole() promise
+
     /**
      * Initialize the session manager
      * Call this on page load
@@ -120,6 +126,97 @@ const SessionManager = {
             return this.getSession();
         } catch (error) {
             throw new Error('Extension rejected the request: ' + error.message);
+        }
+    },
+
+    /**
+     * Fetch the authenticated user's role from the orchestrator.
+     *
+     * Populates _role, _managedArtists from /api/auth/whoami (NIP-98 auth).
+     * Also sets _selectedArtistPubkey to the first managed artist if not already set.
+     * Safe to call multiple times — deduplicates in-flight requests via _rolePromise.
+     *
+     * @returns {Promise<{role: string, managedArtists: string[]}>}
+     */
+    async fetchRole() {
+        if (!this._session) {
+            throw new Error('No active session');
+        }
+        if (this._rolePromise) return this._rolePromise;
+
+        this._rolePromise = (async () => {
+            try {
+                const resp = await this.authFetch('/api/auth/whoami');
+                if (!resp.ok) {
+                    throw new Error(`whoami HTTP ${resp.status}`);
+                }
+                const data = await resp.json();
+                this._role = data.role || 'artist';
+                this._managedArtists = Array.isArray(data.managed_artists) ? data.managed_artists : [];
+
+                // Default selected artist: self if in managed list, else first managed, else self
+                if (!this._selectedArtistPubkey || !this._managedArtists.includes(this._selectedArtistPubkey)) {
+                    if (this._managedArtists.includes(this._session.publicKey)) {
+                        this._selectedArtistPubkey = this._session.publicKey;
+                    } else if (this._managedArtists.length > 0) {
+                        this._selectedArtistPubkey = this._managedArtists[0];
+                    } else {
+                        this._selectedArtistPubkey = this._session.publicKey;
+                    }
+                }
+
+                this._persistRole();
+                return { role: this._role, managedArtists: this._managedArtists };
+            } catch (e) {
+                // Fallback: treat as artist with self-only access
+                this._role = 'artist';
+                this._managedArtists = [this._session.publicKey];
+                this._selectedArtistPubkey = this._session.publicKey;
+                this._persistRole();
+                console.warn('fetchRole failed, defaulting to artist:', e.message);
+                return { role: this._role, managedArtists: this._managedArtists };
+            } finally {
+                this._rolePromise = null;
+            }
+        })();
+
+        return this._rolePromise;
+    },
+
+    /**
+     * Get the current role. May be null if fetchRole() hasn't completed yet.
+     */
+    getRole() {
+        return this._role;
+    },
+
+    /**
+     * Get the list of artist pubkeys the current user can manage.
+     */
+    getManagedArtists() {
+        return [...this._managedArtists];
+    },
+
+    /**
+     * Get the currently selected artist pubkey (for labels/operators who manage
+     * multiple artists). Artists always have themselves selected.
+     */
+    getSelectedArtistPubkey() {
+        return this._selectedArtistPubkey || (this._session ? this._session.publicKey : null);
+    },
+
+    /**
+     * Change the currently selected artist. Broadcasts to other tabs.
+     * Only valid for pubkeys in managedArtists.
+     */
+    setSelectedArtistPubkey(pubkey) {
+        if (!this._managedArtists.includes(pubkey)) {
+            throw new Error('Cannot select unmanaged artist');
+        }
+        this._selectedArtistPubkey = pubkey;
+        this._persistRole();
+        if (this._broadcastChannel) {
+            this._broadcastChannel.postMessage({ type: 'artist-switch', pubkey });
         }
     },
 
@@ -275,7 +372,10 @@ const SessionManager = {
             publicKey: this._session.publicKey,
             npub: this._session.npub,
             createdAt: this._session.createdAt,
-            lastActivity: this._lastActivity
+            lastActivity: this._lastActivity,
+            role: this._role,
+            managedArtists: this._managedArtists,
+            selectedArtistPubkey: this._selectedArtistPubkey
         };
 
         // For nsec sessions, store the nsec (sessionStorage is tab-scoped and cleared on close)
@@ -287,6 +387,23 @@ const SessionManager = {
             sessionStorage.setItem(this._storageKey, JSON.stringify(data));
         } catch (e) {
             console.warn('Failed to persist session:', e);
+        }
+    },
+
+    /**
+     * Persist only the role-related fields without touching session keys.
+     */
+    _persistRole() {
+        try {
+            const stored = sessionStorage.getItem(this._storageKey);
+            if (!stored) return;
+            const data = JSON.parse(stored);
+            data.role = this._role;
+            data.managedArtists = this._managedArtists;
+            data.selectedArtistPubkey = this._selectedArtistPubkey;
+            sessionStorage.setItem(this._storageKey, JSON.stringify(data));
+        } catch (e) {
+            // Ignore errors
         }
     },
 
@@ -323,6 +440,11 @@ const SessionManager = {
                 sessionStorage.removeItem(this._storageKey);
                 return;
             }
+
+            // Restore cached role state (if present). fetchRole() will refresh from server.
+            if (data.role) this._role = data.role;
+            if (Array.isArray(data.managedArtists)) this._managedArtists = data.managedArtists;
+            if (data.selectedArtistPubkey) this._selectedArtistPubkey = data.selectedArtistPubkey;
 
             // Restore based on session type
             if (data.type === 'nsec' && data.nsec) {
@@ -380,6 +502,10 @@ const SessionManager = {
             this._session.privateKey = null;
         }
         this._session = null;
+        this._role = null;
+        this._managedArtists = [];
+        this._selectedArtistPubkey = null;
+        this._rolePromise = null;
 
         // Clear from sessionStorage
         try {
@@ -471,6 +597,15 @@ const SessionManager = {
                     // Another tab logged out - clear our session too
                     this._clearSession();
                     window.location.href = this._getLoginUrl();
+                } else if (event.data.type === 'artist-switch' && event.data.pubkey) {
+                    // Another tab switched the selected artist — mirror the change
+                    if (this._managedArtists.includes(event.data.pubkey)) {
+                        this._selectedArtistPubkey = event.data.pubkey;
+                        this._persistRole();
+                        window.dispatchEvent(new CustomEvent('equaliser:artist-switched', {
+                            detail: { pubkey: event.data.pubkey }
+                        }));
+                    }
                 }
             };
         } catch (e) {

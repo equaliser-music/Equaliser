@@ -149,8 +149,16 @@ All pages use shared `js/session.js` and `js/admin-sidebar.js`.
 
 | Module | Purpose | Used By |
 |--------|---------|---------|
-| `session.js` | Session management. nsec or NIP-07 login. 30-min idle timeout, multi-tab logout sync. `signEvent()` auto-adds `["app", "Equaliser"]` tag | All admin pages |
-| `admin-sidebar.js` | Navigation sidebar component. Logo, profile card, nav menu, session info, logout | All admin pages |
+| `session.js` | Session management. nsec or NIP-07 login. 30-min idle timeout, multi-tab logout sync. `signEvent()` auto-adds `["app", "Equaliser"]` tag. `authFetch()` adds NIP-98 auth header. `fetchRole()` calls `/api/auth/whoami` and exposes `getRole()`/`getManagedArtists()`/`getSelectedArtistPubkey()`/`setSelectedArtistPubkey()` (Node Management Phase C). Persists role + selected artist in sessionStorage and broadcasts artist switches across tabs via BroadcastChannel + `equaliser:artist-switched` window event. | All admin pages |
+| `admin-sidebar.js` | Role-aware navigation sidebar (Node Management Phase C). Two-pass render: synchronous skeleton with cached role, async re-render after `fetchRole()`. Subtitle/badge/nav sections vary by role: artist sees `Manage`; label adds `Label Admin`; operator adds `Node Admin`. Artist selector dropdown shown when label/operator manages >1 artist. Preserves `sidebar-name`/`sidebar-avatar` IDs across re-renders so `updateArtistDisplay()` continues to work. | All admin pages |
+
+### Phase D/E page builders — important
+
+- Label nav links: `artist-management.html`, `access-requests.html`, `invite-codes.html`
+- Operator nav links: `node-overview.html`, `sync-manager.html`, `ipfs-storage.html`, `blossom-config.html`, `user-cache.html`, `node-settings.html`
+- These pages don't exist yet — clicking nav items 404s until built.
+- Pages that need to scope data by selected artist must read `SessionManager.getSelectedArtistPubkey()` and listen for `window.addEventListener('equaliser:artist-switched', ...)` to refresh on artist switch.
+- The first paint may briefly show `role='artist'` (the fallback) before `fetchRole()` resolves; gate role-sensitive UI on `SessionManager.getRole()` being non-null.
 
 ## Config Files
 
