@@ -131,3 +131,8 @@ async def list_registered_users(limit: int = 50, offset: int = 0) -> Dict:
 
 async def node_stats() -> Dict:
     return await _request("GET", "/api/internal/stats")
+
+
+async def list_peer_relays() -> List[Dict]:
+    data = await _request("GET", "/api/internal/peer-relays")
+    return data.get("peers", []) if data else []

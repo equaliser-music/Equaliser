@@ -2,10 +2,26 @@ package storage
 
 import (
 	"context"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+// PeerRelayInfo is the externally exposed shape of a peer_relays row.
+// Used by the operator admin UI to display peer sync state.
+type PeerRelayInfo struct {
+	URL             string     `json:"url"`
+	Status          string     `json:"status"`
+	Enabled         bool       `json:"enabled"`
+	AutoDiscovered  bool       `json:"auto_discovered"`
+	EventCount      int64      `json:"event_count"`
+	ErrorCount      int64      `json:"error_count"`
+	LastError       *string    `json:"last_error,omitempty"`
+	LastConnectedAt *time.Time `json:"last_connected_at,omitempty"`
+	LastEventAt     *int64     `json:"last_event_at,omitempty"`
+	AddedAt         time.Time  `json:"added_at"`
+}
 
 // PeerStore handles CRUD operations on the peer_relays table.
 type PeerStore struct {
@@ -81,6 +97,36 @@ func (s *PeerStore) GetLastEventAt(ctx context.Context, url string) (int64, erro
 		return 0, err
 	}
 	return *lastEventAt, nil
+}
+
+// ListPeers returns full state for all peer relays, ordered by added_at desc.
+// Used by the operator admin UI to display sync status.
+func (s *PeerStore) ListPeers(ctx context.Context) ([]PeerRelayInfo, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT url, status, enabled, auto_discovered,
+		       event_count, error_count, last_error,
+		       last_connected_at, last_event_at, added_at
+		FROM peer_relays
+		ORDER BY added_at DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	peers := []PeerRelayInfo{}
+	for rows.Next() {
+		var p PeerRelayInfo
+		if err := rows.Scan(
+			&p.URL, &p.Status, &p.Enabled, &p.AutoDiscovered,
+			&p.EventCount, &p.ErrorCount, &p.LastError,
+			&p.LastConnectedAt, &p.LastEventAt, &p.AddedAt,
+		); err != nil {
+			return nil, err
+		}
+		peers = append(peers, p)
+	}
+	return peers, rows.Err()
 }
 
 // GetEnabledPeers returns all enabled peer relay URLs.

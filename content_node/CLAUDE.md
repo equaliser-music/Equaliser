@@ -95,9 +95,12 @@ FastAPI app. CORS allow-all (dev). Initialises database + node identity on start
 
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
-| GET | `/api/operator/overview` | Node name, public URL, stats (artist/label/operator/user counts, events, releases) |
+| GET | `/api/operator/overview` | Node name, public URL, stats (artist/label/operator/user counts, events, releases) + service health pings (orchestrator/relay/IPFS/Blossom) |
 | GET | `/api/operator/registered-users` | Paginated list of registered listeners |
-| GET | `/api/operator/sync/status` | Peer relay sync status (stub) |
+| GET | `/api/operator/sync/peers` | Peer relay state from `peer_relays` table + configured standard relays + local relay URL |
+| GET | `/api/operator/ipfs/stats` | IPFS repo/stat, pin count + sample, swarm peer count, peer ID — proxies IPFS HTTP API |
+| GET | `/api/operator/blossom/status` | Blossom server reachability check (URL, public URL, http_status) |
+| GET | `/api/operator/settings` | Read-only env config (node name, service URLs, standard relays, CORS origins). No sensitive values exposed |
 
 **Authorization dependencies** (`dependencies.py`):
 - `require_auth` — NIP-98 only, returns pubkey (existing)
@@ -147,6 +150,12 @@ All pages use shared `js/session.js` and `js/admin-sidebar.js`.
 | `artist-management.html` | (Label/operator) Manage artists with role/status/fee badges, edit modal (status, fee_model, fee_value), quick suspend/activate. Operator view shows Managed By column + all artists. |
 | `access-requests.html` | (Label/operator) Pending/Approved/Declined tabs. Approve modal generates invite code (shown in second modal); decline modal captures admin notes. Approved cards display existing invite code inline. |
 | `invite-codes.html` | (Label/operator) Lists unused invite codes with provenance (approved request name or "Standalone"). Generate New button creates a standalone (orphan) code. Copy buttons throughout. |
+| `node-overview.html` | (Operator) Stat tiles + service health pings for orchestrator/relay/IPFS/Blossom. |
+| `sync-manager.html` | (Operator) Peer relay table from `peer_relays` (status, event count, errors, last connect/event), standard NOSTR relay list from `STANDARD_RELAYS` env, local relay info. |
+| `ipfs-storage.html` | (Operator) IPFS repo size/storage max/object count/pin count/swarm peers, peer ID, sample of pinned CIDs with gateway view links. |
+| `blossom-config.html` | (Operator) Blossom server status. Mirroring config is deferred (placeholder card linking to NODE-MANAGEMENT-SPEC.md Section 7). |
+| `user-cache.html` | (Operator) Paginated table of registered listeners (npub, pubkey, registered, last seen, enabled). |
+| `node-settings.html` | (Operator) Read-only env config: Node, Service URLs, Standard Relays, CORS Origins. No write API — change env vars and restart containers. |
 
 ## Shared JS (orchestrator/js/)
 
@@ -155,13 +164,20 @@ All pages use shared `js/session.js` and `js/admin-sidebar.js`.
 | `session.js` | Session management. nsec or NIP-07 login. 30-min idle timeout, multi-tab logout sync. `signEvent()` auto-adds `["app", "Equaliser"]` tag. `authFetch()` adds NIP-98 auth header. `fetchRole()` calls `/api/auth/whoami` and exposes `getRole()`/`getManagedArtists()`/`getSelectedArtistPubkey()`/`setSelectedArtistPubkey()` (Node Management Phase C). Persists role + selected artist in sessionStorage and broadcasts artist switches across tabs via BroadcastChannel + `equaliser:artist-switched` window event. | All admin pages |
 | `admin-sidebar.js` | Role-aware navigation sidebar (Node Management Phase C). Two-pass render: synchronous skeleton with cached role, async re-render after `fetchRole()`. Subtitle/badge/nav sections vary by role: artist sees `Manage`; label adds `Label Admin`; operator adds `Node Admin`. Artist selector dropdown shown when label/operator manages >1 artist. Preserves `sidebar-name`/`sidebar-avatar` IDs across re-renders so `updateArtistDisplay()` continues to work. | All admin pages |
 
-### Phase D/E page builders — important
+### Admin page conventions (Phase D/E pattern)
 
-- Label nav links (Phase D — built): `artist-management.html`, `access-requests.html`, `invite-codes.html`
-- Operator nav links (Phase E — TODO): `node-overview.html`, `sync-manager.html`, `ipfs-storage.html`, `blossom-config.html`, `user-cache.html`, `node-settings.html`
-- Phase E pages don't exist yet — clicking those nav items 404s until built.
-- Pages that need to scope data by selected artist must read `SessionManager.getSelectedArtistPubkey()` and listen for `window.addEventListener('equaliser:artist-switched', ...)` to refresh on artist switch.
-- The first paint may briefly show `role='artist'` (the fallback) before `fetchRole()` resolves; gate role-sensitive UI on `SessionManager.getRole()` being non-null. Phase D pages handle this by `await SessionManager.fetchRole()` before rendering data and showing an error notice if the role isn't `label` or `operator`.
+Phase D and E admin pages all follow the same pattern — start any new admin page from one of these:
+
+- Label pages (Phase D): `artist-management.html`, `access-requests.html`, `invite-codes.html`
+- Operator pages (Phase E): `node-overview.html`, `sync-manager.html`, `ipfs-storage.html`, `blossom-config.html`, `user-cache.html`, `node-settings.html`
+
+Conventions to preserve:
+- `SessionManager.init()` → `requireSession()` → `AdminSidebar.init()` → `await SessionManager.fetchRole()` → role gate → load data
+- Role gate displays an error `.notice` and bails (don't render data UI for the wrong role)
+- Use `SessionManager.authFetch` for all API calls — it adds NIP-98 auth automatically
+- Pages that scope by artist read `SessionManager.getSelectedArtistPubkey()` and listen for `window.addEventListener('equaliser:artist-switched', ...)` to refresh on switch
+- The first paint may briefly show `role='artist'` (the sessionStorage fallback) before `fetchRole()` resolves — gate role-sensitive UI on `SessionManager.getRole()` being non-null and the awaited fetchRole
+- Reference `css/admin-base.css` for shared styles; add page-specific CSS in a per-page `<style>` block
 
 ### Shared admin CSS
 

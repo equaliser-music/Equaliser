@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equaliser - Blossom Config</title>
+    <link rel="stylesheet" href="css/admin-base.css">
+    <style>
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 18px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .info-row .info-label { color: rgba(255, 255, 255, 0.5); font-size: 13px; }
+        .info-row .info-value { font-family: monospace; font-size: 13px; }
+        .future-card {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.08), rgba(59, 130, 246, 0.05));
+            border: 1px solid rgba(168, 85, 247, 0.2);
+            border-radius: 12px;
+            padding: 24px;
+            margin-top: 24px;
+        }
+        .future-card h3 { font-size: 16px; margin-bottom: 8px; color: #c4b5fd; }
+        .future-card p { font-size: 14px; color: rgba(255, 255, 255, 0.7); margin-bottom: 8px; }
+        .future-card ul { margin: 8px 0 0 20px; color: rgba(255, 255, 255, 0.6); font-size: 13px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-content">
+            <div class="header">
+                <div>
+                    <h1 class="page-title">Blossom Config</h1>
+                    <p class="page-description">Local Blossom blob storage server</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="loadStatus()">Refresh</button>
+                </div>
+            </div>
+
+            <div id="notice-area"></div>
+            <div id="content"><div style="text-align:center; padding:40px"><span class="loading-spinner"></span></div></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/nostr-tools@2.7.2/lib/nostr.bundle.js"></script>
+    <script src="js/session.js"></script>
+    <script src="js/admin-sidebar.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            SessionManager.init();
+            if (!SessionManager.requireSession('blossom-config.html')) return;
+            AdminSidebar.init();
+            await SessionManager.fetchRole();
+            if (SessionManager.getRole() !== 'operator') {
+                showNotice('error', 'You need an operator role to view this page.');
+                document.getElementById('content').innerHTML = '';
+                return;
+            }
+            await loadStatus();
+        });
+
+        async function loadStatus() {
+            const content = document.getElementById('content');
+            content.innerHTML = '<div style="text-align:center; padding:40px"><span class="loading-spinner"></span></div>';
+            try {
+                const resp = await SessionManager.authFetch('/api/operator/blossom/status');
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                render(await resp.json());
+            } catch (e) {
+                content.innerHTML = '';
+                showNotice('error', `Failed to load Blossom status: ${e.message}`);
+            }
+        }
+
+        function render(data) {
+            document.getElementById('content').innerHTML = `
+                <div data-testid="blossom-status">
+                    <div class="info-row">
+                        <span class="info-label">Server URL</span>
+                        <span class="info-value">${escapeHtml(data.url || '—')}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Public URL</span>
+                        <span class="info-value">${data.public_url ? escapeHtml(data.public_url) : '<span style="color:rgba(255,255,255,0.4); font-family:inherit">not configured</span>'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Status</span>
+                        <span class="badge ${data.status === 'ok' ? 'badge-active' : 'badge-suspended'}" data-testid="status-badge">${data.status}${data.http_status ? ` (${data.http_status})` : ''}</span>
+                    </div>
+                    ${data.error ? `<div class="notice notice-error">Error: ${escapeHtml(data.error)}</div>` : ''}
+                </div>
+
+                <div class="future-card">
+                    <h3>Mirroring & Cluster Config — coming soon</h3>
+                    <p>Cross-node Blossom mirroring lets content nodes replicate audio blobs to peers for redundancy. The schema (<code>blossom_servers</code>, <code>blossom_mirrors</code>) already exists in the relay's PostgreSQL.</p>
+                    <p>Planned controls:</p>
+                    <ul>
+                        <li>Add/remove mirror server URLs</li>
+                        <li>Per-mirror sync policy (auto-mirror new blobs, on-demand only, etc.)</li>
+                        <li>Storage quota and retention</li>
+                        <li>Health monitoring per mirror</li>
+                    </ul>
+                    <p style="margin-top:12px">Tracked in <code>NODE-MANAGEMENT-SPEC.md</code> Section 7 (IPFS Cluster &amp; Blossom Mirroring).</p>
+                </div>
+            `;
+        }
+
+        function showNotice(type, msg) {
+            const area = document.getElementById('notice-area');
+            area.innerHTML = `<div class="notice notice-${type}">${escapeHtml(msg)}</div>`;
+            if (type !== 'error') setTimeout(() => { area.innerHTML = ''; }, 4000);
+        }
+        function escapeHtml(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+        }
+    </script>
+</body>
+</html>

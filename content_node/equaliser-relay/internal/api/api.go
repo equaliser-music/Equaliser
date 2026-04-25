@@ -18,15 +18,17 @@ type Server struct {
 	userStore  *storage.UserStore
 	eventStore *storage.EventStore
 	adminStore *storage.AdminStore
+	peerStore  *storage.PeerStore
 	mux        *http.ServeMux
 }
 
 // NewServer creates a new REST API server.
-func NewServer(userStore *storage.UserStore, eventStore *storage.EventStore, adminStore *storage.AdminStore) *Server {
+func NewServer(userStore *storage.UserStore, eventStore *storage.EventStore, adminStore *storage.AdminStore, peerStore *storage.PeerStore) *Server {
 	s := &Server{
 		userStore:  userStore,
 		eventStore: eventStore,
 		adminStore: adminStore,
+		peerStore:  peerStore,
 		mux:        http.NewServeMux(),
 	}
 
@@ -68,6 +70,7 @@ func NewServer(userStore *storage.UserStore, eventStore *storage.EventStore, adm
 	s.mux.HandleFunc("POST /api/internal/invite-codes", s.handleCreateInviteCode)
 	s.mux.HandleFunc("GET /api/internal/registered-users", s.handleListRegisteredUsers)
 	s.mux.HandleFunc("GET /api/internal/stats", s.handleNodeStats)
+	s.mux.HandleFunc("GET /api/internal/peer-relays", s.handleListPeerRelays)
 
 	// Health check
 	s.mux.HandleFunc("GET /api/health", s.handleHealth)
@@ -810,6 +813,25 @@ func (s *Server) handleNodeStats(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(stats)
+}
+
+// handleListPeerRelays returns full state for all configured peer relays.
+// GET /api/internal/peer-relays
+func (s *Server) handleListPeerRelays(w http.ResponseWriter, r *http.Request) {
+	if s.peerStore == nil {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{"peers": []interface{}{}})
+		return
+	}
+	peers, err := s.peerStore.ListPeers(r.Context())
+	if err != nil {
+		log.Printf("Failed to list peer relays: %v", err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"peers": peers})
 }
 
 // ===== Role Resolution =====

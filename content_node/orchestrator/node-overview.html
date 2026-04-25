@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equaliser - Node Overview</title>
+    <link rel="stylesheet" href="css/admin-base.css">
+    <style>
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        .stat-tile {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .stat-tile .stat-value { font-size: 28px; font-weight: 700; }
+        .stat-tile .stat-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255, 255, 255, 0.5); margin-top: 4px; }
+        .node-meta {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .node-meta .meta-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255, 255, 255, 0.4); margin-bottom: 4px; }
+        .node-meta .meta-value { font-size: 15px; }
+        .services-section { margin-top: 24px; }
+        .services-section h2 { font-size: 18px; font-weight: 600; margin-bottom: 12px; }
+        .service-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            margin-bottom: 6px;
+        }
+        .service-name { font-weight: 600; }
+        .service-url { font-family: monospace; font-size: 12px; color: rgba(255, 255, 255, 0.5); margin-top: 2px; }
+        .health-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+        .health-dot.ok { background: #34d399; box-shadow: 0 0 8px rgba(52, 211, 153, 0.6); }
+        .health-dot.error { background: #fca5a5; }
+        .health-dot.unreachable { background: #f87171; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-content">
+            <div class="header">
+                <div>
+                    <h1 class="page-title">Node Overview</h1>
+                    <p class="page-description">Live status of this content node</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="loadOverview()">Refresh</button>
+                </div>
+            </div>
+
+            <div id="notice-area"></div>
+            <div id="content"><div style="text-align:center; padding:40px"><span class="loading-spinner"></span></div></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/nostr-tools@2.7.2/lib/nostr.bundle.js"></script>
+    <script src="js/session.js"></script>
+    <script src="js/admin-sidebar.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            SessionManager.init();
+            if (!SessionManager.requireSession('node-overview.html')) return;
+            AdminSidebar.init();
+            await SessionManager.fetchRole();
+            if (SessionManager.getRole() !== 'operator') {
+                showNotice('error', 'You need an operator role to view this page.');
+                document.getElementById('content').innerHTML = '';
+                return;
+            }
+            await loadOverview();
+        });
+
+        async function loadOverview() {
+            const content = document.getElementById('content');
+            content.innerHTML = '<div style="text-align:center; padding:40px"><span class="loading-spinner"></span></div>';
+
+            try {
+                const resp = await SessionManager.authFetch('/api/operator/overview');
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const data = await resp.json();
+                render(data);
+            } catch (e) {
+                content.innerHTML = '';
+                showNotice('error', `Failed to load overview: ${e.message}`);
+            }
+        }
+
+        function render(data) {
+            const stats = data.stats || {};
+            const services = data.services || {};
+            const content = document.getElementById('content');
+
+            const tiles = [
+                { label: 'Artists', value: stats.artist_count ?? 0 },
+                { label: 'Labels', value: stats.label_count ?? 0 },
+                { label: 'Operators', value: stats.operator_count ?? 0 },
+                { label: 'Listeners', value: stats.user_count ?? 0 },
+                { label: 'Events', value: stats.event_count ?? 0 },
+                { label: 'Releases', value: stats.release_count ?? 0 },
+                { label: 'Pending Requests', value: stats.pending_requests ?? 0 },
+            ];
+
+            content.innerHTML = `
+                <div class="node-meta">
+                    <div>
+                        <div class="meta-label">Node Name</div>
+                        <div class="meta-value">${escapeHtml(data.node_name || '—')}</div>
+                    </div>
+                    <div>
+                        <div class="meta-label">Public Base URL</div>
+                        <div class="meta-value">${data.public_base_url ? escapeHtml(data.public_base_url) : '<span style="color:rgba(255,255,255,0.4)">not configured</span>'}</div>
+                    </div>
+                </div>
+
+                <div class="stat-grid" data-testid="stat-grid">
+                    ${tiles.map(t => `
+                        <div class="stat-tile">
+                            <div class="stat-value">${t.value}</div>
+                            <div class="stat-label">${t.label}</div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div class="services-section">
+                    <h2>Service Health</h2>
+                    ${Object.entries(services).map(([name, info]) => `
+                        <div class="service-row" data-service="${name}">
+                            <div>
+                                <div class="service-name"><span class="health-dot ${info.status}"></span>${name}</div>
+                                <div class="service-url">${info.url ? escapeHtml(info.url) : ''}</div>
+                            </div>
+                            <div>
+                                <span class="badge ${badgeClass(info.status)}">${info.status}${info.http_status ? ` (${info.http_status})` : ''}</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function badgeClass(status) {
+            return status === 'ok' ? 'badge-active' : 'badge-suspended';
+        }
+
+        function showNotice(type, msg) {
+            const area = document.getElementById('notice-area');
+            area.innerHTML = `<div class="notice notice-${type}">${escapeHtml(msg)}</div>`;
+            if (type !== 'error') setTimeout(() => { area.innerHTML = ''; }, 4000);
+        }
+        function escapeHtml(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+        }
+    </script>
+</body>
+</html>

@@ -357,16 +357,44 @@ All pages: gate access on `SessionManager.getRole() in ('label', 'operator')` af
 - The relay's `CreateOrphanInviteCode` writes `artist_name='(direct invite)'` into `access_requests` to keep the table single-shape. The invite-codes UI special-cases this string (and `'__orphan__'`) to display "Standalone (no request)". If the relay ever changes that sentinel, update [content_node/orchestrator/invite-codes.html](../content_node/orchestrator/invite-codes.html).
 - The "Add new artist directly" workflow isn't part of Phase D — Phase D only manages artists onboarded via access requests + invite codes. If labels need to provision artists outside the request flow, that goes with Phase E (label-managed key derivation, NIP-06 paths).
 
-### Phase E: Operator Admin Pages (TODO)
+### Phase E: Operator Admin Pages ✅
 
-| Page | Purpose |
-|------|---------|
-| `node-overview.html` | Service health, quick stats |
-| `sync-manager.html` | Relay list, connections, sync controls |
-| `ipfs-storage.html` | Pins, storage breakdown by artist |
-| `blossom-config.html` | Mirror servers, sync status |
-| `user-cache.html` | Registered listeners, cache management |
-| `node-settings.html` | Node configuration |
+**Done (backend additions):**
+
+| File | What was done |
+|------|---------------|
+| `content_node/equaliser-relay/internal/storage/peers.go` | New `PeerRelayInfo` struct + `ListPeers()` method returning full peer_relays state |
+| `content_node/equaliser-relay/internal/api/api.go` | `Server` now takes `*PeerStore`; new `GET /api/internal/peer-relays` handler |
+| `content_node/equaliser-relay/cmd/relay/main.go` | Threads peerStore into `api.NewServer` |
+| `content_node/orchestrator/api/services/relay_admin.py` | `list_peer_relays()` wraps the relay endpoint |
+| `content_node/orchestrator/api/routers/operator.py` | Replaced `/sync/status` stub with `/sync/peers` (peers + standard relays + local). Added `/ipfs/stats` (proxies IPFS HTTP API: repo/stat, pin/ls, swarm/peers, id), `/blossom/status` (reachability check), `/settings` (read-only env dump). `/overview` now also returns `services` health for orchestrator/relay/IPFS/Blossom |
+
+**Done (pages):**
+
+| File | What was done |
+|------|---------------|
+| `content_node/orchestrator/node-overview.html` | Node name + public URL meta, 7 stat tiles (artists/labels/operators/listeners/events/releases/pending), service-health rows with pulsing dots and HTTP status badges |
+| `content_node/orchestrator/sync-manager.html` | Equaliser peer relay table (URL, status badge, event count, error count, last connected, last event timestamp); standard NOSTR relay list; local relay row |
+| `content_node/orchestrator/ipfs-storage.html` | Peer ID + agent header, 5 stat tiles (repo size with human bytes, storage max, object count, pinned count, swarm peers), sample of pinned CIDs with gateway "View" links |
+| `content_node/orchestrator/blossom-config.html` | Server URL / public URL / status info rows; future-card flagging Phase D mirroring as deferred (links to NODE-MANAGEMENT-SPEC.md Section 7) |
+| `content_node/orchestrator/user-cache.html` | Paginated table of registered listeners (npub, pubkey, registered, last seen, cache enabled flag) with prev/next pagination and `PAGE_SIZE=25` |
+| `content_node/orchestrator/node-settings.html` | Read-only banner + 4 sections (Node, Service URLs, Standard NOSTR Relays, Allowed CORS Origins) listing env vars and current values; explicitly hides any sensitive values |
+
+All pages: gate on `SessionManager.getRole() === 'operator'` after `await fetchRole()`; use `SessionManager.authFetch` for NIP-98; reference `css/admin-base.css`; no role-aware mutations (read-only by design — node config changes go through env + container restart).
+
+**Verified with Playwright as operator:**
+- node-overview shows 7 stat tiles + 4 service-health rows all "ok (200)"
+- sync-manager renders peer-relays table from DB and standard-relays list from `STANDARD_RELAYS` env
+- ipfs-storage shows real numbers (62 MB repo, 9 GB max, 775 objects, 3 pins, 21 swarm peers in dev) + IPFS peer ID
+- blossom-config status badge reads "ok (200)" with future-card visible
+- user-cache returns paginated rows from `registered_users` table
+- node-settings renders 4 sections with env-var labels next to current values
+
+**Important caveats / scope limits:**
+- The Blossom mirroring config UI is intentionally a placeholder — the cluster/blossom backend (Section 7 of the spec) hasn't been built. The `blossom_servers` and `blossom_mirrors` tables exist but are unused.
+- Node settings are display-only. The path to mutating settings is editing env vars and restarting containers; building a write API would mean writing back to env or a config file plus a graceful service reload, which is out of scope.
+- `/api/operator/ipfs/stats` calls IPFS API directly with a 10s timeout. On heavily loaded nodes the `pin/ls` call may be slow — sample is capped at first 20 CIDs to avoid massive payloads.
+- The IPFS service health check uses `POST /api/v0/version` (the only stable IPFS API verb that's idempotent and lightweight). Don't switch to `GET` — Kubo only accepts `POST` on these endpoints.
 
 ## Verification
 
@@ -375,4 +403,4 @@ All pages: gate access on `SessionManager.getRole() in ('label', 'operator')` af
 3. ~~Phase B: API permission model~~ ✅ Tested locally with NIP-98 auth
 4. ~~Phase C: UI role-aware sidebar~~ ✅ Verified with Playwright across all 3 roles
 5. ~~Phase D: Label pages~~ ✅ Verified with Playwright as both label and operator
-6. Phase E: Operator pages — infrastructure visibility
+6. ~~Phase E: Operator pages~~ ✅ Verified with Playwright across all 6 operator pages

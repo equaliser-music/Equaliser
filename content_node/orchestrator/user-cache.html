@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equaliser - User Cache</title>
+    <link rel="stylesheet" href="css/admin-base.css">
+    <style>
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+        }
+        .pagination .page-info { color: rgba(255, 255, 255, 0.5); font-size: 13px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-content">
+            <div class="header">
+                <div>
+                    <h1 class="page-title">User Cache</h1>
+                    <p class="page-description">Listeners registered with this node — Kind 0/1/3/5/6/7 events synced from standard relays</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="loadUsers()">Refresh</button>
+                </div>
+            </div>
+
+            <div id="notice-area"></div>
+            <div id="content"><div style="text-align:center; padding:40px"><span class="loading-spinner"></span></div></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/nostr-tools@2.7.2/lib/nostr.bundle.js"></script>
+    <script src="js/session.js"></script>
+    <script src="js/admin-sidebar.js"></script>
+    <script>
+        const PAGE_SIZE = 25;
+        let offset = 0;
+        let totalLoaded = 0;
+        let lastBatchSize = 0;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            SessionManager.init();
+            if (!SessionManager.requireSession('user-cache.html')) return;
+            AdminSidebar.init();
+            await SessionManager.fetchRole();
+            if (SessionManager.getRole() !== 'operator') {
+                showNotice('error', 'You need an operator role to view this page.');
+                document.getElementById('content').innerHTML = '';
+                return;
+            }
+            await loadUsers();
+        });
+
+        async function loadUsers() {
+            const content = document.getElementById('content');
+            content.innerHTML = '<div style="text-align:center; padding:40px"><span class="loading-spinner"></span></div>';
+            try {
+                const resp = await SessionManager.authFetch(`/api/operator/registered-users?limit=${PAGE_SIZE}&offset=${offset}`);
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const data = await resp.json();
+                const users = data.users || data.registered_users || [];
+                lastBatchSize = users.length;
+                render(users);
+            } catch (e) {
+                content.innerHTML = '';
+                showNotice('error', `Failed to load users: ${e.message}`);
+            }
+        }
+
+        function render(users) {
+            const content = document.getElementById('content');
+            if (!users.length && offset === 0) {
+                content.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No registered listeners yet</h3>
+                        <p>Listeners are registered when they first authenticate to the client. Once registered, the relay's syncer pulls their public NOSTR data from configured standard relays.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            content.innerHTML = `
+                <table class="data-table" data-testid="users-table">
+                    <thead>
+                        <tr>
+                            <th>npub</th>
+                            <th>Pubkey</th>
+                            <th>Registered</th>
+                            <th>Last Seen</th>
+                            <th>Cache</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${users.map(u => renderRow(u)).join('')}
+                    </tbody>
+                </table>
+
+                <div class="pagination">
+                    <button class="btn btn-secondary btn-small" ${offset === 0 ? 'disabled' : ''} onclick="prevPage()">&larr; Previous</button>
+                    <span class="page-info">Showing ${offset + 1}&ndash;${offset + users.length}</span>
+                    <button class="btn btn-secondary btn-small" ${users.length < PAGE_SIZE ? 'disabled' : ''} onclick="nextPage()">Next &rarr;</button>
+                </div>
+            `;
+        }
+
+        function renderRow(u) {
+            const npub = u.npub || '';
+            const pubkey = u.pubkey || '';
+            const shortPub = pubkey ? pubkey.slice(0, 8) + '…' + pubkey.slice(-4) : '—';
+            const shortNpub = npub ? npub.slice(0, 12) + '…' + npub.slice(-4) : '—';
+            const registered = u.registered_at ? new Date(u.registered_at).toLocaleString() : '—';
+            const lastSeen = u.last_seen ? new Date(u.last_seen).toLocaleString() : '—';
+            const enabled = u.enabled !== false;
+            return `
+                <tr>
+                    <td><span class="pubkey-cell" title="${escapeHtml(npub)}">${escapeHtml(shortNpub)}</span></td>
+                    <td><span class="pubkey-cell" title="${escapeHtml(pubkey)}">${escapeHtml(shortPub)}</span></td>
+                    <td style="color:rgba(255,255,255,0.5); font-size:13px">${registered}</td>
+                    <td style="color:rgba(255,255,255,0.5); font-size:13px">${lastSeen}</td>
+                    <td><span class="badge ${enabled ? 'badge-active' : 'badge-suspended'}">${enabled ? 'enabled' : 'disabled'}</span></td>
+                </tr>
+            `;
+        }
+
+        function nextPage() { offset += PAGE_SIZE; loadUsers(); }
+        function prevPage() { offset = Math.max(0, offset - PAGE_SIZE); loadUsers(); }
+
+        function showNotice(type, msg) {
+            const area = document.getElementById('notice-area');
+            area.innerHTML = `<div class="notice notice-${type}">${escapeHtml(msg)}</div>`;
+            if (type !== 'error') setTimeout(() => { area.innerHTML = ''; }, 4000);
+        }
+        function escapeHtml(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+        }
+    </script>
+</body>
+</html>
