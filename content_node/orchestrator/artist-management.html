@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equaliser - Artist Management</title>
+    <link rel="stylesheet" href="css/admin-base.css">
+    <style>
+        .fee-input-row { display: flex; gap: 12px; }
+        .fee-input-row .form-group { flex: 1; margin-bottom: 0; }
+        .artist-name-cell { font-weight: 600; }
+        .managed-by-cell { font-size: 12px; color: rgba(255, 255, 255, 0.4); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar injected by AdminSidebar.init() -->
+        <div class="main-content">
+            <div class="header">
+                <div>
+                    <h1 class="page-title">Artists</h1>
+                    <p class="page-description" id="page-description">Manage artists you can administer on this node</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="loadArtists()">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+
+            <div id="notice-area"></div>
+
+            <div id="artists-container">
+                <div style="text-align:center; padding:40px"><span class="loading-spinner"></span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Artist Modal -->
+    <div class="modal-backdrop" id="edit-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Edit Artist</div>
+                <button class="modal-close" onclick="closeEditModal()">&times;</button>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Artist</label>
+                <div id="edit-artist-info" style="font-size:14px; color:rgba(255,255,255,0.7)"></div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Status</label>
+                <select class="form-select" id="edit-status">
+                    <option value="active">Active</option>
+                    <option value="suspended">Suspended</option>
+                </select>
+            </div>
+
+            <div class="fee-input-row">
+                <div class="form-group">
+                    <label class="form-label">Fee Model</label>
+                    <select class="form-select" id="edit-fee-model" onchange="onFeeModelChange()">
+                        <option value="free">Free</option>
+                        <option value="percentage">Percentage</option>
+                        <option value="flat_rate">Flat Rate</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" id="fee-value-label">Fee Value</label>
+                    <input type="number" class="form-input" id="edit-fee-value" min="0" step="0.01" value="0">
+                </div>
+            </div>
+
+            <p class="page-description" id="fee-hint" style="margin-top:-8px"></p>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                <button class="btn btn-primary" id="save-btn" onclick="saveArtist()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/nostr-tools@2.7.2/lib/nostr.bundle.js"></script>
+    <script src="js/session.js"></script>
+    <script src="js/admin-sidebar.js"></script>
+    <script>
+        let artistsCache = [];
+        let editingPubkey = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            SessionManager.init();
+            if (!SessionManager.requireSession('artist-management.html')) return;
+
+            AdminSidebar.init();
+
+            // Wait for role to resolve before deciding access
+            await SessionManager.fetchRole();
+            const role = SessionManager.getRole();
+            if (role !== 'label' && role !== 'operator') {
+                showNotice('error', 'You need a label or operator role to view this page.');
+                document.getElementById('artists-container').innerHTML = '';
+                return;
+            }
+            if (role === 'operator') {
+                document.getElementById('page-description').textContent = 'All artists on this node';
+            }
+
+            await loadArtists();
+        });
+
+        async function loadArtists() {
+            const container = document.getElementById('artists-container');
+            container.innerHTML = '<div style="text-align:center; padding:40px"><span class="loading-spinner"></span></div>';
+
+            try {
+                const resp = await SessionManager.authFetch('/api/label/artists');
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const data = await resp.json();
+                artistsCache = data.artists || [];
+                renderTable(artistsCache);
+            } catch (e) {
+                container.innerHTML = '';
+                showNotice('error', `Failed to load artists: ${e.message}`);
+            }
+        }
+
+        function renderTable(artists) {
+            const container = document.getElementById('artists-container');
+            if (!artists.length) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
+                        <h3>No artists yet</h3>
+                        <p>Approved access requests will appear here once their invite codes are used.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const role = SessionManager.getRole();
+            const showManagedBy = role === 'operator';
+
+            container.innerHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Artist</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Fee Model</th>
+                            <th>Fee Value</th>
+                            ${showManagedBy ? '<th>Managed By</th>' : ''}
+                            <th>Onboarded</th>
+                            <th style="text-align:right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${artists.map(a => renderRow(a, showManagedBy)).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function renderRow(a, showManagedBy) {
+            const onboardedDate = new Date(a.onboarded_at).toLocaleDateString();
+            const feeValue = a.fee_model === 'percentage' ? `${a.fee_value}%`
+                           : a.fee_model === 'flat_rate' ? `${a.fee_value} sats`
+                           : '—';
+            const shortPub = a.pubkey.slice(0, 8) + '…' + a.pubkey.slice(-4);
+            const managedShort = a.managed_by ? a.managed_by.slice(0, 8) + '…' : '—';
+            const isSuspended = a.status === 'suspended';
+
+            return `
+                <tr data-pubkey="${a.pubkey}">
+                    <td>
+                        <div class="artist-name-cell">${escapeHtml(a.artist_name)}</div>
+                        <div class="pubkey-cell">${shortPub}</div>
+                    </td>
+                    <td><span class="badge badge-${a.role}">${a.role}</span></td>
+                    <td><span class="badge badge-${a.status}">${a.status}</span></td>
+                    <td><span class="badge badge-${a.fee_model}">${a.fee_model}</span></td>
+                    <td>${feeValue}</td>
+                    ${showManagedBy ? `<td class="managed-by-cell">${managedShort}</td>` : ''}
+                    <td style="color:rgba(255,255,255,0.5); font-size:13px">${onboardedDate}</td>
+                    <td>
+                        <div class="row-actions">
+                            <button class="btn btn-small btn-secondary" onclick="openEditModal('${a.pubkey}')">Edit</button>
+                            <button class="btn btn-small ${isSuspended ? 'btn-success' : 'btn-danger'}"
+                                    onclick="quickToggleStatus('${a.pubkey}')">
+                                ${isSuspended ? 'Activate' : 'Suspend'}
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function openEditModal(pubkey) {
+            const a = artistsCache.find(x => x.pubkey === pubkey);
+            if (!a) return;
+            editingPubkey = pubkey;
+            document.getElementById('edit-artist-info').innerHTML =
+                `<strong>${escapeHtml(a.artist_name)}</strong><br><span class="pubkey-cell">${a.pubkey}</span>`;
+            document.getElementById('edit-status').value = a.status;
+            document.getElementById('edit-fee-model').value = a.fee_model;
+            document.getElementById('edit-fee-value').value = a.fee_value;
+            onFeeModelChange();
+            document.getElementById('edit-modal').classList.add('visible');
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.remove('visible');
+            editingPubkey = null;
+        }
+
+        function onFeeModelChange() {
+            const model = document.getElementById('edit-fee-model').value;
+            const label = document.getElementById('fee-value-label');
+            const hint = document.getElementById('fee-hint');
+            const input = document.getElementById('edit-fee-value');
+            if (model === 'free') {
+                label.textContent = 'Fee Value';
+                hint.textContent = 'Free artists pay no node fees.';
+                input.disabled = true;
+            } else if (model === 'percentage') {
+                label.textContent = 'Percentage (%)';
+                hint.textContent = 'Percentage of artist revenue retained by the node.';
+                input.disabled = false;
+            } else {
+                label.textContent = 'Flat Rate (sats/month)';
+                hint.textContent = 'Fixed monthly fee in satoshis.';
+                input.disabled = false;
+            }
+        }
+
+        async function saveArtist() {
+            if (!editingPubkey) return;
+            const btn = document.getElementById('save-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Saving';
+
+            const body = {
+                status: document.getElementById('edit-status').value,
+                fee_model: document.getElementById('edit-fee-model').value,
+                fee_value: parseFloat(document.getElementById('edit-fee-value').value) || 0,
+            };
+
+            try {
+                const resp = await SessionManager.authFetch(`/api/label/artists/${editingPubkey}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+                if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({}));
+                    throw new Error(err.detail || `HTTP ${resp.status}`);
+                }
+                showNotice('success', `Updated ${editingPubkey.slice(0, 8)}…`);
+                closeEditModal();
+                await loadArtists();
+            } catch (e) {
+                showNotice('error', `Save failed: ${e.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Save Changes';
+            }
+        }
+
+        async function quickToggleStatus(pubkey) {
+            const a = artistsCache.find(x => x.pubkey === pubkey);
+            if (!a) return;
+            const newStatus = a.status === 'active' ? 'suspended' : 'active';
+            if (!confirm(`${newStatus === 'suspended' ? 'Suspend' : 'Reactivate'} ${a.artist_name}?`)) return;
+
+            try {
+                const resp = await SessionManager.authFetch(`/api/label/artists/${pubkey}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus }),
+                });
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                showNotice('success', `${a.artist_name} is now ${newStatus}`);
+                await loadArtists();
+            } catch (e) {
+                showNotice('error', `Status change failed: ${e.message}`);
+            }
+        }
+
+        function showNotice(type, msg) {
+            const area = document.getElementById('notice-area');
+            area.innerHTML = `<div class="notice notice-${type}">${escapeHtml(msg)}</div>`;
+            if (type !== 'error') {
+                setTimeout(() => { area.innerHTML = ''; }, 4000);
+            }
+        }
+
+        function escapeHtml(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+        }
+    </script>
+</body>
+</html>

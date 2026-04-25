@@ -144,6 +144,9 @@ All pages use shared `js/session.js` and `js/admin-sidebar.js`.
 | `profile.html` | Edit Kind 0 profile (name, bio, avatar, banner via Blossom, socials). `ensureAbsoluteBlossomUrl()` converts relative Blossom URLs to absolute on save |
 | `upload.html` | Standalone track upload form |
 | `settings.html` | Placeholder for future settings (artist settings — listeners use client `/settings.html`) |
+| `artist-management.html` | (Label/operator) Manage artists with role/status/fee badges, edit modal (status, fee_model, fee_value), quick suspend/activate. Operator view shows Managed By column + all artists. |
+| `access-requests.html` | (Label/operator) Pending/Approved/Declined tabs. Approve modal generates invite code (shown in second modal); decline modal captures admin notes. Approved cards display existing invite code inline. |
+| `invite-codes.html` | (Label/operator) Lists unused invite codes with provenance (approved request name or "Standalone"). Generate New button creates a standalone (orphan) code. Copy buttons throughout. |
 
 ## Shared JS (orchestrator/js/)
 
@@ -154,11 +157,15 @@ All pages use shared `js/session.js` and `js/admin-sidebar.js`.
 
 ### Phase D/E page builders — important
 
-- Label nav links: `artist-management.html`, `access-requests.html`, `invite-codes.html`
-- Operator nav links: `node-overview.html`, `sync-manager.html`, `ipfs-storage.html`, `blossom-config.html`, `user-cache.html`, `node-settings.html`
-- These pages don't exist yet — clicking nav items 404s until built.
+- Label nav links (Phase D — built): `artist-management.html`, `access-requests.html`, `invite-codes.html`
+- Operator nav links (Phase E — TODO): `node-overview.html`, `sync-manager.html`, `ipfs-storage.html`, `blossom-config.html`, `user-cache.html`, `node-settings.html`
+- Phase E pages don't exist yet — clicking those nav items 404s until built.
 - Pages that need to scope data by selected artist must read `SessionManager.getSelectedArtistPubkey()` and listen for `window.addEventListener('equaliser:artist-switched', ...)` to refresh on artist switch.
-- The first paint may briefly show `role='artist'` (the fallback) before `fetchRole()` resolves; gate role-sensitive UI on `SessionManager.getRole()` being non-null.
+- The first paint may briefly show `role='artist'` (the fallback) before `fetchRole()` resolves; gate role-sensitive UI on `SessionManager.getRole()` being non-null. Phase D pages handle this by `await SessionManager.fetchRole()` before rendering data and showing an error notice if the role isn't `label` or `operator`.
+
+### Shared admin CSS
+
+`content_node/orchestrator/css/admin-base.css` is referenced by Phase D pages (and any new admin page going forward). Existing admin pages keep their inline `<style>` blocks for historical reasons — don't refactor them as part of unrelated work. Page-specific styles still go in a per-page `<style>` block; only common patterns (buttons, tables, modals, badges, layout) belong in the shared sheet.
 
 ## Config Files
 

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equaliser - Invite Codes</title>
+    <link rel="stylesheet" href="css/admin-base.css">
+    <style>
+        .code-cell {
+            font-family: 'SF Mono', 'Monaco', monospace;
+            font-size: 14px;
+            color: #c4b5fd;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-content">
+            <div class="header">
+                <div>
+                    <h1 class="page-title">Invite Codes</h1>
+                    <p class="page-description">Unused invite codes — share with artists for onboarding</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="loadCodes()">Refresh</button>
+                    <button class="btn btn-primary" onclick="generateNew()">
+                        <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+                        Generate New
+                    </button>
+                </div>
+            </div>
+
+            <div id="notice-area"></div>
+
+            <div id="codes-container">
+                <div style="text-align:center; padding:40px"><span class="loading-spinner"></span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Show generated invite code -->
+    <div class="modal-backdrop" id="new-code-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">New Invite Code</div>
+                <button class="modal-close" onclick="closeNewCodeModal()">&times;</button>
+            </div>
+            <p style="color:rgba(255,255,255,0.7); font-size:14px">
+                Share this code with an artist. Standalone codes aren't tied to a specific access request.
+            </p>
+            <div class="code-display">
+                <span class="code-text" id="new-code-text"></span>
+                <button class="copy-btn" onclick="copyNewCode()">Copy</button>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="closeNewCodeModal()">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/nostr-tools@2.7.2/lib/nostr.bundle.js"></script>
+    <script src="js/session.js"></script>
+    <script src="js/admin-sidebar.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            SessionManager.init();
+            if (!SessionManager.requireSession('invite-codes.html')) return;
+            AdminSidebar.init();
+
+            await SessionManager.fetchRole();
+            const role = SessionManager.getRole();
+            if (role !== 'label' && role !== 'operator') {
+                showNotice('error', 'You need a label or operator role to view this page.');
+                document.getElementById('codes-container').innerHTML = '';
+                return;
+            }
+
+            await loadCodes();
+        });
+
+        async function loadCodes() {
+            const container = document.getElementById('codes-container');
+            container.innerHTML = '<div style="text-align:center; padding:40px"><span class="loading-spinner"></span></div>';
+
+            try {
+                const resp = await SessionManager.authFetch('/api/label/invite-codes');
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const data = await resp.json();
+                renderTable(data.codes || []);
+            } catch (e) {
+                container.innerHTML = '';
+                showNotice('error', `Failed to load codes: ${e.message}`);
+            }
+        }
+
+        function renderTable(codes) {
+            const container = document.getElementById('codes-container');
+            if (!codes.length) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No unused invite codes</h3>
+                        <p>Generate a new code or approve a pending access request.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Source</th>
+                            <th>Created</th>
+                            <th style="text-align:right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${codes.map(c => renderRow(c)).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function renderRow(c) {
+            const created = c.created_at ? new Date(c.created_at).toLocaleString() : '—';
+            // The relay marks orphan/standalone invites with artist_name='(direct invite)' or '__orphan__'
+            const isOrphan = !c.artist_name || c.artist_name === '__orphan__' || c.artist_name === '(direct invite)';
+            const source = isOrphan
+                ? '<em style="color:rgba(255,255,255,0.5)">Standalone (no request)</em>'
+                : `Approved request: <strong>${escapeHtml(c.artist_name)}</strong>`;
+            return `
+                <tr>
+                    <td><span class="code-cell">${escapeHtml(c.invite_code)}</span></td>
+                    <td>${source}</td>
+                    <td style="color:rgba(255,255,255,0.5); font-size:13px">${created}</td>
+                    <td>
+                        <div class="row-actions">
+                            <button class="btn btn-small btn-secondary" onclick="copyCode('${c.invite_code}')">Copy</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function copyCode(code) {
+            navigator.clipboard.writeText(code).then(() => showNotice('success', 'Code copied'));
+        }
+
+        async function generateNew() {
+            try {
+                const resp = await SessionManager.authFetch('/api/label/invite-codes', { method: 'POST' });
+                if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({}));
+                    throw new Error(err.detail || `HTTP ${resp.status}`);
+                }
+                const data = await resp.json();
+                const code = data.invite_code || data.code;
+                document.getElementById('new-code-text').textContent = code;
+                document.getElementById('new-code-modal').classList.add('visible');
+                await loadCodes();
+            } catch (e) {
+                showNotice('error', `Generate failed: ${e.message}`);
+            }
+        }
+
+        function closeNewCodeModal() {
+            document.getElementById('new-code-modal').classList.remove('visible');
+        }
+        function copyNewCode() {
+            navigator.clipboard.writeText(document.getElementById('new-code-text').textContent)
+                .then(() => showNotice('success', 'Code copied'));
+        }
+
+        function showNotice(type, msg) {
+            const area = document.getElementById('notice-area');
+            area.innerHTML = `<div class="notice notice-${type}">${escapeHtml(msg)}</div>`;
+            if (type !== 'error') setTimeout(() => { area.innerHTML = ''; }, 4000);
+        }
+        function escapeHtml(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+        }
+    </script>
+</body>
+</html>

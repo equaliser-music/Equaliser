@@ -335,12 +335,27 @@ Artist holds their own key, signed up independently. Label can manage metadata (
 - Pages that need to scope data by selected artist (Phase D's artist-management views, eventually dashboard/releases for labels) should read `SessionManager.getSelectedArtistPubkey()` and listen for `window.addEventListener('equaliser:artist-switched', ...)` to refresh on switch.
 - The first paint uses cached role from sessionStorage if present, otherwise defaults to `'artist'` until `fetchRole()` resolves. Don't render role-gated UI without checking `SessionManager.getRole()` is non-null, or you may briefly flash artist-only UI to a label/operator.
 
-### Phase D: Label Admin Pages (TODO)
+### Phase D: Label Admin Pages ✅
 
-| Page | Purpose |
-|------|---------|
-| `artist-management.html` | List artists, status, fee models, suspend/activate |
-| `access-requests.html` | Pending requests queue, approve/decline |
+**Done:**
+
+| File | What was done |
+|------|---------------|
+| `content_node/orchestrator/css/admin-base.css` | New shared stylesheet for new admin pages — body/container/main-content layout, buttons (`.btn-primary`, `.btn-success`, `.btn-danger`, `.btn-small`), forms, `.data-table`, status/role badges, tabs, modals, `.code-display`, notices, loading spinner. Existing admin pages keep their inline styles; only new pages reference this file. |
+| `content_node/orchestrator/artist-management.html` | List managed artists. Label sees `managed_by = self`; operator sees all artists with extra Managed By column. Per-row Edit modal (status: active/suspended; fee_model: free/percentage/flat_rate; fee_value with model-aware label/hint) and quick Suspend/Activate button. Calls `GET /api/label/artists` and `PATCH /api/label/artists/{pubkey}`. |
+| `content_node/orchestrator/access-requests.html` | Tabs: Pending / Approved / Declined with live counts. Pending cards show all submitted fields (email, npub, description, links) with Approve/Decline action buttons. Approve modal accepts admin notes → on success a second modal displays the generated invite code with Copy button. Decline modal captures notes. Approved cards display the existing invite code inline. Calls `GET /api/label/access-requests?status=`, `POST /api/label/access-requests/{id}/approve`, `POST /api/label/access-requests/{id}/decline`. |
+| `content_node/orchestrator/invite-codes.html` | Table of unused invite codes with source provenance (orphan codes labeled "Standalone (no request)" — relay marks them with `artist_name='(direct invite)'`). Per-row Copy and Generate New button → modal with Copy. Calls `GET /api/label/invite-codes` and `POST /api/label/invite-codes`. |
+
+All pages: gate access on `SessionManager.getRole() in ('label', 'operator')` after `fetchRole()` resolves; use `SessionManager.authFetch` for NIP-98 auth; show inline `.notice` toasts for success/error; preserve admin-sidebar.js role-aware nav (Artists/Access Requests/Invite Codes appear under "Label Admin").
+
+**Verified with Playwright:**
+- Label sees only `managed_by = self` artists (2 of 3 seeded); operator sees all 3 plus Managed By column.
+- All 3 access-request tabs render with correct counts; approve flow generates a new 12-char hex code and refreshes counts in real time.
+- Invite codes page shows codes from approved requests with attribution + standalone-generated codes labeled correctly.
+
+**Important caveats:**
+- The relay's `CreateOrphanInviteCode` writes `artist_name='(direct invite)'` into `access_requests` to keep the table single-shape. The invite-codes UI special-cases this string (and `'__orphan__'`) to display "Standalone (no request)". If the relay ever changes that sentinel, update [content_node/orchestrator/invite-codes.html](../content_node/orchestrator/invite-codes.html).
+- The "Add new artist directly" workflow isn't part of Phase D — Phase D only manages artists onboarded via access requests + invite codes. If labels need to provision artists outside the request flow, that goes with Phase E (label-managed key derivation, NIP-06 paths).
 
 ### Phase E: Operator Admin Pages (TODO)
 
@@ -359,5 +374,5 @@ Artist holds their own key, signed up independently. Label can manage metadata (
 2. ~~Phase A: DB migration + role resolution~~ ✅ Tested locally
 3. ~~Phase B: API permission model~~ ✅ Tested locally with NIP-98 auth
 4. ~~Phase C: UI role-aware sidebar~~ ✅ Verified with Playwright across all 3 roles
-5. Phase D: Label pages — end-to-end artist management workflow
+5. ~~Phase D: Label pages~~ ✅ Verified with Playwright as both label and operator
 6. Phase E: Operator pages — infrastructure visibility

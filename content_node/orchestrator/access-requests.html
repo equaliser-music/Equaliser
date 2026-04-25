@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equaliser - Access Requests</title>
+    <link rel="stylesheet" href="css/admin-base.css">
+    <style>
+        .request-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 12px;
+        }
+        .request-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 16px; }
+        .request-name { font-size: 16px; font-weight: 700; }
+        .request-meta { font-size: 12px; color: rgba(255, 255, 255, 0.4); margin-top: 4px; }
+        .request-field { margin-top: 10px; }
+        .request-field-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255, 255, 255, 0.4); margin-bottom: 4px; }
+        .request-field-value { font-size: 13px; color: rgba(255, 255, 255, 0.8); white-space: pre-wrap; word-break: break-word; }
+        .request-actions { display: flex; gap: 8px; margin-top: 16px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-content">
+            <div class="header">
+                <div>
+                    <h1 class="page-title">Access Requests</h1>
+                    <p class="page-description">Review applications from artists wanting to onboard to this node</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="loadAll()">Refresh</button>
+                </div>
+            </div>
+
+            <div id="notice-area"></div>
+
+            <div class="tab-bar" id="tab-bar">
+                <button class="tab active" data-status="pending" onclick="switchTab('pending')">
+                    Pending <span class="tab-count" id="count-pending">0</span>
+                </button>
+                <button class="tab" data-status="approved" onclick="switchTab('approved')">
+                    Approved <span class="tab-count" id="count-approved">0</span>
+                </button>
+                <button class="tab" data-status="declined" onclick="switchTab('declined')">
+                    Declined <span class="tab-count" id="count-declined">0</span>
+                </button>
+            </div>
+
+            <div id="requests-container">
+                <div style="text-align:center; padding:40px"><span class="loading-spinner"></span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Approve modal -->
+    <div class="modal-backdrop" id="approve-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Approve Access Request</div>
+                <button class="modal-close" onclick="closeApproveModal()">&times;</button>
+            </div>
+            <p style="color:rgba(255,255,255,0.7); font-size:14px; margin-bottom:16px">
+                An invite code will be generated. Share it with the applicant — they'll use it during onboarding.
+            </p>
+            <div class="form-group">
+                <label class="form-label">Internal notes (optional)</label>
+                <textarea class="form-textarea" id="approve-notes" placeholder="Notes visible only to admins..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeApproveModal()">Cancel</button>
+                <button class="btn btn-success" id="approve-confirm-btn" onclick="confirmApprove()">Approve & Generate Code</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Show generated invite code -->
+    <div class="modal-backdrop" id="invite-code-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Invite Code Generated</div>
+                <button class="modal-close" onclick="closeCodeModal()">&times;</button>
+            </div>
+            <p style="color:rgba(255,255,255,0.7); font-size:14px">
+                Share this code with the applicant. It can be used once during onboarding.
+            </p>
+            <div class="code-display">
+                <span class="code-text" id="generated-code"></span>
+                <button class="copy-btn" onclick="copyCode()">Copy</button>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="closeCodeModal()">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Decline modal -->
+    <div class="modal-backdrop" id="decline-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Decline Access Request</div>
+                <button class="modal-close" onclick="closeDeclineModal()">&times;</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Reason (optional)</label>
+                <textarea class="form-textarea" id="decline-notes" placeholder="Internal notes — not visible to applicant..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeDeclineModal()">Cancel</button>
+                <button class="btn btn-danger" id="decline-confirm-btn" onclick="confirmDecline()">Decline Request</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/nostr-tools@2.7.2/lib/nostr.bundle.js"></script>
+    <script src="js/session.js"></script>
+    <script src="js/admin-sidebar.js"></script>
+    <script>
+        let cache = { pending: [], approved: [], declined: [] };
+        let activeTab = 'pending';
+        let actionRequestId = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            SessionManager.init();
+            if (!SessionManager.requireSession('access-requests.html')) return;
+            AdminSidebar.init();
+
+            await SessionManager.fetchRole();
+            const role = SessionManager.getRole();
+            if (role !== 'label' && role !== 'operator') {
+                showNotice('error', 'You need a label or operator role to view this page.');
+                document.getElementById('requests-container').innerHTML = '';
+                return;
+            }
+
+            await loadAll();
+        });
+
+        async function loadAll() {
+            await Promise.all([
+                loadStatus('pending'),
+                loadStatus('approved'),
+                loadStatus('declined'),
+            ]);
+            renderActiveTab();
+        }
+
+        async function loadStatus(status) {
+            try {
+                const resp = await SessionManager.authFetch(`/api/label/access-requests?status=${status}`);
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const data = await resp.json();
+                cache[status] = data.requests || [];
+                document.getElementById(`count-${status}`).textContent = cache[status].length;
+            } catch (e) {
+                showNotice('error', `Failed to load ${status} requests: ${e.message}`);
+                cache[status] = [];
+            }
+        }
+
+        function switchTab(status) {
+            activeTab = status;
+            document.querySelectorAll('.tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.status === status);
+            });
+            renderActiveTab();
+        }
+
+        function renderActiveTab() {
+            const list = cache[activeTab] || [];
+            const container = document.getElementById('requests-container');
+
+            if (!list.length) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No ${activeTab} requests</h3>
+                        <p>${emptyMessage(activeTab)}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = list.map(r => renderCard(r, activeTab)).join('');
+        }
+
+        function emptyMessage(status) {
+            return {
+                pending: 'New access requests will appear here when artists apply via /join.',
+                approved: 'Approved requests will appear here once you generate invite codes.',
+                declined: 'Declined requests are kept for record-keeping.',
+            }[status] || '';
+        }
+
+        function renderCard(r, status) {
+            const requestedAt = new Date(r.requested_at).toLocaleString();
+            const reviewedAt = r.reviewed_at ? new Date(r.reviewed_at).toLocaleString() : null;
+            const linksHtml = r.links ? renderLinks(r.links) : '';
+
+            return `
+                <div class="request-card" data-request-id="${r.id}">
+                    <div class="request-header">
+                        <div>
+                            <div class="request-name">${escapeHtml(r.artist_name)}</div>
+                            <div class="request-meta">
+                                Request #${r.id} · Requested ${requestedAt}
+                                ${reviewedAt ? `· Reviewed ${reviewedAt}` : ''}
+                            </div>
+                        </div>
+                        <span class="badge badge-${r.status}">${r.status}</span>
+                    </div>
+
+                    ${r.email ? `<div class="request-field"><div class="request-field-label">Email</div><div class="request-field-value">${escapeHtml(r.email)}</div></div>` : ''}
+                    ${r.npub ? `<div class="request-field"><div class="request-field-label">npub</div><div class="request-field-value pubkey-cell">${escapeHtml(r.npub)}</div></div>` : ''}
+                    ${r.description ? `<div class="request-field"><div class="request-field-label">Description</div><div class="request-field-value">${escapeHtml(r.description)}</div></div>` : ''}
+                    ${linksHtml}
+                    ${r.admin_notes ? `<div class="request-field"><div class="request-field-label">Admin Notes</div><div class="request-field-value">${escapeHtml(r.admin_notes)}</div></div>` : ''}
+                    ${r.invite_code ? `<div class="request-field"><div class="request-field-label">Invite Code (${r.invite_used ? 'used' : 'unused'})</div><div class="code-display"><span class="code-text">${escapeHtml(r.invite_code)}</span><button class="copy-btn" onclick="navigator.clipboard.writeText('${r.invite_code}')">Copy</button></div></div>` : ''}
+
+                    ${status === 'pending' ? `
+                        <div class="request-actions">
+                            <button class="btn btn-success" onclick="openApproveModal(${r.id})">Approve</button>
+                            <button class="btn btn-danger" onclick="openDeclineModal(${r.id})">Decline</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function renderLinks(linksRaw) {
+            // links field is free-text — just display it
+            return `<div class="request-field"><div class="request-field-label">Links</div><div class="request-field-value">${escapeHtml(linksRaw)}</div></div>`;
+        }
+
+        // ===== Approve flow =====
+        function openApproveModal(id) {
+            actionRequestId = id;
+            document.getElementById('approve-notes').value = '';
+            document.getElementById('approve-modal').classList.add('visible');
+        }
+        function closeApproveModal() {
+            document.getElementById('approve-modal').classList.remove('visible');
+        }
+        async function confirmApprove() {
+            const btn = document.getElementById('approve-confirm-btn');
+            const notes = document.getElementById('approve-notes').value;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Approving';
+
+            try {
+                const resp = await SessionManager.authFetch(`/api/label/access-requests/${actionRequestId}/approve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ admin_notes: notes }),
+                });
+                if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({}));
+                    throw new Error(err.detail || `HTTP ${resp.status}`);
+                }
+                const data = await resp.json();
+                closeApproveModal();
+                showCodeModal(data.invite_code || data.code || '');
+                await loadAll();
+            } catch (e) {
+                showNotice('error', `Approve failed: ${e.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Approve & Generate Code';
+            }
+        }
+
+        function showCodeModal(code) {
+            document.getElementById('generated-code').textContent = code;
+            document.getElementById('invite-code-modal').classList.add('visible');
+        }
+        function closeCodeModal() {
+            document.getElementById('invite-code-modal').classList.remove('visible');
+        }
+        function copyCode() {
+            const code = document.getElementById('generated-code').textContent;
+            navigator.clipboard.writeText(code).then(() => showNotice('success', 'Code copied to clipboard'));
+        }
+
+        // ===== Decline flow =====
+        function openDeclineModal(id) {
+            actionRequestId = id;
+            document.getElementById('decline-notes').value = '';
+            document.getElementById('decline-modal').classList.add('visible');
+        }
+        function closeDeclineModal() {
+            document.getElementById('decline-modal').classList.remove('visible');
+        }
+        async function confirmDecline() {
+            const btn = document.getElementById('decline-confirm-btn');
+            const notes = document.getElementById('decline-notes').value;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Declining';
+
+            try {
+                const resp = await SessionManager.authFetch(`/api/label/access-requests/${actionRequestId}/decline`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ admin_notes: notes }),
+                });
+                if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({}));
+                    throw new Error(err.detail || `HTTP ${resp.status}`);
+                }
+                closeDeclineModal();
+                showNotice('success', 'Request declined');
+                await loadAll();
+            } catch (e) {
+                showNotice('error', `Decline failed: ${e.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Decline Request';
+            }
+        }
+
+        function showNotice(type, msg) {
+            const area = document.getElementById('notice-area');
+            area.innerHTML = `<div class="notice notice-${type}">${escapeHtml(msg)}</div>`;
+            if (type !== 'error') setTimeout(() => { area.innerHTML = ''; }, 4000);
+        }
+        function escapeHtml(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+        }
+    </script>
+</body>
+</html>
