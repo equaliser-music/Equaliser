@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equaliser - Redeem Invite</title>
+    <link rel="stylesheet" href="css/admin-base.css">
+    <style>
+        body { display: flex; align-items: center; justify-content: center; }
+        .redeem-card {
+            max-width: 540px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 36px;
+            margin: 32px auto;
+        }
+        .redeem-card h1 { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+        .redeem-card .lead { color: rgba(255, 255, 255, 0.6); margin-bottom: 24px; font-size: 14px; }
+        .preview-box {
+            background: rgba(168, 85, 247, 0.08);
+            border: 1px solid rgba(168, 85, 247, 0.25);
+            border-radius: 10px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+        .preview-box .preview-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255, 255, 255, 0.5); margin-bottom: 4px; }
+        .preview-box .preview-value { font-size: 14px; color: #ffffff; margin-bottom: 8px; }
+        .preview-box .preview-value:last-child { margin-bottom: 0; }
+        .step { display: none; }
+        .step.active { display: block; }
+        .keys-display {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 14px;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            word-break: break-all;
+            margin-bottom: 16px;
+        }
+        .keys-display .key-label { color: rgba(255, 255, 255, 0.4); display: block; margin-bottom: 4px; font-family: inherit; font-size: 11px; }
+        .keys-display .key-value { display: block; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+    <div class="redeem-card">
+        <h1>Redeem Invite Code</h1>
+        <p class="lead">Enter the invite code you received from your label or node operator. Once redeemed, you'll be onboarded with the role they granted.</p>
+
+        <div id="notice-area"></div>
+
+        <!-- Step 1: enter + preview code -->
+        <div class="step active" id="step-enter">
+            <div class="form-group">
+                <label class="form-label">Invite Code</label>
+                <input type="text" class="form-input" id="code-input" placeholder="12-char hex code" autocomplete="off" maxlength="12">
+            </div>
+
+            <div id="preview-area"></div>
+
+            <div class="form-group" style="margin-top:16px">
+                <label class="form-label">Display Name (optional)</label>
+                <input type="text" class="form-input" id="name-input" placeholder="Your artist or label name">
+                <p class="page-description" style="margin-top:6px">Stored on the node for admin display. Doesn't affect your NOSTR profile (Kind 0).</p>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="checkCode()">Check Code</button>
+                <button class="btn btn-primary" id="redeem-btn" onclick="redeemCode()" disabled>Redeem</button>
+            </div>
+        </div>
+
+        <!-- Step 2: backup file -->
+        <div class="step" id="step-backup">
+            <h2 style="font-size:18px; margin-bottom:8px">Save Your Backup</h2>
+            <p class="page-description" style="margin-bottom:16px">
+                Save your backup file before continuing — it's your only recovery if you lose your nsec. (Email recovery is not yet available.)
+            </p>
+            <div class="keys-display" id="backup-keys"></div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" id="download-btn" onclick="downloadBackup()">Download Backup</button>
+                <button class="btn btn-secondary" id="continue-btn" onclick="goNext()" disabled>I've Saved My Backup &rarr;</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/nostr-tools@2.7.2/lib/nostr.bundle.js"></script>
+    <script>window.EQ_SURFACE = 'admin';</script>
+    <script src="/common/js/session.js"></script>
+    <script>
+        let currentPreview = null;
+        let redeemedRole = null;
+        let displayName = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            SessionManager.init();
+            if (!SessionManager.requireSession('redeem.html')) return;
+
+            // Pre-fill code from ?code= URL param
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get('code');
+            if (code) {
+                document.getElementById('code-input').value = code;
+                checkCode();
+            }
+        });
+
+        async function checkCode() {
+            const code = document.getElementById('code-input').value.trim();
+            if (code.length !== 12) {
+                showNotice('error', 'Code must be 12 characters');
+                return;
+            }
+            try {
+                const resp = await fetch(`/api/access/check-invite?code=${encodeURIComponent(code)}`);
+                if (resp.status === 404) {
+                    showNotice('error', 'Code not found or already used');
+                    document.getElementById('redeem-btn').disabled = true;
+                    return;
+                }
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const data = await resp.json();
+                currentPreview = data;
+                renderPreview(data);
+                document.getElementById('redeem-btn').disabled = false;
+            } catch (e) {
+                showNotice('error', `Check failed: ${e.message}`);
+            }
+        }
+
+        function renderPreview(data) {
+            const role = data.target_role || 'artist';
+            const managedBy = data.target_managed_by;
+            const issuer = data.issuer_name || '(direct invite)';
+
+            let managedHtml = managedBy
+                ? `<span class="preview-value" style="font-family:monospace; font-size:12px">${escapeHtml(managedBy.slice(0,8))}…${escapeHtml(managedBy.slice(-4))}</span>`
+                : '<span class="preview-value" style="color:rgba(255,255,255,0.5)">unmanaged</span>';
+
+            document.getElementById('preview-area').innerHTML = `
+                <div class="preview-box">
+                    <div class="preview-label">This code will grant you</div>
+                    <div class="preview-value"><span class="badge badge-${role}">${role}</span></div>
+                    ${role !== 'operator' ? `
+                        <div class="preview-label" style="margin-top:8px">Managed by</div>
+                        ${managedHtml}
+                    ` : ''}
+                    <div class="preview-label" style="margin-top:8px">Issued by</div>
+                    <div class="preview-value">${escapeHtml(issuer)}</div>
+                </div>
+            `;
+        }
+
+        async function redeemCode() {
+            if (!currentPreview) { showNotice('error', 'Check the code first'); return; }
+            const code = document.getElementById('code-input').value.trim();
+            const name = document.getElementById('name-input').value.trim() || '(unnamed)';
+            displayName = name;
+
+            const btn = document.getElementById('redeem-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Redeeming…';
+
+            try {
+                const body = JSON.stringify({ code, display_name: name });
+                const resp = await SessionManager.authFetch('/api/access/redeem', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body,
+                });
+                if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({}));
+                    throw new Error(err.detail || err.error || `HTTP ${resp.status}`);
+                }
+                const result = await resp.json();
+                redeemedRole = result.role;
+                showNotice('success', `Redeemed as ${result.role}.`);
+                document.getElementById('step-enter').classList.remove('active');
+                document.getElementById('step-backup').classList.add('active');
+                renderBackupKeys();
+            } catch (e) {
+                showNotice('error', e.message);
+                btn.disabled = false;
+                btn.textContent = 'Redeem';
+            }
+        }
+
+        function renderBackupKeys() {
+            const npub = SessionManager.getSession().npub;
+            const sessionType = SessionManager.getSession().type;
+            const nsec = sessionType === 'nsec' ? sessionStorage.getItem('equaliser_session') : null;
+            let html = '';
+            html += '<span class="key-label">Public Key (npub)</span><span class="key-value">' + escapeHtml(npub) + '</span>';
+            html += '<span class="key-label">Role</span><span class="key-value">' + escapeHtml(redeemedRole || '-') + '</span>';
+            if (sessionType === 'nsec') {
+                // Read nsec from sessionStorage backing
+                let stored = null;
+                try { stored = JSON.parse(sessionStorage.getItem('equaliser_session') || '{}').nsec; } catch (e) {}
+                if (stored) {
+                    html += '<span class="key-label">Private Key (nsec) — KEEP SECRET</span><span class="key-value" style="color:#fbbf24">' + escapeHtml(stored) + '</span>';
+                }
+            } else {
+                html += '<span class="key-label">Identity</span><span class="key-value">NIP-07 extension (no nsec to back up)</span>';
+            }
+            document.getElementById('backup-keys').innerHTML = html;
+        }
+
+        function downloadBackup() {
+            const sessionType = SessionManager.getSession().type;
+            if (sessionType !== 'nsec') {
+                showNotice('info', 'Extension users: back up your keys via your NIP-07 extension. Continue when ready.');
+                document.getElementById('continue-btn').disabled = false;
+                return;
+            }
+            let nsec = null;
+            try { nsec = JSON.parse(sessionStorage.getItem('equaliser_session') || '{}').nsec; } catch (e) {}
+            if (!nsec) {
+                showNotice('error', 'Could not access nsec for backup');
+                return;
+            }
+            const npub = SessionManager.getSession().npub;
+            const backup = {
+                version: 1,
+                role: redeemedRole,
+                node: window.location.origin,
+                created_at: new Date().toISOString(),
+                keys: { nsec, npub, publicKeyHex: SessionManager.getSession().publicKey },
+                profile: { name: displayName },
+            };
+            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const safe = (displayName || 'user').toLowerCase().replace(/\s+/g, '-');
+            a.download = `equaliser-backup-${safe}-${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showNotice('success', 'Backup downloaded.');
+            document.getElementById('continue-btn').disabled = false;
+        }
+
+        function goNext() {
+            const params = new URLSearchParams(window.location.search);
+            const ret = params.get('return') || 'dashboard.html';
+            window.location.href = ret;
+        }
+
+        function showNotice(type, msg) {
+            const area = document.getElementById('notice-area');
+            area.innerHTML = `<div class="notice notice-${type}">${escapeHtml(msg)}</div>`;
+            if (type === 'success') setTimeout(() => { area.innerHTML = ''; }, 4000);
+        }
+        function escapeHtml(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+        }
+    </script>
+</body>
+</html>

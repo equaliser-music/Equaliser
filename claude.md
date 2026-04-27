@@ -25,6 +25,7 @@ Archived/deprecated docs in `docs/archive/` (NOSTR, BLOSSOM_INTEGRATION_IDEAS, R
 |-----------|---------|------|------|
 | `client/` | Fan-facing SPA (listener UI). Served by nginx at `/` | Vanilla JS, HTML, nostr-tools, hls.js | [client/CLAUDE.md](client/CLAUDE.md) |
 | `content_node/` | Artist admin + backend services | Docker Compose: FastAPI orchestrator, IPFS, NOSTR relay, Blossom, nginx | [content_node/CLAUDE.md](content_node/CLAUDE.md), [CONTENT_NODE.md](docs/CONTENT_NODE.md) |
+| `common/` | Shared frontend code used by **both** client and admin (mounted at `/common/` by nginx) | Vanilla JS — `session.js`, `admin-sidebar.js` | — |
 | `mockups/` | Early UX prototypes (archived) | Express.js server, static HTML | [MOCKUPS.md](mockups/MOCKUPS.md) |
 | `tools/` | CLI scripts for dev, deploy, content management | Bash | See Tools section below |
 
@@ -425,13 +426,22 @@ Requires nsec for signing packages. Original audio must be on Blossom (tracks up
   - Feed thresholds: `USER_FEED_DAYS` (default 30), `USER_FEED_LIMIT` (default 500)
   - See [DATABASE.md](docs/DATABASE.md) (User Cache Tables), [EQUALISER_RELAY.md](docs/EQUALISER_RELAY.md) (Peer Syncer & User Subscriptions), [ORCHESTRATOR.md](docs/ORCHESTRATOR.md) (User Registration)
 
-- [ ] **Access Control (Phase A)**: Gated onboarding with invite codes
-  - **Partial**: `access_requests` and `node_artists` tables exist in relay PostgreSQL migration
-  - TODO: `/join` route, invite code validation endpoint, admin approval workflow
-  - Public request form at `/join` for artists to apply
-  - Admin approval workflow via management console
-  - Invite code generation and validation before onboarding
-  - See [NODE-MANAGEMENT-SPEC.md](docs/NODE-MANAGEMENT-SPEC.md) Section 5
+- [x] **Access Control (Phase A)**: Gated onboarding with invite codes
+  - **Done**: Schema migration `004_access_control.sql` adds `requested_role`/`target_role`/`target_managed_by`/`issued_by` to `access_requests` and a single-row `setup_state` table for first-run claims.
+  - **Done**: Public `/join` form (`client/join.html`) — artists OR labels submit applications; `requested_role` recorded.
+  - **Done**: Strict gate — orchestrator's `dependencies.require_role` no longer falls back to "artist with self-only access". Unknown pubkeys get a 403 with `reason=no_role_on_node` so the UI can redirect to `/admin/redeem.html`.
+  - **Done**: Atomic `RedeemInviteCode` (relay, Go) marks code used + inserts `node_artists` (artist/label) or `node_operators` (operator) in one transaction with `FOR UPDATE` row locking.
+  - **Done**: First-run setup-token flow — relay generates a 32-byte hex token at boot when `node_operators` is empty, prints a banner to stdout AND writes to `/data/setup-token.txt`. `/admin/setup.html` consumes the token to claim the first operator. Token rotates on every restart until claimed.
+  - **Done**: `/admin/redeem.html` for invite-code redemption (covers existing-pubkey artists, label-roster joins, operator-invite redemption). Shows code preview before commit.
+  - **Done**: Operator-issued role-gated codes — `/admin/invite-codes.html` role selector (artist | label | operator), only operators can issue label/operator codes (server-enforced in `routers/label.py`). Operator option carries a confirm dialog.
+  - **Done**: "Add Existing Artist" on `/admin/artist-management.html` — labels generate roster invite codes (`target_managed_by`=self) to onboard pubkeys that already exist on Nostr.
+  - **Done**: Approve modal on `/admin/access-requests.html` pre-selects `target_role = requested_role`, lets approver override; surfaces `requested_role`/`target_role`/`issued_by` on cards.
+  - **Done**: Backup-file save step in setup.html, redeem.html, and onboarding.html — mandatory continue gate before reaching dashboard. Restoring uses the existing backup-file-login path on `/admin/login.html`.
+  - **Done**: SessionManager consolidated into top-level `common/js/session.js` (mounted at `/common/js/` by nginx, sibling of `client/`/`content_node/`/`tools/`/`docs/`). Single canonical file used by both admin and client surfaces. NIP-98 `payload` tag (SHA256 of body) added to authFetch for POST/PUT/PATCH bodies — server verifies if present.
+  - **Done**: Cross-surface nav — "Manage" link in client sidebar shows when `getRole() ∈ {artist, label, operator}`; "Listener View" link in admin sidebar always present. Same nsec carries across surfaces (shared sessionStorage).
+  - **Done**: Verified end-to-end with Playwright (setup → /join → approve → strict-redirect → redeem → label/operator code generation → cross-surface nav).
+  - **Deferred** to follow-up phase: email-based recovery, captcha on /join, invite TTL, pubkey-bound codes, operator demotion/revoke UI.
+  - See [NODE-MANAGEMENT-SPEC.md](docs/NODE-MANAGEMENT-SPEC.md) Section 5 and [docs/LOGIN_CONSOLIDATION_PLEASE_REVIEW.md](docs/LOGIN_CONSOLIDATION_PLEASE_REVIEW.md) (the approved plan).
 
 - [ ] **Equaliser Relay (Phase B)**: Custom NOSTR relay with built-in cache and peer syncing
   - **Phase 1 (done):** NIP-01 WebSocket relay in Go, PostgreSQL storage with full tag indexing, denormalised parsing (Kind 0/30050/30051), tiered event acceptance policy (strict for music metadata, context-aware for social, known-pubkey for profiles), `["user-type", "artist"]` tag for Kind 0 denorm routing, replaces nostr-rs-relay

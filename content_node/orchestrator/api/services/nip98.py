@@ -26,7 +26,12 @@ logger = logging.getLogger(__name__)
 MAX_EVENT_AGE = 300
 
 
-def verify_nip98_token(auth_header: str, request_path: str, request_method: str) -> str:
+def verify_nip98_token(
+    auth_header: str,
+    request_path: str,
+    request_method: str,
+    body_bytes: bytes | None = None,
+) -> str:
     """
     Verify a NIP-98 Authorization header and return the authenticated pubkey.
 
@@ -34,6 +39,10 @@ def verify_nip98_token(auth_header: str, request_path: str, request_method: str)
         auth_header: The full Authorization header value ("Nostr <base64>")
         request_path: The URL path of the request (e.g. "/api/tracks/upload")
         request_method: The HTTP method (e.g. "POST")
+        body_bytes: Optional raw request body. If provided AND the event carries a
+            `payload` tag, the tag is verified against SHA256(body). This protects
+            against MITM swap of the body. The tag is optional for backwards
+            compatibility — strict requirement is a future security hardening pass.
 
     Returns:
         The verified hex pubkey from the event
@@ -91,6 +100,20 @@ def verify_nip98_token(auth_header: str, request_path: str, request_method: str)
             status_code=401,
             detail=f"NIP-98 method mismatch: '{event_method}' != '{request_method}'"
         )
+
+    # Optional payload-hash verification (NIP-98 §payload tag).
+    # If the client included a `payload` tag, verify it matches SHA256(body).
+    # This is anti-MITM hardening: an attacker who intercepts the auth header
+    # cannot reuse it with a substituted body. Backwards-compatible: tag is
+    # not required, only verified when present + body is available.
+    payload_tag = _get_tag(event, "payload")
+    if payload_tag and body_bytes is not None:
+        expected_payload = hashlib.sha256(body_bytes).hexdigest()
+        if payload_tag.lower() != expected_payload.lower():
+            raise HTTPException(
+                status_code=401,
+                detail="NIP-98 payload hash mismatch (request body tampered?)"
+            )
 
     # Verify event ID (SHA-256 of canonical serialisation)
     serialized = json.dumps([

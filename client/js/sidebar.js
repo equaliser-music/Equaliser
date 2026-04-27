@@ -28,6 +28,26 @@ const ClientSidebar = {
 
         if (SessionManager.hasSession()) {
             this._fetchUserProfile();
+            this._maybeShowManageLink();
+        }
+    },
+
+    /**
+     * Phase A: show the "Manage" link in the bottom nav if the logged-in pubkey
+     * has artist/label/operator role. Listener-only users (or strict-mode 403)
+     * silently skip — no console noise.
+     */
+    async _maybeShowManageLink() {
+        try {
+            if (typeof SessionManager.fetchRole !== 'function') return;
+            const result = await SessionManager.fetchRole();
+            const role = result && result.role;
+            if (role === 'artist' || role === 'label' || role === 'operator') {
+                const link = document.getElementById('sidebar-manage-link');
+                if (link) link.style.display = '';
+            }
+        } catch (e) {
+            // Listener-only or network error — leave link hidden
         }
     },
 
@@ -116,6 +136,13 @@ const ClientSidebar = {
                             <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
                         </svg>
                         <span>Settings</span>
+                    </a>
+                    <!-- Phase A: Manage link shown only when user has artist/label/operator role -->
+                    <a href="/admin/dashboard.html" class="nav-item" id="sidebar-manage-link" style="display:none">
+                        <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                        </svg>
+                        <span>Manage</span>
                     </a>
                 </div>
             `;

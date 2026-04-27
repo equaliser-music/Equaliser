@@ -396,6 +396,22 @@ All pages: gate on `SessionManager.getRole() === 'operator'` after `await fetchR
 - `/api/operator/ipfs/stats` calls IPFS API directly with a 10s timeout. On heavily loaded nodes the `pin/ls` call may be slow — sample is capped at first 20 CIDs to avoid massive payloads.
 - The IPFS service health check uses `POST /api/v0/version` (the only stable IPFS API verb that's idempotent and lightweight). Don't switch to `GET` — Kubo only accepts `POST` on these endpoints.
 
+### Access Control / Gated Onboarding (Phase A — separate spec) ✅
+
+This phase is described in detail in [LOGIN_CONSOLIDATION_PLEASE_REVIEW.md](LOGIN_CONSOLIDATION_PLEASE_REVIEW.md) (the approved plan). Summary of what shipped:
+
+- **Schema**: migration `004_access_control.sql` adds `requested_role`/`target_role`/`target_managed_by`/`issued_by` to `access_requests`, plus a single-row `setup_state` table for first-run claims.
+- **Public `/join`** form (`client/join.html`) — artists or labels submit applications. `requested_role` recorded.
+- **Atomic `RedeemInviteCode`** (`storage/admin.go`) — single transaction with `FOR UPDATE` row locking, marks code used + inserts `node_artists` (artist/label) or `node_operators` (operator). Concurrent-redeem race returns 409.
+- **First-run setup token** (`cmd/relay/main.go`): when `node_operators` is empty, relay generates a 32-byte hex token, prints a banner, writes to `/data/setup-token.txt`. `/admin/setup.html` consumes it. Token rotates on every restart until claimed; cleared once an operator exists.
+- **Strict mode**: `dependencies.require_role` no longer falls back to "artist with self-only access". Unknown pubkeys get a structured 403 with `reason=no_role_on_node` + `redirect=/admin/redeem.html`. UI surfaces handle the redirect.
+- **Operator-issued role-gated codes**: `/admin/invite-codes.html` role selector (artist | label | operator). Only operators can issue label/operator codes (server-enforced). Operator option carries a confirm dialog. `target_managed_by` stripped from operator codes server-side.
+- **"Add Existing Artist"** on `/admin/artist-management.html` — labels generate roster invite codes (`target_managed_by = caller pubkey`) for artists who already have a Nostr identity.
+- **Backup-file save step** in `setup.html`/`redeem.html`/`onboarding.html` — explicit continue gate before reaching dashboard. Restoring uses the existing backup-file-login path on `/admin/login.html`. Email recovery is deferred (see plan).
+- **SessionManager consolidated** into top-level `common/js/` directory (sibling of `client/`/`content_node/`/`tools/`/`docs/`), mounted at `/common/` by nginx. Single canonical file for both admin and client surfaces — file cannot drift again.
+- **Cross-surface nav**: admin sidebar always has a "Listener View" link (→ `/`). Client sidebar shows a "Manage" link when `getRole() ∈ {artist, label, operator}` — listener-only users silently skip.
+- **NIP-98 `payload` tag**: `authFetch` adds SHA256 of body as a `payload` tag for POST/PUT/PATCH; server verifies if present (anti-MITM body-swap). Backwards compatible — older clients still work.
+
 ## Verification
 
 1. ~~Architecture doc reviewed and approved before any implementation~~ ✅
@@ -404,3 +420,4 @@ All pages: gate on `SessionManager.getRole() === 'operator'` after `await fetchR
 4. ~~Phase C: UI role-aware sidebar~~ ✅ Verified with Playwright across all 3 roles
 5. ~~Phase D: Label pages~~ ✅ Verified with Playwright as both label and operator
 6. ~~Phase E: Operator pages~~ ✅ Verified with Playwright across all 6 operator pages
+7. ~~Access Control (gated onboarding)~~ ✅ Verified with Playwright end-to-end (setup token → /join → approve → strict-redirect → redeem → label/operator code generation → cross-surface nav)

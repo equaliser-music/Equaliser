@@ -24,7 +24,7 @@
                 </div>
                 <div class="header-actions">
                     <button class="btn btn-secondary" onclick="loadCodes()">Refresh</button>
-                    <button class="btn btn-primary" onclick="generateNew()">
+                    <button class="btn btn-primary" onclick="openGenerateModal()">
                         <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
                         Generate New
                     </button>
@@ -35,6 +35,34 @@
 
             <div id="codes-container">
                 <div style="text-align:center; padding:40px"><span class="loading-spinner"></span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Choose target role for new code (operator-only options for label/operator roles) -->
+    <div class="modal-backdrop" id="generate-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Generate Invite Code</div>
+                <button class="modal-close" onclick="closeGenerateModal()">&times;</button>
+            </div>
+            <p class="page-description" style="margin-bottom:16px">Pick the role this code will grant when redeemed.</p>
+
+            <div class="form-group">
+                <label class="form-label">Target Role</label>
+                <select class="form-select" id="gen-role">
+                    <option value="artist">Artist (default)</option>
+                    <option value="label" id="gen-role-label">Label (operator only)</option>
+                    <option value="operator" id="gen-role-operator">Operator (operator only — full node access)</option>
+                </select>
+                <p class="page-description" style="margin-top:6px" id="gen-role-hint">
+                    Artist codes onboard new artists onto this node.
+                </p>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeGenerateModal()">Cancel</button>
+                <button class="btn btn-primary" id="gen-confirm-btn" onclick="confirmGenerate()">Generate</button>
             </div>
         </div>
     </div>
@@ -60,8 +88,8 @@
     </div>
 
     <script src="https://unpkg.com/nostr-tools@2.7.2/lib/nostr.bundle.js"></script>
-    <script src="js/session.js"></script>
-    <script src="js/admin-sidebar.js"></script>
+    <script src="/common/js/session.js"></script>
+    <script src="/common/js/admin-sidebar.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             SessionManager.init();
@@ -111,6 +139,7 @@
                     <thead>
                         <tr>
                             <th>Code</th>
+                            <th>Role</th>
                             <th>Source</th>
                             <th>Created</th>
                             <th style="text-align:right">Actions</th>
@@ -130,9 +159,14 @@
             const source = isOrphan
                 ? '<em style="color:rgba(255,255,255,0.5)">Standalone (no request)</em>'
                 : `Approved request: <strong>${escapeHtml(c.artist_name)}</strong>`;
+            const role = c.target_role || 'artist';
+            const managedSuffix = c.target_managed_by
+                ? ` <span style="color:rgba(255,255,255,0.4); font-family:monospace; font-size:11px">→ ${escapeHtml(c.target_managed_by.slice(0,8))}…</span>`
+                : '';
             return `
                 <tr>
                     <td><span class="code-cell">${escapeHtml(c.invite_code)}</span></td>
+                    <td><span class="badge badge-${role}">${role}</span>${managedSuffix}</td>
                     <td>${source}</td>
                     <td style="color:rgba(255,255,255,0.5); font-size:13px">${created}</td>
                     <td>
@@ -148,20 +182,65 @@
             navigator.clipboard.writeText(code).then(() => showNotice('success', 'Code copied'));
         }
 
-        async function generateNew() {
+        function openGenerateModal() {
+            // Disable label/operator options for non-operators
+            const isOperator = SessionManager.getRole() === 'operator';
+            const labelOpt = document.getElementById('gen-role-label');
+            const operatorOpt = document.getElementById('gen-role-operator');
+            labelOpt.disabled = !isOperator;
+            operatorOpt.disabled = !isOperator;
+            // Reset
+            document.getElementById('gen-role').value = 'artist';
+            updateRoleHint();
+            document.getElementById('gen-role').onchange = updateRoleHint;
+            document.getElementById('generate-modal').classList.add('visible');
+        }
+
+        function closeGenerateModal() {
+            document.getElementById('generate-modal').classList.remove('visible');
+        }
+
+        function updateRoleHint() {
+            const role = document.getElementById('gen-role').value;
+            const hint = document.getElementById('gen-role-hint');
+            hint.textContent = {
+                artist: 'Artist codes onboard new artists onto this node.',
+                label: 'Label codes onboard new labels (who can then manage their own roster of artists).',
+                operator: '⚠ OPERATOR codes grant FULL node access — administrative powers over every artist, all data. Only generate for trusted co-operators.',
+            }[role] || '';
+        }
+
+        async function confirmGenerate() {
+            const role = document.getElementById('gen-role').value;
+            if (role === 'operator') {
+                if (!confirm('This grants full node access. Confirm generating an OPERATOR invite?')) return;
+            }
+            const btn = document.getElementById('gen-confirm-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Generating';
+
             try {
-                const resp = await SessionManager.authFetch('/api/label/invite-codes', { method: 'POST' });
+                const body = JSON.stringify({ target_role: role });
+                const resp = await SessionManager.authFetch('/api/label/invite-codes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body,
+                });
                 if (!resp.ok) {
                     const err = await resp.json().catch(() => ({}));
                     throw new Error(err.detail || `HTTP ${resp.status}`);
                 }
                 const data = await resp.json();
                 const code = data.invite_code || data.code;
+                closeGenerateModal();
                 document.getElementById('new-code-text').textContent = code;
                 document.getElementById('new-code-modal').classList.add('visible');
                 await loadCodes();
             } catch (e) {
                 showNotice('error', `Generate failed: ${e.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Generate';
             }
         }
 

@@ -25,7 +25,9 @@ from routers import uploads
 from routers import auth
 from routers import label
 from routers import operator
+from routers import access
 import asyncio
+import time
 
 from services.database import init_db
 from services.node_identity import init_node_identity
@@ -77,13 +79,18 @@ app.include_router(uploads.router, prefix="/api/upload", tags=["uploads"])
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(label.router, prefix="/api/label", tags=["label"])
 app.include_router(operator.router, prefix="/api/operator", tags=["operator"])
+app.include_router(access.router, prefix="/api/access", tags=["access"])
 
 
 @app.get("/health")
 @app.get("/api/health")
 async def health_check():
-    """Health check endpoint for container orchestration."""
-    return {"status": "healthy"}
+    """Health check endpoint for container orchestration.
+    Exposes server_time so clients can detect/correct NIP-98 clock skew."""
+    return {
+        "status": "healthy",
+        "server_time": int(time.time() * 1000),
+    }
 
 
 # Client config — exposes non-sensitive environment settings for the browser client

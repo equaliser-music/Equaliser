@@ -2,6 +2,35 @@
 
 Docker Compose stack: orchestrator (FastAPI), Equaliser Relay (Go), IPFS (Kubo), Blossom, nostr-rs-relay (standard relay), PostgreSQL, nginx.
 
+## First-time setup (Phase A — gated onboarding)
+
+After `docker compose up`, the relay generates a one-time **setup token** (because no operator exists yet) and prints a banner like:
+
+```
+============================================================
+ NO OPERATOR CONFIGURED. To claim this node:
+   1. Visit /admin/setup.html in your browser
+   2. Enter setup token: <64-char hex>
+   3. Sign in with your nsec or NIP-07 extension
+ Token is also at /data/setup-token.txt inside the relay container.
+============================================================
+```
+
+Two ways to find the token:
+- `docker logs equaliser-relay 2>&1 | grep "Enter setup token"`
+- `docker exec equaliser-relay cat /data/setup-token.txt`
+
+Visit `/admin/setup.html` (or just `/admin/login.html` — it auto-redirects) to claim. Token rotates on every restart until claimed; cleared once the first operator exists.
+
+**Headless / automated alternative**: set `OPERATOR_PUBKEYS=<hex>,<hex>` env var on the relay container. `BootstrapOperators` inserts on startup, skipping the setup-token flow.
+
+After the first operator exists, all further onboarding is invite-only:
+- Subsequent operators: existing operator generates an `operator` invite via `/admin/invite-codes.html`
+- Labels: existing operator generates a `label` invite (or approves a `/join` application as a label)
+- Artists: anyone applies via `/join`, an operator/label approves and shares the invite code
+
+**Recovery**: every onboarding flow forces a backup-file download (`equaliser-operator-backup-*.json` / `equaliser-backup-*.json`). Restore via the existing backup-file path on `/admin/login.html`. **Lose both nsec AND backup → only path is psql or another operator's invite** (email recovery is deferred — see [docs/LOGIN_CONSOLIDATION_PLEASE_REVIEW.md](../docs/LOGIN_CONSOLIDATION_PLEASE_REVIEW.md)).
+
 ## Docker Services
 
 | Service | Image | Port | Purpose |
@@ -77,6 +106,16 @@ FastAPI app. CORS allow-all (dev). Initialises database + node identity on start
 |--------|----------|---------|
 | GET | `/api/auth/whoami` | Returns authenticated user's role and managed artists. NIP-98 auth required. Response: `{ pubkey, role, managed_artists }` |
 
+**access.py** — Public access control + invite redemption (Phase A). No role-gating; NIP-98 where indicated:
+
+| Method | Endpoint | Auth | Purpose |
+|--------|----------|------|---------|
+| POST | `/api/access/request` | none | Public — create an `access_requests` row from `/join` form. Body: `{requested_role, artist_name, email, npub, description, links}`. `requested_role ∈ {artist, label}`; `operator` rejected (cannot self-apply). |
+| GET | `/api/access/check-invite?code=...` | none | Public preview — returns `{valid, target_role, target_managed_by, issuer_name}` or 404. Used by `redeem.html`/`onboarding.html` Step 0. |
+| POST | `/api/access/redeem` | NIP-98 | Body: `{code, display_name}`. Verified pubkey + code → atomic redeem in relay. Returns RedeemResult with `node_artist` or `node_operator`. |
+| GET | `/api/access/setup-status` | none | `{needs_setup: bool}` — used by login/dashboard/setup pages to detect fresh-deploy state. |
+| POST | `/api/access/claim-operator` | NIP-98 | Body: `{token, name}`. Token from `/data/setup-token.txt` or relay logs. Claims first operator slot. |
+
 **label.py** — Label admin (requires label or operator role):
 
 | Method | Endpoint | Purpose |
@@ -86,10 +125,11 @@ FastAPI app. CORS allow-all (dev). Initialises database + node identity on start
 | PATCH | `/api/label/artists/{pubkey}` | Update status (active/suspended), fee_model (free/percentage/flat_rate), fee_value |
 | GET | `/api/label/access-requests?status=` | List access requests (filter: pending/approved/declined) |
 | GET | `/api/label/access-requests/{id}` | Get single request |
-| POST | `/api/label/access-requests/{id}/approve` | Approve, generate 12-char hex invite code |
+| POST | `/api/label/access-requests/{id}/approve` | Approve, generate 12-char hex invite code. Body: `{admin_notes, target_role, target_managed_by}`. `target_role` defaults to `requested_role`; `label`/`operator` require operator caller. Records `issued_by` = caller pubkey. |
 | POST | `/api/label/access-requests/{id}/decline` | Decline with optional admin_notes |
-| GET | `/api/label/invite-codes` | List unused invite codes |
-| POST | `/api/label/invite-codes` | Generate orphan invite code (no associated request) |
+| GET | `/api/label/invite-codes` | List unused invite codes (includes target_role, target_managed_by, issued_by) |
+| POST | `/api/label/invite-codes` | Generate orphan invite code. Body: `{target_role, target_managed_by}`. Operator-only constraint: `target_role ∈ {label, operator}` rejected for non-operator callers. Operator codes never carry `target_managed_by`. |
+| POST | `/api/label/add-existing-artist` | (Phase A) Generate roster invite code with `target_managed_by = caller pubkey`. Body: `{artist_name, npub?}`. Label shares code OOB; existing-pubkey artist redeems via `/admin/redeem.html`. |
 
 **operator.py** — Operator admin (requires operator role or `X-Admin-Token`):
 
@@ -135,12 +175,14 @@ The orchestrator's `services/relay_admin.py` wraps these with httpx; orchestrato
 
 ## Admin Pages (orchestrator/*.html)
 
-All pages use shared `js/session.js` and `js/admin-sidebar.js`.
+All pages use shared `/common/js/session.js` and `/common/js/admin-sidebar.js` (mounted at `/common/` by nginx — see top-level [common/](../common/) directory). Admin pages opt-in to admin behaviours by setting `window.EQ_SURFACE = 'admin'` before the session.js script tag (skips listener-cache auto-registration).
 
 | Page | Purpose |
 |------|---------|
-| `login.html` | nsec / NIP-07 extension login. Session in sessionStorage |
-| `onboarding.html` | First-time setup: generate identity, upload avatar/banner, publish Kind 0 |
+| `login.html` | nsec / NIP-07 / backup-file login. **Phase A**: redirects to `/admin/setup.html` if no operators yet, or to `/admin/redeem.html` if logged-in pubkey has no role on this node. |
+| `setup.html` | (Phase A) First-run claim. Visible when `node_operators` is empty. Token from relay logs / `/data/setup-token.txt` + nsec → first operator. Mandatory backup-file download before continuing. |
+| `redeem.html` | (Phase A) Existing-pubkey invite-code redemption. Used for listener→artist promotion, label-roster joins, operator-invite redemption. Shows code metadata preview before commit; mandatory backup-file step. |
+| `onboarding.html` | First-time setup: **Step 0 invite-code gate**, generate identity, upload avatar/banner, publish Kind 0, then `/api/access/redeem` to create `node_artists` row. Strict — no code = no onboarding. |
 | `dashboard.html` | Home: recent releases (Kind 30050), profile (Kind 0), track count |
 | `releases.html` | Drafts + released tracks. Upload, edit, release, export. Release announcement modal (post Kind 1 to social feed after releasing) |
 | `edit-release.html` | Edit metadata for draft or released track. Cover art upload. Add existing tracks (duplicated with independent IPFS CIDs) or upload new tracks directly into a release. Delete released tracks (Kind 5 + storage cleanup). Release announcement modal |
@@ -157,12 +199,14 @@ All pages use shared `js/session.js` and `js/admin-sidebar.js`.
 | `user-cache.html` | (Operator) Paginated table of registered listeners (npub, pubkey, registered, last seen, enabled). |
 | `node-settings.html` | (Operator) Read-only env config: Node, Service URLs, Standard Relays, CORS Origins. No write API — change env vars and restart containers. |
 
-## Shared JS (orchestrator/js/)
+## Shared JS — top-level [common/js/](../common/) directory
+
+Mounted at `/common/` by nginx, used by **both** admin and client surfaces. The directory lives at the repo root (sibling of `client/`, `content_node/`, `tools/`, `docs/`) so neither side "owns" it.
 
 | Module | Purpose | Used By |
 |--------|---------|---------|
-| `session.js` | Session management. nsec or NIP-07 login. 30-min idle timeout, multi-tab logout sync. `signEvent()` auto-adds `["app", "Equaliser"]` tag. `authFetch()` adds NIP-98 auth header. `fetchRole()` calls `/api/auth/whoami` and exposes `getRole()`/`getManagedArtists()`/`getSelectedArtistPubkey()`/`setSelectedArtistPubkey()` (Node Management Phase C). Persists role + selected artist in sessionStorage and broadcasts artist switches across tabs via BroadcastChannel + `equaliser:artist-switched` window event. | All admin pages |
-| `admin-sidebar.js` | Role-aware navigation sidebar (Node Management Phase C). Two-pass render: synchronous skeleton with cached role, async re-render after `fetchRole()`. Subtitle/badge/nav sections vary by role: artist sees `Manage`; label adds `Label Admin`; operator adds `Node Admin`. Artist selector dropdown shown when label/operator manages >1 artist. Preserves `sidebar-name`/`sidebar-avatar` IDs across re-renders so `updateArtistDisplay()` continues to work. | All admin pages |
+| `/common/js/session.js` | Session management. nsec / NIP-07 / backup-file login. 30-min idle timeout, multi-tab logout sync. `signEvent()` auto-adds `["app", "Equaliser"]` tag. `authFetch()` adds NIP-98 auth header — also computes SHA256 of body and adds it as a `payload` tag for POST/PUT/PATCH (anti-MITM body-swap; server verifies if present). `fetchRole()` calls `/api/auth/whoami` and exposes `getRole()`/`getManagedArtists()`/`getSelectedArtistPubkey()`/`setSelectedArtistPubkey()`. Persists role + selected artist in sessionStorage and broadcasts artist switches across tabs via BroadcastChannel + `equaliser:artist-switched` window event. Surface-aware: when `window.EQ_SURFACE !== 'admin'`, auto-registers pubkey with the listener cache via `POST /api/users/register` after login. | All admin AND client pages |
+| `/common/js/admin-sidebar.js` | Role-aware navigation sidebar. Two-pass render: synchronous skeleton with cached role, async re-render after `fetchRole()`. Subtitle/badge/nav sections vary by role: artist sees `Manage`; label adds `Label Admin`; operator adds `Node Admin`. Artist selector dropdown shown when label/operator manages >1 artist. Bottom nav has a "Listener View" link to `/`. | All admin pages |
 
 ### Admin page conventions (Phase D/E pattern)
 

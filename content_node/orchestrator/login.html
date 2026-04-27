@@ -495,22 +495,36 @@
 
     <!-- nostr-tools via CDN -->
     <script src="https://unpkg.com/nostr-tools@2.1.4/lib/nostr.bundle.js"></script>
+    <!-- Mark this surface as admin (skips listener-cache auto-registration in session.js) -->
+    <script>window.EQ_SURFACE = 'admin';</script>
     <!-- Session Manager -->
-    <script src="js/session.js"></script>
+    <script src="/common/js/session.js"></script>
 
     <script>
         // Get return URL from query params
         const urlParams = new URLSearchParams(window.location.search);
-        const returnUrl = urlParams.get('return') || 'profile.html';
+        const returnUrl = urlParams.get('return') || 'dashboard.html';
         const sessionExpired = urlParams.get('expired') === '1';
 
         // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             SessionManager.init();
 
             // Show expired notice if session timed out
             if (sessionExpired) {
                 document.getElementById('expired-notice').classList.add('visible');
+            }
+
+            // Phase A: if no operator exists, redirect to first-run setup.
+            try {
+                const resp = await fetch('/api/access/setup-status');
+                const data = await resp.json();
+                if (data.needs_setup) {
+                    window.location.href = 'setup.html';
+                    return;
+                }
+            } catch (e) {
+                // Non-fatal — continue with login UI
             }
 
             // Check for extension availability
@@ -523,11 +537,33 @@
                 }
             });
 
-            // If already logged in, redirect to return URL
+            // If already logged in, route based on role
             if (SessionManager.hasSession()) {
-                window.location.href = returnUrl;
+                proceedAfterLogin();
             }
         });
+
+        // Phase A: post-login routing.
+        // Strict mode: an authenticated pubkey with no node_artists / node_operators row
+        // gets a 403 with reason=no_role_on_node from /api/auth/whoami → send them to redeem.
+        async function proceedAfterLogin() {
+            try {
+                const resp = await SessionManager.authFetch('/api/auth/whoami');
+                if (resp.status === 403) {
+                    const err = await resp.json().catch(() => ({}));
+                    const reason = (err.detail && err.detail.reason) || err.detail;
+                    if (reason === 'no_role_on_node') {
+                        const dest = '/admin/redeem.html?return=' + encodeURIComponent(returnUrl);
+                        window.location.href = dest;
+                        return;
+                    }
+                }
+                // 200 (with role) or any other case → continue
+            } catch (e) {
+                // Network failure — fall through and try the return URL anyway
+            }
+            window.location.href = returnUrl;
+        }
 
         // Check if NIP-07 extension is available
         function checkExtension() {
@@ -555,8 +591,7 @@
             try {
                 await SessionManager.createSessionFromExtension();
 
-                // Redirect to return URL
-                window.location.href = returnUrl;
+                proceedAfterLogin();
 
             } catch (error) {
                 console.error('Extension login failed:', error);
@@ -592,8 +627,7 @@
                 // Clear input before redirecting
                 document.getElementById('nsec-input').value = '';
 
-                // Redirect to return URL
-                window.location.href = returnUrl;
+                proceedAfterLogin();
 
             } catch (error) {
                 console.error('Login failed:', error);
@@ -636,8 +670,7 @@
                         sessionStorage.setItem('equaliser_backup_profile', JSON.stringify(backup.profile));
                     }
 
-                    // Redirect to return URL
-                    window.location.href = returnUrl;
+                    proceedAfterLogin();
 
                 } catch (error) {
                     console.error('Failed to load backup:', error);

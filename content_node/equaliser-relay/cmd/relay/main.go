@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -54,6 +55,11 @@ func main() {
 	eventStore := storage.NewEventStore(pool)
 	userStore := storage.NewUserStore(pool)
 	adminStore := storage.NewAdminStore(pool)
+
+	// First-run setup: if no operators yet, generate a setup token (printed loudly)
+	// so the first visitor at /admin/setup.html can claim themselves as operator.
+	// Token is also written to /data/setup-token.txt for shell-access discovery.
+	manageSetupToken(ctx, adminStore)
 	denormParser := storage.NewDenormParser(pool, cfg)
 	subMgr := relay.NewSubscriptionManager()
 	handler := relay.NewHandler(eventStore, denormParser, subMgr, cfg)
@@ -133,4 +139,60 @@ func main() {
 	}
 
 	log.Println("Equaliser Relay stopped")
+}
+
+// manageSetupToken handles the first-run operator setup token lifecycle.
+//
+// If the node has no operators yet, generate a fresh 32-byte hex setup token,
+// store it in setup_state, write it to /data/setup-token.txt (mode 0600),
+// and print a banner to stdout so a human running `docker logs` can find it.
+//
+// If operators already exist, ensure no stale setup-token file remains on disk
+// and clear setup_state.setup_token if set.
+//
+// Token rotates on every boot when no operator exists — an unclaimed node
+// doesn't keep a permanent shared secret across restarts.
+func manageSetupToken(ctx context.Context, store *storage.AdminStore) {
+	hasOps, err := store.HasOperators(ctx)
+	if err != nil {
+		log.Printf("Warning: setup-token check failed: %v", err)
+		return
+	}
+
+	const tokenFile = "/data/setup-token.txt"
+
+	if hasOps {
+		// Cleanup any stale state
+		_ = store.ClearSetupToken(ctx)
+		_ = os.Remove(tokenFile)
+		return
+	}
+
+	// No operators — generate a token, log + persist
+	token, err := store.GenerateSetupToken(ctx)
+	if err != nil {
+		log.Printf("ERROR: failed to generate setup token: %v", err)
+		return
+	}
+
+	// Write to disk for shell-access discovery (best-effort; non-fatal if write fails)
+	if err := os.MkdirAll(filepath.Dir(tokenFile), 0o700); err == nil {
+		if err := os.WriteFile(tokenFile, []byte(token+"\n"), 0o600); err != nil {
+			log.Printf("Warning: could not write %s: %v", tokenFile, err)
+		}
+	} else {
+		log.Printf("Warning: could not create %s: %v (token only available in logs)", filepath.Dir(tokenFile), err)
+	}
+
+	// Loud banner — easy to spot in `docker logs`
+	log.Println("")
+	log.Println("============================================================")
+	log.Println(" NO OPERATOR CONFIGURED. To claim this node:")
+	log.Println("   1. Visit /admin/setup.html in your browser")
+	log.Println("   2. Enter setup token: " + token)
+	log.Println("   3. Sign in with your nsec or NIP-07 extension")
+	log.Println(" Token is also at " + tokenFile + " inside the relay container.")
+	log.Println(" Token rotates on every restart until claimed.")
+	log.Println("============================================================")
+	log.Println("")
 }

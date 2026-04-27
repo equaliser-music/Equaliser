@@ -1,16 +1,20 @@
 /**
- * Centralized Session Management for Equaliser Admin Pages
+ * Centralized Session Management — used by BOTH admin and client surfaces.
  *
- * Provides session storage with:
- * - Single login across all admin pages
- * - Idle timeout with audio-awareness
- * - Multi-tab logout synchronization
- * - NIP-07 browser extension support
+ * Mounted at /common/js/session.js by nginx so the same file serves /admin/* and /.
+ * Surface-specific behaviours key on `window.EQ_SURFACE`:
+ *   - 'admin'  → role fetched via /api/auth/whoami after login (Phase C+)
+ *   - undefined (default = client/listener) → no role fetch; auto-registers with cache
+ *
+ * Both surfaces share sessionStorage key `equaliser_session` (same origin), so the
+ * same nsec carries across surfaces in the same tab.
  *
  * Security:
- * - For nsec sessions: Private key stored in sessionStorage (tab-scoped, cleared on tab close)
- * - For extension sessions: Only public key stored, signing delegated to extension
- * - Session is automatically cleared on tab close, idle timeout, or explicit logout
+ * - nsec sessions: private key in sessionStorage (tab-scoped, cleared on tab close)
+ * - extension sessions: only public key stored, signing delegated to NIP-07 extension
+ * - Session cleared on tab close, idle timeout, or explicit logout
+ * - authFetch adds NIP-98 `payload` tag (SHA256 of body) for POST/PUT/PATCH — server
+ *   verifies if present (anti-MITM body-swap protection)
  */
 
 const SessionManager = {
@@ -88,6 +92,7 @@ const SessionManager = {
         this._lastActivity = Date.now();
         this._persistSession(nsec);
         this._broadcastSessionChange('login');
+        this._registerWithCache(publicKey);
 
         return this.getSession();
     },
@@ -122,6 +127,7 @@ const SessionManager = {
             this._lastActivity = Date.now();
             this._persistSession(null);
             this._broadcastSessionChange('login');
+            this._registerWithCache(publicKey);
 
             return this.getSession();
         } catch (error) {
@@ -323,27 +329,48 @@ const SessionManager = {
     /**
      * Create a NIP-98 Authorization header for an API request.
      * Signs a Kind 27235 event containing the URL and HTTP method.
+     * If body is provided, also adds a `payload` tag (SHA256 hex of body)
+     * — server verifies if present (anti-MITM body-swap protection).
      * @param {string} url - The full request URL
      * @param {string} method - The HTTP method (GET, POST, etc.)
+     * @param {string|undefined} body - Optional request body for payload tag
      * @returns {string} Authorization header value ("Nostr <base64>")
      */
-    async createNip98Auth(url, method) {
+    async createNip98Auth(url, method, body) {
         if (!this._session) {
             throw new Error('No active session');
+        }
+
+        const tags = [
+            ['u', url],
+            ['method', method.toUpperCase()]
+        ];
+
+        if (body && typeof body === 'string' && body.length > 0) {
+            const hash = await this._sha256Hex(body);
+            tags.push(['payload', hash]);
         }
 
         const event = {
             kind: 27235,
             created_at: Math.floor(Date.now() / 1000),
-            tags: [
-                ['u', url],
-                ['method', method.toUpperCase()]
-            ],
+            tags,
             content: ''
         };
 
         const signed = await this.signEvent(event);
         return 'Nostr ' + btoa(JSON.stringify(signed));
+    },
+
+    /**
+     * SHA-256 of a UTF-8 string, returned as lowercase hex.
+     */
+    async _sha256Hex(s) {
+        const bytes = new TextEncoder().encode(s);
+        const digest = await crypto.subtle.digest('SHA-256', bytes);
+        return Array.from(new Uint8Array(digest))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
     },
 
     /**
@@ -356,9 +383,24 @@ const SessionManager = {
     async authFetch(url, options = {}) {
         const fullUrl = new URL(url, window.location.origin).href;
         const method = (options.method || 'GET').toUpperCase();
-        const authHeader = await this.createNip98Auth(fullUrl, method);
+        const body = typeof options.body === 'string' ? options.body : undefined;
+        const authHeader = await this.createNip98Auth(fullUrl, method, body);
         options.headers = { ...options.headers, 'Authorization': authHeader };
         return fetch(url, options);
+    },
+
+    /**
+     * Listener-side: register pubkey with the orchestrator's user-cache. Best-effort.
+     * Skipped on the admin surface (admin pages don't need cache registration —
+     * artists/labels/operators are tracked in node_artists/node_operators instead).
+     */
+    _registerWithCache(pubkey) {
+        if (window.EQ_SURFACE === 'admin') return;
+        fetch('/api/users/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pubkey })
+        }).catch(() => { /* silent */ });
     },
 
     // ==================== Private Methods ====================

@@ -91,8 +91,10 @@ async def create_access_request(
     npub: str = "",
     description: str = "",
     links: str = "",
+    requested_role: str = "artist",
 ) -> Dict:
     return await _request("POST", "/api/internal/access-requests", json={
+        "requested_role": requested_role,
         "artist_name": artist_name,
         "email": email,
         "npub": npub,
@@ -101,9 +103,22 @@ async def create_access_request(
     })
 
 
-async def approve_access_request(request_id: int, admin_notes: str = "") -> Dict:
+async def approve_access_request(
+    request_id: int,
+    admin_notes: str = "",
+    target_role: str = "artist",
+    target_managed_by: Optional[str] = None,
+    issued_by: str = "",
+) -> Dict:
+    body: Dict[str, Any] = {
+        "admin_notes": admin_notes,
+        "target_role": target_role,
+        "issued_by": issued_by,
+    }
+    if target_managed_by is not None:
+        body["target_managed_by"] = target_managed_by
     return await _request("POST", f"/api/internal/access-requests/{request_id}/approve",
-                          json={"admin_notes": admin_notes})
+                          json=body)
 
 
 async def decline_access_request(request_id: int, admin_notes: str = "") -> Dict:
@@ -118,8 +133,49 @@ async def list_invite_codes() -> List[Dict]:
     return data.get("codes", []) if data else []
 
 
-async def create_invite_code() -> Dict:
-    return await _request("POST", "/api/internal/invite-codes")
+async def create_invite_code(
+    target_role: str = "artist",
+    target_managed_by: Optional[str] = None,
+    issued_by: str = "",
+) -> Dict:
+    body: Dict[str, Any] = {
+        "target_role": target_role,
+        "issued_by": issued_by,
+    }
+    if target_managed_by is not None:
+        body["target_managed_by"] = target_managed_by
+    return await _request("POST", "/api/internal/invite-codes", json=body)
+
+
+# ===== Phase A: Invite redemption + setup-token =====
+
+
+async def get_invite_code(code: str) -> Optional[Dict]:
+    """Return invite-code metadata or None if not redeemable."""
+    return await _request("GET", f"/api/internal/invite-codes/{code}")
+
+
+async def redeem_invite_code(code: str, pubkey: str, display_name: str) -> Dict:
+    """Redeem an invite code for a pubkey. Returns RedeemResult shape."""
+    return await _request("POST", "/api/internal/invite-codes/redeem", json={
+        "code": code,
+        "pubkey": pubkey,
+        "display_name": display_name,
+    })
+
+
+async def setup_status() -> Dict:
+    """Returns {needs_setup: bool}."""
+    return await _request("GET", "/api/internal/setup-status")
+
+
+async def claim_first_operator(token: str, pubkey: str, name: str) -> Dict:
+    """Claim the first operator slot using the setup token."""
+    return await _request("POST", "/api/internal/operators/claim", json={
+        "token": token,
+        "pubkey": pubkey,
+        "name": name,
+    })
 
 
 # ===== Node stats / users =====

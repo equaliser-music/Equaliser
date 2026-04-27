@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -68,6 +69,10 @@ func NewServer(userStore *storage.UserStore, eventStore *storage.EventStore, adm
 	s.mux.HandleFunc("POST /api/internal/access-requests/{id}/decline", s.handleDeclineRequest)
 	s.mux.HandleFunc("GET /api/internal/invite-codes", s.handleListInviteCodes)
 	s.mux.HandleFunc("POST /api/internal/invite-codes", s.handleCreateInviteCode)
+	s.mux.HandleFunc("GET /api/internal/invite-codes/{code}", s.handleGetInviteCode)
+	s.mux.HandleFunc("POST /api/internal/invite-codes/redeem", s.handleRedeemInviteCode)
+	s.mux.HandleFunc("GET /api/internal/setup-status", s.handleSetupStatus)
+	s.mux.HandleFunc("POST /api/internal/operators/claim", s.handleClaimOperator)
 	s.mux.HandleFunc("GET /api/internal/registered-users", s.handleListRegisteredUsers)
 	s.mux.HandleFunc("GET /api/internal/stats", s.handleNodeStats)
 	s.mux.HandleFunc("GET /api/internal/peer-relays", s.handleListPeerRelays)
@@ -657,14 +662,15 @@ func (s *Server) handleGetAccessRequest(w http.ResponseWriter, r *http.Request) 
 
 // handleCreateAccessRequest creates a new pending request.
 // POST /api/internal/access-requests
-// Body: { artist_name, email?, npub?, description?, links? }
+// Body: { requested_role?, artist_name, email?, npub?, description?, links? }
 func (s *Server) handleCreateAccessRequest(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		ArtistName  string `json:"artist_name"`
-		Email       string `json:"email"`
-		Npub        string `json:"npub"`
-		Description string `json:"description"`
-		Links       string `json:"links"`
+		RequestedRole string `json:"requested_role"`
+		ArtistName    string `json:"artist_name"`
+		Email         string `json:"email"`
+		Npub          string `json:"npub"`
+		Description   string `json:"description"`
+		Links         string `json:"links"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, `{"error": "invalid request body"}`, http.StatusBadRequest)
@@ -674,8 +680,14 @@ func (s *Server) handleCreateAccessRequest(w http.ResponseWriter, r *http.Reques
 		http.Error(w, `{"error": "artist_name is required"}`, http.StatusBadRequest)
 		return
 	}
+	// Reject 'operator' as a self-applied role — operator must be invited by another operator.
+	if req.RequestedRole != "" && req.RequestedRole != "artist" && req.RequestedRole != "label" {
+		http.Error(w, `{"error": "requested_role must be 'artist' or 'label'"}`, http.StatusBadRequest)
+		return
+	}
 
-	id, err := s.adminStore.CreateAccessRequest(r.Context(), req.ArtistName, req.Email, req.Npub, req.Description, req.Links)
+	id, err := s.adminStore.CreateAccessRequest(r.Context(), req.RequestedRole,
+		req.ArtistName, req.Email, req.Npub, req.Description, req.Links)
 	if err != nil {
 		log.Printf("Failed to create access request: %v", err)
 		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
@@ -689,7 +701,7 @@ func (s *Server) handleCreateAccessRequest(w http.ResponseWriter, r *http.Reques
 
 // handleApproveRequest approves a request and generates an invite code.
 // POST /api/internal/access-requests/{id}/approve
-// Body: { admin_notes? }
+// Body: { admin_notes?, target_role?, target_managed_by?, issued_by? }
 func (s *Server) handleApproveRequest(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := strconv.Atoi(idStr)
@@ -699,11 +711,15 @@ func (s *Server) handleApproveRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		AdminNotes string `json:"admin_notes"`
+		AdminNotes      string  `json:"admin_notes"`
+		TargetRole      string  `json:"target_role"`
+		TargetManagedBy *string `json:"target_managed_by"`
+		IssuedBy        string  `json:"issued_by"`
 	}
 	json.NewDecoder(r.Body).Decode(&req) // body optional
 
-	code, err := s.adminStore.ApproveAccessRequest(r.Context(), id, req.AdminNotes)
+	code, err := s.adminStore.ApproveAccessRequest(r.Context(), id, req.AdminNotes,
+		req.TargetRole, req.TargetManagedBy, req.IssuedBy)
 	if err != nil {
 		log.Printf("Failed to approve request: %v", err)
 		http.Error(w, `{"error": "`+err.Error()+`"}`, http.StatusBadRequest)
@@ -763,8 +779,17 @@ func (s *Server) handleListInviteCodes(w http.ResponseWriter, r *http.Request) {
 
 // handleCreateInviteCode creates an orphan invite code (no associated request).
 // POST /api/internal/invite-codes
+// Body: { target_role?, target_managed_by?, issued_by? }
 func (s *Server) handleCreateInviteCode(w http.ResponseWriter, r *http.Request) {
-	code, err := s.adminStore.CreateOrphanInviteCode(r.Context())
+	var req struct {
+		TargetRole      string  `json:"target_role"`
+		TargetManagedBy *string `json:"target_managed_by"`
+		IssuedBy        string  `json:"issued_by"`
+	}
+	json.NewDecoder(r.Body).Decode(&req) // body optional
+
+	code, err := s.adminStore.CreateOrphanInviteCode(r.Context(),
+		req.TargetRole, req.TargetManagedBy, req.IssuedBy)
 	if err != nil {
 		log.Printf("Failed to create invite code: %v", err)
 		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
@@ -908,4 +933,146 @@ func (s *Server) handleRegisterUser(w http.ResponseWriter, r *http.Request) {
 		"pubkey":     req.Pubkey,
 		"registered": true,
 	})
+}
+
+// ===== Phase A: Access control / invite redemption =====
+
+// handleGetInviteCode returns metadata for an invite code (for client preview).
+// GET /api/internal/invite-codes/{code}
+// Returns 404 if code doesn't exist or has been used.
+func (s *Server) handleGetInviteCode(w http.ResponseWriter, r *http.Request) {
+	code := r.PathValue("code")
+	if code == "" {
+		http.Error(w, `{"error": "code required"}`, http.StatusBadRequest)
+		return
+	}
+	req, err := s.adminStore.GetInviteCode(r.Context(), code)
+	if err != nil {
+		log.Printf("Failed to get invite code: %v", err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+	if req == nil {
+		http.Error(w, `{"error": "code not found or already used"}`, http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(req)
+}
+
+// handleRedeemInviteCode atomically redeems an invite code for a pubkey.
+// POST /api/internal/invite-codes/redeem
+// Body: { code, pubkey, display_name }
+func (s *Server) handleRedeemInviteCode(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Code        string `json:"code"`
+		Pubkey      string `json:"pubkey"`
+		DisplayName string `json:"display_name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error": "invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+	if req.Code == "" || !validateHexPubkey(req.Pubkey) {
+		http.Error(w, `{"error": "code and valid pubkey required"}`, http.StatusBadRequest)
+		return
+	}
+	if req.DisplayName == "" {
+		req.DisplayName = "(unnamed)"
+	}
+
+	result, err := s.adminStore.RedeemInviteCode(r.Context(), req.Code, req.Pubkey, req.DisplayName)
+	if err != nil {
+		var redeemErr *storage.RedeemErr
+		if errors.As(err, &redeemErr) {
+			status := http.StatusBadRequest
+			if redeemErr.Code == "concurrent_redeem" || redeemErr.Code == "already_managed_by_other" {
+				status = http.StatusConflict
+			} else if redeemErr.Code == "invalid_code" {
+				status = http.StatusNotFound
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(status)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error":  redeemErr.Code,
+				"detail": redeemErr.Message,
+			})
+			return
+		}
+		log.Printf("Failed to redeem invite: %v", err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
+}
+
+// handleSetupStatus reports whether the node needs first-run operator claim.
+// GET /api/internal/setup-status
+func (s *Server) handleSetupStatus(w http.ResponseWriter, r *http.Request) {
+	hasOps, err := s.adminStore.HasOperators(r.Context())
+	if err != nil {
+		log.Printf("Failed to check operators: %v", err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+	token, err := s.adminStore.GetSetupToken(r.Context())
+	if err != nil {
+		log.Printf("Failed to read setup token: %v", err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]bool{
+		"needs_setup": !hasOps && token != "",
+	})
+}
+
+// handleClaimOperator processes a first-run operator claim.
+// POST /api/internal/operators/claim
+// Body: { token, pubkey, name }
+func (s *Server) handleClaimOperator(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Token  string `json:"token"`
+		Pubkey string `json:"pubkey"`
+		Name   string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error": "invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+	if req.Token == "" || !validateHexPubkey(req.Pubkey) {
+		http.Error(w, `{"error": "token and valid pubkey required"}`, http.StatusBadRequest)
+		return
+	}
+	if req.Name == "" {
+		req.Name = "Node Operator"
+	}
+
+	op, err := s.adminStore.ClaimFirstOperator(r.Context(), req.Token, req.Pubkey, req.Name)
+	if err != nil {
+		var redeemErr *storage.RedeemErr
+		if errors.As(err, &redeemErr) {
+			status := http.StatusBadRequest
+			if redeemErr.Code == "already_claimed" {
+				status = http.StatusConflict
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(status)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error":  redeemErr.Code,
+				"detail": redeemErr.Message,
+			})
+			return
+		}
+		log.Printf("Failed to claim operator: %v", err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("First operator claimed: %s (%s)", op.Pubkey, op.Name)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(op)
 }

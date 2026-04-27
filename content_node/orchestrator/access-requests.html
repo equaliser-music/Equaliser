@@ -65,6 +65,16 @@
             <p style="color:rgba(255,255,255,0.7); font-size:14px; margin-bottom:16px">
                 An invite code will be generated. Share it with the applicant — they'll use it during onboarding.
             </p>
+
+            <div class="form-group">
+                <label class="form-label">Grant Role</label>
+                <select class="form-select" id="approve-target-role">
+                    <option value="artist">Artist</option>
+                    <option value="label" id="approve-role-label">Label (operator only)</option>
+                </select>
+                <p class="page-description" style="margin-top:6px" id="approve-role-hint"></p>
+            </div>
+
             <div class="form-group">
                 <label class="form-label">Internal notes (optional)</label>
                 <textarea class="form-textarea" id="approve-notes" placeholder="Notes visible only to admins..."></textarea>
@@ -115,8 +125,8 @@
     </div>
 
     <script src="https://unpkg.com/nostr-tools@2.7.2/lib/nostr.bundle.js"></script>
-    <script src="js/session.js"></script>
-    <script src="js/admin-sidebar.js"></script>
+    <script src="/common/js/session.js"></script>
+    <script src="/common/js/admin-sidebar.js"></script>
     <script>
         let cache = { pending: [], approved: [], declined: [] };
         let activeTab = 'pending';
@@ -197,6 +207,17 @@
             const requestedAt = new Date(r.requested_at).toLocaleString();
             const reviewedAt = r.reviewed_at ? new Date(r.reviewed_at).toLocaleString() : null;
             const linksHtml = r.links ? renderLinks(r.links) : '';
+            const requestedRole = r.requested_role || 'artist';
+            const targetRole = r.target_role || requestedRole;
+
+            // For approved cards, show what was granted (target_role) — possibly different from requested
+            const grantedHtml = status !== 'pending' && targetRole
+                ? `<span class="badge badge-${targetRole}" style="margin-left:6px">granted: ${targetRole}</span>`
+                : '';
+
+            const issuedByHtml = r.issued_by
+                ? `<div class="request-field"><div class="request-field-label">Issued by</div><div class="request-field-value pubkey-cell">${escapeHtml(r.issued_by.slice(0,8))}…${escapeHtml(r.issued_by.slice(-4))}</div></div>`
+                : '';
 
             return `
                 <div class="request-card" data-request-id="${r.id}">
@@ -208,7 +229,10 @@
                                 ${reviewedAt ? `· Reviewed ${reviewedAt}` : ''}
                             </div>
                         </div>
-                        <span class="badge badge-${r.status}">${r.status}</span>
+                        <div style="text-align:right">
+                            <span class="badge badge-${r.status}">${r.status}</span>
+                            <div style="margin-top:6px"><span class="badge badge-${requestedRole}">requested: ${requestedRole}</span>${grantedHtml}</div>
+                        </div>
                     </div>
 
                     ${r.email ? `<div class="request-field"><div class="request-field-label">Email</div><div class="request-field-value">${escapeHtml(r.email)}</div></div>` : ''}
@@ -216,11 +240,12 @@
                     ${r.description ? `<div class="request-field"><div class="request-field-label">Description</div><div class="request-field-value">${escapeHtml(r.description)}</div></div>` : ''}
                     ${linksHtml}
                     ${r.admin_notes ? `<div class="request-field"><div class="request-field-label">Admin Notes</div><div class="request-field-value">${escapeHtml(r.admin_notes)}</div></div>` : ''}
+                    ${issuedByHtml}
                     ${r.invite_code ? `<div class="request-field"><div class="request-field-label">Invite Code (${r.invite_used ? 'used' : 'unused'})</div><div class="code-display"><span class="code-text">${escapeHtml(r.invite_code)}</span><button class="copy-btn" onclick="navigator.clipboard.writeText('${r.invite_code}')">Copy</button></div></div>` : ''}
 
                     ${status === 'pending' ? `
                         <div class="request-actions">
-                            <button class="btn btn-success" onclick="openApproveModal(${r.id})">Approve</button>
+                            <button class="btn btn-success" onclick="openApproveModal(${r.id}, '${requestedRole}')">Approve</button>
                             <button class="btn btn-danger" onclick="openDeclineModal(${r.id})">Decline</button>
                         </div>
                     ` : ''}
@@ -234,10 +259,29 @@
         }
 
         // ===== Approve flow =====
-        function openApproveModal(id) {
+        function openApproveModal(id, requestedRole) {
             actionRequestId = id;
             document.getElementById('approve-notes').value = '';
+
+            // Pre-select target_role to match what the applicant requested
+            const targetSelect = document.getElementById('approve-target-role');
+            const labelOpt = document.getElementById('approve-role-label');
+            const isOperator = SessionManager.getRole() === 'operator';
+            labelOpt.disabled = !isOperator;
+            // Default selection: requested role (or fallback to artist)
+            const desired = (requestedRole === 'label' && isOperator) ? 'label' : 'artist';
+            targetSelect.value = desired;
+            updateApproveRoleHint();
+            targetSelect.onchange = updateApproveRoleHint;
+
             document.getElementById('approve-modal').classList.add('visible');
+        }
+        function updateApproveRoleHint() {
+            const role = document.getElementById('approve-target-role').value;
+            const hint = document.getElementById('approve-role-hint');
+            hint.textContent = role === 'label'
+                ? 'Onboarded as a label — they can manage their own roster of artists.'
+                : 'Onboarded as an artist publishing on this node.';
         }
         function closeApproveModal() {
             document.getElementById('approve-modal').classList.remove('visible');
@@ -245,6 +289,7 @@
         async function confirmApprove() {
             const btn = document.getElementById('approve-confirm-btn');
             const notes = document.getElementById('approve-notes').value;
+            const targetRole = document.getElementById('approve-target-role').value;
             btn.disabled = true;
             btn.innerHTML = '<span class="loading-spinner"></span> Approving';
 
@@ -252,7 +297,7 @@
                 const resp = await SessionManager.authFetch(`/api/label/access-requests/${actionRequestId}/approve`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ admin_notes: notes }),
+                    body: JSON.stringify({ admin_notes: notes, target_role: targetRole }),
                 });
                 if (!resp.ok) {
                     const err = await resp.json().catch(() => ({}));

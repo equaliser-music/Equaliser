@@ -79,6 +79,8 @@ class DeclineRequest(BaseModel):
 
 class ApproveRequest(BaseModel):
     admin_notes: Optional[str] = ""
+    target_role: Optional[str] = None        # 'artist' | 'label' | 'operator' (default: requested_role)
+    target_managed_by: Optional[str] = None  # pubkey of label whose roster the artist joins (None = unmanaged)
 
 
 @router.get("/access-requests")
@@ -106,10 +108,40 @@ async def approve_request(
     body: ApproveRequest = ApproveRequest(),
     ctx: RoleContext = Depends(require_label),
 ):
-    """Approve an access request and generate an invite code."""
+    """
+    Approve an access request and generate an invite code.
+
+    target_role defaults to the request's requested_role (set on /join). The approver
+    can override it (e.g. label applies but operator promotes them to label only if
+    operator approves). Non-operator callers can only issue label/operator codes if
+    they are themselves operator.
+    """
+    # Pull request to determine default target_role + validate caller permissions
+    existing = await relay_admin.get_access_request(request_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Access request not found")
+
+    target_role = body.target_role or existing.get("requested_role") or "artist"
+    if target_role not in ("artist", "label", "operator"):
+        raise HTTPException(status_code=400, detail="target_role must be artist, label, or operator")
+    if target_role in ("label", "operator") and ctx.role != "operator":
+        raise HTTPException(status_code=403, detail="Only operators can issue label or operator invites")
+
+    # Operator codes never carry target_managed_by
+    target_managed_by = body.target_managed_by
+    if target_role == "operator":
+        target_managed_by = None
+    # Labels can only point target_managed_by to themselves
+    if target_role == "artist" and target_managed_by and ctx.role != "operator":
+        if target_managed_by != ctx.pubkey:
+            raise HTTPException(status_code=403, detail="Labels can only assign artists to their own roster")
+
     return await relay_admin.approve_access_request(
         request_id,
         admin_notes=body.admin_notes or "",
+        target_role=target_role,
+        target_managed_by=target_managed_by,
+        issued_by=ctx.pubkey,
     )
 
 
@@ -136,7 +168,67 @@ async def list_invite_codes(ctx: RoleContext = Depends(require_label)):
     return {"codes": codes, "count": len(codes)}
 
 
+class CreateInviteCodeRequest(BaseModel):
+    target_role: Optional[str] = "artist"        # 'artist' | 'label' | 'operator'
+    target_managed_by: Optional[str] = None      # pubkey of label whose roster the artist joins
+
+
 @router.post("/invite-codes")
-async def create_invite_code(ctx: RoleContext = Depends(require_label)):
-    """Generate a standalone invite code (not tied to an access request)."""
-    return await relay_admin.create_invite_code()
+async def create_invite_code(
+    body: CreateInviteCodeRequest = CreateInviteCodeRequest(),
+    ctx: RoleContext = Depends(require_label),
+):
+    """
+    Generate a standalone invite code (not tied to an access request).
+
+    target_role gates: only operators can issue label or operator codes.
+    Operator codes never carry target_managed_by (server strips it).
+    Labels can only set target_managed_by to their own pubkey.
+    """
+    target_role = body.target_role or "artist"
+    if target_role not in ("artist", "label", "operator"):
+        raise HTTPException(status_code=400, detail="target_role must be artist, label, or operator")
+    if target_role in ("label", "operator") and ctx.role != "operator":
+        raise HTTPException(status_code=403, detail="Only operators can issue label or operator invites")
+
+    target_managed_by = body.target_managed_by
+    if target_role == "operator":
+        target_managed_by = None
+    if target_role == "artist" and target_managed_by and ctx.role != "operator":
+        if target_managed_by != ctx.pubkey:
+            raise HTTPException(status_code=403, detail="Labels can only assign artists to their own roster")
+
+    return await relay_admin.create_invite_code(
+        target_role=target_role,
+        target_managed_by=target_managed_by,
+        issued_by=ctx.pubkey,
+    )
+
+
+# ===== Add existing artist to roster =====
+
+
+class AddExistingArtistRequest(BaseModel):
+    artist_name: str
+    npub: Optional[str] = ""  # optional, just for record-keeping
+
+
+@router.post("/add-existing-artist")
+async def add_existing_artist(
+    body: AddExistingArtistRequest,
+    ctx: RoleContext = Depends(require_label),
+):
+    """
+    Generate a roster invite code for an existing-pubkey artist.
+
+    The label fills in the artist's name (and optional npub for record), and gets back
+    an invite code with target_managed_by = caller's pubkey. The label shares the code
+    out-of-band; the artist redeems it via /admin/redeem.html and joins the roster.
+    """
+    if not body.artist_name.strip():
+        raise HTTPException(status_code=400, detail="artist_name is required")
+    return await relay_admin.create_invite_code(
+        target_role="artist",
+        target_managed_by=ctx.pubkey,
+        issued_by=ctx.pubkey,
+    )

@@ -42,12 +42,25 @@ async def require_auth(request: Request) -> str:
 
     Returns the verified hex pubkey from the signed Kind 27235 event.
     Use as: pubkey: str = Depends(require_auth)
+
+    For POST/PUT/PATCH requests, also passes the body bytes to the verifier
+    so an optional `payload` tag (SHA256 of body) can be checked. Backwards
+    compatible: the tag is verified only when the client included it.
     """
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Nostr "):
         raise HTTPException(status_code=401, detail="Missing NIP-98 Authorization header")
 
-    return verify_nip98_token(auth_header, request.url.path, request.method)
+    body_bytes: bytes | None = None
+    if request.method.upper() in ("POST", "PUT", "PATCH"):
+        # Read once and cache so downstream Pydantic parsing still works.
+        # Starlette caches the body internally after the first await.
+        try:
+            body_bytes = await request.body()
+        except Exception:
+            body_bytes = None
+
+    return verify_nip98_token(auth_header, request.url.path, request.method, body_bytes)
 
 
 async def _resolve_role(pubkey: str) -> Optional[RoleContext]:
@@ -78,15 +91,25 @@ async def require_role(request: Request) -> RoleContext:
     """
     Authenticate via NIP-98 and resolve the user's role on this node.
 
+    STRICT MODE (Phase A): if the pubkey is in neither `node_operators` nor
+    `node_artists`, raises 403 with structured detail so the UI can redirect to
+    /admin/redeem.html. The legacy "artist with self-only" fallback was removed
+    when the gated-onboarding flow shipped — every admin-eligible pubkey must
+    redeem an invite code to gain a node_artists/node_operators row.
+
     Returns RoleContext with pubkey, role, and managed_artists.
-    Raises 403 if the pubkey is not recognized on this node.
     """
     pubkey = await require_auth(request)
     ctx = await _resolve_role(pubkey)
     if ctx is None:
-        # Pubkey not in node_artists or node_operators — treat as artist
-        # with self-only access (allows any authenticated user to use artist endpoints)
-        return RoleContext(pubkey=pubkey, role="artist", managed_artists=[pubkey])
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "reason": "no_role_on_node",
+                "message": "This pubkey has no role on this node. Redeem an invite code to onboard.",
+                "redirect": "/admin/redeem.html",
+            },
+        )
     return ctx
 
 

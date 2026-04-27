@@ -527,7 +527,31 @@
             <p>Artist Onboarding</p>
         </div>
 
-        <div class="progress">
+        <!-- Step 0: invite gate. Hides everything below until a valid code is provided. -->
+        <div class="step active" id="step-0">
+            <div class="card">
+                <h2 class="card-title">Invite Code Required</h2>
+                <p class="card-description">
+                    This node is invite-only. Paste the invite code you received from a label or operator to begin onboarding.
+                </p>
+                <p class="card-description" style="margin-top:8px">
+                    Don't have one yet? <a href="/join" style="color:#a855f7">Apply for access</a>.
+                </p>
+
+                <div id="invite-error" style="display:none; padding:12px 16px; border-radius:10px; background:rgba(239,68,68,0.12); color:#fca5a5; border:1px solid rgba(239,68,68,0.2); font-size:14px; margin-top:16px"></div>
+
+                <div class="form-group" style="margin-top:20px">
+                    <label class="form-label">Invite Code</label>
+                    <input type="text" class="form-input" id="invite-code-input" placeholder="12-char hex code" autocomplete="off" maxlength="12">
+                </div>
+
+                <div id="invite-preview" style="display:none; padding:14px; border-radius:10px; background:rgba(168,85,247,0.08); border:1px solid rgba(168,85,247,0.25); margin-bottom:16px; font-size:13px"></div>
+
+                <button class="btn btn-primary" id="invite-check-btn" onclick="checkInviteCode()">Continue</button>
+            </div>
+        </div>
+
+        <div class="progress" id="progress-bar" style="display:none">
             <div class="progress-step active" data-step="1"></div>
             <div class="progress-step" data-step="2"></div>
             <div class="progress-step" data-step="3"></div>
@@ -536,7 +560,7 @@
         </div>
 
         <!-- Step 1: Generate Keys -->
-        <div class="step active" id="step-1">
+        <div class="step" id="step-1">
             <div class="card">
                 <h2 class="card-title">Create Your NOSTR Identity</h2>
                 <p class="card-description">
@@ -751,7 +775,7 @@
 
     <!-- nostr-tools via CDN -->
     <script src="https://unpkg.com/nostr-tools@2.1.4/lib/nostr.bundle.js"></script>
-    <script src="js/session.js"></script>
+    <script src="/common/js/session.js"></script>
 
     <script>
         // State
@@ -780,11 +804,79 @@
 
         let relays = [...defaultRelays];
 
+        // Phase A: invite-code state for the onboarding gate.
+        let inviteCode = null;       // the validated code
+        let invitePreview = null;    // metadata returned by /api/access/check-invite
+
         // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             renderRelays();
             setupGenreInput();
+
+            // Phase A: invite-code gate. Check for ?invite=<code> URL param.
+            const urlParams = new URLSearchParams(window.location.search);
+            const codeParam = (urlParams.get('invite') || '').trim();
+            if (codeParam) {
+                document.getElementById('invite-code-input').value = codeParam;
+                await checkInviteCode();
+            }
         });
+
+        async function checkInviteCode() {
+            const code = document.getElementById('invite-code-input').value.trim();
+            const errEl = document.getElementById('invite-error');
+            const previewEl = document.getElementById('invite-preview');
+            errEl.style.display = 'none';
+            previewEl.style.display = 'none';
+
+            if (code.length !== 12) {
+                errEl.textContent = 'Code must be 12 characters';
+                errEl.style.display = 'block';
+                return;
+            }
+
+            const btn = document.getElementById('invite-check-btn');
+            btn.disabled = true;
+            btn.textContent = 'Checking…';
+
+            try {
+                const resp = await fetch('/api/access/check-invite?code=' + encodeURIComponent(code));
+                if (resp.status === 404) {
+                    errEl.textContent = 'Code not found or already used.';
+                    errEl.style.display = 'block';
+                    btn.disabled = false;
+                    btn.textContent = 'Continue';
+                    return;
+                }
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                const data = await resp.json();
+                invitePreview = data;
+                inviteCode = code;
+
+                // Show preview + transition to step 1 after a brief moment
+                const role = data.target_role || 'artist';
+                const issuer = data.issuer_name || '(direct invite)';
+                const managed = data.target_managed_by ? `managed by ${data.target_managed_by.slice(0,8)}…` : 'unmanaged';
+                previewEl.innerHTML = `Code valid. You'll be onboarded as <strong>${role}</strong> (${managed}). Issued by <strong>${escapeHtmlSafe(issuer)}</strong>.`;
+                previewEl.style.display = 'block';
+                btn.textContent = 'Begin Onboarding →';
+                btn.disabled = false;
+                btn.onclick = () => {
+                    document.getElementById('step-0').classList.remove('active');
+                    document.getElementById('progress-bar').style.display = '';
+                    document.getElementById('step-1').classList.add('active');
+                };
+            } catch (e) {
+                errEl.textContent = 'Could not check code: ' + e.message;
+                errEl.style.display = 'block';
+                btn.disabled = false;
+                btn.textContent = 'Continue';
+            }
+        }
+
+        function escapeHtmlSafe(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+        }
 
         // Key Generation
         function generateKeys() {
@@ -1226,7 +1318,37 @@
 
             // Success - establish session so user is logged in
             SessionManager.init();
-            SessionManager.createSessionFromNsec(nsec);
+            await SessionManager.createSessionFromNsec(nsec);
+
+            // Phase A: redeem the invite code now that the pubkey is established + Kind 0 is published.
+            // This creates the node_artists row with the right role + managed_by from the code's metadata.
+            if (inviteCode) {
+                try {
+                    const body = JSON.stringify({ code: inviteCode, display_name: name });
+                    const resp = await SessionManager.authFetch('/api/access/redeem', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body,
+                    });
+                    if (!resp.ok) {
+                        const err = await resp.json().catch(() => ({}));
+                        publishBtn.disabled = false;
+                        publishBtn.innerHTML = 'Retry Publish';
+                        alert('Onboarding failed at redeem: ' + (err.detail || err.error || resp.status) +
+                              '\n\nYour Kind 0 was published to relays, but you were not enrolled on this node. ' +
+                              'Contact the operator with your code or try again.');
+                        return;
+                    }
+                } catch (e) {
+                    publishBtn.disabled = false;
+                    publishBtn.innerHTML = 'Retry Publish';
+                    alert('Could not redeem invite code: ' + e.message);
+                    return;
+                }
+            } else {
+                // Strict mode: shouldn't reach this branch (gate enforces inviteCode upfront).
+                console.warn('Onboarding completed without inviteCode — strict mode bypass?');
+            }
 
             // Show results
             document.getElementById('final-npub').textContent = npub;

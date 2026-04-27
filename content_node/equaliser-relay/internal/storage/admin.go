@@ -37,18 +37,45 @@ type NodeArtist struct {
 
 // AccessRequest represents a row from access_requests.
 type AccessRequest struct {
-	ID           int        `json:"id"`
-	ArtistName   string     `json:"artist_name"`
-	Email        string     `json:"email"`
-	Npub         string     `json:"npub"`
-	Description  string     `json:"description"`
-	Links        string     `json:"links"`
-	Status       string     `json:"status"`
-	AdminNotes   *string    `json:"admin_notes,omitempty"`
-	InviteCode   *string    `json:"invite_code,omitempty"`
-	InviteUsed   bool       `json:"invite_used"`
-	RequestedAt  time.Time  `json:"requested_at"`
-	ReviewedAt   *time.Time `json:"reviewed_at,omitempty"`
+	ID              int        `json:"id"`
+	ArtistName      string     `json:"artist_name"`
+	Email           string     `json:"email"`
+	Npub            string     `json:"npub"`
+	Description     string     `json:"description"`
+	Links           string     `json:"links"`
+	Status          string     `json:"status"`
+	AdminNotes      *string    `json:"admin_notes,omitempty"`
+	InviteCode      *string    `json:"invite_code,omitempty"`
+	InviteUsed      bool       `json:"invite_used"`
+	RequestedAt     time.Time  `json:"requested_at"`
+	ReviewedAt      *time.Time `json:"reviewed_at,omitempty"`
+	// Phase A access-control metadata
+	RequestedRole   string  `json:"requested_role"`              // 'artist' | 'label' (what /join was filled out for)
+	TargetRole      string  `json:"target_role"`                 // 'artist' | 'label' | 'operator' (what the code grants)
+	TargetManagedBy *string `json:"target_managed_by,omitempty"` // pubkey of label whose roster the new artist joins
+	IssuedBy        *string `json:"issued_by,omitempty"`         // pubkey of label/operator who generated/approved the code
+}
+
+// RedeemResult is what RedeemInviteCode returns to the API layer.
+// For artist/label codes, NodeArtist is populated. For operator codes, NodeOperator is populated.
+type RedeemResult struct {
+	Role         string        `json:"role"` // 'artist' | 'label' | 'operator'
+	NodeArtist   *NodeArtist   `json:"node_artist,omitempty"`
+	NodeOperator *NodeOperator `json:"node_operator,omitempty"`
+}
+
+// NodeOperator represents a row from node_operators (mirror of NodeArtist for the operator branch).
+type NodeOperator struct {
+	Pubkey  string    `json:"pubkey"`
+	Name    string    `json:"name"`
+	AddedAt time.Time `json:"added_at"`
+}
+
+// SetupState represents the (single-row) setup_state table for first-run claims.
+type SetupState struct {
+	SetupToken  *string    `json:"setup_token,omitempty"`
+	GeneratedAt time.Time  `json:"generated_at"`
+	ClaimedAt   *time.Time `json:"claimed_at,omitempty"`
 }
 
 // RegisteredUser represents a row from registered_users.
@@ -168,7 +195,9 @@ func (s *AdminStore) ListAccessRequests(ctx context.Context, status string) ([]A
 	query := `
 		SELECT id, artist_name, COALESCE(email, ''), COALESCE(npub, ''),
 		       COALESCE(description, ''), COALESCE(links, ''), status,
-		       admin_notes, invite_code, invite_used, requested_at, reviewed_at
+		       admin_notes, invite_code, invite_used, requested_at, reviewed_at,
+		       COALESCE(requested_role, 'artist'), COALESCE(target_role, 'artist'),
+		       target_managed_by, issued_by
 		FROM access_requests
 		WHERE 1=1`
 	args := []interface{}{}
@@ -190,7 +219,8 @@ func (s *AdminStore) ListAccessRequests(ctx context.Context, status string) ([]A
 		var r AccessRequest
 		if err := rows.Scan(&r.ID, &r.ArtistName, &r.Email, &r.Npub,
 			&r.Description, &r.Links, &r.Status, &r.AdminNotes,
-			&r.InviteCode, &r.InviteUsed, &r.RequestedAt, &r.ReviewedAt); err != nil {
+			&r.InviteCode, &r.InviteUsed, &r.RequestedAt, &r.ReviewedAt,
+			&r.RequestedRole, &r.TargetRole, &r.TargetManagedBy, &r.IssuedBy); err != nil {
 			return nil, fmt.Errorf("scan request: %w", err)
 		}
 		requests = append(requests, r)
@@ -204,30 +234,70 @@ func (s *AdminStore) GetAccessRequest(ctx context.Context, id int) (*AccessReque
 	err := s.pool.QueryRow(ctx, `
 		SELECT id, artist_name, COALESCE(email, ''), COALESCE(npub, ''),
 		       COALESCE(description, ''), COALESCE(links, ''), status,
-		       admin_notes, invite_code, invite_used, requested_at, reviewed_at
+		       admin_notes, invite_code, invite_used, requested_at, reviewed_at,
+		       COALESCE(requested_role, 'artist'), COALESCE(target_role, 'artist'),
+		       target_managed_by, issued_by
 		FROM access_requests WHERE id = $1
 	`, id).Scan(&r.ID, &r.ArtistName, &r.Email, &r.Npub, &r.Description,
 		&r.Links, &r.Status, &r.AdminNotes, &r.InviteCode, &r.InviteUsed,
-		&r.RequestedAt, &r.ReviewedAt)
+		&r.RequestedAt, &r.ReviewedAt,
+		&r.RequestedRole, &r.TargetRole, &r.TargetManagedBy, &r.IssuedBy)
 	if err != nil {
 		return nil, nil // not found
 	}
 	return &r, nil
 }
 
+// GetInviteCode returns a single access_requests row by its invite_code.
+// Used by the public check-invite endpoint to preview a code before redeem.
+// Returns nil if the code doesn't exist or has been used.
+func (s *AdminStore) GetInviteCode(ctx context.Context, code string) (*AccessRequest, error) {
+	var r AccessRequest
+	err := s.pool.QueryRow(ctx, `
+		SELECT id, artist_name, COALESCE(email, ''), COALESCE(npub, ''),
+		       COALESCE(description, ''), COALESCE(links, ''), status,
+		       admin_notes, invite_code, invite_used, requested_at, reviewed_at,
+		       COALESCE(requested_role, 'artist'), COALESCE(target_role, 'artist'),
+		       target_managed_by, issued_by
+		FROM access_requests
+		WHERE invite_code = $1 AND status = 'approved' AND invite_used = FALSE
+	`, code).Scan(&r.ID, &r.ArtistName, &r.Email, &r.Npub, &r.Description,
+		&r.Links, &r.Status, &r.AdminNotes, &r.InviteCode, &r.InviteUsed,
+		&r.RequestedAt, &r.ReviewedAt,
+		&r.RequestedRole, &r.TargetRole, &r.TargetManagedBy, &r.IssuedBy)
+	if err != nil {
+		return nil, nil // not found / not redeemable
+	}
+	return &r, nil
+}
+
 // ApproveAccessRequest sets status='approved', generates an invite code, and records reviewed_at.
+// targetRole defaults to the request's requested_role (or 'artist' if neither is set).
+// targetManagedBy may be NULL for unmanaged artists, or a label pubkey for roster grants.
+// issuedBy is the pubkey of the operator/label who approved (audit).
 // Returns the generated invite code.
-func (s *AdminStore) ApproveAccessRequest(ctx context.Context, id int, adminNotes string) (string, error) {
-	code, err := generateInviteCode()
+func (s *AdminStore) ApproveAccessRequest(
+	ctx context.Context,
+	id int,
+	adminNotes string,
+	targetRole string,
+	targetManagedBy *string,
+	issuedBy string,
+) (string, error) {
+	if targetRole == "" {
+		targetRole = "artist"
+	}
+	code, err := s.generateUniqueInviteCode(ctx)
 	if err != nil {
 		return "", err
 	}
 
 	tag, err := s.pool.Exec(ctx, `
 		UPDATE access_requests
-		SET status = 'approved', invite_code = $1, admin_notes = $2, reviewed_at = NOW()
-		WHERE id = $3 AND status = 'pending'
-	`, code, adminNotes, id)
+		SET status = 'approved', invite_code = $1, admin_notes = $2, reviewed_at = NOW(),
+		    target_role = $3, target_managed_by = $4, issued_by = $5
+		WHERE id = $6 AND status = 'pending'
+	`, code, adminNotes, targetRole, targetManagedBy, nullableString(issuedBy), id)
 	if err != nil {
 		return "", fmt.Errorf("approve request: %w", err)
 	}
@@ -254,13 +324,20 @@ func (s *AdminStore) DeclineAccessRequest(ctx context.Context, id int, adminNote
 }
 
 // CreateAccessRequest inserts a new pending access request and returns its ID.
-func (s *AdminStore) CreateAccessRequest(ctx context.Context, artistName, email, npub, description, links string) (int, error) {
+// requestedRole captures what the applicant asked for on /join ('artist' | 'label').
+func (s *AdminStore) CreateAccessRequest(
+	ctx context.Context,
+	requestedRole, artistName, email, npub, description, links string,
+) (int, error) {
+	if requestedRole == "" {
+		requestedRole = "artist"
+	}
 	var id int
 	err := s.pool.QueryRow(ctx, `
-		INSERT INTO access_requests (artist_name, email, npub, description, links, status)
-		VALUES ($1, $2, $3, $4, $5, 'pending')
+		INSERT INTO access_requests (artist_name, email, npub, description, links, status, requested_role)
+		VALUES ($1, $2, $3, $4, $5, 'pending', $6)
 		RETURNING id
-	`, artistName, email, npub, description, links).Scan(&id)
+	`, artistName, email, npub, description, links, requestedRole).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("create request: %w", err)
 	}
@@ -268,18 +345,33 @@ func (s *AdminStore) CreateAccessRequest(ctx context.Context, artistName, email,
 }
 
 // CreateOrphanInviteCode creates an unused invite code with no associated request.
-// Useful for direct-invite flows where the operator generates codes without an upfront request.
-func (s *AdminStore) CreateOrphanInviteCode(ctx context.Context) (string, error) {
-	code, err := generateInviteCode()
+// targetRole ∈ {'artist', 'label', 'operator'} (default 'artist').
+// targetManagedBy is the label pubkey for roster invites; nil otherwise.
+// issuedBy is the pubkey of the operator/label who generated the code (audit).
+func (s *AdminStore) CreateOrphanInviteCode(
+	ctx context.Context,
+	targetRole string,
+	targetManagedBy *string,
+	issuedBy string,
+) (string, error) {
+	if targetRole == "" {
+		targetRole = "artist"
+	}
+	// Operator codes never carry target_managed_by — strip it.
+	if targetRole == "operator" {
+		targetManagedBy = nil
+	}
+	code, err := s.generateUniqueInviteCode(ctx)
 	if err != nil {
 		return "", err
 	}
 
 	// Insert an "approved" placeholder request to hold the invite code
 	_, err = s.pool.Exec(ctx, `
-		INSERT INTO access_requests (artist_name, status, invite_code, reviewed_at)
-		VALUES ('(direct invite)', 'approved', $1, NOW())
-	`, code)
+		INSERT INTO access_requests (artist_name, status, invite_code, reviewed_at,
+		                              target_role, target_managed_by, issued_by)
+		VALUES ('(direct invite)', 'approved', $1, NOW(), $2, $3, $4)
+	`, code, targetRole, targetManagedBy, nullableString(issuedBy))
 	if err != nil {
 		return "", fmt.Errorf("create orphan invite: %w", err)
 	}
@@ -289,7 +381,8 @@ func (s *AdminStore) CreateOrphanInviteCode(ctx context.Context) (string, error)
 // ListInviteCodes returns unused invite codes from approved access requests.
 func (s *AdminStore) ListInviteCodes(ctx context.Context) ([]map[string]interface{}, error) {
 	rows, err := s.pool.Query(ctx, `
-		SELECT id, artist_name, invite_code, reviewed_at
+		SELECT id, artist_name, invite_code, reviewed_at,
+		       COALESCE(target_role, 'artist'), target_managed_by, issued_by
 		FROM access_requests
 		WHERE status = 'approved' AND invite_code IS NOT NULL AND invite_used = FALSE
 		ORDER BY reviewed_at DESC
@@ -302,16 +395,21 @@ func (s *AdminStore) ListInviteCodes(ctx context.Context) ([]map[string]interfac
 	var codes []map[string]interface{}
 	for rows.Next() {
 		var id int
-		var artistName, code string
+		var artistName, code, targetRole string
 		var reviewedAt time.Time
-		if err := rows.Scan(&id, &artistName, &code, &reviewedAt); err != nil {
+		var targetManagedBy, issuedBy *string
+		if err := rows.Scan(&id, &artistName, &code, &reviewedAt,
+			&targetRole, &targetManagedBy, &issuedBy); err != nil {
 			return nil, fmt.Errorf("scan invite: %w", err)
 		}
 		codes = append(codes, map[string]interface{}{
-			"request_id":   id,
-			"artist_name":  artistName,
-			"invite_code":  code,
-			"created_at":   reviewedAt,
+			"request_id":        id,
+			"artist_name":       artistName,
+			"invite_code":       code,
+			"created_at":        reviewedAt,
+			"target_role":       targetRole,
+			"target_managed_by": targetManagedBy,
+			"issued_by":         issuedBy,
 		})
 	}
 	return codes, rows.Err()
@@ -384,4 +482,287 @@ func generateInviteCode() (string, error) {
 		return "", fmt.Errorf("generate invite code: %w", err)
 	}
 	return hex.EncodeToString(b), nil
+}
+
+// generateUniqueInviteCode generates a code and confirms it's not already in use.
+// Retries up to 3x on collision (extremely unlikely with 48 bits of entropy but defensive).
+func (s *AdminStore) generateUniqueInviteCode(ctx context.Context) (string, error) {
+	for attempt := 0; attempt < 3; attempt++ {
+		code, err := generateInviteCode()
+		if err != nil {
+			return "", err
+		}
+		var exists bool
+		if err := s.pool.QueryRow(ctx,
+			"SELECT EXISTS(SELECT 1 FROM access_requests WHERE invite_code = $1)", code,
+		).Scan(&exists); err != nil {
+			return "", fmt.Errorf("check invite collision: %w", err)
+		}
+		if !exists {
+			return code, nil
+		}
+	}
+	return "", fmt.Errorf("invite code collision: 3 attempts failed")
+}
+
+// nullableString returns a *string that's nil when the input is empty.
+func nullableString(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
+// ===== RedeemInviteCode =====
+
+// RedeemErr categorises redemption failures so callers can return appropriate HTTP statuses.
+type RedeemErr struct {
+	Code    string // "invalid_code" | "already_used" | "concurrent_redeem" | "already_managed_by_other"
+	Message string
+}
+
+func (e *RedeemErr) Error() string { return e.Message }
+
+// RedeemInviteCode atomically validates an invite code, marks it used, and inserts the
+// appropriate row (node_artists for artist/label, node_operators for operator).
+// pubkey is the verified caller (NIP-98). displayName is the artist_name / operator name.
+//
+// Returns:
+//   - *RedeemResult with Role + populated NodeArtist or NodeOperator on success
+//   - *RedeemErr with a Code categorising the failure on user-facing errors
+//   - generic error on internal/unexpected failures
+func (s *AdminStore) RedeemInviteCode(
+	ctx context.Context,
+	code, pubkey, displayName string,
+) (*RedeemResult, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// 1. Read + lock the access_requests row
+	var (
+		reqID           int
+		targetRole      string
+		targetManagedBy *string
+		status          string
+		inviteUsed      bool
+	)
+	err = tx.QueryRow(ctx, `
+		SELECT id, COALESCE(target_role, 'artist'), target_managed_by, status, invite_used
+		FROM access_requests
+		WHERE invite_code = $1
+		FOR UPDATE
+	`, code).Scan(&reqID, &targetRole, &targetManagedBy, &status, &inviteUsed)
+	if err != nil {
+		return nil, &RedeemErr{Code: "invalid_code", Message: "invite code not found"}
+	}
+	if status != "approved" {
+		return nil, &RedeemErr{Code: "invalid_code", Message: "invite code not approved"}
+	}
+	if inviteUsed {
+		return nil, &RedeemErr{Code: "already_used", Message: "invite code already used"}
+	}
+
+	// 2. Mark code used. Predicate guards against concurrent redeem winners.
+	tag, err := tx.Exec(ctx, `
+		UPDATE access_requests
+		SET invite_used = TRUE, reviewed_at = COALESCE(reviewed_at, NOW())
+		WHERE id = $1 AND invite_used = FALSE
+	`, reqID)
+	if err != nil {
+		return nil, fmt.Errorf("mark used: %w", err)
+	}
+	if tag.RowsAffected() != 1 {
+		return nil, &RedeemErr{Code: "concurrent_redeem", Message: "another session redeemed this code first"}
+	}
+
+	// 3. Branch on target_role: artist/label go to node_artists, operator to node_operators.
+	result := &RedeemResult{Role: targetRole}
+
+	if targetRole == "operator" {
+		_, err := tx.Exec(ctx, `
+			INSERT INTO node_operators (pubkey, name)
+			VALUES ($1, $2)
+			ON CONFLICT (pubkey) DO NOTHING
+		`, pubkey, displayName)
+		if err != nil {
+			return nil, fmt.Errorf("insert operator: %w", err)
+		}
+		var op NodeOperator
+		if err := tx.QueryRow(ctx,
+			"SELECT pubkey, name, added_at FROM node_operators WHERE pubkey = $1", pubkey,
+		).Scan(&op.Pubkey, &op.Name, &op.AddedAt); err != nil {
+			return nil, fmt.Errorf("read operator: %w", err)
+		}
+		result.NodeOperator = &op
+	} else {
+		// artist or label
+		// Check for existing row with conflicting managed_by
+		var existingManagedBy *string
+		var existingRole string
+		err := tx.QueryRow(ctx,
+			"SELECT COALESCE(role, 'artist'), managed_by FROM node_artists WHERE pubkey = $1",
+			pubkey,
+		).Scan(&existingRole, &existingManagedBy)
+		exists := err == nil
+
+		if exists && existingManagedBy != nil && targetManagedBy != nil &&
+			*existingManagedBy != *targetManagedBy {
+			return nil, &RedeemErr{
+				Code:    "already_managed_by_other",
+				Message: "this pubkey is already managed by a different label",
+			}
+		}
+
+		// INSERT or UPDATE — preserve existing managed_by if set, only upgrade role artist→label
+		_, err = tx.Exec(ctx, `
+			INSERT INTO node_artists (pubkey, artist_name, request_id, role, managed_by, status)
+			VALUES ($1, $2, $3, $4, $5, 'active')
+			ON CONFLICT (pubkey) DO UPDATE
+			SET managed_by = COALESCE(node_artists.managed_by, EXCLUDED.managed_by),
+			    role = CASE
+			      WHEN node_artists.role = 'artist' AND EXCLUDED.role = 'label' THEN 'label'
+			      ELSE node_artists.role
+			    END,
+			    request_id = COALESCE(node_artists.request_id, EXCLUDED.request_id)
+		`, pubkey, displayName, reqID, targetRole, targetManagedBy)
+		if err != nil {
+			return nil, fmt.Errorf("insert/update artist: %w", err)
+		}
+
+		var a NodeArtist
+		err = tx.QueryRow(ctx, `
+			SELECT pubkey, artist_name, request_id, fee_model, fee_value, status,
+			       COALESCE(role, 'artist'), COALESCE(custody, 'self'),
+			       managed_by, derivation_index, onboarded_at
+			FROM node_artists WHERE pubkey = $1
+		`, pubkey).Scan(&a.Pubkey, &a.ArtistName, &a.RequestID, &a.FeeModel, &a.FeeValue,
+			&a.Status, &a.Role, &a.Custody, &a.ManagedBy, &a.DerivationIndex, &a.OnboardedAt)
+		if err != nil {
+			return nil, fmt.Errorf("read artist: %w", err)
+		}
+		result.NodeArtist = &a
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit: %w", err)
+	}
+	return result, nil
+}
+
+// ===== Setup-token methods (first-run operator claim) =====
+
+// HasOperators reports whether any operator is configured on this node.
+func (s *AdminStore) HasOperators(ctx context.Context) (bool, error) {
+	var exists bool
+	err := s.pool.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM node_operators)").Scan(&exists)
+	return exists, err
+}
+
+// GenerateSetupToken creates a 32-byte hex setup token and stores it in setup_state.
+// Overwrites any existing token. Returns the token.
+func (s *AdminStore) GenerateSetupToken(ctx context.Context) (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("generate setup token: %w", err)
+	}
+	token := hex.EncodeToString(b)
+	_, err := s.pool.Exec(ctx, `
+		UPDATE setup_state
+		SET setup_token = $1, generated_at = NOW(), claimed_at = NULL
+		WHERE id = 1
+	`, token)
+	if err != nil {
+		return "", fmt.Errorf("store setup token: %w", err)
+	}
+	return token, nil
+}
+
+// GetSetupToken returns the current setup_token (or "" if none / already claimed).
+func (s *AdminStore) GetSetupToken(ctx context.Context) (string, error) {
+	var token *string
+	err := s.pool.QueryRow(ctx, "SELECT setup_token FROM setup_state WHERE id = 1").Scan(&token)
+	if err != nil {
+		return "", err
+	}
+	if token == nil {
+		return "", nil
+	}
+	return *token, nil
+}
+
+// ClearSetupToken removes the current setup token (called on successful claim or when an
+// operator already exists so a stale token isn't usable).
+func (s *AdminStore) ClearSetupToken(ctx context.Context) error {
+	_, err := s.pool.Exec(ctx, `
+		UPDATE setup_state SET setup_token = NULL WHERE id = 1
+	`)
+	return err
+}
+
+// ClaimFirstOperator atomically claims the first operator slot using the setup token.
+// Returns *RedeemErr with categorised codes for user-facing failures, or generic error otherwise.
+func (s *AdminStore) ClaimFirstOperator(
+	ctx context.Context,
+	token, pubkey, name string,
+) (*NodeOperator, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// Lock setup_state row + verify token
+	var stored *string
+	err = tx.QueryRow(ctx,
+		"SELECT setup_token FROM setup_state WHERE id = 1 FOR UPDATE",
+	).Scan(&stored)
+	if err != nil {
+		return nil, fmt.Errorf("read setup_state: %w", err)
+	}
+	if stored == nil || *stored == "" {
+		return nil, &RedeemErr{Code: "no_token", Message: "no setup token active (already claimed?)"}
+	}
+	if *stored != token {
+		return nil, &RedeemErr{Code: "invalid_token", Message: "setup token does not match"}
+	}
+
+	// Confirm no operator exists yet (race guard)
+	var hasOps bool
+	if err := tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM node_operators)").Scan(&hasOps); err != nil {
+		return nil, fmt.Errorf("check operators: %w", err)
+	}
+	if hasOps {
+		return nil, &RedeemErr{Code: "already_claimed", Message: "node already has an operator"}
+	}
+
+	// Insert operator
+	if _, err := tx.Exec(ctx,
+		"INSERT INTO node_operators (pubkey, name) VALUES ($1, $2)",
+		pubkey, name,
+	); err != nil {
+		return nil, fmt.Errorf("insert operator: %w", err)
+	}
+
+	// Clear token
+	if _, err := tx.Exec(ctx,
+		"UPDATE setup_state SET setup_token = NULL, claimed_at = NOW() WHERE id = 1",
+	); err != nil {
+		return nil, fmt.Errorf("clear token: %w", err)
+	}
+
+	// Read back
+	var op NodeOperator
+	if err := tx.QueryRow(ctx,
+		"SELECT pubkey, name, added_at FROM node_operators WHERE pubkey = $1", pubkey,
+	).Scan(&op.Pubkey, &op.Name, &op.AddedAt); err != nil {
+		return nil, fmt.Errorf("read operator: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit: %w", err)
+	}
+	return &op, nil
 }

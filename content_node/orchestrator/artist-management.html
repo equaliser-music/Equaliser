@@ -22,6 +22,10 @@
                     <p class="page-description" id="page-description">Manage artists you can administer on this node</p>
                 </div>
                 <div class="header-actions">
+                    <button class="btn btn-primary" onclick="openAddExistingModal()">
+                        <svg fill="currentColor" viewBox="0 0 20 20"><path d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"/></svg>
+                        Add Existing Artist
+                    </button>
                     <button class="btn btn-secondary" onclick="loadArtists()">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                         Refresh
@@ -82,9 +86,49 @@
         </div>
     </div>
 
+    <!-- Add Existing Artist Modal -->
+    <div class="modal-backdrop" id="add-existing-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Add Existing Artist to Roster</div>
+                <button class="modal-close" onclick="closeAddExistingModal()">&times;</button>
+            </div>
+            <p class="page-description" style="margin-bottom:16px">
+                For artists who already have a NOSTR identity. Generates a roster invite code with you as their managing label. Share the code with them out-of-band; they redeem it at <code>/admin/redeem.html</code> and become part of your roster.
+            </p>
+
+            <div class="form-group">
+                <label class="form-label">Artist Name</label>
+                <input type="text" class="form-input" id="add-existing-name" placeholder="For your reference only">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Artist npub (optional)</label>
+                <input type="text" class="form-input" id="add-existing-npub" placeholder="npub1...">
+                <p class="page-description" style="margin-top:6px">Optional, just for record-keeping.</p>
+            </div>
+
+            <!-- Generated code reveal -->
+            <div id="add-existing-code-area" style="display:none">
+                <div class="notice notice-success">
+                    Code generated. Share it with the artist:
+                </div>
+                <div class="code-display">
+                    <span class="code-text" id="add-existing-code-text"></span>
+                    <button class="copy-btn" onclick="copyAddExistingCode()">Copy</button>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeAddExistingModal()">Close</button>
+                <button class="btn btn-primary" id="add-existing-generate-btn" onclick="generateRosterCode()">Generate Code</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/nostr-tools@2.7.2/lib/nostr.bundle.js"></script>
-    <script src="js/session.js"></script>
-    <script src="js/admin-sidebar.js"></script>
+    <script src="/common/js/session.js"></script>
+    <script src="/common/js/admin-sidebar.js"></script>
     <script>
         let artistsCache = [];
         let editingPubkey = null;
@@ -298,6 +342,66 @@
 
         function escapeHtml(s) {
             return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+        }
+
+        // ===== Add Existing Artist (Phase A) =====
+
+        function openAddExistingModal() {
+            document.getElementById('add-existing-name').value = '';
+            document.getElementById('add-existing-npub').value = '';
+            document.getElementById('add-existing-code-area').style.display = 'none';
+            document.getElementById('add-existing-code-text').textContent = '';
+            const btn = document.getElementById('add-existing-generate-btn');
+            btn.disabled = false;
+            btn.textContent = 'Generate Code';
+            document.getElementById('add-existing-modal').classList.add('visible');
+        }
+
+        function closeAddExistingModal() {
+            document.getElementById('add-existing-modal').classList.remove('visible');
+            // If we generated a code, refresh the artists list (no immediate row but for consistency)
+            loadArtists();
+        }
+
+        async function generateRosterCode() {
+            const name = document.getElementById('add-existing-name').value.trim();
+            if (!name) { showNotice('error', 'Artist name is required'); return; }
+
+            const btn = document.getElementById('add-existing-generate-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Generating';
+
+            try {
+                const body = JSON.stringify({
+                    artist_name: name,
+                    npub: document.getElementById('add-existing-npub').value.trim() || undefined,
+                });
+                const resp = await SessionManager.authFetch('/api/label/add-existing-artist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body,
+                });
+                if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({}));
+                    throw new Error(err.detail || `HTTP ${resp.status}`);
+                }
+                const data = await resp.json();
+                const code = data.invite_code || data.code;
+                document.getElementById('add-existing-code-text').textContent = code;
+                document.getElementById('add-existing-code-area').style.display = 'block';
+                btn.textContent = 'Done';
+                btn.disabled = false;
+                btn.onclick = closeAddExistingModal;
+            } catch (e) {
+                showNotice('error', `Generate failed: ${e.message}`);
+                btn.disabled = false;
+                btn.textContent = 'Generate Code';
+            }
+        }
+
+        function copyAddExistingCode() {
+            const code = document.getElementById('add-existing-code-text').textContent;
+            navigator.clipboard.writeText(code).then(() => showNotice('success', 'Code copied'));
         }
     </script>
 </body>

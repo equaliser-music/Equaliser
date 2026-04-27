@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equaliser - Claim Node</title>
+    <link rel="stylesheet" href="css/admin-base.css">
+    <style>
+        body { display: flex; align-items: center; justify-content: center; }
+        .setup-card {
+            max-width: 560px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 36px;
+            margin: 32px auto;
+        }
+        .setup-card h1 { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+        .setup-card p.lead { color: rgba(255, 255, 255, 0.6); margin-bottom: 24px; }
+        .help-box {
+            background: rgba(59, 130, 246, 0.08);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            color: #93c5fd;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+        .help-box code { background: rgba(0,0,0,0.3); padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+        .step { display: none; }
+        .step.active { display: block; }
+        .keys-display {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 14px;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            word-break: break-all;
+            margin-bottom: 16px;
+        }
+        .keys-display .key-label { color: rgba(255, 255, 255, 0.4); display: block; margin-bottom: 4px; font-family: inherit; font-size: 11px; }
+        .keys-display .key-value { display: block; margin-bottom: 12px; }
+        .keys-display .key-value:last-child { margin-bottom: 0; }
+        .or-divider { text-align: center; color: rgba(255, 255, 255, 0.3); font-size: 12px; margin: 16px 0; text-transform: uppercase; letter-spacing: 1px; }
+    </style>
+</head>
+<body>
+    <div class="setup-card">
+        <h1>Claim This Node</h1>
+        <p class="lead">No operator is configured yet. Use the setup token from your relay logs to claim this node as the first operator.</p>
+
+        <div id="notice-area"></div>
+
+        <!-- Step 1: token + identity -->
+        <div class="step active" id="step-claim">
+            <div class="help-box">
+                <strong>Where's the token?</strong>
+                Run <code>docker logs equaliser-relay 2>&amp;1 | grep "Enter setup token"</code>
+                or <code>docker exec equaliser-relay cat /data/setup-token.txt</code>.
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Setup Token</label>
+                <input type="text" class="form-input" id="token-input" placeholder="64-character hex token..." autocomplete="off">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Operator Name (optional)</label>
+                <input type="text" class="form-input" id="name-input" placeholder="Your name or organisation" value="Node Operator">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Identity</label>
+                <p class="page-description" style="margin-bottom:8px">Use an existing nsec or generate a fresh keypair.</p>
+                <input type="password" class="form-input" id="nsec-input" placeholder="nsec1... (or leave blank to generate)" autocomplete="off">
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-primary" id="claim-btn" onclick="claimNode()">Claim Node</button>
+                <button class="btn btn-secondary" id="extension-btn" onclick="claimWithExtension()">Use Extension</button>
+            </div>
+        </div>
+
+        <!-- Step 2: backup download (mandatory) -->
+        <div class="step" id="step-backup">
+            <h2 style="font-size:18px; margin-bottom:8px">Save Your Backup</h2>
+            <p class="page-description" style="margin-bottom:16px">
+                You're now the operator of this node. Save your backup file before continuing — it's the only way to recover access if you lose your nsec.
+            </p>
+
+            <div class="keys-display" id="backup-keys"></div>
+
+            <div class="notice notice-info" style="margin-bottom:16px">
+                <strong>Important:</strong> Email-based recovery is not available yet. Without this backup file AND your nsec, you'll need shell/psql access to recover.
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-primary" id="download-btn" onclick="downloadBackup()">Download Backup</button>
+                <button class="btn btn-secondary" id="continue-btn" onclick="goToDashboard()" disabled>I've Saved My Backup &rarr;</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/nostr-tools@2.7.2/lib/nostr.bundle.js"></script>
+    <script>window.EQ_SURFACE = 'admin';</script>
+    <script src="/common/js/session.js"></script>
+    <script>
+        let claimedNsec = null;
+        let claimedPubkey = null;
+        let claimedName = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            SessionManager.init();
+
+            // If a setup token isn't actually needed, redirect away
+            try {
+                const resp = await fetch('/api/access/setup-status');
+                const data = await resp.json();
+                if (!data.needs_setup) {
+                    showNotice('info', 'This node is already claimed. Redirecting to login…');
+                    setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+                    return;
+                }
+            } catch (e) {
+                showNotice('error', 'Could not reach the orchestrator. Is it running?');
+            }
+        });
+
+        async function claimNode() {
+            const token = document.getElementById('token-input').value.trim();
+            const name = document.getElementById('name-input').value.trim() || 'Node Operator';
+            const nsecInput = document.getElementById('nsec-input').value.trim();
+            const btn = document.getElementById('claim-btn');
+
+            if (!token) { showNotice('error', 'Setup token is required.'); return; }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Claiming…';
+
+            try {
+                let nsec = nsecInput;
+                if (!nsec) {
+                    // Generate fresh keypair
+                    const sk = NostrTools.generateSecretKey();
+                    nsec = NostrTools.nip19.nsecEncode(sk);
+                }
+                await SessionManager.createSessionFromNsec(nsec);
+                claimedNsec = nsec;
+                claimedPubkey = SessionManager.getSession().publicKey;
+                claimedName = name;
+                await submitClaim(token, name);
+            } catch (e) {
+                showNotice('error', e.message);
+                btn.disabled = false;
+                btn.textContent = 'Claim Node';
+            }
+        }
+
+        async function claimWithExtension() {
+            const token = document.getElementById('token-input').value.trim();
+            const name = document.getElementById('name-input').value.trim() || 'Node Operator';
+            if (!token) { showNotice('error', 'Setup token is required.'); return; }
+
+            try {
+                await SessionManager.createSessionFromExtension();
+                claimedNsec = null;
+                claimedPubkey = SessionManager.getSession().publicKey;
+                claimedName = name;
+                await submitClaim(token, name);
+            } catch (e) {
+                showNotice('error', e.message);
+            }
+        }
+
+        async function submitClaim(token, name) {
+            const body = JSON.stringify({ token, name });
+            const resp = await SessionManager.authFetch('/api/access/claim-operator', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body,
+            });
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({}));
+                throw new Error(err.detail || `HTTP ${resp.status}`);
+            }
+            const op = await resp.json();
+            showNotice('success', `Claimed: ${op.pubkey.slice(0, 8)}…`);
+            // Show backup step
+            document.getElementById('step-claim').classList.remove('active');
+            document.getElementById('step-backup').classList.add('active');
+            renderBackupKeys();
+        }
+
+        function renderBackupKeys() {
+            const npub = SessionManager.getSession().npub;
+            const sessionType = SessionManager.getSession().type;
+            let html = '';
+            html += '<span class="key-label">Public Key (npub)</span><span class="key-value">' + escapeHtml(npub) + '</span>';
+            html += '<span class="key-label">Hex Pubkey</span><span class="key-value">' + escapeHtml(claimedPubkey) + '</span>';
+            if (sessionType === 'nsec' && claimedNsec) {
+                html += '<span class="key-label">Private Key (nsec) — KEEP SECRET</span><span class="key-value" style="color:#fbbf24">' + escapeHtml(claimedNsec) + '</span>';
+            } else {
+                html += '<span class="key-label">Identity</span><span class="key-value">NIP-07 extension (no nsec to back up — manage in your extension)</span>';
+            }
+            document.getElementById('backup-keys').innerHTML = html;
+        }
+
+        function downloadBackup() {
+            const sessionType = SessionManager.getSession().type;
+            if (sessionType !== 'nsec' || !claimedNsec) {
+                showNotice('info', 'Extension users: back up your keys via your NIP-07 extension. Continue to dashboard when ready.');
+                document.getElementById('continue-btn').disabled = false;
+                return;
+            }
+            const npub = SessionManager.getSession().npub;
+            const backup = {
+                version: 1,
+                role: 'operator',
+                node: window.location.origin,
+                created_at: new Date().toISOString(),
+                keys: {
+                    nsec: claimedNsec,
+                    npub,
+                    publicKeyHex: claimedPubkey,
+                },
+                profile: {
+                    name: claimedName,
+                },
+            };
+            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const safe = (claimedName || 'operator').toLowerCase().replace(/\s+/g, '-');
+            a.download = `equaliser-operator-backup-${safe}-${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showNotice('success', 'Backup downloaded. Keep it safe.');
+            document.getElementById('continue-btn').disabled = false;
+        }
+
+        function goToDashboard() {
+            window.location.href = 'dashboard.html';
+        }
+
+        function showNotice(type, msg) {
+            const area = document.getElementById('notice-area');
+            area.innerHTML = `<div class="notice notice-${type}">${escapeHtml(msg)}</div>`;
+            if (type === 'success') setTimeout(() => { area.innerHTML = ''; }, 4000);
+        }
+        function escapeHtml(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+        }
+    </script>
+</body>
+</html>
