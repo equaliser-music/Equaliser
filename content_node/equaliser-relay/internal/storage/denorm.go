@@ -53,16 +53,25 @@ func (p *DenormParser) ParseEvent(ctx context.Context, tx pgx.Tx, event *nostr.E
 	}
 }
 
-// parseProfile routes a Kind 0 event to cached_artists or cached_users
-// based on the ["user-type", "artist"] tag.
+// parseProfile routes a Kind 0 event to the right denormalised table based on
+// the ["user-type", X] tag:
+//   - "artist" → cached_artists
+//   - "label" / "operator" → no denorm cache (lookups go through node_artists / node_operators
+//     joined with raw_events directly; the role tables already track them)
+//   - missing / "listener" → cached_users (only if registered)
 func (p *DenormParser) parseProfile(ctx context.Context, tx pgx.Tx, event *nostr.Event) error {
 	userType := event.GetTagValue("user-type")
 
-	if userType == "artist" {
+	switch userType {
+	case "artist":
 		return p.parseArtistProfile(ctx, tx, event)
+	case "label", "operator":
+		// Role-bearing identities — Kind 0 stays in raw_events only.
+		// Admin pages query raw_events directly by pubkey.
+		return nil
 	}
 
-	// No user-type tag → listener profile. Only cache if registered.
+	// No user-type tag (or unrecognised) → listener profile. Only cache if registered.
 	return p.parseUserProfile(ctx, tx, event)
 }
 

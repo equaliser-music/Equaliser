@@ -16,6 +16,12 @@
 const AdminSidebar = {
     _container: null,
     _durationInterval: null,
+    // Cache the last updateArtistDisplay args so re-renders (after fetchRole resolves)
+    // don't clobber the name/avatar that pages have already set. Without this, a race
+    // between dashboard.loadProfile() and SessionManager.fetchRole() leaves the sidebar
+    // stuck on "Loading…" half the time.
+    _lastDisplayName: null,
+    _lastDisplayAvatar: null,
 
     /**
      * Initialize and render the sidebar
@@ -46,6 +52,55 @@ const AdminSidebar = {
                 // fetchRole already falls back to 'artist' on error
                 this._createSidebar();
             });
+
+        // Fetch the user's own Kind 0 and populate the profile card.
+        // Runs on every admin page load (each navigation is a fresh JS context),
+        // so the sidebar stays populated across navigation. Idempotent + cached.
+        this._loadOwnProfile();
+    },
+
+    /**
+     * Fetch the logged-in user's Kind 0 from the relay cache and populate the
+     * sidebar profile card. Works for artist/label/operator alike — queries
+     * raw_events via /api/cache/events?kinds=0&authors=<pubkey> so it works
+     * regardless of denorm routing (artist→cached_artists; label/operator→none).
+     *
+     * Caches the result in sessionStorage to make navigation snappy and avoid
+     * a flash of "Loading…" on every page.
+     */
+    async _loadOwnProfile() {
+        const session = SessionManager.getSession();
+        if (!session) return;
+
+        const cacheKey = 'equaliser_admin_profile_' + session.publicKey;
+
+        // First-paint from cache (instant, no network)
+        try {
+            const cached = sessionStorage.getItem(cacheKey);
+            if (cached) {
+                const p = JSON.parse(cached);
+                if (p.name || p.picture) this.updateArtistDisplay(p.name, p.picture);
+            }
+        } catch (e) { /* ignore */ }
+
+        // Background refresh from relay
+        try {
+            const url = '/api/cache/events?kinds=0&authors=' + encodeURIComponent(session.publicKey) + '&limit=1';
+            const resp = await fetch(url);
+            if (!resp.ok) return;
+            const data = await resp.json();
+            const events = data.events || data || [];
+            if (!events.length) return;
+            const profile = JSON.parse(events[0].content || '{}');
+            const name = profile.display_name || profile.name || null;
+            const picture = profile.picture || null;
+            if (name || picture) {
+                this.updateArtistDisplay(name, picture);
+                sessionStorage.setItem(cacheKey, JSON.stringify({ name, picture }));
+            }
+        } catch (e) {
+            // Silent — sidebar just stays as-is or shows "New Artist" fallback
+        }
     },
 
     /**
@@ -70,6 +125,12 @@ const AdminSidebar = {
 
         this._container.innerHTML = this._getSidebarHTML(session);
         this._injectStyles();
+
+        // Re-apply the last name/avatar after re-render so the role-fetch
+        // re-render doesn't clobber what the page has already set.
+        if (this._lastDisplayName !== null || this._lastDisplayAvatar !== null) {
+            this._applyArtistDisplay(this._lastDisplayName, this._lastDisplayAvatar);
+        }
     },
 
     /**
@@ -286,8 +347,14 @@ const AdminSidebar = {
             </div>
         `;
 
+        // Hide "Manage Artist" for operators with nothing to manage — links would
+        // just point at empty Dashboard/Releases pages. Labels keep theirs (they can
+        // always edit their own label profile). Artists always see "Manage" (their own).
+        const managed = SessionManager.getManagedArtists();
+        const showManageArtist = role !== 'operator' || managed.length > 0;
+
         if (role === 'operator') {
-            return manageArtistNav + labelAdminNav + nodeAdminNav;
+            return (showManageArtist ? manageArtistNav : '') + labelAdminNav + nodeAdminNav;
         }
         if (role === 'label') {
             return manageArtistNav + labelAdminNav;
@@ -650,9 +717,17 @@ const AdminSidebar = {
     },
 
     /**
-     * Update artist display in sidebar
+     * Update artist display in sidebar.
+     * Caches the args so subsequent re-renders preserve the name/avatar.
      */
     updateArtistDisplay(name, avatarUrl) {
+        this._lastDisplayName = name;
+        this._lastDisplayAvatar = avatarUrl;
+        this._applyArtistDisplay(name, avatarUrl);
+    },
+
+    /** DOM-only update; doesn't touch the cache (called by both updateArtistDisplay and re-render) */
+    _applyArtistDisplay(name, avatarUrl) {
         const nameEl = document.getElementById('sidebar-name');
         const avatarEl = document.getElementById('sidebar-avatar');
 

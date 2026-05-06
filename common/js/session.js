@@ -153,6 +153,25 @@ const SessionManager = {
         this._rolePromise = (async () => {
             try {
                 const resp = await this.authFetch('/api/auth/whoami');
+
+                // Strict mode: 403 with reason=no_role_on_node means this pubkey has no
+                // node_artists/node_operators row. Redirect to /admin/redeem.html so the
+                // user can enter an invite code. (Only on the admin surface; only when not
+                // already on a public/auth page to avoid redirect loops.)
+                if (resp.status === 403 && this._isAdminSurface()) {
+                    let reason = null;
+                    try {
+                        const err = await resp.json();
+                        reason = (err.detail && err.detail.reason) || err.detail;
+                    } catch (e) { /* ignore */ }
+                    if (reason === 'no_role_on_node' && !this._isOnAuthPage()) {
+                        const here = window.location.pathname.split('/').pop() || 'dashboard.html';
+                        window.location.href = '/admin/redeem.html?return=' + encodeURIComponent(here);
+                        // Block further code from running while the navigation completes
+                        return new Promise(() => {});
+                    }
+                }
+
                 if (!resp.ok) {
                     throw new Error(`whoami HTTP ${resp.status}`);
                 }
@@ -174,12 +193,16 @@ const SessionManager = {
                 this._persistRole();
                 return { role: this._role, managedArtists: this._managedArtists };
             } catch (e) {
-                // Fallback: treat as artist with self-only access
-                this._role = 'artist';
-                this._managedArtists = [this._session.publicKey];
-                this._selectedArtistPubkey = this._session.publicKey;
-                this._persistRole();
-                console.warn('fetchRole failed, defaulting to artist:', e.message);
+                // Network failure or non-403 error — keep cached role if any, otherwise
+                // be conservative: don't fabricate a role on the admin surface (the
+                // strict gate is the source of truth). On the client surface, listener
+                // mode is the natural fallback (no role state needed).
+                if (this._isAdminSurface()) {
+                    console.warn('fetchRole failed on admin surface:', e.message);
+                } else {
+                    this._role = 'listener';
+                    this._managedArtists = [];
+                }
                 return { role: this._role, managedArtists: this._managedArtists };
             } finally {
                 this._rolePromise = null;
@@ -194,6 +217,28 @@ const SessionManager = {
      */
     getRole() {
         return this._role;
+    },
+
+    /**
+     * Are we running on the admin surface? Pages opt in via `<script>window.EQ_SURFACE = 'admin';</script>`
+     * before session.js loads. The /admin/* path is also treated as admin even if the flag is missing
+     * (defensive — covers any HTML that forgot the opt-in).
+     */
+    _isAdminSurface() {
+        return window.EQ_SURFACE === 'admin' || window.location.pathname.startsWith('/admin');
+    },
+
+    /**
+     * Are we already on a public auth page where the redeem-redirect would loop?
+     */
+    _isOnAuthPage() {
+        const path = window.location.pathname;
+        return path.includes('/redeem.html')
+            || path.includes('/setup.html')
+            || path.includes('/login.html')
+            || path.includes('/onboarding.html')
+            || path === '/join'
+            || path.endsWith('/join.html');
     },
 
     /**

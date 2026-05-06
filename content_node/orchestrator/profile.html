@@ -1137,11 +1137,17 @@
             // Build profile content
             const profileContent = buildProfileContent();
 
+            // Set user-type tag from the actual role on this node — not a hardcoded "artist".
+            // Drives relay denorm routing (artist → cached_artists; label/operator stay in raw_events).
+            // Falls back to 'artist' if role hasn't loaded yet (defensive).
+            const role = SessionManager.getRole() || 'artist';
+            const tags = [['app', 'Equaliser'], ['user-type', role]];
+
             // Create Kind 0 event
             const event = {
                 kind: 0,
                 created_at: Math.floor(Date.now() / 1000),
-                tags: [['app', 'Equaliser'], ['user-type', 'artist']],
+                tags,
                 content: JSON.stringify(profileContent),
                 pubkey: SessionManager.getSession().publicKey
             };

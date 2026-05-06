@@ -1222,11 +1222,16 @@
                 profileContent.equaliser.joinedDate = new Date().toISOString().split('T')[0];
             }
 
+            // user-type tag derived from the redeemed invite's target_role
+            // (set on the access_request when an operator approved it). Defaults to 'artist'
+            // for the rare case the preview is missing.
+            const userType = (invitePreview && invitePreview.target_role) || 'artist';
+
             // Create Kind 0 event
             const event = {
                 kind: 0,
                 created_at: Math.floor(Date.now() / 1000),
-                tags: [['app', 'Equaliser'], ['user-type', 'artist']],
+                tags: [['app', 'Equaliser'], ['user-type', userType]],
                 content: JSON.stringify(profileContent)
             };
 
