@@ -110,8 +110,8 @@ FastAPI app. CORS allow-all (dev). Initialises database + node identity on start
 
 | Method | Endpoint | Auth | Purpose |
 |--------|----------|------|---------|
-| POST | `/api/access/request` | none | Public — create an `access_requests` row from `/join` form. Body: `{requested_role, artist_name, email, npub, description, links}`. `requested_role ∈ {artist, label}`; `operator` rejected (cannot self-apply). |
-| GET | `/api/access/check-invite?code=...` | none | Public preview — returns `{valid, target_role, target_managed_by, issuer_name}` or 404. Used by `redeem.html`/`onboarding.html` Step 0. |
+| POST | `/api/access/request` | none | Public — create an `access_requests` row from `/join` form. Body: `{requested_role, artist_name, email, npub, description, links, target_relationship_type?}`. `requested_role ∈ {artist, label}`; `operator` rejected (cannot self-apply). `target_relationship_type` (Phase G) defaults to `managed`; coerced to `self` for label applications. |
+| GET | `/api/access/check-invite?code=...` | none | Public preview — returns `{valid, target_role, target_managed_by, target_relationship_type, issuer_name}` or 404. Used by `redeem.html`/`onboarding.html` Step 0. |
 | POST | `/api/access/redeem` | NIP-98 | Body: `{code, display_name}`. Verified pubkey + code → atomic redeem in relay. Returns RedeemResult with `node_artist` or `node_operator`. |
 | GET | `/api/access/setup-status` | none | `{needs_setup: bool}` — used by login/dashboard/setup pages to detect fresh-deploy state. |
 | POST | `/api/access/claim-operator` | NIP-98 | Body: `{token, name}`. Token from `/data/setup-token.txt` or relay logs. Claims first operator slot. |
@@ -121,15 +121,15 @@ FastAPI app. CORS allow-all (dev). Initialises database + node identity on start
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
 | GET | `/api/label/artists` | List managed artists. Operator sees all; label sees those where `managed_by` = caller pubkey |
-| GET | `/api/label/artists/{pubkey}` | Get single artist details |
-| PATCH | `/api/label/artists/{pubkey}` | Update status (active/suspended), fee_model (free/percentage/flat_rate), fee_value |
+| GET | `/api/label/artists/{pubkey}` | Get single artist details (includes `relationship_type`) |
+| PATCH | `/api/label/artists/{pubkey}` | Update status (active/suspended), fee_model (free/percentage/flat_rate), fee_value, `relationship_type` (self/managed/signed). Operator-only: `managed_by` transfer (empty string clears, hex sets) — used for label switches (Magic→Sony). |
 | GET | `/api/label/access-requests?status=` | List access requests (filter: pending/approved/declined) |
 | GET | `/api/label/access-requests/{id}` | Get single request |
-| POST | `/api/label/access-requests/{id}/approve` | Approve, generate 12-char hex invite code. Body: `{admin_notes, target_role, target_managed_by}`. `target_role` defaults to `requested_role`; `label`/`operator` require operator caller. Records `issued_by` = caller pubkey. |
+| POST | `/api/label/access-requests/{id}/approve` | Approve, generate 12-char hex invite code. Body: `{admin_notes, target_role, target_managed_by, target_relationship_type}`. `target_role` defaults to `requested_role`; `label`/`operator` require operator caller. `target_relationship_type` defaults to the request's value (Phase G), normalised to `self` for operator/standalone-label codes. Records `issued_by` = caller pubkey. |
 | POST | `/api/label/access-requests/{id}/decline` | Decline with optional admin_notes |
-| GET | `/api/label/invite-codes` | List unused invite codes (includes target_role, target_managed_by, issued_by) |
-| POST | `/api/label/invite-codes` | Generate orphan invite code. Body: `{target_role, target_managed_by}`. Operator-only constraint: `target_role ∈ {label, operator}` rejected for non-operator callers. Operator codes never carry `target_managed_by`. |
-| POST | `/api/label/add-existing-artist` | (Phase A) Generate roster invite code with `target_managed_by = caller pubkey`. Body: `{artist_name, npub?}`. Label shares code OOB; existing-pubkey artist redeems via `/admin/redeem.html`. |
+| GET | `/api/label/invite-codes` | List unused invite codes (includes target_role, target_managed_by, target_relationship_type, issued_by) |
+| POST | `/api/label/invite-codes` | Generate orphan invite code. Body: `{target_role, target_managed_by, target_relationship_type}`. Operator-only constraint: `target_role ∈ {label, operator}` rejected for non-operator callers. Operator codes never carry `target_managed_by` and are always `relationship_type=self`. |
+| POST | `/api/label/add-existing-artist` | (Phase A) Generate roster invite code with `target_managed_by = caller pubkey`. Body: `{artist_name, npub?, relationship_type}` — `relationship_type ∈ {managed, signed}` (Phase G picker: managed = NIP-26 delegation, signed = label owns recording). Label shares code OOB; existing-pubkey artist redeems via `/admin/redeem.html`. |
 
 **operator.py** — Operator admin (requires operator role or `X-Admin-Token`):
 
@@ -141,6 +141,27 @@ FastAPI app. CORS allow-all (dev). Initialises database + node identity on start
 | GET | `/api/operator/ipfs/stats` | IPFS repo/stat, pin count + sample, swarm peer count, peer ID — proxies IPFS HTTP API |
 | GET | `/api/operator/blossom/status` | Blossom server reachability check (URL, public URL, http_status) |
 | GET | `/api/operator/settings` | Read-only env config (node name, service URLs, standard relays, CORS origins). No sensitive values exposed |
+
+**delegations.py** — NIP-26 label-on-behalf-of-artist delegation lifecycle (Phase F):
+
+| Method | Endpoint | Auth | Purpose |
+|--------|----------|------|---------|
+| POST | `/api/delegations/request` | NIP-98 (label/operator) | Body `{artist_pubkey, requested_kinds?, duration_days?, note?}`. Creates a pending request. `ctx.can_manage(artist)` enforced. |
+| GET | `/api/delegations/incoming?status=pending` | NIP-98 (any pubkey) | Caller-as-artist: list requests aimed at them. |
+| GET | `/api/delegations/outgoing` | NIP-98 (label/operator) | Caller-as-label: list requests they've issued. |
+| POST | `/api/delegations/{id}/grant` | NIP-98 (artist) | Body `{conditions, signature}`. Server verifies delegation signature, marks request granted, upserts `artist_delegations`. |
+| POST | `/api/delegations/{id}/decline` | NIP-98 (artist) | |
+| GET | `/api/delegations/active` | NIP-98 (label/operator) | Caller's active delegations — used when constructing publishable events. |
+| GET | `/api/delegations/active/{artist_pubkey}` | NIP-98 (label/operator) | Specific active delegation for one artist. 404 if none. |
+| POST | `/api/delegations/{artist_pubkey}/revoke?label_pubkey=...` | NIP-98 (artist) | Artist revokes (caller pubkey must equal `artist_pubkey`). |
+
+`tracks.publish` is a 3-way router covering self-publish + the two label-on-behalf flows:
+
+1. **Self-publish** (`event.pubkey == ctx.pubkey`, no delegation/performer tag): caller publishes under their own identity. `ctx.can_manage(event.pubkey)` enforced.
+2. **Phase F — Managed (NIP-26 delegation)**: event signed by caller (the label) with a `["delegation", artist_pubkey, conditions, signature]` tag. Verified via `services/nip26.py:verify_event_delegation` AND cross-checked against the active server-side record (revoked delegations rejected).
+3. **Phase G — Signed (performer tag)**: event signed by caller (the label) with a `["p", artist_pubkey, "", "performer"]` tag and NO delegation tag. Strict-mode gate: `node_artists[performer].managed_by == ctx.pubkey` — only the artist's current label can publish. Other labels get 403 `not_current_label`.
+
+Delegation and performer tags are mutually exclusive (publish returns 400 if both are present). The relay's denorm parser independently honours either tag and routes the track to the artist's `cached_tracks` row (with `event.pubkey` recorded as both `published_by` and `label_pubkey` — the latter is the consistent who-signed column across F + G).
 
 **Authorization dependencies** (`dependencies.py`):
 - `require_auth` — NIP-98 only, returns pubkey (existing)
@@ -198,6 +219,7 @@ All pages use shared `/common/js/session.js` and `/common/js/admin-sidebar.js` (
 | `blossom-config.html` | (Operator) Blossom server status. Mirroring config is deferred (placeholder card linking to NODE-MANAGEMENT-SPEC.md Section 7). |
 | `user-cache.html` | (Operator) Paginated table of registered listeners (npub, pubkey, registered, last seen, enabled). |
 | `node-settings.html` | (Operator) Read-only env config: Node, Service URLs, Standard Relays, CORS Origins. No write API — change env vars and restart containers. |
+| `delegations.html` | (Phase F — artist) NIP-26 delegation inbox, surfaced as "Manager Authorizations" in the sidebar (renamed in Phase G to distinguish from signed-to-label relationships). Lists pending requests from labels (with kinds/duration/note), artist clicks Grant → signs locally with `signDelegation` → POSTs to /api/delegations/{id}/grant. Active delegations also listed with Revoke button. Loads `@noble/curves` schnorr from esm.sh as an ES module to enable client-side BIP-340 signing of the canonical NIP-26 message (nostr-tools' bundle doesn't expose schnorr). File name kept (`delegations.html`); UI copy uses "Manager Authorization". |
 
 ## Shared JS — top-level [common/js/](../common/) directory
 

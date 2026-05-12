@@ -56,6 +56,10 @@ type TrackResult struct {
 	CoverArtCID     string `json:"cover_art_cid,omitempty"`
 	ReleaseDate     string `json:"release_date,omitempty"`
 	CreatedAt       int64  `json:"created_at"`
+	// Phase G — pubkey of the label that signed this recording (NULL for self-published tracks).
+	// Populated for both Phase F (NIP-26 delegation) and Phase G (performer tag) cases —
+	// consistent "who signed this recording" attribution for badges and reporting.
+	LabelPubkey     *string `json:"label_pubkey,omitempty"`
 	RawEvent        json.RawMessage `json:"raw_event,omitempty"`
 }
 
@@ -452,7 +456,8 @@ func (s *UserStore) GetRecentTracks(ctx context.Context, limit int) ([]TrackResu
 func (s *UserStore) queryTracks(ctx context.Context, whereClause string, args ...interface{}) ([]TrackResult, error) {
 	query := `
 		SELECT event_id, artist_pubkey, d_tag, title, album, genre, duration, price_sats,
-			ipfs_manifest_cid, ipfs_preview_cid, cover_art_cid, release_date, created_at, raw_event
+			ipfs_manifest_cid, ipfs_preview_cid, cover_art_cid, release_date, created_at,
+			label_pubkey, raw_event
 		FROM cached_tracks ` + whereClause
 
 	rows, err := s.pool.Query(ctx, query, args...)
@@ -464,9 +469,10 @@ func (s *UserStore) queryTracks(ctx context.Context, whereClause string, args ..
 	var results []TrackResult
 	for rows.Next() {
 		var t TrackResult
-		var title, album, genre, manifest, preview, cover, releaseDate *string
+		var title, album, genre, manifest, preview, cover, releaseDate, labelPubkey *string
 		if err := rows.Scan(&t.EventID, &t.ArtistPubkey, &t.DTag, &title, &album, &genre,
-			&t.Duration, &t.PriceSats, &manifest, &preview, &cover, &releaseDate, &t.CreatedAt, &t.RawEvent); err != nil {
+			&t.Duration, &t.PriceSats, &manifest, &preview, &cover, &releaseDate, &t.CreatedAt,
+			&labelPubkey, &t.RawEvent); err != nil {
 			return nil, fmt.Errorf("scan track: %w", err)
 		}
 		if title != nil { t.Title = *title }
@@ -476,6 +482,7 @@ func (s *UserStore) queryTracks(ctx context.Context, whereClause string, args ..
 		if preview != nil { t.IPFSPreviewCID = *preview }
 		if cover != nil { t.CoverArtCID = *cover }
 		if releaseDate != nil { t.ReleaseDate = *releaseDate }
+		t.LabelPubkey = labelPubkey
 		results = append(results, t)
 	}
 	return results, rows.Err()

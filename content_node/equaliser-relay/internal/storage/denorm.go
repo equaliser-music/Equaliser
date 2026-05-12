@@ -343,6 +343,18 @@ func (p *DenormParser) parsePlaylist(ctx context.Context, tx pgx.Tx, event *nost
 }
 
 // parseTrack parses a Kind 30050 event into cached_tracks.
+//
+// Attribution order (Phase F + Phase G):
+//  1. NIP-26 delegation tag (`["delegation", artist_pubkey, conditions, signature]`) — Phase F:
+//     manager helps independent artist publish. Attribution → delegator; signer recorded in
+//     published_by + label_pubkey.
+//  2. Performer tag (`["p", artist_pubkey, "", "performer"]`) — Phase G: label is the publisher
+//     and rights-holder for the recording. Attribution → performer; signer recorded in
+//     published_by + label_pubkey.
+//  3. Self-publish (no special tags) — track attributed to event.PubKey, label_pubkey NULL.
+//
+// label_pubkey is the consistent "who signed this recording" column for Phase G UI badges and
+// strict-mode reporting — populated in both delegation and performer-tag cases.
 func (p *DenormParser) parseTrack(ctx context.Context, tx pgx.Tx, event *nostr.Event) error {
 	dTag := event.GetDTag()
 	if dTag == "" {
@@ -371,14 +383,44 @@ func (p *DenormParser) parseTrack(ctx context.Context, tx pgx.Tx, event *nostr.E
 		}
 	}
 
+	// Default attribution: signer is the artist (self-publish)
+	attributedPubkey := event.PubKey
+	var publishedBy *string
+	var labelPubkey *string
+
+	// 1. Honour NIP-26 delegation tag if present + valid + conditions allow this event (Phase F)
+	if delegationTag := findDelegationTag(event); delegationTag != nil {
+		delegator := delegationTag[1]
+		conditions := delegationTag[2]
+		signature := delegationTag[3]
+		if VerifyDelegationSignature(delegator, event.PubKey, conditions, signature) == nil &&
+			ConditionsAllow(conditions, event.Kind, event.CreatedAt) {
+			attributedPubkey = delegator
+			signer := event.PubKey
+			publishedBy = &signer
+			labelPubkey = &signer
+		}
+	}
+
+	// 2. Honour performer tag if present and we haven't already taken a delegation branch (Phase G).
+	//    Self-tagging (performer == signer) is permitted as a no-op and doesn't set label_pubkey.
+	if publishedBy == nil {
+		if performer := findPerformerPubkey(event); performer != "" && performer != event.PubKey {
+			attributedPubkey = performer
+			signer := event.PubKey
+			publishedBy = &signer
+			labelPubkey = &signer
+		}
+	}
+
 	rawJSON, err := event.MarshalRaw()
 	if err != nil {
 		return fmt.Errorf("marshal raw event: %w", err)
 	}
 
 	_, err = tx.Exec(ctx, `
-		INSERT INTO cached_tracks (event_id, artist_pubkey, d_tag, title, album, genre, duration, price_sats, ipfs_manifest_cid, ipfs_preview_cid, cover_art_cid, release_date, raw_event, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+		INSERT INTO cached_tracks (event_id, artist_pubkey, d_tag, title, album, genre, duration, price_sats, ipfs_manifest_cid, ipfs_preview_cid, cover_art_cid, release_date, raw_event, created_at, published_by, label_pubkey)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 		ON CONFLICT (artist_pubkey, d_tag) DO UPDATE SET
 			event_id = EXCLUDED.event_id,
 			title = EXCLUDED.title,
@@ -392,11 +434,36 @@ func (p *DenormParser) parseTrack(ctx context.Context, tx pgx.Tx, event *nostr.E
 			release_date = EXCLUDED.release_date,
 			raw_event = EXCLUDED.raw_event,
 			created_at = EXCLUDED.created_at,
+			published_by = EXCLUDED.published_by,
+			label_pubkey = EXCLUDED.label_pubkey,
 			last_updated_at = NOW()
-	`, event.ID, event.PubKey, dTag, title, album, genre, duration, priceSats,
-		ipfsManifest, ipfsPreview, coverArt, releaseDate, rawJSON, event.CreatedAt)
+	`, event.ID, attributedPubkey, dTag, title, album, genre, duration, priceSats,
+		ipfsManifest, ipfsPreview, coverArt, releaseDate, rawJSON, event.CreatedAt,
+		publishedBy, labelPubkey)
 
 	return err
+}
+
+// findDelegationTag returns the first ["delegation", delegator, conditions, signature]
+// tag in the event, or nil if absent / malformed.
+func findDelegationTag(event *nostr.Event) []string {
+	for _, tag := range event.Tags {
+		if len(tag) >= 4 && tag[0] == "delegation" {
+			return tag
+		}
+	}
+	return nil
+}
+
+// findPerformerPubkey returns the pubkey from a `["p", artist_pubkey, "", "performer"]` tag,
+// or "" if absent. Per NIP-10 convention, the 4th element is the role marker.
+func findPerformerPubkey(event *nostr.Event) string {
+	for _, tag := range event.Tags {
+		if len(tag) >= 4 && tag[0] == "p" && tag[3] == "performer" && tag[1] != "" {
+			return tag[1]
+		}
+	}
+	return ""
 }
 
 // parseAlbum parses a Kind 30051 event into cached_albums.

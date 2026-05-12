@@ -16,21 +16,29 @@ import (
 
 // Server serves the REST API endpoints.
 type Server struct {
-	userStore  *storage.UserStore
-	eventStore *storage.EventStore
-	adminStore *storage.AdminStore
-	peerStore  *storage.PeerStore
-	mux        *http.ServeMux
+	userStore       *storage.UserStore
+	eventStore      *storage.EventStore
+	adminStore      *storage.AdminStore
+	peerStore       *storage.PeerStore
+	delegationStore *storage.DelegationStore
+	mux             *http.ServeMux
 }
 
 // NewServer creates a new REST API server.
-func NewServer(userStore *storage.UserStore, eventStore *storage.EventStore, adminStore *storage.AdminStore, peerStore *storage.PeerStore) *Server {
+func NewServer(
+	userStore *storage.UserStore,
+	eventStore *storage.EventStore,
+	adminStore *storage.AdminStore,
+	peerStore *storage.PeerStore,
+	delegationStore *storage.DelegationStore,
+) *Server {
 	s := &Server{
-		userStore:  userStore,
-		eventStore: eventStore,
-		adminStore: adminStore,
-		peerStore:  peerStore,
-		mux:        http.NewServeMux(),
+		userStore:       userStore,
+		eventStore:      eventStore,
+		adminStore:      adminStore,
+		peerStore:       peerStore,
+		delegationStore: delegationStore,
+		mux:             http.NewServeMux(),
 	}
 
 	// Internal endpoints (Docker network only, not proxied by nginx)
@@ -73,6 +81,15 @@ func NewServer(userStore *storage.UserStore, eventStore *storage.EventStore, adm
 	s.mux.HandleFunc("POST /api/internal/invite-codes/redeem", s.handleRedeemInviteCode)
 	s.mux.HandleFunc("GET /api/internal/setup-status", s.handleSetupStatus)
 	s.mux.HandleFunc("POST /api/internal/operators/claim", s.handleClaimOperator)
+
+	// Delegation lifecycle (Phase F: NIP-26)
+	s.mux.HandleFunc("POST /api/internal/delegations/requests", s.handleCreateDelegationRequest)
+	s.mux.HandleFunc("GET /api/internal/delegations/requests", s.handleListDelegationRequests)
+	s.mux.HandleFunc("POST /api/internal/delegations/requests/{id}/grant", s.handleGrantDelegation)
+	s.mux.HandleFunc("POST /api/internal/delegations/requests/{id}/decline", s.handleDeclineDelegationRequest)
+	s.mux.HandleFunc("GET /api/internal/delegations/active", s.handleListActiveDelegations)
+	s.mux.HandleFunc("GET /api/internal/delegations/{artist}/{label}", s.handleGetActiveDelegation)
+	s.mux.HandleFunc("POST /api/internal/delegations/{artist}/{label}/revoke", s.handleRevokeDelegation)
 	s.mux.HandleFunc("GET /api/internal/registered-users", s.handleListRegisteredUsers)
 	s.mux.HandleFunc("GET /api/internal/stats", s.handleNodeStats)
 	s.mux.HandleFunc("GET /api/internal/peer-relays", s.handleListPeerRelays)
@@ -583,9 +600,11 @@ func (s *Server) handleAdminUpdateArtist(w http.ResponseWriter, r *http.Request)
 	}
 
 	var req struct {
-		Status   *string  `json:"status"`
-		FeeModel *string  `json:"fee_model"`
-		FeeValue *float64 `json:"fee_value"`
+		Status           *string  `json:"status"`
+		FeeModel         *string  `json:"fee_model"`
+		FeeValue         *float64 `json:"fee_value"`
+		RelationshipType *string  `json:"relationship_type"` // Phase G
+		ManagedBy        *string  `json:"managed_by"`        // Phase G — operator can change current label; "" clears
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, `{"error": "invalid request body"}`, http.StatusBadRequest)
@@ -601,8 +620,13 @@ func (s *Server) handleAdminUpdateArtist(w http.ResponseWriter, r *http.Request)
 		http.Error(w, `{"error": "fee_model must be 'free', 'percentage', or 'flat_rate'"}`, http.StatusBadRequest)
 		return
 	}
+	if req.RelationshipType != nil &&
+		*req.RelationshipType != "self" && *req.RelationshipType != "managed" && *req.RelationshipType != "signed" {
+		http.Error(w, `{"error": "relationship_type must be 'self', 'managed', or 'signed'"}`, http.StatusBadRequest)
+		return
+	}
 
-	if err := s.adminStore.UpdateArtist(r.Context(), pubkey, req.Status, req.FeeModel, req.FeeValue); err != nil {
+	if err := s.adminStore.UpdateArtist(r.Context(), pubkey, req.Status, req.FeeModel, req.FeeValue, req.RelationshipType, req.ManagedBy); err != nil {
 		log.Printf("Failed to update artist: %v", err)
 		http.Error(w, `{"error": "`+err.Error()+`"}`, http.StatusInternalServerError)
 		return
@@ -662,15 +686,16 @@ func (s *Server) handleGetAccessRequest(w http.ResponseWriter, r *http.Request) 
 
 // handleCreateAccessRequest creates a new pending request.
 // POST /api/internal/access-requests
-// Body: { requested_role?, artist_name, email?, npub?, description?, links? }
+// Body: { requested_role?, artist_name, email?, npub?, description?, links?, target_relationship_type? }
 func (s *Server) handleCreateAccessRequest(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		RequestedRole string `json:"requested_role"`
-		ArtistName    string `json:"artist_name"`
-		Email         string `json:"email"`
-		Npub          string `json:"npub"`
-		Description   string `json:"description"`
-		Links         string `json:"links"`
+		RequestedRole          string `json:"requested_role"`
+		ArtistName             string `json:"artist_name"`
+		Email                  string `json:"email"`
+		Npub                   string `json:"npub"`
+		Description            string `json:"description"`
+		Links                  string `json:"links"`
+		TargetRelationshipType string `json:"target_relationship_type"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, `{"error": "invalid request body"}`, http.StatusBadRequest)
@@ -685,9 +710,17 @@ func (s *Server) handleCreateAccessRequest(w http.ResponseWriter, r *http.Reques
 		http.Error(w, `{"error": "requested_role must be 'artist' or 'label'"}`, http.StatusBadRequest)
 		return
 	}
+	if req.TargetRelationshipType != "" &&
+		req.TargetRelationshipType != "self" &&
+		req.TargetRelationshipType != "managed" &&
+		req.TargetRelationshipType != "signed" {
+		http.Error(w, `{"error": "target_relationship_type must be 'self', 'managed', or 'signed'"}`, http.StatusBadRequest)
+		return
+	}
 
 	id, err := s.adminStore.CreateAccessRequest(r.Context(), req.RequestedRole,
-		req.ArtistName, req.Email, req.Npub, req.Description, req.Links)
+		req.ArtistName, req.Email, req.Npub, req.Description, req.Links,
+		req.TargetRelationshipType)
 	if err != nil {
 		log.Printf("Failed to create access request: %v", err)
 		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
@@ -701,7 +734,7 @@ func (s *Server) handleCreateAccessRequest(w http.ResponseWriter, r *http.Reques
 
 // handleApproveRequest approves a request and generates an invite code.
 // POST /api/internal/access-requests/{id}/approve
-// Body: { admin_notes?, target_role?, target_managed_by?, issued_by? }
+// Body: { admin_notes?, target_role?, target_managed_by?, target_relationship_type?, issued_by? }
 func (s *Server) handleApproveRequest(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := strconv.Atoi(idStr)
@@ -711,15 +744,24 @@ func (s *Server) handleApproveRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		AdminNotes      string  `json:"admin_notes"`
-		TargetRole      string  `json:"target_role"`
-		TargetManagedBy *string `json:"target_managed_by"`
-		IssuedBy        string  `json:"issued_by"`
+		AdminNotes             string  `json:"admin_notes"`
+		TargetRole             string  `json:"target_role"`
+		TargetManagedBy        *string `json:"target_managed_by"`
+		TargetRelationshipType string  `json:"target_relationship_type"`
+		IssuedBy               string  `json:"issued_by"`
 	}
 	json.NewDecoder(r.Body).Decode(&req) // body optional
 
+	if req.TargetRelationshipType != "" &&
+		req.TargetRelationshipType != "self" &&
+		req.TargetRelationshipType != "managed" &&
+		req.TargetRelationshipType != "signed" {
+		http.Error(w, `{"error": "target_relationship_type must be 'self', 'managed', or 'signed'"}`, http.StatusBadRequest)
+		return
+	}
+
 	code, err := s.adminStore.ApproveAccessRequest(r.Context(), id, req.AdminNotes,
-		req.TargetRole, req.TargetManagedBy, req.IssuedBy)
+		req.TargetRole, req.TargetManagedBy, req.TargetRelationshipType, req.IssuedBy)
 	if err != nil {
 		log.Printf("Failed to approve request: %v", err)
 		http.Error(w, `{"error": "`+err.Error()+`"}`, http.StatusBadRequest)
@@ -779,17 +821,26 @@ func (s *Server) handleListInviteCodes(w http.ResponseWriter, r *http.Request) {
 
 // handleCreateInviteCode creates an orphan invite code (no associated request).
 // POST /api/internal/invite-codes
-// Body: { target_role?, target_managed_by?, issued_by? }
+// Body: { target_role?, target_managed_by?, target_relationship_type?, issued_by? }
 func (s *Server) handleCreateInviteCode(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		TargetRole      string  `json:"target_role"`
-		TargetManagedBy *string `json:"target_managed_by"`
-		IssuedBy        string  `json:"issued_by"`
+		TargetRole             string  `json:"target_role"`
+		TargetManagedBy        *string `json:"target_managed_by"`
+		TargetRelationshipType string  `json:"target_relationship_type"`
+		IssuedBy               string  `json:"issued_by"`
 	}
 	json.NewDecoder(r.Body).Decode(&req) // body optional
 
+	if req.TargetRelationshipType != "" &&
+		req.TargetRelationshipType != "self" &&
+		req.TargetRelationshipType != "managed" &&
+		req.TargetRelationshipType != "signed" {
+		http.Error(w, `{"error": "target_relationship_type must be 'self', 'managed', or 'signed'"}`, http.StatusBadRequest)
+		return
+	}
+
 	code, err := s.adminStore.CreateOrphanInviteCode(r.Context(),
-		req.TargetRole, req.TargetManagedBy, req.IssuedBy)
+		req.TargetRole, req.TargetManagedBy, req.TargetRelationshipType, req.IssuedBy)
 	if err != nil {
 		log.Printf("Failed to create invite code: %v", err)
 		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
@@ -1075,4 +1126,218 @@ func (s *Server) handleClaimOperator(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(op)
+}
+
+// ===== Phase F: Delegation lifecycle (NIP-26) =====
+
+// POST /api/internal/delegations/requests
+// Body: {label_pubkey, artist_pubkey, requested_kinds?, requested_duration_days?, note?}
+func (s *Server) handleCreateDelegationRequest(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		LabelPubkey           string `json:"label_pubkey"`
+		ArtistPubkey          string `json:"artist_pubkey"`
+		RequestedKinds        string `json:"requested_kinds"`
+		RequestedDurationDays int    `json:"requested_duration_days"`
+		Note                  string `json:"note"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error": "invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+	if !validateHexPubkey(req.LabelPubkey) || !validateHexPubkey(req.ArtistPubkey) {
+		http.Error(w, `{"error": "invalid pubkeys"}`, http.StatusBadRequest)
+		return
+	}
+	id, err := s.delegationStore.CreateRequest(r.Context(),
+		req.LabelPubkey, req.ArtistPubkey, req.RequestedKinds, req.RequestedDurationDays, req.Note)
+	if err != nil {
+		log.Printf("Failed to create delegation request: %v", err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]int{"id": id})
+}
+
+// GET /api/internal/delegations/requests?artist=... | ?label=...&status=...
+func (s *Server) handleListDelegationRequests(w http.ResponseWriter, r *http.Request) {
+	artist := r.URL.Query().Get("artist")
+	label := r.URL.Query().Get("label")
+	status := r.URL.Query().Get("status")
+
+	var requests []storage.DelegationRequest
+	var err error
+	if artist != "" {
+		if !validateHexPubkey(artist) {
+			http.Error(w, `{"error": "invalid artist pubkey"}`, http.StatusBadRequest)
+			return
+		}
+		requests, err = s.delegationStore.ListRequestsForArtist(r.Context(), artist, status)
+	} else if label != "" {
+		if !validateHexPubkey(label) {
+			http.Error(w, `{"error": "invalid label pubkey"}`, http.StatusBadRequest)
+			return
+		}
+		requests, err = s.delegationStore.ListRequestsForLabel(r.Context(), label, status)
+	} else {
+		http.Error(w, `{"error": "artist or label query param required"}`, http.StatusBadRequest)
+		return
+	}
+	if err != nil {
+		log.Printf("Failed to list delegation requests: %v", err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"requests": requests})
+}
+
+// POST /api/internal/delegations/requests/{id}/grant
+// Body: {conditions, signature, granter_pubkey}
+// granter_pubkey must match the request's artist_pubkey — orchestrator enforces this via NIP-98.
+func (s *Server) handleGrantDelegation(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, `{"error": "invalid id"}`, http.StatusBadRequest)
+		return
+	}
+	var body struct {
+		Conditions     string `json:"conditions"`
+		Signature      string `json:"signature"`
+		GranterPubkey  string `json:"granter_pubkey"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, `{"error": "invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+	if body.Conditions == "" || body.Signature == "" {
+		http.Error(w, `{"error": "conditions and signature required"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Confirm the granter is the artist on the request
+	req, err := s.delegationStore.GetRequest(r.Context(), id)
+	if err != nil {
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+	if req == nil {
+		http.Error(w, `{"error": "request not found"}`, http.StatusNotFound)
+		return
+	}
+	if body.GranterPubkey != "" && body.GranterPubkey != req.ArtistPubkey {
+		http.Error(w, `{"error": "granter pubkey does not match request artist"}`, http.StatusForbidden)
+		return
+	}
+
+	d, err := s.delegationStore.GrantDelegation(r.Context(), id, body.Conditions, body.Signature)
+	if err != nil {
+		log.Printf("Grant delegation failed: %v", err)
+		http.Error(w, `{"error": "`+err.Error()+`"}`, http.StatusBadRequest)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(d)
+}
+
+// POST /api/internal/delegations/requests/{id}/decline
+// Body: {granter_pubkey}
+func (s *Server) handleDeclineDelegationRequest(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, `{"error": "invalid id"}`, http.StatusBadRequest)
+		return
+	}
+	var body struct {
+		GranterPubkey string `json:"granter_pubkey"`
+	}
+	json.NewDecoder(r.Body).Decode(&body) // optional
+
+	req, err := s.delegationStore.GetRequest(r.Context(), id)
+	if err != nil {
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+	if req == nil {
+		http.Error(w, `{"error": "request not found"}`, http.StatusNotFound)
+		return
+	}
+	if body.GranterPubkey != "" && body.GranterPubkey != req.ArtistPubkey {
+		http.Error(w, `{"error": "granter pubkey does not match request artist"}`, http.StatusForbidden)
+		return
+	}
+
+	if err := s.delegationStore.DeclineRequest(r.Context(), id); err != nil {
+		http.Error(w, `{"error": "`+err.Error()+`"}`, http.StatusBadRequest)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "declined"})
+}
+
+// GET /api/internal/delegations/active?label=PUB
+func (s *Server) handleListActiveDelegations(w http.ResponseWriter, r *http.Request) {
+	label := r.URL.Query().Get("label")
+	if !validateHexPubkey(label) {
+		http.Error(w, `{"error": "label pubkey required"}`, http.StatusBadRequest)
+		return
+	}
+	delegations, err := s.delegationStore.ListActiveDelegationsForLabel(r.Context(), label)
+	if err != nil {
+		log.Printf("Failed to list active delegations: %v", err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"delegations": delegations})
+}
+
+// GET /api/internal/delegations/{artist}/{label}
+func (s *Server) handleGetActiveDelegation(w http.ResponseWriter, r *http.Request) {
+	artist := r.PathValue("artist")
+	label := r.PathValue("label")
+	if !validateHexPubkey(artist) || !validateHexPubkey(label) {
+		http.Error(w, `{"error": "invalid pubkeys"}`, http.StatusBadRequest)
+		return
+	}
+	d, err := s.delegationStore.GetActiveDelegation(r.Context(), artist, label)
+	if err != nil {
+		log.Printf("Failed to get delegation: %v", err)
+		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
+		return
+	}
+	if d == nil {
+		http.Error(w, `{"error": "no active delegation"}`, http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(d)
+}
+
+// POST /api/internal/delegations/{artist}/{label}/revoke
+// Body: {granter_pubkey} — must match {artist}
+func (s *Server) handleRevokeDelegation(w http.ResponseWriter, r *http.Request) {
+	artist := r.PathValue("artist")
+	label := r.PathValue("label")
+	if !validateHexPubkey(artist) || !validateHexPubkey(label) {
+		http.Error(w, `{"error": "invalid pubkeys"}`, http.StatusBadRequest)
+		return
+	}
+	var body struct {
+		GranterPubkey string `json:"granter_pubkey"`
+	}
+	json.NewDecoder(r.Body).Decode(&body)
+	if body.GranterPubkey != "" && body.GranterPubkey != artist {
+		http.Error(w, `{"error": "granter pubkey must match artist"}`, http.StatusForbidden)
+		return
+	}
+	if err := s.delegationStore.RevokeDelegation(r.Context(), artist, label); err != nil {
+		http.Error(w, `{"error": "`+err.Error()+`"}`, http.StatusBadRequest)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "revoked"})
 }

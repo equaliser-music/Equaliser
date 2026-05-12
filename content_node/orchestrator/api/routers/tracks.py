@@ -28,6 +28,8 @@ from services.ipfs import upload_directory_to_ipfs, upload_file_to_ipfs, unpin_c
 from services.nostr import create_track_event, publish_event, publish_signed_event
 from services.database import DraftTrack, create_draft, mark_released, get_draft
 from services.blossom import upload_to_blossom, download_from_blossom, delete_from_blossom
+from services import nip26
+from services import relay_admin
 
 logger = logging.getLogger(__name__)
 
@@ -210,23 +212,28 @@ async def publish_track_event(request: SignedEventRequest, ctx: RoleContext = De
     """
     Publish a pre-signed NOSTR event for a track.
 
-    Used when client-side signing is preferred (non-custodial).
-    The event must be a valid signed Kind 30050 track event.
+    Three valid shapes:
+      1. Self-publish (artist OR label publishing under their own identity):
+         event.pubkey == ctx.pubkey AND ctx.can_manage(event.pubkey)
+      2. Phase F — NIP-26 delegation (manager helps independent artist):
+         event.pubkey == ctx.pubkey AND event has a `["delegation", artist, ...]` tag
+         whose delegator IS the target artist AND the delegation is still active
+         server-side AND ctx.can_manage(delegator).
+      3. Phase G — performer-tag attribution (label publishes for signed artist):
+         event.pubkey == ctx.pubkey AND event has a `["p", artist, "", "performer"]`
+         tag AND node_artists[performer].managed_by == ctx.pubkey
+         (strict-mode current-label gate).
+
+    Delegation and performer tags are mutually exclusive — an event carries one or the
+    other, not both. The relay's denorm parser independently honours either tag and
+    routes the track under the artist's catalogue.
 
     If draft_id is provided, the draft will be deleted from the database
     (released tracks are sourced from NOSTR, not the database).
     """
     event = request.signed_event
 
-    # The signed event's pubkey is the artist. Caller must be able to manage them.
-    event_pubkey = event.get("pubkey")
-    if not event_pubkey or not ctx.can_manage(event_pubkey):
-        raise HTTPException(
-            status_code=403,
-            detail="Cannot publish events for this artist"
-        )
-
-    # Validate event structure
+    # Validate event structure first
     if "id" not in event or "sig" not in event:
         raise HTTPException(
             status_code=400,
@@ -238,6 +245,77 @@ async def publish_track_event(request: SignedEventRequest, ctx: RoleContext = De
             status_code=400,
             detail="Event must be Kind 30050 (track metadata)"
         )
+
+    event_pubkey = event.get("pubkey")
+    if not event_pubkey:
+        raise HTTPException(status_code=400, detail="Event missing pubkey")
+
+    # Signer must always equal authenticated caller — no third-party forwarding
+    if event_pubkey != ctx.pubkey:
+        raise HTTPException(
+            status_code=403,
+            detail="Signer must match authenticated caller"
+        )
+
+    # Delegation tag (Phase F) and performer tag (Phase G) are mutually exclusive.
+    delegation_tag = nip26.find_delegation_tag(event)
+    performer_tag = nip26.find_performer_tag(event)
+    if delegation_tag is not None and performer_tag is not None:
+        raise HTTPException(
+            status_code=400,
+            detail="Event cannot carry both a delegation tag and a performer tag"
+        )
+
+    # Determine the effective "artist" — who the track is being published FOR.
+    effective_artist = event_pubkey
+
+    if delegation_tag is not None:
+        # Phase F: NIP-26 delegation — manager helps independent artist publish
+        ok, err, delegator = nip26.verify_event_delegation(event)
+        if not ok:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid delegation: {err}",
+            )
+        # Confirm the delegation is still active server-side (not revoked/expired)
+        active = await relay_admin.get_active_delegation(delegator, event_pubkey)
+        if active is None:
+            raise HTTPException(
+                status_code=403,
+                detail="Delegation not active or revoked"
+            )
+        effective_artist = delegator
+
+    elif performer_tag is not None:
+        # Phase G: label publishes as themselves with `["p", performer, "", "performer"]`.
+        # Strict-mode gate: the performer's current `managed_by` MUST equal the caller (label).
+        ok, err, performer = nip26.verify_event_performer_attribution(event)
+        if not ok:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid performer attribution: {err}",
+            )
+        artist_row = await relay_admin.get_artist(performer)
+        if artist_row is None:
+            raise HTTPException(
+                status_code=403,
+                detail="not_current_label: performer is not registered on this node"
+            )
+        if artist_row.get("managed_by") != ctx.pubkey:
+            raise HTTPException(
+                status_code=403,
+                detail="not_current_label: caller is not the performer's current label"
+            )
+        effective_artist = performer
+
+    else:
+        # Self-publish: caller must be able to manage themselves (always true for own pubkey,
+        # but ctx.can_manage covers operator-as-artist and label-as-artist cases too).
+        if not ctx.can_manage(effective_artist):
+            raise HTTPException(
+                status_code=403,
+                detail="Cannot publish events for this artist"
+            )
 
     try:
         event_id = await publish_signed_event(event)

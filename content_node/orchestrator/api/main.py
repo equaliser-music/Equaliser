@@ -26,6 +26,7 @@ from routers import auth
 from routers import label
 from routers import operator
 from routers import access
+from routers import delegations
 import asyncio
 import time
 
@@ -80,6 +81,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(label.router, prefix="/api/label", tags=["label"])
 app.include_router(operator.router, prefix="/api/operator", tags=["operator"])
 app.include_router(access.router, prefix="/api/access", tags=["access"])
+app.include_router(delegations.router, prefix="/api/delegations", tags=["delegations"])
 
 
 @app.get("/health")

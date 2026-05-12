@@ -62,6 +62,8 @@ async def update_artist(
     status: Optional[str] = None,
     fee_model: Optional[str] = None,
     fee_value: Optional[float] = None,
+    relationship_type: Optional[str] = None,
+    managed_by: Optional[str] = None,  # "" clears (NULL); None leaves alone
 ) -> Dict:
     body: Dict[str, Any] = {}
     if status is not None:
@@ -70,6 +72,10 @@ async def update_artist(
         body["fee_model"] = fee_model
     if fee_value is not None:
         body["fee_value"] = fee_value
+    if relationship_type is not None:
+        body["relationship_type"] = relationship_type
+    if managed_by is not None:
+        body["managed_by"] = managed_by
     return await _request("PATCH", f"/api/internal/artists/{pubkey}", json=body)
 
 
@@ -92,6 +98,7 @@ async def create_access_request(
     description: str = "",
     links: str = "",
     requested_role: str = "artist",
+    target_relationship_type: str = "managed",
 ) -> Dict:
     return await _request("POST", "/api/internal/access-requests", json={
         "requested_role": requested_role,
@@ -100,6 +107,7 @@ async def create_access_request(
         "npub": npub,
         "description": description,
         "links": links,
+        "target_relationship_type": target_relationship_type,
     })
 
 
@@ -108,11 +116,13 @@ async def approve_access_request(
     admin_notes: str = "",
     target_role: str = "artist",
     target_managed_by: Optional[str] = None,
+    target_relationship_type: str = "managed",
     issued_by: str = "",
 ) -> Dict:
     body: Dict[str, Any] = {
         "admin_notes": admin_notes,
         "target_role": target_role,
+        "target_relationship_type": target_relationship_type,
         "issued_by": issued_by,
     }
     if target_managed_by is not None:
@@ -136,10 +146,12 @@ async def list_invite_codes() -> List[Dict]:
 async def create_invite_code(
     target_role: str = "artist",
     target_managed_by: Optional[str] = None,
+    target_relationship_type: str = "managed",
     issued_by: str = "",
 ) -> Dict:
     body: Dict[str, Any] = {
         "target_role": target_role,
+        "target_relationship_type": target_relationship_type,
         "issued_by": issued_by,
     }
     if target_managed_by is not None:
@@ -176,6 +188,83 @@ async def claim_first_operator(token: str, pubkey: str, name: str) -> Dict:
         "pubkey": pubkey,
         "name": name,
     })
+
+
+# ===== Phase F: NIP-26 delegations =====
+
+
+async def request_delegation(
+    label_pubkey: str,
+    artist_pubkey: str,
+    requested_kinds: str = "30050,5",
+    duration_days: int = 365,
+    note: str = "",
+) -> Dict:
+    return await _request("POST", "/api/internal/delegations/requests", json={
+        "label_pubkey": label_pubkey,
+        "artist_pubkey": artist_pubkey,
+        "requested_kinds": requested_kinds,
+        "requested_duration_days": duration_days,
+        "note": note,
+    })
+
+
+async def list_delegation_requests_for_artist(
+    artist_pubkey: str, status: Optional[str] = None
+) -> List[Dict]:
+    params = {"artist": artist_pubkey}
+    if status:
+        params["status"] = status
+    data = await _request("GET", "/api/internal/delegations/requests", params=params)
+    return data.get("requests", []) if data else []
+
+
+async def list_delegation_requests_for_label(
+    label_pubkey: str, status: Optional[str] = None
+) -> List[Dict]:
+    params = {"label": label_pubkey}
+    if status:
+        params["status"] = status
+    data = await _request("GET", "/api/internal/delegations/requests", params=params)
+    return data.get("requests", []) if data else []
+
+
+async def grant_delegation(
+    request_id: int, conditions: str, signature: str, granter_pubkey: str
+) -> Dict:
+    return await _request(
+        "POST", f"/api/internal/delegations/requests/{request_id}/grant",
+        json={
+            "conditions": conditions,
+            "signature": signature,
+            "granter_pubkey": granter_pubkey,
+        },
+    )
+
+
+async def decline_delegation_request(request_id: int, granter_pubkey: str) -> Dict:
+    return await _request(
+        "POST", f"/api/internal/delegations/requests/{request_id}/decline",
+        json={"granter_pubkey": granter_pubkey},
+    )
+
+
+async def list_active_delegations_for_label(label_pubkey: str) -> List[Dict]:
+    data = await _request("GET", "/api/internal/delegations/active",
+                          params={"label": label_pubkey})
+    return data.get("delegations", []) if data else []
+
+
+async def get_active_delegation(artist_pubkey: str, label_pubkey: str) -> Optional[Dict]:
+    return await _request("GET",
+                          f"/api/internal/delegations/{artist_pubkey}/{label_pubkey}")
+
+
+async def revoke_delegation(artist_pubkey: str, label_pubkey: str) -> Dict:
+    return await _request(
+        "POST", f"/api/internal/delegations/{artist_pubkey}/{label_pubkey}/revoke",
+        json={"granter_pubkey": artist_pubkey},
+    )
 
 
 # ===== Node stats / users =====

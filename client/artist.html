@@ -322,6 +322,22 @@
             color: rgba(255, 255, 255, 0.4);
         }
 
+        /* Phase G — label badge surfaced on releases signed by a label (managed or signed). */
+        .release-label-badge {
+            margin-top: 6px;
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: rgba(168, 85, 247, 0.15);
+            color: #d8b4fe;
+            font-size: 11px;
+            font-weight: 500;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         .discography-loading {
             padding: 32px;
             text-align: center;
@@ -1195,7 +1211,21 @@
 
         // Fetch Kind 30050 events for a specific artist
         async function fetchArtistTracks(pubkeyHex) {
-            // Try Cache API first (REST)
+            // Phase G — use denormalized tracks endpoint so we pick up performer-tagged events
+            // (event.pubkey = label, artist_pubkey = performer). Also surfaces label_pubkey.
+            if (typeof CacheAPI !== 'undefined') {
+                try {
+                    const tracks = await CacheAPI.getTracksByArtist(pubkeyHex);
+                    if (tracks) {
+                        return tracks.map(t => {
+                            const ev = t.raw_event || {};
+                            ev.__labelPubkey = t.label_pubkey || null;
+                            return ev;
+                        });
+                    }
+                } catch (e) {}
+            }
+            // Secondary: raw events query (only catches self-published)
             if (typeof CacheAPI !== 'undefined') {
                 try {
                     const events = await CacheAPI.queryEvents({ kinds: [30050], authors: [pubkeyHex], limit: 500 });
@@ -1214,6 +1244,16 @@
         }
 
         function parseTrackEvent(event) {
+            // Phase G — derive label_pubkey: signer if delegation OR performer tag present.
+            // Prefer the denormalized __labelPubkey if attached upstream.
+            let labelPubkey = event.__labelPubkey || null;
+            if (!labelPubkey) {
+                const tags = event.tags || [];
+                const hasDelegation = tags.some(t => t[0] === 'delegation' && t.length >= 4);
+                const performerTag = tags.find(t => t[0] === 'p' && t[3] === 'performer');
+                if (hasDelegation) labelPubkey = event.pubkey;
+                else if (performerTag && performerTag[1] && performerTag[1] !== event.pubkey) labelPubkey = event.pubkey;
+            }
             return {
                 eventId: event.id,
                 pubkey: event.pubkey,
@@ -1232,7 +1272,8 @@
                 coverArtCid: getTagValue(event.tags, 'cover_art_cid') || '',
                 blossomCoverHash: getTagValue(event.tags, 'blossom_cover_hash') || '',
                 blossomCoverUrl: getTagValue(event.tags, 'blossom_cover_url') || '',
-                trackNumber: parseInt(getTagValue(event.tags, 'track_number')) || 0
+                trackNumber: parseInt(getTagValue(event.tags, 'track_number')) || 0,
+                labelPubkey
             };
         }
 
@@ -1259,7 +1300,8 @@
                         blossomCoverUrl: track.blossomCoverUrl,
                         tracks: [],
                         createdAt: track.createdAt,
-                        isSingle: !isAlbumOrEp
+                        isSingle: !isAlbumOrEp,
+                        labelPubkey: null  // Phase G — pubkey of the label that signed (if any)
                     });
                 }
 
@@ -1277,6 +1319,9 @@
                 }
                 if (track.createdAt > album.createdAt) {
                     album.createdAt = track.createdAt;
+                }
+                if (!album.labelPubkey && track.labelPubkey) {
+                    album.labelPubkey = track.labelPubkey;
                 }
             });
 
@@ -1333,9 +1378,64 @@
             renderDiscography();
         }
 
+        // Phase G \u2014 cache for label pubkey \u2192 display name
+        const _labelNames = {};
+
+        async function resolveLabelNames(pubkeys) {
+            const unresolved = pubkeys.filter(p => !(p in _labelNames));
+            if (!unresolved.length) return;
+            unresolved.forEach(p => { _labelNames[p] = null; });
+            if (typeof CacheAPI === 'undefined') return;
+
+            // 1) Try the denormalized profiles endpoint (fast path \u2014 covers listeners + artists)
+            try {
+                const profiles = await CacheAPI.getProfiles(unresolved);
+                if (profiles) {
+                    Object.entries(profiles).forEach(([pk, data]) => {
+                        try {
+                            const profile = typeof data?.content === 'string'
+                                ? JSON.parse(data.content)
+                                : (data?.content || {});
+                            const name = profile.display_name || profile.name;
+                            if (name) _labelNames[pk] = name;
+                        } catch (_) {}
+                    });
+                }
+            } catch (_) {}
+
+            // 2) Fall back to raw Kind 0 events for anyone still unresolved (covers labels \u2014
+            //    labels don't sit in cached_users / cached_artists denorm tables)
+            const stillMissing = unresolved.filter(p => !_labelNames[p]);
+            if (stillMissing.length) {
+                try {
+                    const events = await CacheAPI.queryEvents({ kinds: [0], authors: stillMissing, limit: stillMissing.length });
+                    if (events) {
+                        events.forEach(ev => {
+                            try {
+                                const profile = JSON.parse(ev.content || '{}');
+                                const name = profile.display_name || profile.name;
+                                if (name) _labelNames[ev.pubkey] = name;
+                            } catch (_) {}
+                        });
+                    }
+                } catch (_) {}
+            }
+
+            // 3) Truncated pubkey as last resort
+            unresolved.forEach(p => { if (!_labelNames[p]) _labelNames[p] = `${p.slice(0, 8)}\u2026`; });
+        }
+
         function renderDiscography() {
             const container = document.getElementById('discography-content');
             if (!container) return;
+
+            // Phase G \u2014 resolve label names for any release that has a label_pubkey, then re-render.
+            const unresolvedLabels = [...new Set(artistReleases.map(r => r.labelPubkey).filter(Boolean))]
+                .filter(p => !(p in _labelNames));
+            if (unresolvedLabels.length > 0) {
+                unresolvedLabels.forEach(p => { _labelNames[p] = null; });
+                resolveLabelNames(unresolvedLabels).then(() => renderDiscography());
+            }
 
             container.innerHTML = `<div class="discography-grid">
                 ${artistReleases.map((release, index) => {
@@ -1346,6 +1446,12 @@
                     const countLabel = release.isSingle ? 'Single' : `${typeLabel} \u00b7 ${trackCount} track${trackCount !== 1 ? 's' : ''}`;
                     const price = release.tracks[0] ? formatPrice(release.tracks[0].priceAmount, release.tracks[0].priceCurrency) : '';
                     const year = release.releaseDate ? release.releaseDate.substring(0, 4) : '';
+                    const labelName = release.labelPubkey
+                        ? (_labelNames[release.labelPubkey] || `${release.labelPubkey.slice(0, 8)}\u2026`)
+                        : null;
+                    const labelBadge = labelName
+                        ? `<div class="release-label-badge" title="Published by ${escapeHtml(labelName)}">${escapeHtml(labelName)}</div>`
+                        : '';
 
                     return `
                         <div class="release-card" onclick="selectRelease(${index})">
@@ -1362,6 +1468,7 @@
                                 <span class="release-type">${countLabel}${year ? ` \u00b7 ${year}` : ''}</span>
                                 ${price ? `<span class="release-price">${price}</span>` : ''}
                             </div>
+                            ${labelBadge}
                         </div>
                     `;
                 }).join('')}

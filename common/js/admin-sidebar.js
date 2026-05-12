@@ -189,6 +189,12 @@ const AdminSidebar = {
                     </svg>
                     <span>Settings</span>
                 </a>
+                <a href="delegations.html" class="nav-item ${currentPage === 'delegations' ? 'active' : ''}">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    </svg>
+                    <span>Manager Authorizations</span>
+                </a>
                 <a href="/" class="nav-item">
                     <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
@@ -281,7 +287,7 @@ const AdminSidebar = {
 
         const labelAdminNav = `
             <div class="nav-section" data-testid="nav-label-admin">
-                <div class="nav-title">Label Admin</div>
+                <div class="nav-title">${role === 'operator' ? 'Content' : 'Label Admin'}</div>
                 <a href="artist-management.html" class="nav-item ${currentPage === 'artist-management' ? 'active' : ''}">
                     <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
@@ -305,7 +311,7 @@ const AdminSidebar = {
 
         const nodeAdminNav = `
             <div class="nav-section" data-testid="nav-node-admin">
-                <div class="nav-title">Node Admin</div>
+                <div class="nav-title">Infrastructure</div>
                 <a href="node-overview.html" class="nav-item ${currentPage === 'node-overview' ? 'active' : ''}">
                     <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-2.22l.123.489.804.804A1 1 0 0113 18H7a1 1 0 01-.707-1.707l.804-.804L7.22 15H5a2 2 0 01-2-2V5zm5.771 7H5V5h10v7H8.771z" clip-rule="evenodd"/>

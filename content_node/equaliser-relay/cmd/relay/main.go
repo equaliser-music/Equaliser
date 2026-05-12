@@ -93,7 +93,8 @@ func main() {
 	}
 
 	// Set up REST API server
-	apiServer := api.NewServer(userStore, eventStore, adminStore, peerStore)
+	delegationStore := storage.NewDelegationStore(pool)
+	apiServer := api.NewServer(userStore, eventStore, adminStore, peerStore, delegationStore)
 	restServer := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.RESTAPIPort),
 		Handler:      apiServer.Handler(),

@@ -35,6 +35,9 @@ class CreateRequest(BaseModel):
     description: str = ""
     links: str = ""
     requested_role: str = "artist"  # 'artist' | 'label'
+    # Phase G — artists can preview the relationship_type they're requesting.
+    # The approver may override on /api/label/access-requests/{id}/approve.
+    target_relationship_type: str = "managed"  # 'self' | 'managed' | 'signed'
 
 
 @router.post("/request")
@@ -45,10 +48,17 @@ async def create_request(req: CreateRequest):
     """
     if req.requested_role not in ("artist", "label"):
         raise HTTPException(status_code=400, detail="requested_role must be 'artist' or 'label'")
+    if req.target_relationship_type not in ("self", "managed", "signed"):
+        raise HTTPException(status_code=400, detail="target_relationship_type must be 'self', 'managed', or 'signed'")
     if not req.artist_name.strip():
         raise HTTPException(status_code=400, detail="artist_name is required")
     if not req.email.strip():
         raise HTTPException(status_code=400, detail="email is required")
+
+    # Labels don't have a label relationship — coerce to 'self'
+    rel_type = req.target_relationship_type
+    if req.requested_role == "label":
+        rel_type = "self"
 
     result = await relay_admin.create_access_request(
         artist_name=req.artist_name.strip(),
@@ -57,6 +67,7 @@ async def create_request(req: CreateRequest):
         description=req.description,
         links=req.links,
         requested_role=req.requested_role,
+        target_relationship_type=rel_type,
     )
     return result
 
@@ -80,6 +91,7 @@ async def check_invite(code: str):
         "valid": True,
         "target_role": info.get("target_role", "artist"),
         "target_managed_by": info.get("target_managed_by"),
+        "target_relationship_type": info.get("target_relationship_type", "managed"),
         "issuer_name": info.get("artist_name"),  # request name (or "(direct invite)" for orphan codes)
         "request_id": info.get("id"),
     }

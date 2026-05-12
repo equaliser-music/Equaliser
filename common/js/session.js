@@ -419,6 +419,76 @@ const SessionManager = {
     },
 
     /**
+     * Sign a NIP-26 delegation token. Returns {conditions, signature}.
+     * conditions format: kind=N&created_at>SINCE&created_at<UNTIL (multiple kinds OR'd
+     * via repeated kind= clauses). signature is hex BIP-340 Schnorr over
+     * SHA256("nostr:delegation:" + delegateePubkey + ":" + conditions) by the session's
+     * private key.
+     *
+     * Only works for nsec sessions (extension sessions don't generally expose raw
+     * Schnorr signing of arbitrary messages). Throws on extension session.
+     *
+     * @param {string} delegateePubkey - hex pubkey of the delegatee (e.g. label)
+     * @param {object} params - { kinds: number[], since: number, until: number }
+     * @returns {Promise<{conditions: string, signature: string}>}
+     */
+    async signDelegation(delegateePubkey, params) {
+        if (!this._session) throw new Error('No active session');
+        if (this._session.type !== 'nsec') {
+            throw new Error('Delegation signing requires an nsec session — NIP-07 extensions do not expose raw Schnorr signing');
+        }
+        const { kinds, since, until } = params || {};
+        if (!Array.isArray(kinds) || kinds.length === 0) throw new Error('kinds[] required');
+        if (typeof since !== 'number' || typeof until !== 'number' || until <= since) {
+            throw new Error('since and until must be numbers with until > since');
+        }
+
+        // Build conditions: kind=A&kind=B&created_at>SINCE&created_at<UNTIL
+        const parts = kinds.map(k => `kind=${k}`).concat([
+            `created_at>${since}`,
+            `created_at<${until}`,
+        ]);
+        const conditions = parts.join('&');
+
+        // Sign sha256("nostr:delegation:" + delegateePubkey + ":" + conditions)
+        const canonical = `nostr:delegation:${delegateePubkey}:${conditions}`;
+        const msgBytes = new TextEncoder().encode(canonical);
+        const hashBuf = await crypto.subtle.digest('SHA-256', msgBytes);
+        const hashBytes = new Uint8Array(hashBuf);
+
+        // We need raw BIP-340 Schnorr signing of the canonical message hash.
+        // nostr-tools' bundle doesn't expose schnorr, so the page loads @noble/curves'
+        // schnorr separately as an ES module and assigns to window.nobleSchnorr.
+        // Wait briefly if the module is still loading.
+        if (!window.nobleSchnorr || typeof window.nobleSchnorr.sign !== 'function') {
+            await new Promise((resolve, reject) => {
+                let resolved = false;
+                const onReady = () => { if (!resolved) { resolved = true; resolve(); } };
+                window.addEventListener('noble-schnorr-ready', onReady, { once: true });
+                setTimeout(() => {
+                    if (!resolved) { resolved = true; reject(new Error('@noble/curves schnorr did not load (check page <script type=module> tag)')); }
+                }, 5000);
+            });
+        }
+        const sigBytes = await window.nobleSchnorr.sign(hashBytes, this._session.privateKey);
+        const signature = Array.from(sigBytes)
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
+        return { conditions, signature };
+    },
+
+    /**
+     * Build a NIP-26 delegation tag suitable for splicing into an event's `tags` array.
+     * @param {string} delegatorPubkey - hex pubkey of the delegator (e.g. artist)
+     * @param {string} conditions
+     * @param {string} signature
+     * @returns {string[]}
+     */
+    buildDelegationTag(delegatorPubkey, conditions, signature) {
+        return ['delegation', delegatorPubkey, conditions, signature];
+    },
+
+    /**
      * Fetch wrapper that automatically adds NIP-98 auth headers.
      * Use this for all authenticated API calls.
      * @param {string} url - The request URL (relative or absolute)

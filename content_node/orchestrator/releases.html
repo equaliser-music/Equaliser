@@ -1324,6 +1324,94 @@
             return atob(encoded + '='.repeat((4 - encoded.length % 4) % 4));
         }
 
+        /**
+         * Sign a Kind 30050 event using the right flow for the artist's relationship type.
+         *
+         * Three branches:
+         *   - Self-publish (artist === caller): sign as-is with the caller's nsec.
+         *   - 'managed' (Phase F NIP-26 delegation): label rewrites event.pubkey to itself,
+         *     splices in a cached delegation tag, signs. Artist owns recording rights.
+         *   - 'signed' (Phase G performer tag): label rewrites event.pubkey to itself,
+         *     splices in `["p", artist, "", "performer"]`, signs. Label owns recording rights.
+         *
+         * The relationship_type comes from the artist's node_artists row, fetched once via
+         * fetchArtistRelationship and cached.
+         */
+        async function signTrackEvent(unsigned, artistPubkey, callerPubkey) {
+            const session = SessionManager.getSession();
+
+            if (artistPubkey === callerPubkey) {
+                return await session.sign({
+                    kind: unsigned.kind,
+                    pubkey: unsigned.pubkey,
+                    created_at: unsigned.created_at,
+                    tags: unsigned.tags,
+                    content: unsigned.content,
+                });
+            }
+
+            // Determine which on-behalf-of flow to use based on the artist's relationship type
+            const relationship = await fetchArtistRelationship(artistPubkey);
+            const relType = relationship?.relationship_type || 'managed';
+
+            if (relType === 'signed') {
+                // Phase G — label is the publisher; splice in performer tag, no delegation needed.
+                const tags = (unsigned.tags || []).slice();
+                tags.push(['p', artistPubkey, '', 'performer']);
+                return await session.sign({
+                    kind: unsigned.kind,
+                    pubkey: callerPubkey,
+                    created_at: unsigned.created_at,
+                    tags,
+                    content: unsigned.content,
+                });
+            }
+
+            // Default: 'managed' (Phase F NIP-26 delegation)
+            let delegation;
+            try {
+                const resp = await SessionManager.authFetch(`/api/delegations/active/${artistPubkey}`);
+                if (resp.status === 404) {
+                    throw new Error(`No active manager authorization from this artist. Use the Artists page to request one.`);
+                }
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                delegation = await resp.json();
+            } catch (e) {
+                throw new Error(`Cannot publish on behalf of artist: ${e.message}`);
+            }
+
+            const tags = (unsigned.tags || []).slice();
+            tags.push(['delegation', artistPubkey, delegation.conditions, delegation.signature]);
+
+            return await session.sign({
+                kind: unsigned.kind,
+                pubkey: callerPubkey,
+                created_at: unsigned.created_at,
+                tags,
+                content: unsigned.content,
+            });
+        }
+
+        // Cached lookup of an artist's node_artists row (relationship_type + managed_by)
+        const _artistRelationshipCache = new Map();
+        async function fetchArtistRelationship(pubkey) {
+            if (_artistRelationshipCache.has(pubkey)) {
+                return _artistRelationshipCache.get(pubkey);
+            }
+            try {
+                const resp = await SessionManager.authFetch(`/api/label/artists/${pubkey}`);
+                if (resp.ok) {
+                    const data = await resp.json();
+                    _artistRelationshipCache.set(pubkey, data);
+                    return data;
+                }
+            } catch (_) { /* fall through */ }
+            // Default for unknown artists: assume 'managed' (Phase F backwards-compat)
+            const fallback = { relationship_type: 'managed' };
+            _artistRelationshipCache.set(pubkey, fallback);
+            return fallback;
+        }
+
         function updateStats() {
             const draftReleases = releases.filter(r => r.status === 'draft');
             const releasedReleases = releases.filter(r => r.status === 'released');
@@ -1425,14 +1513,13 @@
 
                         const { unsigned_event, draft_id } = await prepResponse.json();
 
-                        // Sign the event
-                        const signedEvent = await session.sign({
-                            kind: unsigned_event.kind,
-                            pubkey: unsigned_event.pubkey,
-                            created_at: unsigned_event.created_at,
-                            tags: unsigned_event.tags,
-                            content: unsigned_event.content
-                        });
+                        // Phase F: if the track belongs to a managed artist (not us), the
+                        // event must be signed by us (the label) with a NIP-26 delegation tag
+                        // attesting that the artist authorized us. Without an active delegation,
+                        // we cannot publish on their behalf.
+                        const myPubkey = session.publicKey;
+                        const artistPubkey = unsigned_event.pubkey;
+                        const signedEvent = await signTrackEvent(unsigned_event, artistPubkey, myPubkey);
 
                         // Publish to NOSTR
                         const publishResponse = await SessionManager.authFetch('/api/tracks/publish', {

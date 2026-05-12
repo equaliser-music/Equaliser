@@ -20,9 +20,14 @@ router = APIRouter()
 
 
 class UpdateArtistRequest(BaseModel):
-    status: Optional[str] = None       # 'active' | 'suspended'
-    fee_model: Optional[str] = None    # 'free' | 'percentage' | 'flat_rate'
+    status: Optional[str] = None              # 'active' | 'suspended'
+    fee_model: Optional[str] = None           # 'free' | 'percentage' | 'flat_rate'
     fee_value: Optional[float] = None
+    # Phase G — recording-rights model
+    relationship_type: Optional[str] = None   # 'self' | 'managed' | 'signed'
+    # Phase G — operators can transfer an artist between labels by PATCH-ing managed_by.
+    # Empty string clears (sets to NULL); None leaves the field alone.
+    managed_by: Optional[str] = None
 
 
 @router.get("/artists")
@@ -58,15 +63,28 @@ async def update_managed_artist(
     req: UpdateArtistRequest,
     ctx: RoleContext = Depends(require_label),
 ):
-    """Update an artist's status, fee model, or fee value."""
+    """Update an artist's status, fee model, fee value, relationship type, or managed_by.
+
+    - status / fee_* / relationship_type: label or operator.
+    - managed_by transfer (Phase G — Magic→Sony etc.): operator-only. Setting "" clears
+      the field (artist becomes self / unmanaged).
+    """
     if not ctx.can_manage(pubkey):
         raise HTTPException(status_code=403, detail="Cannot manage this artist")
+
+    if req.relationship_type is not None and req.relationship_type not in ("self", "managed", "signed"):
+        raise HTTPException(status_code=400, detail="relationship_type must be 'self', 'managed', or 'signed'")
+
+    if req.managed_by is not None and ctx.role != "operator":
+        raise HTTPException(status_code=403, detail="Only operators can transfer artists between labels")
 
     return await relay_admin.update_artist(
         pubkey,
         status=req.status,
         fee_model=req.fee_model,
         fee_value=req.fee_value,
+        relationship_type=req.relationship_type,
+        managed_by=req.managed_by,
     )
 
 
@@ -81,6 +99,8 @@ class ApproveRequest(BaseModel):
     admin_notes: Optional[str] = ""
     target_role: Optional[str] = None        # 'artist' | 'label' | 'operator' (default: requested_role)
     target_managed_by: Optional[str] = None  # pubkey of label whose roster the artist joins (None = unmanaged)
+    # Phase G — recording-rights model on the resulting node_artists row.
+    target_relationship_type: Optional[str] = None  # 'self' | 'managed' | 'signed'
 
 
 @router.get("/access-requests")
@@ -136,11 +156,25 @@ async def approve_request(
         if target_managed_by != ctx.pubkey:
             raise HTTPException(status_code=403, detail="Labels can only assign artists to their own roster")
 
+    # Phase G: pick a sensible relationship_type default if the approver didn't specify
+    target_rel = body.target_relationship_type or existing.get("target_relationship_type") or "managed"
+    if target_rel not in ("self", "managed", "signed"):
+        raise HTTPException(status_code=400, detail="target_relationship_type must be 'self', 'managed', or 'signed'")
+    # Operator codes have no label relationship; labels with no managed_by are 'self'
+    if target_role == "operator":
+        target_rel = "self"
+    if target_role == "label" and not target_managed_by:
+        target_rel = "self"
+    # 'signed' / 'managed' only make sense when there's a managed_by
+    if target_rel in ("managed", "signed") and not target_managed_by:
+        target_rel = "self"
+
     return await relay_admin.approve_access_request(
         request_id,
         admin_notes=body.admin_notes or "",
         target_role=target_role,
         target_managed_by=target_managed_by,
+        target_relationship_type=target_rel,
         issued_by=ctx.pubkey,
     )
 
@@ -171,6 +205,8 @@ async def list_invite_codes(ctx: RoleContext = Depends(require_label)):
 class CreateInviteCodeRequest(BaseModel):
     target_role: Optional[str] = "artist"        # 'artist' | 'label' | 'operator'
     target_managed_by: Optional[str] = None      # pubkey of label whose roster the artist joins
+    # Phase G — recording-rights model the code carries through redemption.
+    target_relationship_type: Optional[str] = "managed"  # 'self' | 'managed' | 'signed'
 
 
 @router.post("/invite-codes")
@@ -184,6 +220,7 @@ async def create_invite_code(
     target_role gates: only operators can issue label or operator codes.
     Operator codes never carry target_managed_by (server strips it).
     Labels can only set target_managed_by to their own pubkey.
+    target_relationship_type seeds Phase G recording-rights model on redemption.
     """
     target_role = body.target_role or "artist"
     if target_role not in ("artist", "label", "operator"):
@@ -198,9 +235,21 @@ async def create_invite_code(
         if target_managed_by != ctx.pubkey:
             raise HTTPException(status_code=403, detail="Labels can only assign artists to their own roster")
 
+    target_rel = body.target_relationship_type or "managed"
+    if target_rel not in ("self", "managed", "signed"):
+        raise HTTPException(status_code=400, detail="target_relationship_type must be 'self', 'managed', or 'signed'")
+    # Normalise: operator/standalone-label codes have no label relationship
+    if target_role == "operator":
+        target_rel = "self"
+    if target_role == "label" and not target_managed_by:
+        target_rel = "self"
+    if target_rel in ("managed", "signed") and not target_managed_by:
+        target_rel = "self"
+
     return await relay_admin.create_invite_code(
         target_role=target_role,
         target_managed_by=target_managed_by,
+        target_relationship_type=target_rel,
         issued_by=ctx.pubkey,
     )
 
@@ -211,6 +260,8 @@ async def create_invite_code(
 class AddExistingArtistRequest(BaseModel):
     artist_name: str
     npub: Optional[str] = ""  # optional, just for record-keeping
+    # Phase G — Signed (label-rights) vs Managed (NIP-26 delegation, artist keeps rights).
+    relationship_type: Optional[str] = "managed"
 
 
 @router.post("/add-existing-artist")
@@ -221,14 +272,19 @@ async def add_existing_artist(
     """
     Generate a roster invite code for an existing-pubkey artist.
 
-    The label fills in the artist's name (and optional npub for record), and gets back
-    an invite code with target_managed_by = caller's pubkey. The label shares the code
-    out-of-band; the artist redeems it via /admin/redeem.html and joins the roster.
+    The label fills in the artist's name (and optional npub for record) and chooses
+    the relationship type (managed/signed). The artist redeems the code via
+    /admin/redeem.html and joins the roster with the chosen relationship_type.
     """
     if not body.artist_name.strip():
         raise HTTPException(status_code=400, detail="artist_name is required")
+    rel_type = body.relationship_type or "managed"
+    if rel_type not in ("managed", "signed"):
+        # 'self' doesn't make sense for a roster invite — the artist has no label
+        raise HTTPException(status_code=400, detail="relationship_type must be 'managed' or 'signed' for roster invites")
     return await relay_admin.create_invite_code(
         target_role="artist",
         target_managed_by=ctx.pubkey,
+        target_relationship_type=rel_type,
         issued_by=ctx.pubkey,
     )

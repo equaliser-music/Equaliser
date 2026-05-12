@@ -22,17 +22,19 @@ func NewAdminStore(pool *pgxpool.Pool) *AdminStore {
 
 // NodeArtist represents a row from node_artists.
 type NodeArtist struct {
-	Pubkey          string     `json:"pubkey"`
-	ArtistName      string     `json:"artist_name"`
-	RequestID       *int       `json:"request_id,omitempty"`
-	FeeModel        string     `json:"fee_model"`
-	FeeValue        float64    `json:"fee_value"`
-	Status          string     `json:"status"`
-	Role            string     `json:"role"`
-	Custody         string     `json:"custody"`
-	ManagedBy       *string    `json:"managed_by,omitempty"`
-	DerivationIndex *int       `json:"derivation_index,omitempty"`
-	OnboardedAt     time.Time  `json:"onboarded_at"`
+	Pubkey           string    `json:"pubkey"`
+	ArtistName       string    `json:"artist_name"`
+	RequestID        *int      `json:"request_id,omitempty"`
+	FeeModel         string    `json:"fee_model"`
+	FeeValue         float64   `json:"fee_value"`
+	Status           string    `json:"status"`
+	Role             string    `json:"role"`
+	Custody          string    `json:"custody"`
+	ManagedBy        *string   `json:"managed_by,omitempty"`
+	DerivationIndex  *int      `json:"derivation_index,omitempty"`
+	OnboardedAt      time.Time `json:"onboarded_at"`
+	// Phase G: how the artist works with their current label
+	RelationshipType string `json:"relationship_type"` // 'self' | 'managed' | 'signed'
 }
 
 // AccessRequest represents a row from access_requests.
@@ -54,6 +56,8 @@ type AccessRequest struct {
 	TargetRole      string  `json:"target_role"`                 // 'artist' | 'label' | 'operator' (what the code grants)
 	TargetManagedBy *string `json:"target_managed_by,omitempty"` // pubkey of label whose roster the new artist joins
 	IssuedBy        *string `json:"issued_by,omitempty"`         // pubkey of label/operator who generated/approved the code
+	// Phase G: relationship type the invite carries — set on the artist's node_artists row at redeem time
+	TargetRelationshipType string `json:"target_relationship_type"` // 'managed' (default Phase F) | 'signed' (Phase G label-rights)
 }
 
 // RedeemResult is what RedeemInviteCode returns to the API layer.
@@ -92,7 +96,8 @@ func (s *AdminStore) ListArtists(ctx context.Context, managedBy, role string) ([
 	query := `
 		SELECT pubkey, artist_name, request_id, fee_model, fee_value, status,
 		       COALESCE(role, 'artist'), COALESCE(custody, 'self'),
-		       managed_by, derivation_index, onboarded_at
+		       managed_by, derivation_index, onboarded_at,
+		       COALESCE(relationship_type, 'managed')
 		FROM node_artists
 		WHERE 1=1`
 	args := []interface{}{}
@@ -120,7 +125,7 @@ func (s *AdminStore) ListArtists(ctx context.Context, managedBy, role string) ([
 		var a NodeArtist
 		if err := rows.Scan(&a.Pubkey, &a.ArtistName, &a.RequestID, &a.FeeModel,
 			&a.FeeValue, &a.Status, &a.Role, &a.Custody, &a.ManagedBy,
-			&a.DerivationIndex, &a.OnboardedAt); err != nil {
+			&a.DerivationIndex, &a.OnboardedAt, &a.RelationshipType); err != nil {
 			return nil, fmt.Errorf("scan artist: %w", err)
 		}
 		artists = append(artists, a)
@@ -134,20 +139,28 @@ func (s *AdminStore) GetArtist(ctx context.Context, pubkey string) (*NodeArtist,
 	err := s.pool.QueryRow(ctx, `
 		SELECT pubkey, artist_name, request_id, fee_model, fee_value, status,
 		       COALESCE(role, 'artist'), COALESCE(custody, 'self'),
-		       managed_by, derivation_index, onboarded_at
+		       managed_by, derivation_index, onboarded_at,
+		       COALESCE(relationship_type, 'managed')
 		FROM node_artists WHERE pubkey = $1
 	`, pubkey).Scan(&a.Pubkey, &a.ArtistName, &a.RequestID, &a.FeeModel,
 		&a.FeeValue, &a.Status, &a.Role, &a.Custody, &a.ManagedBy,
-		&a.DerivationIndex, &a.OnboardedAt)
+		&a.DerivationIndex, &a.OnboardedAt, &a.RelationshipType)
 	if err != nil {
 		return nil, nil // not found
 	}
 	return &a, nil
 }
 
-// UpdateArtist updates status, fee_model, and/or fee_value for an artist.
+// UpdateArtist updates status, fee_model, fee_value, relationship_type, and/or managed_by for an artist.
 // Pass nil for fields you don't want to change.
-func (s *AdminStore) UpdateArtist(ctx context.Context, pubkey string, status, feeModel *string, feeValue *float64) error {
+func (s *AdminStore) UpdateArtist(
+	ctx context.Context,
+	pubkey string,
+	status, feeModel *string,
+	feeValue *float64,
+	relationshipType *string,
+	managedBy *string, // empty string clears (sets to NULL)
+) error {
 	query := "UPDATE node_artists SET "
 	args := []interface{}{}
 	parts := []string{}
@@ -167,6 +180,20 @@ func (s *AdminStore) UpdateArtist(ctx context.Context, pubkey string, status, fe
 		parts = append(parts, fmt.Sprintf("fee_value = $%d", argIdx))
 		args = append(args, *feeValue)
 		argIdx++
+	}
+	if relationshipType != nil {
+		parts = append(parts, fmt.Sprintf("relationship_type = $%d", argIdx))
+		args = append(args, *relationshipType)
+		argIdx++
+	}
+	if managedBy != nil {
+		if *managedBy == "" {
+			parts = append(parts, "managed_by = NULL")
+		} else {
+			parts = append(parts, fmt.Sprintf("managed_by = $%d", argIdx))
+			args = append(args, *managedBy)
+			argIdx++
+		}
 	}
 
 	if len(parts) == 0 {
@@ -197,7 +224,8 @@ func (s *AdminStore) ListAccessRequests(ctx context.Context, status string) ([]A
 		       COALESCE(description, ''), COALESCE(links, ''), status,
 		       admin_notes, invite_code, invite_used, requested_at, reviewed_at,
 		       COALESCE(requested_role, 'artist'), COALESCE(target_role, 'artist'),
-		       target_managed_by, issued_by
+		       target_managed_by, issued_by,
+		       COALESCE(target_relationship_type, 'managed')
 		FROM access_requests
 		WHERE 1=1`
 	args := []interface{}{}
@@ -220,7 +248,8 @@ func (s *AdminStore) ListAccessRequests(ctx context.Context, status string) ([]A
 		if err := rows.Scan(&r.ID, &r.ArtistName, &r.Email, &r.Npub,
 			&r.Description, &r.Links, &r.Status, &r.AdminNotes,
 			&r.InviteCode, &r.InviteUsed, &r.RequestedAt, &r.ReviewedAt,
-			&r.RequestedRole, &r.TargetRole, &r.TargetManagedBy, &r.IssuedBy); err != nil {
+			&r.RequestedRole, &r.TargetRole, &r.TargetManagedBy, &r.IssuedBy,
+			&r.TargetRelationshipType); err != nil {
 			return nil, fmt.Errorf("scan request: %w", err)
 		}
 		requests = append(requests, r)
@@ -236,12 +265,14 @@ func (s *AdminStore) GetAccessRequest(ctx context.Context, id int) (*AccessReque
 		       COALESCE(description, ''), COALESCE(links, ''), status,
 		       admin_notes, invite_code, invite_used, requested_at, reviewed_at,
 		       COALESCE(requested_role, 'artist'), COALESCE(target_role, 'artist'),
-		       target_managed_by, issued_by
+		       target_managed_by, issued_by,
+		       COALESCE(target_relationship_type, 'managed')
 		FROM access_requests WHERE id = $1
 	`, id).Scan(&r.ID, &r.ArtistName, &r.Email, &r.Npub, &r.Description,
 		&r.Links, &r.Status, &r.AdminNotes, &r.InviteCode, &r.InviteUsed,
 		&r.RequestedAt, &r.ReviewedAt,
-		&r.RequestedRole, &r.TargetRole, &r.TargetManagedBy, &r.IssuedBy)
+		&r.RequestedRole, &r.TargetRole, &r.TargetManagedBy, &r.IssuedBy,
+		&r.TargetRelationshipType)
 	if err != nil {
 		return nil, nil // not found
 	}
@@ -258,13 +289,15 @@ func (s *AdminStore) GetInviteCode(ctx context.Context, code string) (*AccessReq
 		       COALESCE(description, ''), COALESCE(links, ''), status,
 		       admin_notes, invite_code, invite_used, requested_at, reviewed_at,
 		       COALESCE(requested_role, 'artist'), COALESCE(target_role, 'artist'),
-		       target_managed_by, issued_by
+		       target_managed_by, issued_by,
+		       COALESCE(target_relationship_type, 'managed')
 		FROM access_requests
 		WHERE invite_code = $1 AND status = 'approved' AND invite_used = FALSE
 	`, code).Scan(&r.ID, &r.ArtistName, &r.Email, &r.Npub, &r.Description,
 		&r.Links, &r.Status, &r.AdminNotes, &r.InviteCode, &r.InviteUsed,
 		&r.RequestedAt, &r.ReviewedAt,
-		&r.RequestedRole, &r.TargetRole, &r.TargetManagedBy, &r.IssuedBy)
+		&r.RequestedRole, &r.TargetRole, &r.TargetManagedBy, &r.IssuedBy,
+		&r.TargetRelationshipType)
 	if err != nil {
 		return nil, nil // not found / not redeemable
 	}
@@ -274,6 +307,7 @@ func (s *AdminStore) GetInviteCode(ctx context.Context, code string) (*AccessReq
 // ApproveAccessRequest sets status='approved', generates an invite code, and records reviewed_at.
 // targetRole defaults to the request's requested_role (or 'artist' if neither is set).
 // targetManagedBy may be NULL for unmanaged artists, or a label pubkey for roster grants.
+// targetRelationshipType is the Phase G recording-rights model ('self' | 'managed' | 'signed').
 // issuedBy is the pubkey of the operator/label who approved (audit).
 // Returns the generated invite code.
 func (s *AdminStore) ApproveAccessRequest(
@@ -282,10 +316,14 @@ func (s *AdminStore) ApproveAccessRequest(
 	adminNotes string,
 	targetRole string,
 	targetManagedBy *string,
+	targetRelationshipType string,
 	issuedBy string,
 ) (string, error) {
 	if targetRole == "" {
 		targetRole = "artist"
+	}
+	if targetRelationshipType == "" {
+		targetRelationshipType = "managed"
 	}
 	code, err := s.generateUniqueInviteCode(ctx)
 	if err != nil {
@@ -295,9 +333,11 @@ func (s *AdminStore) ApproveAccessRequest(
 	tag, err := s.pool.Exec(ctx, `
 		UPDATE access_requests
 		SET status = 'approved', invite_code = $1, admin_notes = $2, reviewed_at = NOW(),
-		    target_role = $3, target_managed_by = $4, issued_by = $5
-		WHERE id = $6 AND status = 'pending'
-	`, code, adminNotes, targetRole, targetManagedBy, nullableString(issuedBy), id)
+		    target_role = $3, target_managed_by = $4, issued_by = $5,
+		    target_relationship_type = $6
+		WHERE id = $7 AND status = 'pending'
+	`, code, adminNotes, targetRole, targetManagedBy, nullableString(issuedBy),
+		targetRelationshipType, id)
 	if err != nil {
 		return "", fmt.Errorf("approve request: %w", err)
 	}
@@ -325,19 +365,25 @@ func (s *AdminStore) DeclineAccessRequest(ctx context.Context, id int, adminNote
 
 // CreateAccessRequest inserts a new pending access request and returns its ID.
 // requestedRole captures what the applicant asked for on /join ('artist' | 'label').
+// targetRelationshipType seeds Phase G recording-rights mode ('managed' default).
 func (s *AdminStore) CreateAccessRequest(
 	ctx context.Context,
-	requestedRole, artistName, email, npub, description, links string,
+	requestedRole, artistName, email, npub, description, links, targetRelationshipType string,
 ) (int, error) {
 	if requestedRole == "" {
 		requestedRole = "artist"
 	}
+	if targetRelationshipType == "" {
+		targetRelationshipType = "managed"
+	}
 	var id int
 	err := s.pool.QueryRow(ctx, `
-		INSERT INTO access_requests (artist_name, email, npub, description, links, status, requested_role)
-		VALUES ($1, $2, $3, $4, $5, 'pending', $6)
+		INSERT INTO access_requests (artist_name, email, npub, description, links, status,
+		                              requested_role, target_relationship_type)
+		VALUES ($1, $2, $3, $4, $5, 'pending', $6, $7)
 		RETURNING id
-	`, artistName, email, npub, description, links, requestedRole).Scan(&id)
+	`, artistName, email, npub, description, links, requestedRole,
+		targetRelationshipType).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("create request: %w", err)
 	}
@@ -347,19 +393,30 @@ func (s *AdminStore) CreateAccessRequest(
 // CreateOrphanInviteCode creates an unused invite code with no associated request.
 // targetRole ∈ {'artist', 'label', 'operator'} (default 'artist').
 // targetManagedBy is the label pubkey for roster invites; nil otherwise.
+// targetRelationshipType is the Phase G recording-rights model ('self' | 'managed' | 'signed').
+// Operator codes always carry 'self' (operators don't have a label relationship).
 // issuedBy is the pubkey of the operator/label who generated the code (audit).
 func (s *AdminStore) CreateOrphanInviteCode(
 	ctx context.Context,
 	targetRole string,
 	targetManagedBy *string,
+	targetRelationshipType string,
 	issuedBy string,
 ) (string, error) {
 	if targetRole == "" {
 		targetRole = "artist"
 	}
-	// Operator codes never carry target_managed_by — strip it.
+	if targetRelationshipType == "" {
+		targetRelationshipType = "managed"
+	}
+	// Operator codes never carry target_managed_by — strip it. Operators have no label relationship.
 	if targetRole == "operator" {
 		targetManagedBy = nil
+		targetRelationshipType = "self"
+	}
+	// Labels are 'self' by default — they don't sit under another label.
+	if targetRole == "label" && targetManagedBy == nil {
+		targetRelationshipType = "self"
 	}
 	code, err := s.generateUniqueInviteCode(ctx)
 	if err != nil {
@@ -369,9 +426,10 @@ func (s *AdminStore) CreateOrphanInviteCode(
 	// Insert an "approved" placeholder request to hold the invite code
 	_, err = s.pool.Exec(ctx, `
 		INSERT INTO access_requests (artist_name, status, invite_code, reviewed_at,
-		                              target_role, target_managed_by, issued_by)
-		VALUES ('(direct invite)', 'approved', $1, NOW(), $2, $3, $4)
-	`, code, targetRole, targetManagedBy, nullableString(issuedBy))
+		                              target_role, target_managed_by, issued_by,
+		                              target_relationship_type)
+		VALUES ('(direct invite)', 'approved', $1, NOW(), $2, $3, $4, $5)
+	`, code, targetRole, targetManagedBy, nullableString(issuedBy), targetRelationshipType)
 	if err != nil {
 		return "", fmt.Errorf("create orphan invite: %w", err)
 	}
@@ -382,7 +440,8 @@ func (s *AdminStore) CreateOrphanInviteCode(
 func (s *AdminStore) ListInviteCodes(ctx context.Context) ([]map[string]interface{}, error) {
 	rows, err := s.pool.Query(ctx, `
 		SELECT id, artist_name, invite_code, reviewed_at,
-		       COALESCE(target_role, 'artist'), target_managed_by, issued_by
+		       COALESCE(target_role, 'artist'), target_managed_by, issued_by,
+		       COALESCE(target_relationship_type, 'managed')
 		FROM access_requests
 		WHERE status = 'approved' AND invite_code IS NOT NULL AND invite_used = FALSE
 		ORDER BY reviewed_at DESC
@@ -395,21 +454,22 @@ func (s *AdminStore) ListInviteCodes(ctx context.Context) ([]map[string]interfac
 	var codes []map[string]interface{}
 	for rows.Next() {
 		var id int
-		var artistName, code, targetRole string
+		var artistName, code, targetRole, targetRelType string
 		var reviewedAt time.Time
 		var targetManagedBy, issuedBy *string
 		if err := rows.Scan(&id, &artistName, &code, &reviewedAt,
-			&targetRole, &targetManagedBy, &issuedBy); err != nil {
+			&targetRole, &targetManagedBy, &issuedBy, &targetRelType); err != nil {
 			return nil, fmt.Errorf("scan invite: %w", err)
 		}
 		codes = append(codes, map[string]interface{}{
-			"request_id":        id,
-			"artist_name":       artistName,
-			"invite_code":       code,
-			"created_at":        reviewedAt,
-			"target_role":       targetRole,
-			"target_managed_by": targetManagedBy,
-			"issued_by":         issuedBy,
+			"request_id":               id,
+			"artist_name":              artistName,
+			"invite_code":              code,
+			"created_at":               reviewedAt,
+			"target_role":              targetRole,
+			"target_managed_by":        targetManagedBy,
+			"issued_by":                issuedBy,
+			"target_relationship_type": targetRelType,
 		})
 	}
 	return codes, rows.Err()
@@ -546,15 +606,18 @@ func (s *AdminStore) RedeemInviteCode(
 		reqID           int
 		targetRole      string
 		targetManagedBy *string
+		targetRelType   string
 		status          string
 		inviteUsed      bool
 	)
 	err = tx.QueryRow(ctx, `
-		SELECT id, COALESCE(target_role, 'artist'), target_managed_by, status, invite_used
+		SELECT id, COALESCE(target_role, 'artist'), target_managed_by,
+		       COALESCE(target_relationship_type, 'managed'),
+		       status, invite_used
 		FROM access_requests
 		WHERE invite_code = $1
 		FOR UPDATE
-	`, code).Scan(&reqID, &targetRole, &targetManagedBy, &status, &inviteUsed)
+	`, code).Scan(&reqID, &targetRole, &targetManagedBy, &targetRelType, &status, &inviteUsed)
 	if err != nil {
 		return nil, &RedeemErr{Code: "invalid_code", Message: "invite code not found"}
 	}
@@ -616,18 +679,21 @@ func (s *AdminStore) RedeemInviteCode(
 			}
 		}
 
-		// INSERT or UPDATE — preserve existing managed_by if set, only upgrade role artist→label
+		// INSERT or UPDATE — preserve existing managed_by if set, only upgrade role artist→label.
+		// relationship_type takes the invite's value on insert; on conflict (existing row), the
+		// invite wins because Phase G allows roster moves (Magic→Sony) to flip the type.
 		_, err = tx.Exec(ctx, `
-			INSERT INTO node_artists (pubkey, artist_name, request_id, role, managed_by, status)
-			VALUES ($1, $2, $3, $4, $5, 'active')
+			INSERT INTO node_artists (pubkey, artist_name, request_id, role, managed_by, status, relationship_type)
+			VALUES ($1, $2, $3, $4, $5, 'active', $6)
 			ON CONFLICT (pubkey) DO UPDATE
 			SET managed_by = COALESCE(node_artists.managed_by, EXCLUDED.managed_by),
 			    role = CASE
 			      WHEN node_artists.role = 'artist' AND EXCLUDED.role = 'label' THEN 'label'
 			      ELSE node_artists.role
 			    END,
-			    request_id = COALESCE(node_artists.request_id, EXCLUDED.request_id)
-		`, pubkey, displayName, reqID, targetRole, targetManagedBy)
+			    request_id = COALESCE(node_artists.request_id, EXCLUDED.request_id),
+			    relationship_type = EXCLUDED.relationship_type
+		`, pubkey, displayName, reqID, targetRole, targetManagedBy, targetRelType)
 		if err != nil {
 			return nil, fmt.Errorf("insert/update artist: %w", err)
 		}
@@ -636,10 +702,12 @@ func (s *AdminStore) RedeemInviteCode(
 		err = tx.QueryRow(ctx, `
 			SELECT pubkey, artist_name, request_id, fee_model, fee_value, status,
 			       COALESCE(role, 'artist'), COALESCE(custody, 'self'),
-			       managed_by, derivation_index, onboarded_at
+			       managed_by, derivation_index, onboarded_at,
+			       COALESCE(relationship_type, 'managed')
 			FROM node_artists WHERE pubkey = $1
 		`, pubkey).Scan(&a.Pubkey, &a.ArtistName, &a.RequestID, &a.FeeModel, &a.FeeValue,
-			&a.Status, &a.Role, &a.Custody, &a.ManagedBy, &a.DerivationIndex, &a.OnboardedAt)
+			&a.Status, &a.Role, &a.Custody, &a.ManagedBy, &a.DerivationIndex, &a.OnboardedAt,
+			&a.RelationshipType)
 		if err != nil {
 			return nil, fmt.Errorf("read artist: %w", err)
 		}
