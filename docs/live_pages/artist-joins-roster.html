@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artist Joins a Label Roster — Equaliser</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="top-nav">
+        <div class="brand">Equaliser <span class="subtle">— Live Documentation</span></div>
+        <nav>
+            <a href="index.html">Overview</a>
+            <a href="artist-onboarding.html">Artist</a>
+            <a href="label-onboarding.html">Label</a>
+            <a href="artist-joins-roster.html" class="active">Roster</a>
+            <a href="signed-vs-managed.html">Signed vs Managed</a>
+        </nav>
+    </div>
+
+    <div class="wrap">
+        <header class="page">
+            <h1>Artist Joins a Label's Roster</h1>
+            <p class="lead">
+                A label brings an artist into their roster using "Add Existing Artist". This generates a roster invite code with <code>target_managed_by</code> = label's pubkey. The artist redeems it with their own keys (existing or fresh) and lands in <code>node_artists</code> with <code>managed_by</code> = label.
+            </p>
+            <div class="meta">2 parties involved: <span class="role-badge label">label</span> <span class="role-badge artist">artist</span></div>
+        </header>
+
+        <!-- ===== Label initiates ===== -->
+
+        <div class="step">
+            <div class="who label">Label — Equaliser Records</div>
+            <h2><span class="num">1</span> Visit Artist Management</h2>
+            <p>At <code>/admin/artist-management.html</code> the label sees their current roster. Below: Equaliser Records' roster after onboarding two artists — Shibuya Crossings as <code>signed</code> and Language of Flowers as <code>managed</code>. (For a brand-new label the table would be empty and an empty state would nudge them to add an artist.)</p>
+            <img src="screenshots/24-er-roster-mixed.png" alt="Equaliser Records roster with signed + managed badges">
+        </div>
+
+        <div class="step">
+            <div class="who label">Label</div>
+            <h2><span class="num">2</span> Add Existing Artist modal (with Phase G Relationship picker)</h2>
+            <p>Clicking <strong>Add Existing Artist</strong> opens the modal. The label fills in the artist's name, optionally their npub, and — new in Phase G — picks the <strong>Relationship</strong>: <code>Managed</code> (artist owns rights, label helps publish via NIP-26 delegation) or <code>Signed</code> (label owns recording rights, publishes under its own pubkey with the artist tagged as performer). The chosen type is carried through the invite code and applied to <code>node_artists.relationship_type</code> when the artist redeems.</p>
+            <img src="screenshots/25-er-add-existing-modal-phase-g.png" alt="Add Existing Artist modal with Phase G Relationship picker">
+            <div class="note">
+                Behind the scenes, <code>POST /api/label/add-existing-artist</code> calls the relay's <code>CreateOrphanInviteCode</code> with <code>target_role='artist'</code>, <code>target_managed_by</code> = caller pubkey (the label), <code>target_relationship_type</code> from the picker, and <code>issued_by</code> = caller pubkey.
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="who label">Label</div>
+            <h2><span class="num">3</span> Roster code generated</h2>
+            <p>The modal reveals the generated invite code. The label copies it and shares with the artist out-of-band (email, DM, etc.).</p>
+            <img src="screenshots/18-label-roster-code-shown.png" alt="Roster invite code shown in modal">
+        </div>
+
+        <!-- ===== Artist redeems ===== -->
+
+        <div class="step">
+            <div class="who artist">Artist — Swansea Sound</div>
+            <h2><span class="num">4</span> Redeem the roster code</h2>
+            <p>The artist generates an nsec (or imports their existing one) and gets redirected to the redeem page. After pasting the code, the preview shows what they're joining: <span class="role-badge artist">artist</span> role, <strong>managed by</strong> the label's short pubkey. This is the key signal that they're committing to a roster — not joining as an unmanaged independent artist.</p>
+            <img src="screenshots/19-roster-redeem-preview-managed.png" alt="Code preview showing managed-by relationship">
+        </div>
+
+        <div class="step">
+            <div class="who artist">Artist</div>
+            <h2><span class="num">5</span> Profile setup — find or create a Kind 0</h2>
+            <p>After the backup-file save, the artist is routed to <code>/admin/profile-setup.html</code> before the dashboard. The page first queries Damus, Primal, nos.lol and relay.nostr.band (plus the local node relay) for an existing Kind 0 keyed on the artist's pubkey:</p>
+            <img src="screenshots/36-profile-setup-search.png" alt="Searching the Nostr network for an existing profile">
+            <p style="margin-top:16px"><strong>If a Kind 0 is found</strong> — the form pre-fills name, bio, location, avatar/banner URLs etc., with a banner telling the artist where it came from. They can edit anything before publishing:</p>
+            <img src="screenshots/37-profile-setup-existing-found.png" alt="Form pre-filled from an existing profile">
+            <p style="margin-top:16px"><strong>If no Kind 0 exists</strong> — the form starts blank and the banner reads "Let's create your profile":</p>
+            <img src="screenshots/38-profile-setup-new-blank.png" alt="Blank create-profile form for a brand-new nsec">
+            <p style="margin-top:16px">Next step: relay selection. The local node relay is always selected (and locked). The artist's discovered <strong>Kind 10002</strong> relays are checked by default; Damus / Primal / nos.lol / relay.nostr.band are listed as unchecked suggestions. Custom relays can be added:</p>
+            <img src="screenshots/39-profile-setup-relays.png" alt="Relay selection step">
+            <div class="note">
+                <strong>What gets published:</strong> a Kind 0 (merged from any discovered profile so unknown fields like Damus-specific metadata are preserved) plus — if the relay selection differs from the discovered Kind 10002 — a fresh Kind 10002 with the new selection. Both events are published to every checked relay via WebSocket. The "Go to Dashboard" button only enables once the local relay accepts the events.
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="who artist">Artist</div>
+            <h2><span class="num">6</span> Onboarded into the roster</h2>
+            <p>After publish, the artist clicks <strong>Go to Dashboard</strong> and lands on the admin home. Their <code>node_artists</code> row has <code>managed_by</code> set to the label and their Kind 0 is now on the local relay — the sidebar shows their name + avatar, and the label can list them on artist-management with the correct relationship badge.</p>
+            <img src="screenshots/40-profile-setup-published.png" alt="Profile published; Go to Dashboard enabled">
+            <div class="note">
+                The artist still owns their own nsec. They can still post on the social client at <code>/</code>, sign their own profile updates, and (importantly) <strong>revoke any delegation</strong> they later grant to the label. The label having <code>managed_by</code> permission is purely about admin/edit access — it does NOT give the label signing rights for the artist's events. For <span class="role-badge label">signed</span> artists the label's publish authority comes from a different mechanism (the strict-mode performer-tag check; see <a href="signed-vs-managed.html">Signed vs Managed</a>).
+            </div>
+        </div>
+
+        <!-- ===== Label sees them in roster ===== -->
+
+        <div class="step">
+            <div class="who label">Label</div>
+            <h2><span class="num">7</span> Artist appears in the label's roster with the chosen Relationship</h2>
+            <p>Back on the label's <code>/admin/artist-management.html</code>, refreshing shows the artist now in the table with a <strong>Relationship</strong> badge matching what was set on the invite. For <span class="role-badge label">managed</span> artists the Delegation column shows a "Request" button (the label can ask for NIP-26 publish-on-behalf-of as a separate, consent-based step). For <span class="role-badge label">signed</span> artists the column shows "—" because publish is already gated by the label's <code>managed_by</code> on <code>node_artists</code>.</p>
+            <img src="screenshots/24-er-roster-mixed.png" alt="Label sees artist in roster with Relationship badge">
+            <div class="note">
+                <strong>Managed</strong> next step: label clicks <strong>Request</strong>, artist sees it in their <strong>Manager Authorizations</strong> inbox (<code>/admin/delegations.html</code>), signs a NIP-26 token client-side, and from then on the label can publish Kind 30050/5 on behalf of the artist with a delegation tag. <strong>Signed</strong> next step: the label can publish immediately via the performer-tag flow — see the <a href="signed-vs-managed.html">Signed vs Managed walkthrough</a>.
+            </div>
+        </div>
+
+        <footer>
+            Related: <a href="label-onboarding.html">Label onboarding</a> · <a href="artist-onboarding.html">Artist onboarding</a> · <a href="signed-vs-managed.html">Signed vs Managed (Phase G)</a>
+        </footer>
+    </div>
+</body>
+</html>

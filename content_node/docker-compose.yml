@@ -31,6 +31,7 @@ services:
       - ../client:/usr/share/nginx/html/client:ro
       - ./orchestrator:/usr/share/nginx/html/admin:ro
       - ../common:/usr/share/nginx/html/common:ro
+      - ../docs/live_pages:/usr/share/nginx/html/live-pages:ro
     depends_on:
       - equaliser-relay
       - ipfs

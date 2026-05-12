@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Label Onboarding — Equaliser</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="top-nav">
+        <div class="brand">Equaliser <span class="subtle">— Live Documentation</span></div>
+        <nav>
+            <a href="index.html">Overview</a>
+            <a href="artist-onboarding.html">Artist</a>
+            <a href="label-onboarding.html" class="active">Label</a>
+            <a href="artist-joins-roster.html">Roster</a>
+            <a href="signed-vs-managed.html">Signed vs Managed</a>
+        </nav>
+    </div>
+
+    <div class="wrap">
+        <header class="page">
+            <h1>Label Onboarding</h1>
+            <p class="lead">
+                Labels can be onboarded two ways: (a) via the public <code>/join</code> form (same as the artist flow but with <code>requested_role=label</code>), or (b) directly by an operator generating a <span class="role-badge label">label</span> invite code without a prior application. This page documents the direct path — it's the most common for a node operator wanting to bring a label partner aboard.
+            </p>
+            <div class="meta">2 parties involved: <span class="role-badge operator">operator</span> <span class="role-badge label">label</span></div>
+        </header>
+
+        <!-- ===== Operator generates the code ===== -->
+
+        <div class="step">
+            <div class="who operator">Operator</div>
+            <h2><span class="num">1</span> Visit invite codes admin</h2>
+            <p>From <code>/admin/invite-codes.html</code>, the operator sees existing unused codes (each with role + source) and a button to generate new ones.</p>
+            <img src="screenshots/11-label-invite-codes-list.png" alt="Operator's invite codes admin page">
+            <div class="note">
+                Only operators see the role selector with <strong>label</strong> and <strong>operator</strong> options. Labels generating codes can only issue <code>artist</code> codes for their own roster.
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="who operator">Operator</div>
+            <h2><span class="num">2</span> Pick the role</h2>
+            <p>The "Generate New" modal opens. Choosing <strong>Label</strong> requires operator privilege (server-enforced in <code>routers/label.py</code>). Choosing <strong>Operator</strong> additionally fires a confirm dialog because operator codes grant full node access.</p>
+            <img src="screenshots/12-label-generate-role-selector.png" alt="Role selector modal with Label option chosen">
+        </div>
+
+        <div class="step">
+            <div class="who operator">Operator</div>
+            <h2><span class="num">3</span> Code generated</h2>
+            <p>A 12-char hex code is shown. The relay's <code>CreateOrphanInviteCode</code> stores it with <code>target_role='label'</code> and <code>issued_by</code> = operator pubkey. The code is also visible from now on in the operator's invite-codes list (with a label badge in the role column) until used.</p>
+            <img src="screenshots/13-label-code-shown.png" alt="Generated label invite code in modal">
+            <div class="note">
+                The operator copies the code and shares it with the label's representative out-of-band (typically email).
+            </div>
+        </div>
+
+        <!-- ===== Label redeems ===== -->
+
+        <div class="step">
+            <div class="who label">Label — first login</div>
+            <h2><span class="num">4</span> Code preview before commit</h2>
+            <p>The label generates an nsec (or imports an existing one) on <code>/admin/login.html</code>, gets redirected to <code>/admin/redeem.html</code>, pastes the code, and clicks Check. The preview confirms what the code grants — <span class="role-badge label">label</span> role, no manager (labels are unmanaged at the top level), and the issuer name.</p>
+            <img src="screenshots/14-label-redeem-preview.png" alt="Label redeem page with preview showing label role">
+            <div class="note">
+                Because the relay's <code>RedeemInviteCode</code> branches on <code>target_role</code>, redeeming a label code inserts the row into <code>node_artists</code> with <code>role='label'</code> (operator codes go into <code>node_operators</code> instead — different table, same flow).
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="who label">Label</div>
+            <h2><span class="num">5</span> Save your backup</h2>
+            <p>After redemption, the label is required to download a backup file before continuing. The backup contains the nsec, npub, and the label's display name; restoring uses the existing backup-file login at <code>/admin/login.html</code>.</p>
+            <img src="screenshots/09-artist-backup-step.png" alt="Backup file download step (same screen for artists + labels)">
+        </div>
+
+        <div class="step">
+            <div class="who label">Label</div>
+            <h2><span class="num">6</span> Profile setup — find or create the label's Kind 0</h2>
+            <p>Every artist <em>and</em> label routes through <code>/admin/profile-setup.html</code> immediately after backup — no exceptions. The page first queries Damus, Primal, nos.lol and relay.nostr.band (plus the local node relay) for an existing Kind 0 on the label's pubkey:</p>
+            <img src="screenshots/36-profile-setup-search.png" alt="Searching the Nostr network for an existing Kind 0">
+            <p style="margin-top:16px">For a brand-new label nsec, the search comes back empty and the user is asked to create a fresh profile. Labels populate the form just like artists — display name, bio, avatar/banner, website, NIP-05, Lightning address. (The Genres field is hidden for labels — labels are publishers, not artists.)</p>
+            <img src="screenshots/38-profile-setup-new-blank.png" alt="Blank create-profile form for a brand-new label nsec">
+            <p style="margin-top:16px">Relay selection: the local node relay is locked + checked; the label can also opt to publish to Damus / Primal / nos.lol / relay.nostr.band so other Nostr clients can find the label's profile. A Kind 10002 (NIP-65) relay list is published alongside Kind 0 to capture the choice:</p>
+            <img src="screenshots/39-profile-setup-relays.png" alt="Relay selection step on profile-setup">
+            <div class="note">
+                <strong>What gets published:</strong> a Kind 0 tagged <code>["user-type", "label"]</code> (so the relay denorm parser knows not to route the label into <code>cached_artists</code>) and a Kind 10002 with the selected relays. Both go to every checked relay via WebSocket. The "Go to Dashboard" button only enables once the local relay accepts the events.
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="who label">Label</div>
+            <h2><span class="num">7</span> Dashboard as label</h2>
+            <p>The label clicks <strong>Go to Dashboard</strong> and lands on the admin home with their Kind 0 already discoverable on the wider Nostr network. The sidebar role badge reads <span class="role-badge label">label</span>. They now have access to:</p>
+            <ul style="margin-left: 20px; color: rgba(255,255,255,0.7); line-height: 1.8">
+                <li><strong>Roster management</strong> — Artists, Access Requests, Invite Codes</li>
+                <li><strong>"Add Existing Artist"</strong> — generate roster invite codes for artists they want to manage, picking the Phase G <strong>Relationship</strong> type (Managed or Signed)</li>
+                <li><strong>Their own profile + drafts/releases</strong> — labels can also publish under their own brand identity</li>
+            </ul>
+            <img src="screenshots/27-er-dashboard.png" alt="Equaliser Records label dashboard with role-aware sidebar">
+        </div>
+
+        <footer>
+            Related: <a href="artist-onboarding.html">Artist onboarding</a> · <a href="artist-joins-roster.html">Artist joins a roster</a> · <a href="signed-vs-managed.html">Signed vs Managed (Phase G)</a>
+        </footer>
+    </div>
+</body>
+</html>

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artist Onboarding — Equaliser</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="top-nav">
+        <div class="brand">Equaliser <span class="subtle">— Live Documentation</span></div>
+        <nav>
+            <a href="index.html">Overview</a>
+            <a href="artist-onboarding.html" class="active">Artist</a>
+            <a href="label-onboarding.html">Label</a>
+            <a href="artist-joins-roster.html">Roster</a>
+            <a href="signed-vs-managed.html">Signed vs Managed</a>
+        </nav>
+    </div>
+
+    <div class="wrap">
+        <header class="page">
+            <h1>Artist Onboarding</h1>
+            <p class="lead">
+                An anonymous artist applies via the public <code>/join</code> form. A node operator reviews and approves, generating an invite code. The artist redeems the code, which creates their <code>node_artists</code> row and grants them an admin session — all while keeping ownership of their own nsec.
+            </p>
+            <div class="meta">3 parties involved: <span class="role-badge applicant">applicant</span> <span class="role-badge operator">operator</span> <span class="role-badge artist">artist</span></div>
+        </header>
+
+        <!-- ===== Application phase ===== -->
+
+        <div class="step">
+            <div class="who applicant">Applicant — public, no account</div>
+            <h2><span class="num">1</span> Visit the public <code>/join</code> form</h2>
+            <p>Anyone can reach <code>/join</code> — no login required. They pick whether they're applying as an artist or a label.</p>
+            <img src="screenshots/01-artist-join-form-empty.png" alt="Empty /join form with role selector">
+        </div>
+
+        <div class="step">
+            <div class="who applicant">Applicant</div>
+            <h2><span class="num">2</span> Fill in details</h2>
+            <p>Name, email, optional npub (if they already have one), short description, and optional links. The form copy adapts to the selected role.</p>
+            <img src="screenshots/02-artist-join-form-filled.png" alt="Filled /join form">
+            <div class="note">
+                Submission goes to <code>POST /api/access/request</code>. Server validates the role (operator can't be self-applied), inserts a <code>access_requests</code> row with <code>status='pending'</code>, returns the new ID.
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="who applicant">Applicant</div>
+            <h2><span class="num">3</span> Application received</h2>
+            <p>The applicant sees a confirmation. The operator will review and email an invite code if approved. (Email delivery is currently manual — the operator copies the code from the admin UI; SMTP integration is deferred.)</p>
+            <img src="screenshots/03-artist-join-submitted.png" alt="Submission success card">
+        </div>
+
+        <!-- ===== Review phase ===== -->
+
+        <div class="step">
+            <div class="who operator">Operator — admin queue</div>
+            <h2><span class="num">4</span> Pending request appears in the operator's queue</h2>
+            <p>At <code>/admin/access-requests.html</code>, the operator sees the pending request with all the applicant's details, including the requested role.</p>
+            <img src="screenshots/04-operator-pending-requests.png" alt="Operator viewing pending access requests">
+        </div>
+
+        <div class="step">
+            <div class="who operator">Operator</div>
+            <h2><span class="num">5</span> Approve modal</h2>
+            <p>Clicking Approve opens a modal where the operator can adjust the granted role (defaults to what was requested) and add internal notes. Only operators can grant <code>label</code> or <code>operator</code> roles; labels can only grant <code>artist</code>.</p>
+            <img src="screenshots/05-operator-approve-modal.png" alt="Approve modal with role override + notes">
+        </div>
+
+        <div class="step">
+            <div class="who operator">Operator</div>
+            <h2><span class="num">6</span> Invite code generated</h2>
+            <p>The relay's <code>ApproveAccessRequest</code> stamps the request with <code>status='approved'</code>, generates a 12-char hex invite code, and records <code>issued_by</code> = operator pubkey. The code is shown in a follow-up modal — the operator copies it and shares with the applicant out-of-band.</p>
+            <img src="screenshots/06-operator-invite-code-shown.png" alt="Generated invite code modal">
+            <div class="note">
+                The same code is now visible at <code>/admin/invite-codes.html</code> tied to "Shibuya Crossings" until used. Once used, it's hidden from that view but the access_request row keeps it on record (<code>invite_used = TRUE</code>).
+            </div>
+        </div>
+
+        <!-- ===== Redemption phase ===== -->
+
+        <div class="step">
+            <div class="who artist">Artist — receives the code</div>
+            <h2><span class="num">7</span> Visit <code>/admin/redeem.html</code></h2>
+            <p>The artist generates a fresh nsec (or imports an existing one) at <code>/admin/login.html</code>. With strict-mode enabled, an unknown pubkey is auto-redirected to the redeem page where they paste their invite code.</p>
+            <img src="screenshots/07-artist-redeem-empty.png" alt="Empty redeem page with code input">
+        </div>
+
+        <div class="step">
+            <div class="who artist">Artist</div>
+            <h2><span class="num">8</span> Code preview</h2>
+            <p>Before committing, the artist sees what the code grants — role, manager (if any), and the issuer. <code>GET /api/access/check-invite</code> returns this metadata without consuming the code.</p>
+            <img src="screenshots/08-artist-redeem-preview.png" alt="Code preview showing artist role, unmanaged">
+        </div>
+
+        <div class="step">
+            <div class="who artist">Artist</div>
+            <h2><span class="num">9</span> Save your backup</h2>
+            <p>After redemption, the user is required to download a backup file before continuing — this is the only built-in recovery path if they lose their nsec. The backup contains the nsec, npub, and a small profile blob; restoring uses the existing backup-file login at <code>/admin/login.html</code>. The "Continue" button then routes to the universal <strong>profile setup</strong> step (next).</p>
+            <img src="screenshots/09-artist-backup-step.png" alt="Backup file download step">
+            <div class="note">
+                Email-based recovery is deferred (no SMTP service in the stack yet). For now, losing both the nsec AND the backup means manual psql recovery or another operator inviting the user fresh.
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="who artist">Artist</div>
+            <h2><span class="num">10</span> Profile setup — find or create a Kind 0</h2>
+            <p>Every artist <em>and</em> label routes through <code>/admin/profile-setup.html</code> right after backup — no exceptions. The page first queries Damus, Primal, nos.lol and relay.nostr.band (plus the local node relay) for an existing Kind 0 on the artist's pubkey:</p>
+            <img src="screenshots/36-profile-setup-search.png" alt="Searching the Nostr network for an existing profile">
+            <p style="margin-top:16px"><strong>If a Kind 0 is found</strong> on any of those relays — the form pre-fills name, bio, location, avatar/banner URLs etc., with a banner telling the artist where it came from. They can edit anything before publishing:</p>
+            <img src="screenshots/37-profile-setup-existing-found.png" alt="Form pre-filled from a discovered Kind 0">
+            <p style="margin-top:16px"><strong>If no Kind 0 exists</strong> — the form starts blank and the banner reads "Let's create your profile":</p>
+            <img src="screenshots/38-profile-setup-new-blank.png" alt="Blank create-profile form for a brand-new nsec">
+            <p style="margin-top:16px">Next step: relay selection. The local node relay is always selected (and locked). The artist's discovered <strong>Kind 10002</strong> relays are checked by default; Damus / Primal / nos.lol / relay.nostr.band are listed as unchecked suggestions. Custom relays can be added:</p>
+            <img src="screenshots/39-profile-setup-relays.png" alt="Relay selection step">
+            <div class="note">
+                <strong>What gets published:</strong> a Kind 0 (merged from any discovered profile so unknown fields like Damus-specific metadata are preserved) plus — if the relay selection differs from the discovered Kind 10002 — a fresh Kind 10002 with the new selection. Both events are published to every checked relay via WebSocket. The "Go to Dashboard" button only enables once the local relay accepts the events.
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="who artist">Artist</div>
+            <h2><span class="num">11</span> Dashboard</h2>
+            <p>The artist clicks <strong>Go to Dashboard</strong> and lands on <code>/admin/dashboard.html</code>. The sidebar shows their role badge (<span class="role-badge artist">artist</span>) and (if the search step found one) their existing avatar + name. They can now upload tracks, edit their profile, and use the Listener View link to switch to the client SPA at <code>/</code>.</p>
+            <img src="screenshots/40-profile-setup-published.png" alt="Profile published; Go to Dashboard enabled">
+        </div>
+
+        <footer>
+            Related: <a href="label-onboarding.html">Label onboarding</a> · <a href="artist-joins-roster.html">Artist joins a roster</a> · <a href="../LOGIN_CONSOLIDATION_PLEASE_REVIEW.md">Access control plan</a>
+        </footer>
+    </div>
+</body>
+</html>

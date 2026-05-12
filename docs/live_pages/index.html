@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equaliser — Live Onboarding Documentation</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="top-nav">
+        <div class="brand">Equaliser <span class="subtle">— Live Documentation</span></div>
+        <nav>
+            <a href="index.html" class="active">Overview</a>
+            <a href="artist-onboarding.html">Artist</a>
+            <a href="label-onboarding.html">Label</a>
+            <a href="artist-joins-roster.html">Roster</a>
+            <a href="signed-vs-managed.html">Signed vs Managed</a>
+        </nav>
+    </div>
+
+    <div class="wrap">
+        <header class="page">
+            <h1>Onboarding flows — live walkthroughs</h1>
+            <p class="lead">
+                Three end-to-end flows captured directly from the running content node, with screenshots taken via Playwright. These document <strong>what currently works in the codebase</strong> — not aspirational behaviour.
+            </p>
+            <div class="meta">
+                Generated against <code>node-management</code> branch · Phase A (access control) + Phase F (manager authorizations) + Phase G (rights-per-recording) · Captured on a fresh DB using <strong>Equaliser Records</strong>, <strong>Shibuya Crossings</strong>, <strong>Language of Flowers</strong>, and <strong>Swansea Sound</strong>.
+            </div>
+        </header>
+
+        <h2 style="font-size:20px; font-weight:600; margin-bottom:8px">Flows</h2>
+        <p style="color: rgba(255,255,255,0.6); margin-bottom:8px">
+            Each flow shows the experience for every party involved (applicant, operator, label, artist) and links the screenshots to the underlying API endpoints + DB tables.
+        </p>
+
+        <div class="flow-grid">
+            <a class="flow-card" href="artist-onboarding.html">
+                <h3>Artist Onboarding</h3>
+                <p>An anonymous applicant submits a request via <code>/join</code>, an operator approves it, and the artist redeems the resulting invite code. Backup save + profile setup come before the dashboard — the artist's Kind 0 is discovered from Damus / Primal / nos.lol / relay.nostr.band if present, or created fresh if not.</p>
+                <div class="step-count">11 steps · 3 parties</div>
+            </a>
+
+            <a class="flow-card" href="label-onboarding.html">
+                <h3>Label Onboarding</h3>
+                <p>An operator generates a <span class="role-badge label">label</span> invite code directly. The new label redeems, saves a backup, then goes through the <strong>same profile-setup step</strong> as artists do — no exceptions — before landing on the label dashboard.</p>
+                <div class="step-count">7 steps · 2 parties</div>
+            </a>
+
+            <a class="flow-card" href="artist-joins-roster.html">
+                <h3>Artist Joins a Label Roster</h3>
+                <p>An existing label calls "Add Existing Artist", picks the relationship type (Phase G — Managed or Signed), generates the roster invite code, shares it out-of-band, and the artist redeems with their own keys (<code>managed_by</code> = label, <code>relationship_type</code> set per the picker). The artist then goes through a profile create/update flow before reaching the dashboard.</p>
+                <div class="step-count">7 steps · 2 parties</div>
+            </a>
+
+            <a class="flow-card" href="signed-vs-managed.html">
+                <h3>Signed vs Managed (Phase G)</h3>
+                <p>Side-by-side walkthrough of the two relationship types: <strong>signed</strong> (label owns recording rights, publishes via performer tag, label badge on listener page) vs <strong>managed</strong> (artist owns rights, manager publishes via NIP-26 delegation, Manager Authorizations inbox).</p>
+                <div class="step-count">7 steps · 3 parties</div>
+            </a>
+        </div>
+
+        <h2 style="font-size:20px; font-weight:600; margin: 40px 0 8px">Architecture overview</h2>
+        <div class="step" style="background: rgba(255,255,255,0.02)">
+            <p style="margin: 0 0 12px; color: rgba(255,255,255,0.75)">
+                Every flow ends with a row in <code>node_artists</code> (or <code>node_operators</code> for the very first operator). That row determines the user's role and what they can manage. The relevant API endpoints:
+            </p>
+            <ul style="margin-left: 20px; color: rgba(255,255,255,0.7); line-height: 1.8">
+                <li><code>POST /api/access/request</code> — public submission from <code>/join</code> form</li>
+                <li><code>POST /api/label/access-requests/{id}/approve</code> — operator/label approves, generates code</li>
+                <li><code>POST /api/label/invite-codes</code> — direct invite-code generation (operator picks role)</li>
+                <li><code>POST /api/label/add-existing-artist</code> — labels generate roster invite codes</li>
+                <li><code>POST /api/access/redeem</code> — atomic claim: marks code used + inserts <code>node_artists</code> row</li>
+            </ul>
+            <p class="note" style="margin-top: 16px">
+                After redemption, <strong>every</strong> artist and label is routed through <code>/admin/profile-setup.html</code> before reaching the dashboard. The page queries Damus, Primal, nos.lol and relay.nostr.band for an existing Kind 0 and pre-fills the form when found; otherwise it presents a blank "create profile" form. Kind 0 + Kind 10002 (NIP-65 relay list) are published to the local relay (always) and any external relays the user selects. There is no shortcut — Kind 0 must be on the local relay before the dashboard is reachable.
+            </p>
+            <p class="note" style="margin-top: 12px">
+                For multi-label nodes, every artist's identity is held by the artist (non-custodial). The label can request a NIP-26 delegation to publish on the artist's behalf — see <a href="../LABEL_DELEGATION_PLEASE_REVIEW.md" style="color:#a855f7">the delegation plan</a>.
+            </p>
+        </div>
+
+        <footer>
+            Source plan: <a href="../LOGIN_CONSOLIDATION_PLEASE_REVIEW.md">Phase A access control</a> · <a href="../LABEL_DELEGATION_PLEASE_REVIEW.md">Phase F label delegation</a>
+        </footer>
+    </div>
+</body>
+</html>
