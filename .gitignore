@@ -31,3 +31,6 @@ packages/
 
 # Screenshots
 screenshots/
+# …except the live-pages documentation screenshots, which are tracked.
+!docs/live_pages/screenshots/
+!docs/live_pages/screenshots/**
