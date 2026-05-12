@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Set Up Your Profile — Equaliser</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f0a1e 0%, #1a0f2e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 32px 16px;
+        }
+        .card {
+            max-width: 720px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 40px;
+        }
+        h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+        .lead { color: rgba(255, 255, 255, 0.6); font-size: 14px; margin-bottom: 32px; }
+        .meta-strip { font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 24px; }
+        .step { display: none; }
+        .step.active { display: block; }
+        .notice {
+            padding: 12px 16px; border-radius: 8px; margin: 16px 0;
+            border: 1px solid; font-size: 13px;
+        }
+        .notice-success { background: rgba(34, 197, 94, 0.08); border-color: rgba(34, 197, 94, 0.3); color: #86efac; }
+        .notice-error   { background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.3); color: #fca5a5; }
+        .notice-info    { background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.3); color: #93c5fd; }
+        .notice-warn    { background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.3); color: #fcd34d; }
+
+        .form-group { margin-bottom: 18px; }
+        .form-label { font-size: 13px; font-weight: 500; margin-bottom: 6px; display: block; }
+        .form-hint { font-size: 12px; color: rgba(255, 255, 255, 0.45); margin-top: 4px; }
+        .form-input, .form-textarea {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: #fff;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .form-textarea { min-height: 80px; resize: vertical; }
+        .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: rgba(168, 85, 247, 0.5);
+        }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .btn {
+            background: #a855f7;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-secondary { background: rgba(255, 255, 255, 0.08); }
+        .btn-link { background: transparent; color: rgba(255,255,255,0.6); padding: 8px 0; font-size: 13px; }
+        .actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+
+        /* Profile images */
+        .profile-images { display: flex; gap: 12px; }
+        .image-upload { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .image-preview {
+            width: 96px; height: 96px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px dashed rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            color: rgba(255,255,255,0.3);
+            position: relative; overflow: hidden;
+        }
+        .image-preview svg { width: 28px; height: 28px; }
+        .image-preview img { width: 100%; height: 100%; object-fit: cover; }
+        .image-preview.banner { width: 100%; height: 96px; flex: 1; border-radius: 12px; }
+        .image-label { font-size: 11px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.5px; }
+        .upload-status { font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
+        .upload-status.success { color: #86efac; }
+        .upload-status.error   { color: #fca5a5; }
+
+        /* Genre tags */
+        .genre-input-row { display: flex; flex-direction: column; gap: 8px; }
+        .genre-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+        .genre-tag {
+            background: rgba(168, 85, 247, 0.15);
+            color: #d8b4fe;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .genre-tag .remove { cursor: pointer; opacity: 0.6; }
+        .genre-tag .remove:hover { opacity: 1; }
+
+        /* Relays */
+        .relay-row {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 14px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        .relay-row code { font-family: monospace; color: rgba(255,255,255,0.75); flex: 1; }
+        .relay-row .relay-tag {
+            padding: 2px 8px; border-radius: 4px; font-size: 11px;
+            background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5);
+        }
+        .relay-row .relay-tag.you   { background: rgba(168, 85, 247, 0.2); color: #d8b4fe; }
+        .relay-row .relay-tag.local { background: rgba(34, 197, 94, 0.2); color: #86efac; }
+        .relay-row.disabled { opacity: 0.7; }
+        .relay-remove { background: transparent; border: none; color: rgba(255,255,255,0.35); cursor: pointer; font-size: 16px; }
+        .relay-remove:hover { color: #fca5a5; }
+        .relay-add { display: flex; gap: 8px; margin-top: 12px; }
+
+        /* Publish status rows */
+        .publish-status-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 8px;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+        .publish-status-item.success { border-color: rgba(34, 197, 94, 0.3); }
+        .publish-status-item.error   { border-color: rgba(239, 68, 68, 0.3); }
+        .publish-status-item .relay-url { flex: 1; font-family: monospace; color: rgba(255,255,255,0.7); font-size: 12px; }
+        .publish-status-item .status-text { font-size: 12px; color: rgba(255,255,255,0.6); }
+        .publish-status-item.success .status-text { color: #86efac; }
+        .publish-status-item.error   .status-text { color: #fca5a5; }
+
+        /* Spinner */
+        .loading {
+            display: inline-block; width: 14px; height: 14px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-top-color: #a855f7;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Search step */
+        .search-pulse {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        .search-pulse .icon {
+            width: 56px; height: 56px;
+            margin: 0 auto 16px;
+            border: 3px solid rgba(168, 85, 247, 0.25);
+            border-top-color: #a855f7;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        .search-pulse .lead { margin-bottom: 0; }
+        .search-pulse .meta { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 12px; }
+
+        /* Found banner */
+        .found-banner {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.08), rgba(168, 85, 247, 0.02));
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin-bottom: 24px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.85);
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Set up your profile</h1>
+        <p class="lead">One last thing before your dashboard — your public Nostr identity.</p>
+        <div class="meta-strip" id="meta-strip"></div>
+
+        <div id="notice-area"></div>
+
+        <!-- ===== Step 1: Searching ===== -->
+        <div class="step active" id="step-search">
+            <div class="search-pulse">
+                <div class="icon"></div>
+                <p class="lead">Searching the Nostr network for an existing profile…</p>
+                <div class="meta">Checking Damus, Primal, nos.lol, relay.nostr.band + this node</div>
+            </div>
+        </div>
+
+        <!-- ===== Step 2: Profile form ===== -->
+        <div class="step" id="step-form">
+            <div id="found-banner-host"></div>
+
+            <div class="form-group">
+                <div class="profile-images">
+                    <div class="image-upload">
+                        <label class="image-preview" id="avatar-preview" for="avatar-input">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
+                            </svg>
+                        </label>
+                        <input type="file" id="avatar-input" accept="image/*" hidden onchange="handleAvatarUpload(event)">
+                        <span class="image-label">Avatar</span>
+                    </div>
+                    <div class="image-upload" style="flex: 1;">
+                        <label class="image-preview banner" id="banner-preview" for="banner-input">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                            </svg>
+                        </label>
+                        <input type="file" id="banner-input" accept="image/*" hidden onchange="handleBannerUpload(event)">
+                        <span class="image-label">Banner (1920×480)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Display Name *</label>
+                <input type="text" class="form-input" id="name" placeholder="e.g. Shibuya Crossings" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Bio</label>
+                <textarea class="form-input form-textarea" id="about" placeholder="Tell people about your music…"></textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Location</label>
+                    <input type="text" class="form-input" id="location" placeholder="e.g. Tokyo, Japan">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Website</label>
+                    <input type="url" class="form-input" id="website" placeholder="https://yoursite.com">
+                </div>
+            </div>
+
+            <div class="form-group" id="genres-group">
+                <label class="form-label">Genres</label>
+                <div class="genre-input-row">
+                    <input type="text" class="form-input" id="genre-input" placeholder="Type a genre and press Enter">
+                    <div class="genre-tags" id="genre-tags"></div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">NIP-05 Address</label>
+                    <input type="text" class="form-input" id="nip05" placeholder="you@yourdomain.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Lightning Address (lud16)</label>
+                    <input type="text" class="form-input" id="lud16" placeholder="you@getalby.com">
+                </div>
+            </div>
+
+            <div class="actions">
+                <button class="btn" onclick="goToRelays()">Next: Relays</button>
+            </div>
+        </div>
+
+        <!-- ===== Step 3: Relays ===== -->
+        <div class="step" id="step-relays">
+            <p class="lead">Where should we publish your profile?</p>
+            <p class="form-hint" style="margin-bottom: 20px">Your Kind 0 + relay list (Kind 10002) will be sent to every relay you check. The local node relay is always included.</p>
+
+            <div id="relay-list"></div>
+
+            <div class="relay-add">
+                <input type="text" class="form-input" id="relay-input" placeholder="wss://your-relay.com">
+                <button class="btn btn-secondary" onclick="addCustomRelay()">Add</button>
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-secondary" onclick="backToForm()">Back</button>
+                <button class="btn" onclick="goToPublish()">Publish Profile</button>
+            </div>
+        </div>
+
+        <!-- ===== Step 4: Publish status ===== -->
+        <div class="step" id="step-publish">
+            <p class="lead">Publishing your profile…</p>
+
+            <div id="publish-status" style="margin-top: 20px"></div>
+
+            <div class="actions" id="publish-actions" style="display:none">
+                <button class="btn" id="continue-btn" onclick="goNext()" disabled>Go to Dashboard</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/nostr-tools@2.7.2/lib/nostr.bundle.js"></script>
+    <script src="/common/js/session.js"></script>
+    <script>
+        // ============================================================================
+        // Constants + state
+        // ============================================================================
+
+        const DISCOVERY_RELAYS = [
+            'wss://relay.damus.io',
+            'wss://relay.primal.net',
+            'wss://nos.lol',
+            'wss://relay.nostr.band',
+        ];
+
+        const PUBLIC_IPFS_GATEWAY = 'https://ipfs.io/ipfs/';
+        const PUBLIC_BASE_URL = window.location.origin;
+        const LOCAL_RELAY = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/relay`;
+
+        let existingProfile = null;
+        let foundOnRelay = null;          // URL of relay where Kind 0 was found
+        let discoveredRelayList = [];     // r-tags from Kind 10002 if discovered
+        let genres = [];
+        let avatarBlossomUrl = null, avatarBlossomHash = null, avatarCID = null;
+        let bannerBlossomUrl = null, bannerBlossomHash = null, bannerCID = null;
+        let relays = [];                  // [{ url, enabled, locked, source }]
+
+        // ============================================================================
+        // Init
+        // ============================================================================
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            SessionManager.init();
+            if (!SessionManager.requireSession('profile-setup.html')) return;
+
+            const session = SessionManager.getSession();
+            await SessionManager.fetchRole();
+            const role = SessionManager.getRole() || 'artist';
+
+            // Hide the Genres section for labels — labels are publishers, not artists
+            if (role === 'label' || role === 'operator') {
+                document.getElementById('genres-group').style.display = 'none';
+            }
+
+            document.getElementById('meta-strip').innerHTML =
+                `Signed in as <code>${session.npub.slice(0, 20)}…${session.npub.slice(-6)}</code> · role <strong>${role}</strong>`;
+
+            setupGenreInput();
+
+            // Kick off the search
+            try {
+                await searchForProfile(session.publicKey);
+            } catch (e) {
+                console.error('Search failed:', e);
+            }
+            // Either way, move on to the form
+            advanceToForm();
+        });
+
+        // ============================================================================
+        // Step 1: search across discovery relays + local for the latest Kind 0 (and Kind 10002)
+        // ============================================================================
+
+        async function searchForProfile(pubkeyHex) {
+            // Race all relays in parallel — pick the Kind 0 with the largest created_at
+            const allRelays = [LOCAL_RELAY, ...DISCOVERY_RELAYS];
+            const results = await Promise.allSettled(
+                allRelays.map(url => queryRelayForUserMeta(url, pubkeyHex))
+            );
+
+            let bestKind0 = null;        // { event, relay }
+            const allKind10002s = [];    // for picking the latest
+
+            results.forEach((r, idx) => {
+                if (r.status !== 'fulfilled' || !r.value) return;
+                const { kind0, kind10002 } = r.value;
+                if (kind0 && (!bestKind0 || kind0.created_at > bestKind0.event.created_at)) {
+                    bestKind0 = { event: kind0, relay: allRelays[idx] };
+                }
+                if (kind10002) allKind10002s.push(kind10002);
+            });
+
+            if (bestKind0) {
+                try {
+                    existingProfile = JSON.parse(bestKind0.event.content || '{}');
+                    foundOnRelay = bestKind0.relay;
+                } catch (e) {
+                    console.warn('Failed to parse discovered Kind 0:', e);
+                }
+            }
+
+            if (allKind10002s.length > 0) {
+                // Latest Kind 10002 wins
+                allKind10002s.sort((a, b) => b.created_at - a.created_at);
+                discoveredRelayList = (allKind10002s[0].tags || [])
+                    .filter(t => t[0] === 'r' && t[1])
+                    .map(t => t[1]);
+            }
+        }
+
+        function queryRelayForUserMeta(url, pubkeyHex) {
+            return new Promise((resolve) => {
+                let kind0 = null, kind10002 = null;
+                let ws;
+                try { ws = new WebSocket(url); } catch (e) { return resolve(null); }
+
+                const timeout = setTimeout(() => { try { ws.close(); } catch(_){} resolve({ kind0, kind10002 }); }, 5500);
+
+                ws.onopen = () => {
+                    const sub = 'pf-' + Math.random().toString(36).slice(2, 10);
+                    ws.send(JSON.stringify(['REQ', sub, { kinds: [0, 10002], authors: [pubkeyHex], limit: 5 }]));
+                };
+                ws.onmessage = (e) => {
+                    let msg;
+                    try { msg = JSON.parse(e.data); } catch (_) { return; }
+                    if (msg[0] === 'EVENT' && msg[2]) {
+                        const ev = msg[2];
+                        if (ev.kind === 0 && (!kind0 || ev.created_at > kind0.created_at)) kind0 = ev;
+                        if (ev.kind === 10002 && (!kind10002 || ev.created_at > kind10002.created_at)) kind10002 = ev;
+                    } else if (msg[0] === 'EOSE') {
+                        clearTimeout(timeout);
+                        try { ws.close(); } catch(_){}
+                        resolve({ kind0, kind10002 });
+                    }
+                };
+                ws.onerror = () => { clearTimeout(timeout); resolve({ kind0, kind10002 }); };
+                ws.onclose = () => { clearTimeout(timeout); resolve({ kind0, kind10002 }); };
+            });
+        }
+
+        // ============================================================================
+        // Step 2: form (pre-fill if discovered)
+        // ============================================================================
+
+        function advanceToForm() {
+            document.getElementById('step-search').classList.remove('active');
+            document.getElementById('step-form').classList.add('active');
+
+            const banner = document.getElementById('found-banner-host');
+            if (existingProfile) {
+                banner.innerHTML = `
+                    <div class="found-banner">
+                        <strong>We found your existing profile</strong> on
+                        <code style="font-size:12px">${escapeHtml(foundOnRelay)}</code>.
+                        Edit anything you'd like to update before publishing.
+                    </div>
+                `;
+                populateForm(existingProfile);
+            } else {
+                banner.innerHTML = `
+                    <div class="found-banner" style="background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(59,130,246,0.02)); border-color: rgba(59,130,246,0.3);">
+                        <strong>Let's create your profile.</strong>
+                        We couldn't find an existing one on Damus / Primal / nos.lol / relay.nostr.band — we'll publish a fresh Kind 0 once you're done.
+                    </div>
+                `;
+            }
+        }
+
+        function populateForm(profile) {
+            document.getElementById('name').value = profile.display_name || profile.name || '';
+            document.getElementById('about').value = profile.about || '';
+            document.getElementById('website').value = profile.website || '';
+            document.getElementById('nip05').value = profile.nip05 || '';
+            document.getElementById('lud16').value = profile.lud16 || '';
+
+            if (profile.picture) {
+                avatarBlossomUrl = profile.picture;
+                showImagePreview('avatar-preview', profile.picture);
+            }
+            if (profile.banner) {
+                bannerBlossomUrl = profile.banner;
+                showImagePreview('banner-preview', profile.banner);
+            }
+
+            if (profile.equaliser) {
+                document.getElementById('location').value = profile.equaliser.location || '';
+                if (Array.isArray(profile.equaliser.genres)) {
+                    genres = [...profile.equaliser.genres];
+                    renderGenres();
+                }
+            }
+        }
+
+        function showImagePreview(elId, url) {
+            const el = document.getElementById(elId);
+            el.innerHTML = `<img src="${escapeHtml(url)}" alt="preview" onerror="this.style.display='none'">`;
+        }
+
+        // ===== Image uploads =====
+
+        async function handleAvatarUpload(ev) {
+            const file = ev.target.files[0];
+            if (!file) return;
+            const preview = document.getElementById('avatar-preview');
+            try {
+                preview.innerHTML = `<span class="loading"></span>`;
+                const r = await uploadImage(file);
+                avatarBlossomHash = r.blossom_hash;
+                avatarBlossomUrl  = r.blossom_url || r.url;
+                avatarCID         = r.cid;
+                showImagePreview('avatar-preview', avatarBlossomUrl);
+            } catch (e) {
+                preview.innerHTML = `<svg fill="currentColor" viewBox="0 0 20 20"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/></svg>`;
+                showNotice('error', 'Avatar upload failed: ' + e.message);
+            }
+        }
+
+        async function handleBannerUpload(ev) {
+            const file = ev.target.files[0];
+            if (!file) return;
+            const preview = document.getElementById('banner-preview');
+            try {
+                preview.innerHTML = `<span class="loading"></span>`;
+                const r = await uploadImage(file);
+                bannerBlossomHash = r.blossom_hash;
+                bannerBlossomUrl  = r.blossom_url || r.url;
+                bannerCID         = r.cid;
+                showImagePreview('banner-preview', bannerBlossomUrl);
+            } catch (e) {
+                preview.innerHTML = `<svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg>`;
+                showNotice('error', 'Banner upload failed: ' + e.message);
+            }
+        }
+
+        async function uploadImage(file) {
+            const fd = new FormData();
+            fd.append('file', file);
+            // /api/tracks/cover-art uploads to Blossom + IPFS — matches profile.html behavior
+            const resp = await SessionManager.authFetch('/api/tracks/cover-art', { method: 'POST', body: fd });
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({}));
+                throw new Error(err.detail || `HTTP ${resp.status}`);
+            }
+            return await resp.json();
+        }
+
+        // ===== Genre tags =====
+
+        function setupGenreInput() {
+            const input = document.getElementById('genre-input');
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const g = input.value.trim();
+                    if (g && !genres.includes(g)) { genres.push(g); renderGenres(); }
+                    input.value = '';
+                }
+            });
+        }
+        function renderGenres() {
+            const c = document.getElementById('genre-tags');
+            c.innerHTML = genres.map((g, i) =>
+                `<span class="genre-tag">${escapeHtml(g)}<span class="remove" onclick="removeGenre(${i})">×</span></span>`
+            ).join('');
+        }
+        function removeGenre(i) { genres.splice(i, 1); renderGenres(); }
+
+        // ============================================================================
+        // Step 3: relays
+        // ============================================================================
+
+        function goToRelays() {
+            const name = document.getElementById('name').value.trim();
+            if (!name) {
+                showNotice('error', 'Display Name is required.');
+                document.getElementById('name').focus();
+                return;
+            }
+            document.getElementById('step-form').classList.remove('active');
+            document.getElementById('step-relays').classList.add('active');
+            buildRelayList();
+        }
+
+        function backToForm() {
+            document.getElementById('step-relays').classList.remove('active');
+            document.getElementById('step-form').classList.add('active');
+        }
+
+        function buildRelayList() {
+            // Build the initial relay set:
+            //   local (locked + checked)
+            //   discovered Kind 10002 (checked, tag=you)
+            //   DISCOVERY_RELAYS (unchecked unless already in discoveredRelayList)
+            relays = [];
+            relays.push({ url: LOCAL_RELAY, enabled: true, locked: true, source: 'local' });
+
+            const seen = new Set([LOCAL_RELAY]);
+            for (const url of discoveredRelayList) {
+                if (seen.has(url)) continue;
+                seen.add(url);
+                relays.push({ url, enabled: true, locked: false, source: 'you' });
+            }
+            for (const url of DISCOVERY_RELAYS) {
+                if (seen.has(url)) continue;
+                seen.add(url);
+                relays.push({ url, enabled: false, locked: false, source: 'suggestion' });
+            }
+            renderRelayList();
+        }
+
+        function renderRelayList() {
+            const container = document.getElementById('relay-list');
+            container.innerHTML = relays.map((r, i) => {
+                const tag = r.source === 'local' ? '<span class="relay-tag local">local</span>'
+                          : r.source === 'you'   ? '<span class="relay-tag you">your relay</span>'
+                          : '<span class="relay-tag">suggestion</span>';
+                const remove = (!r.locked && r.source !== 'suggestion')
+                    ? `<button class="relay-remove" onclick="removeRelay(${i})" title="Remove">×</button>`
+                    : '';
+                return `
+                    <div class="relay-row ${r.locked ? 'disabled' : ''}">
+                        <input type="checkbox" ${r.enabled ? 'checked' : ''} ${r.locked ? 'disabled' : ''}
+                               onchange="toggleRelay(${i}, this.checked)">
+                        <code>${escapeHtml(r.url)}</code>
+                        ${tag}
+                        ${remove}
+                    </div>
+                `;
+            }).join('');
+        }
+        function toggleRelay(i, on) { relays[i].enabled = on; }
+        function removeRelay(i) {
+            if (relays[i].locked) return;
+            relays.splice(i, 1);
+            renderRelayList();
+        }
+        function addCustomRelay() {
+            const input = document.getElementById('relay-input');
+            const url = input.value.trim();
+            if (!url) return;
+            if (!/^wss?:\/\//.test(url)) {
+                showNotice('error', 'Relay URL must start with wss:// or ws://');
+                return;
+            }
+            if (relays.some(r => r.url === url)) {
+                showNotice('warn', 'Already in the list.');
+                input.value = '';
+                return;
+            }
+            relays.push({ url, enabled: true, locked: false, source: 'you' });
+            input.value = '';
+            renderRelayList();
+        }
+
+        // ============================================================================
+        // Step 4: publish Kind 0 + (if relay set diverges from discovered) Kind 10002
+        // ============================================================================
+
+        async function goToPublish() {
+            const enabled = relays.filter(r => r.enabled);
+            if (enabled.length === 0) {
+                showNotice('error', 'Please select at least one relay.');
+                return;
+            }
+
+            document.getElementById('step-relays').classList.remove('active');
+            document.getElementById('step-publish').classList.add('active');
+
+            // Build profile content (merge discovered + edits to preserve unknown fields)
+            const profileContent = buildProfileContent();
+            const role = SessionManager.getRole() || 'artist';
+
+            const session = SessionManager.getSession();
+
+            // Sign Kind 0
+            let signedKind0;
+            try {
+                signedKind0 = await SessionManager.signEvent({
+                    kind: 0,
+                    created_at: Math.floor(Date.now() / 1000),
+                    tags: [['app', 'Equaliser'], ['user-type', role]],
+                    content: JSON.stringify(profileContent),
+                    pubkey: session.publicKey,
+                });
+            } catch (e) {
+                showNotice('error', 'Failed to sign profile: ' + e.message);
+                return;
+            }
+
+            // Decide whether to also publish Kind 10002. Publish if user added/removed any
+            // relay versus what was discovered (or if no discovered list exists).
+            const selectedUrls = enabled.map(r => r.url).sort();
+            const discoveredSorted = [...discoveredRelayList].sort();
+            const relayListChanged =
+                discoveredSorted.length === 0 ||
+                JSON.stringify(selectedUrls) !== JSON.stringify(discoveredSorted);
+
+            let signedKind10002 = null;
+            if (relayListChanged) {
+                try {
+                    signedKind10002 = await SessionManager.signEvent({
+                        kind: 10002,
+                        created_at: Math.floor(Date.now() / 1000) + 1,
+                        tags: [['app', 'Equaliser'], ...selectedUrls.map(u => ['r', u])],
+                        content: '',
+                        pubkey: session.publicKey,
+                    });
+                } catch (e) {
+                    console.warn('Could not sign Kind 10002 — skipping relay list publish:', e.message);
+                }
+            }
+
+            // Render per-relay status rows
+            const statusHost = document.getElementById('publish-status');
+            statusHost.innerHTML = enabled.map((r, i) => `
+                <div class="publish-status-item pending" id="status-${i}">
+                    <span class="status-icon"><span class="loading"></span></span>
+                    <span class="relay-url">${escapeHtml(r.url)}</span>
+                    <span class="status-text">Waiting…</span>
+                </div>
+            `).join('');
+
+            // Publish to each enabled relay
+            let localOk = false, anyExternalOk = false;
+            for (let i = 0; i < enabled.length; i++) {
+                const r = enabled[i];
+                const el = document.getElementById(`status-${i}`);
+                el.querySelector('.status-text').textContent = 'Connecting…';
+
+                const k0Result = await publishToRelay(r.url, signedKind0);
+                let ok = k0Result.success;
+                let lastErr = k0Result.error;
+
+                if (ok && signedKind10002) {
+                    const k1Result = await publishToRelay(r.url, signedKind10002);
+                    ok = k1Result.success;
+                    if (!ok) lastErr = `Kind 10002 ${k1Result.error}`;
+                }
+
+                if (ok) {
+                    el.className = 'publish-status-item success';
+                    el.querySelector('.status-icon').innerHTML = '✓';
+                    el.querySelector('.status-text').textContent = signedKind10002 ? 'Profile + relay list published' : 'Profile published';
+                    if (r.url === LOCAL_RELAY) localOk = true;
+                    else anyExternalOk = true;
+                } else {
+                    el.className = 'publish-status-item error';
+                    el.querySelector('.status-icon').innerHTML = '✗';
+                    el.querySelector('.status-text').textContent = lastErr || 'Failed';
+                }
+            }
+
+            // Gate: require local publish, and either no externals OR at least one external success
+            const externalsAttempted = enabled.some(r => r.url !== LOCAL_RELAY);
+            const ready = localOk && (!externalsAttempted || anyExternalOk);
+
+            const actions = document.getElementById('publish-actions');
+            actions.style.display = 'flex';
+            document.getElementById('continue-btn').disabled = !ready;
+
+            if (!ready) {
+                showNotice('error',
+                    !localOk
+                        ? 'Failed to publish to your local node relay. Try again or contact the operator.'
+                        : 'No external relay accepted the profile. Try a different selection.');
+            } else {
+                showNotice('success', 'Profile published. You can head to the dashboard.');
+            }
+        }
+
+        async function publishToRelay(url, signedEvent) {
+            return new Promise((resolve) => {
+                let ws;
+                try { ws = new WebSocket(url); } catch (e) { return resolve({ success: false, error: e.message }); }
+                const t = setTimeout(() => { try { ws.close(); } catch(_){} resolve({ success: false, error: 'Timeout' }); }, 8000);
+
+                ws.onopen = () => ws.send(JSON.stringify(['EVENT', signedEvent]));
+                ws.onmessage = (e) => {
+                    let msg; try { msg = JSON.parse(e.data); } catch(_) { return; }
+                    if (msg[0] === 'OK' && msg[1] === signedEvent.id) {
+                        clearTimeout(t);
+                        try { ws.close(); } catch(_){}
+                        resolve({ success: !!msg[2], error: msg[2] ? null : (msg[3] || 'rejected') });
+                    }
+                };
+                ws.onerror = () => { clearTimeout(t); resolve({ success: false, error: 'Connection failed' }); };
+                ws.onclose = () => { clearTimeout(t); /* if no OK seen, resolve below */ };
+            });
+        }
+
+        // ===== buildProfileContent: merge discovered + edits =====
+
+        function buildProfileContent() {
+            const profile = existingProfile ? deepClone(existingProfile) : {};
+
+            const name = document.getElementById('name').value.trim();
+            profile.name = name;
+            // Set display_name too so external clients render it consistently
+            profile.display_name = name;
+            profile.about    = document.getElementById('about').value.trim();
+            profile.website  = document.getElementById('website').value.trim();
+            profile.nip05    = document.getElementById('nip05').value.trim();
+            profile.lud16    = document.getElementById('lud16').value.trim();
+
+            profile.equaliser = profile.equaliser || {};
+
+            // Avatar — prefer fresh upload, else preserve existing
+            const pictureCid = avatarCID || profile.equaliser.picture_cid;
+            const pictureBlossomUrl = ensureAbsoluteBlossomUrl(avatarBlossomUrl || profile.equaliser.picture_blossom_url);
+            if (pictureBlossomUrl) {
+                profile.picture = pictureBlossomUrl;
+                profile.equaliser.picture_blossom_url = pictureBlossomUrl;
+            } else if (pictureCid) {
+                profile.picture = `${PUBLIC_IPFS_GATEWAY}${pictureCid}`;
+            }
+            if (pictureCid) profile.equaliser.picture_cid = pictureCid;
+            if (avatarBlossomHash) profile.equaliser.picture_blossom_hash = avatarBlossomHash;
+
+            // Banner — same logic
+            const bannerCid = bannerCID || profile.equaliser.banner_cid;
+            const bannerBlossomUrlValue = ensureAbsoluteBlossomUrl(bannerBlossomUrl || profile.equaliser.banner_blossom_url);
+            if (bannerBlossomUrlValue) {
+                profile.banner = bannerBlossomUrlValue;
+                profile.equaliser.banner_blossom_url = bannerBlossomUrlValue;
+            } else if (bannerCid) {
+                profile.banner = `${PUBLIC_IPFS_GATEWAY}${bannerCid}`;
+            }
+            if (bannerCid) profile.equaliser.banner_cid = bannerCid;
+            if (bannerBlossomHash) profile.equaliser.banner_blossom_hash = bannerBlossomHash;
+
+            const location = document.getElementById('location').value.trim();
+            if (location) profile.equaliser.location = location;
+            profile.equaliser.genres = [...genres];
+
+            if (!profile.equaliser.joinedDate) {
+                profile.equaliser.joinedDate = new Date().toISOString().split('T')[0];
+            }
+            return profile;
+        }
+
+        // ============================================================================
+        // Helpers
+        // ============================================================================
+
+        function ensureAbsoluteBlossomUrl(url) {
+            if (!url) return url;
+            if (url.startsWith('/blossom/')) return `${PUBLIC_BASE_URL}${url}`;
+            return url;
+        }
+
+        function deepClone(o) {
+            try { return JSON.parse(JSON.stringify(o)); } catch (_) { return { ...o }; }
+        }
+
+        function escapeHtml(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+        }
+
+        function showNotice(type, msg) {
+            const area = document.getElementById('notice-area');
+            area.innerHTML = `<div class="notice notice-${type}">${escapeHtml(msg)}</div>`;
+            if (type === 'success' || type === 'info') {
+                setTimeout(() => { if (area.firstChild) area.innerHTML = ''; }, 4000);
+            }
+        }
+
+        function goNext() {
+            const ret = new URLSearchParams(window.location.search).get('return') || 'dashboard.html';
+            window.location.href = ret;
+        }
+    </script>
+</body>
+</html>

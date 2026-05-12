@@ -42,6 +42,10 @@
         }
         .keys-display .key-label { color: rgba(255, 255, 255, 0.4); display: block; margin-bottom: 4px; font-family: inherit; font-size: 11px; }
         .keys-display .key-value { display: block; margin-bottom: 12px; }
+        /* Phase G relationship badges */
+        .badge-relationship-self    { background: rgba(100, 116, 139, 0.25); color: #cbd5e1; }
+        .badge-relationship-managed { background: rgba(59, 130, 246, 0.25); color: #93c5fd; }
+        .badge-relationship-signed  { background: rgba(168, 85, 247, 0.25); color: #d8b4fe; }
     </style>
 </head>
 <body>
@@ -134,10 +138,25 @@
             const role = data.target_role || 'artist';
             const managedBy = data.target_managed_by;
             const issuer = data.issuer_name || '(direct invite)';
+            const relType = data.target_relationship_type || 'managed';
 
             let managedHtml = managedBy
                 ? `<span class="preview-value" style="font-family:monospace; font-size:12px">${escapeHtml(managedBy.slice(0,8))}…${escapeHtml(managedBy.slice(-4))}</span>`
                 : '<span class="preview-value" style="color:rgba(255,255,255,0.5)">unmanaged</span>';
+
+            // Phase G — explain in plain language what redeeming this code means.
+            // Only meaningful for artist-target codes with a managed_by; otherwise skip.
+            let relationshipHtml = '';
+            if (role === 'artist' && managedBy && relType !== 'self') {
+                const relDescription = relType === 'signed'
+                    ? `You’ll be <strong>signed</strong> to this label. The label owns recording rights and publishes your tracks under their pubkey; fans pay the label, which distributes royalties to you off-chain.`
+                    : `You’ll be <strong>managed</strong> by this label. You own your recordings and sign each release; the label helps publish via NIP-26 delegation you grant.`;
+                relationshipHtml = `
+                    <div class="preview-label" style="margin-top:8px">Relationship</div>
+                    <div class="preview-value"><span class="badge badge-relationship-${relType}">${relType}</span></div>
+                    <div class="preview-value" style="font-size:13px; color:rgba(255,255,255,0.7); margin-top:4px">${relDescription}</div>
+                `;
+            }
 
             document.getElementById('preview-area').innerHTML = `
                 <div class="preview-box">
@@ -147,6 +166,7 @@
                         <div class="preview-label" style="margin-top:8px">Managed by</div>
                         ${managedHtml}
                     ` : ''}
+                    ${relationshipHtml}
                     <div class="preview-label" style="margin-top:8px">Issued by</div>
                     <div class="preview-value">${escapeHtml(issuer)}</div>
                 </div>
@@ -244,9 +264,12 @@
         }
 
         function goNext() {
+            // After backup, route through profile-setup so the user can review/edit
+            // an existing Kind 0 (discovered from external relays) or create a new one
+            // before reaching their dashboard.
             const params = new URLSearchParams(window.location.search);
             const ret = params.get('return') || 'dashboard.html';
-            window.location.href = ret;
+            window.location.href = `profile-setup.html?return=${encodeURIComponent(ret)}`;
         }
 
         function showNotice(type, msg) {
