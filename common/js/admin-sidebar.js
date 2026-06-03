@@ -228,6 +228,10 @@ const AdminSidebar = {
     /**
      * Artist selector dropdown — visible for labels and operators who may
      * manage more than one artist. Artists don't see it.
+     *
+     * First-paint shows the pubkey prefix as a placeholder; display names are
+     * filled in asynchronously by _resolveArtistDropdownNames once the Kind 0
+     * profiles arrive from the cache API.
      */
     _getArtistSelectorHTML(role) {
         if (role === 'artist') return '';
@@ -238,8 +242,22 @@ const AdminSidebar = {
         const options = managed.map(pk => {
             const short = pk.slice(0, 8) + '…' + pk.slice(-4);
             const sel = pk === selected ? 'selected' : '';
-            return `<option value="${pk}" ${sel}>${short}</option>`;
+            // First-paint from sessionStorage cache (instant); resolver below
+            // updates the option text once Kind 0s arrive over the network.
+            let cachedName = null;
+            try {
+                const cached = sessionStorage.getItem('equaliser_admin_profile_' + pk);
+                if (cached) {
+                    const p = JSON.parse(cached);
+                    if (p && p.name) cachedName = p.name;
+                }
+            } catch (_) { /* ignore */ }
+            const initialLabel = cachedName || short;
+            return `<option value="${pk}" ${sel} data-pubkey="${pk}">${this._escape(initialLabel)}</option>`;
         }).join('');
+
+        // Kick off name resolution after the DOM is in place.
+        setTimeout(() => this._resolveArtistDropdownNames(managed), 0);
 
         return `
             <div class="artist-selector" data-testid="artist-selector">
@@ -252,6 +270,46 @@ const AdminSidebar = {
     },
 
     /**
+     * Look up Kind 0 profiles for every pubkey in the managed-artists dropdown
+     * and patch each option's text with the display name. Cached in
+     * sessionStorage so subsequent renders are instant.
+     */
+    async _resolveArtistDropdownNames(pubkeys) {
+        if (!pubkeys || !pubkeys.length) return;
+        try {
+            const url = '/api/cache/events?kinds=0&authors=' + encodeURIComponent(pubkeys.join(','))
+                + '&limit=' + pubkeys.length;
+            const resp = await fetch(url);
+            if (!resp.ok) return;
+            const data = await resp.json();
+            const events = data.events || data || [];
+            // Latest event per author wins.
+            const latestByPubkey = new Map();
+            for (const ev of events) {
+                const cur = latestByPubkey.get(ev.pubkey);
+                if (!cur || ev.created_at > cur.created_at) latestByPubkey.set(ev.pubkey, ev);
+            }
+            for (const [pk, ev] of latestByPubkey.entries()) {
+                let profile;
+                try { profile = JSON.parse(ev.content || '{}'); } catch (_) { continue; }
+                const name = profile.display_name || profile.name || null;
+                if (!name) continue;
+                sessionStorage.setItem('equaliser_admin_profile_' + pk, JSON.stringify({
+                    name,
+                    picture: profile.picture || null,
+                }));
+                const opt = document.querySelector(`#artist-selector option[data-pubkey="${pk}"]`);
+                if (opt) opt.textContent = name;
+            }
+        } catch (_) { /* sidebar stays with pubkey-prefix placeholders */ }
+    },
+
+    _escape(s) {
+        return String(s ?? '').replace(/[&<>"']/g,
+            c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+    },
+
+    /**
      * Role-specific navigation sections.
      *
      * - artist: Manage (Dashboard, Releases, Analytics)
@@ -259,7 +317,15 @@ const AdminSidebar = {
      * - operator: Manage Artist + Label Admin + Node Admin
      */
     _getNavSectionsHTML(role, currentPage) {
-        const manageArtistTitle = role === 'artist' ? 'Manage' : 'Manage Artist';
+        // Group heading adapts to who the user is: artists manage their own
+        // catalogue, labels manage *their label's* profile + releases, operators
+        // can switch between artists via the dropdown so a neutral "Manage" reads
+        // best for them.
+        const manageArtistTitle = role === 'label'
+            ? 'Manage Label'
+            : role === 'operator'
+                ? 'Manage'
+                : 'Manage Artist';
 
         const manageArtistNav = `
             <div class="nav-section" data-testid="nav-manage">

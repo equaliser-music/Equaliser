@@ -71,15 +71,16 @@
             </div>
 
             <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="checkCode()">Check Code</button>
-                <button class="btn btn-primary" id="redeem-btn" onclick="redeemCode()" disabled>Redeem</button>
+                <button class="btn btn-primary" id="check-btn" onclick="checkCode()">Check Code</button>
+                <!-- Hidden until a successful check renders the preview. -->
+                <button class="btn btn-primary" id="redeem-btn" onclick="redeemCode()" style="display:none">Redeem</button>
             </div>
         </div>
 
         <!-- Step 2: backup file -->
         <div class="step" id="step-backup">
-            <h2 style="font-size:18px; margin-bottom:8px">Save Your Backup</h2>
-            <p class="page-description" style="margin-bottom:16px">
+            <h2 id="backup-title" style="font-size:18px; margin-bottom:8px">Save Your Backup</h2>
+            <p id="backup-lead" class="page-description" style="margin-bottom:16px">
                 Save your backup file before continuing — it's your only recovery if you lose your nsec. (Email recovery is not yet available.)
             </p>
             <div class="keys-display" id="backup-keys"></div>
@@ -113,6 +114,8 @@
 
         async function checkCode() {
             const code = document.getElementById('code-input').value.trim();
+            const checkBtn = document.getElementById('check-btn');
+            const redeemBtn = document.getElementById('redeem-btn');
             if (code.length !== 12) {
                 showNotice('error', 'Code must be 12 characters');
                 return;
@@ -121,14 +124,18 @@
                 const resp = await fetch(`/api/access/check-invite?code=${encodeURIComponent(code)}`);
                 if (resp.status === 404) {
                     showNotice('error', 'Code not found or already used');
-                    document.getElementById('redeem-btn').disabled = true;
+                    // Hide Redeem in case a previous check had revealed it
+                    redeemBtn.style.display = 'none';
+                    checkBtn.style.display = '';
                     return;
                 }
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 const data = await resp.json();
                 currentPreview = data;
                 renderPreview(data);
-                document.getElementById('redeem-btn').disabled = false;
+                // Swap Check Code for Redeem so the user has a single primary action
+                checkBtn.style.display = 'none';
+                redeemBtn.style.display = '';
             } catch (e) {
                 showNotice('error', `Check failed: ${e.message}`);
             }
@@ -225,6 +232,19 @@
                 html += '<span class="key-label">Identity</span><span class="key-value">NIP-07 extension (no nsec to back up)</span>';
             }
             document.getElementById('backup-keys').innerHTML = html;
+
+            // Soft-gate: if the user reached this page via Load Backup File on login.html,
+            // they already have a backup on disk — show a friendlier message and let them
+            // continue immediately. Download Backup remains available as an opt-in for a
+            // fresh copy with the new role embedded.
+            if (sessionStorage.getItem('equaliser_backup_loaded') === '1') {
+                document.getElementById('backup-title').textContent = 'Backup already saved';
+                document.getElementById('backup-lead').innerHTML =
+                    'You restored from a backup file at login, so your nsec is already on disk. ' +
+                    'You can continue, or grab a fresh backup (this one records your new role: ' +
+                    '<strong>' + escapeHtml(redeemedRole || '-') + '</strong>).';
+                document.getElementById('continue-btn').disabled = false;
+            }
         }
 
         function downloadBackup() {

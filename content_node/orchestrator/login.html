@@ -670,6 +670,11 @@
                         sessionStorage.setItem('equaliser_backup_profile', JSON.stringify(backup.profile));
                     }
 
+                    // Flag that this session was bootstrapped from a backup file on disk.
+                    // redeem.html reads this to soft-gate its own backup-download step,
+                    // since the user obviously already has a copy.
+                    sessionStorage.setItem('equaliser_backup_loaded', '1');
+
                     proceedAfterLogin();
 
                 } catch (error) {

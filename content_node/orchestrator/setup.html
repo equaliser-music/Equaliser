@@ -48,13 +48,13 @@
 </head>
 <body>
     <div class="setup-card">
-        <h1>Claim This Node</h1>
-        <p class="lead">No operator is configured yet. Use the setup token from your relay logs to claim this node as the first operator.</p>
-
         <div id="notice-area"></div>
 
         <!-- Step 1: token + identity -->
         <div class="step active" id="step-claim">
+            <h1>Claim This Node</h1>
+            <p class="lead">No operator is configured yet. Use the setup token from your relay logs to claim this node as the first operator.</p>
+
             <div class="help-box">
                 <strong>Where's the token?</strong>
                 Run <code>docker logs equaliser-relay 2>&amp;1 | grep "Enter setup token"</code>
@@ -239,12 +239,20 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+            // The backup is on disk now; tell profile-setup.html to soft-gate its own
+            // backup ask (it doesn't have one today, but kept for symmetry with redeem.html).
+            sessionStorage.setItem('equaliser_backup_loaded', '1');
+            // Stash the operator's chosen display name so profile-setup can pre-fill it.
+            if (claimedName) sessionStorage.setItem('equaliser_setup_name', claimedName);
             showNotice('success', 'Backup downloaded. Keep it safe.');
             document.getElementById('continue-btn').disabled = false;
         }
 
         function goToDashboard() {
-            window.location.href = 'dashboard.html';
+            // Route through profile-setup so every artist/label/operator publishes a Kind 0
+            // before reaching their dashboard. Operators see a Skip link on profile-setup
+            // since the rule is universal but operators can opt out (they're infrastructure).
+            window.location.href = 'profile-setup.html?return=dashboard.html';
         }
 
         function showNotice(type, msg) {

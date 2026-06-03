@@ -267,7 +267,12 @@
                 </div>
             </div>
 
+            <!-- Operator-only skip: artists + labels never see this. Profile-setup is the
+                 universal rule, but operators are infrastructure-only and may have no
+                 reason to publish a public Kind 0. -->
             <div class="actions">
+                <a href="#" id="operator-skip" onclick="skipToReturn(event)"
+                   class="btn-link" style="display:none">Skip for now &rarr;</a>
                 <button class="btn" onclick="goToRelays()">Next: Relays</button>
             </div>
         </div>
@@ -340,9 +345,18 @@
             await SessionManager.fetchRole();
             const role = SessionManager.getRole() || 'artist';
 
-            // Hide the Genres section for labels — labels are publishers, not artists
+            // Hide the Genres section for labels + operators — they're publishers/infra,
+            // not artists with a genre
             if (role === 'label' || role === 'operator') {
                 document.getElementById('genres-group').style.display = 'none';
+            }
+
+            // Fix 8: surface a Skip link for operators only. The universal "always
+            // profile-setup" rule applies to artists + labels with no escape hatch;
+            // operators get one because they may be infrastructure-only.
+            if (role === 'operator') {
+                const skip = document.getElementById('operator-skip');
+                if (skip) skip.style.display = '';
             }
 
             document.getElementById('meta-strip').innerHTML =
@@ -456,7 +470,28 @@
                         We couldn't find an existing one on Damus / Primal / nos.lol / relay.nostr.band — we'll publish a fresh Kind 0 once you're done.
                     </div>
                 `;
+                // Pre-fill the name field for operators who came from setup.html with a
+                // chosen display name (stashed in sessionStorage). Same idea would extend
+                // to labels/artists if those flows stashed a name; for now operator-only.
+                try {
+                    const seededName = sessionStorage.getItem('equaliser_setup_name');
+                    if (seededName) {
+                        const nameEl = document.getElementById('name');
+                        if (nameEl && !nameEl.value) nameEl.value = seededName;
+                    }
+                } catch (_) {}
             }
+        }
+
+        /**
+         * Operator-only escape hatch: skip the Kind 0 publish and go straight to
+         * the dashboard. Wired by the "Skip for now" link which is hidden for
+         * artists + labels.
+         */
+        function skipToReturn(e) {
+            if (e) e.preventDefault();
+            const ret = new URLSearchParams(window.location.search).get('return') || 'dashboard.html';
+            window.location.href = ret;
         }
 
         function populateForm(profile) {
