@@ -10,7 +10,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 
-from dependencies import require_label, RoleContext
+from dependencies import require_label, require_operator, RoleContext
 from services import relay_admin
 
 router = APIRouter()
@@ -106,16 +106,18 @@ class ApproveRequest(BaseModel):
 @router.get("/access-requests")
 async def list_requests(
     status: Optional[str] = None,
-    ctx: RoleContext = Depends(require_label),
+    ctx: RoleContext = Depends(require_operator),
 ):
-    """List access requests. Optionally filter by status (pending/approved/declined)."""
+    """List access requests. Operator-only — labels manage their own roster via
+    /api/label/add-existing-artist, not the public applicant queue. Optionally
+    filter by status (pending/approved/declined)."""
     requests = await relay_admin.list_access_requests(status=status)
     return {"requests": requests, "count": len(requests)}
 
 
 @router.get("/access-requests/{request_id}")
-async def get_request(request_id: int, ctx: RoleContext = Depends(require_label)):
-    """Get a single access request."""
+async def get_request(request_id: int, ctx: RoleContext = Depends(require_operator)):
+    """Operator-only — get a single access request."""
     req = await relay_admin.get_access_request(request_id)
     if not req:
         raise HTTPException(status_code=404, detail="Access request not found")
@@ -126,15 +128,15 @@ async def get_request(request_id: int, ctx: RoleContext = Depends(require_label)
 async def approve_request(
     request_id: int,
     body: ApproveRequest = ApproveRequest(),
-    ctx: RoleContext = Depends(require_label),
+    ctx: RoleContext = Depends(require_operator),
 ):
     """
-    Approve an access request and generate an invite code.
+    Operator-only — approve an access request and generate an invite code.
 
-    target_role defaults to the request's requested_role (set on /join). The approver
-    can override it (e.g. label applies but operator promotes them to label only if
-    operator approves). Non-operator callers can only issue label/operator codes if
-    they are themselves operator.
+    target_role defaults to the request's requested_role (set on /join). The operator
+    can override it. Labels onboarding artists to their own roster use
+    /api/label/add-existing-artist instead, which issues a roster invite code
+    without exposing the public applicant queue.
     """
     # Pull request to determine default target_role + validate caller permissions
     existing = await relay_admin.get_access_request(request_id)
@@ -144,17 +146,12 @@ async def approve_request(
     target_role = body.target_role or existing.get("requested_role") or "artist"
     if target_role not in ("artist", "label", "operator"):
         raise HTTPException(status_code=400, detail="target_role must be artist, label, or operator")
-    if target_role in ("label", "operator") and ctx.role != "operator":
-        raise HTTPException(status_code=403, detail="Only operators can issue label or operator invites")
 
-    # Operator codes never carry target_managed_by
+    # require_operator already gated this endpoint, so the label-vs-operator role
+    # checks below are operator-only by construction. Keeping the structure for clarity.
     target_managed_by = body.target_managed_by
     if target_role == "operator":
         target_managed_by = None
-    # Labels can only point target_managed_by to themselves
-    if target_role == "artist" and target_managed_by and ctx.role != "operator":
-        if target_managed_by != ctx.pubkey:
-            raise HTTPException(status_code=403, detail="Labels can only assign artists to their own roster")
 
     # Phase G: pick a sensible relationship_type default if the approver didn't specify
     target_rel = body.target_relationship_type or existing.get("target_relationship_type") or "managed"
@@ -183,9 +180,9 @@ async def approve_request(
 async def decline_request(
     request_id: int,
     body: DeclineRequest = DeclineRequest(),
-    ctx: RoleContext = Depends(require_label),
+    ctx: RoleContext = Depends(require_operator),
 ):
-    """Decline an access request."""
+    """Operator-only — decline an access request."""
     return await relay_admin.decline_access_request(
         request_id,
         admin_notes=body.admin_notes or "",

@@ -139,8 +139,8 @@
 
             await SessionManager.fetchRole();
             const role = SessionManager.getRole();
-            if (role !== 'label' && role !== 'operator') {
-                showNotice('error', 'You need a label or operator role to view this page.');
+            if (role !== 'operator') {
+                showNotice('error', 'Access Requests is operator-only. Labels: use the Artists page → Add Existing Artist to invite an artist into your roster.');
                 document.getElementById('requests-container').innerHTML = '';
                 return;
             }

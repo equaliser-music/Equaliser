@@ -7,8 +7,9 @@ Captured during manual UAT in Brave (operator) + Safari (label/artist) on a fres
 - 2026-05-29: fixes 7 + 8 shipped + smoke-verified (2/2 Playwright checks). onboarding.html is now a thin shim that hands off to redeem.html → profile-setup.html. setup.html routes operators through profile-setup with an operator-only "Skip for now" link.
 - 2026-06-03: fix 10 sub-fixes a + b + c + d + e + h shipped + smoke-verified (4/4 Playwright checks).
 - 2026-06-06: fix 10 sub-fixes f + g shipped + smoke-verified (4/4 Playwright checks). Per-row Upload button on artist-management.html sets the selected artist and navigates to upload.html; releases.html surfaces a proactive "No active Manager Authorization" banner with a deep-link when the user is acting as a managed artist without an active NIP-26 delegation.
+- 2026-06-06: fix 11 shipped + smoke-verified (6/6 Playwright checks). The four `/api/label/access-requests/*` endpoints are now gated by `require_operator`; access-requests.html shows labels a "use the Artists page → Add Existing Artist" notice; the Access Requests sidebar link is hidden for labels.
 
-Outstanding: 11 + 12 (role boundaries), 13 (`/join` redeem instructions).
+Outstanding: 12 (label/operator separation), 13 (`/join` redeem instructions).
 
 ## Walkthroughs exercised
 
@@ -93,7 +94,6 @@ The label backup (Typically Magic Records) was saved to [packages/labels/](../pa
 
 ## What's left
 
-- **11** — label cannot approve a node-join — operator-only (see "Role boundaries to review")
 - **12** — label and operator roles are separate (see "Role boundaries to review")
 - **13** — `/join` success screen should hand the applicant the redeem URL + instructions (see "Application flow")
 
@@ -127,7 +127,7 @@ Bonus (optional): if the applicant pastes an npub in the optional npub field dur
 
 These are principles the user flagged on 2026-05-28 during manual UAT. Both touch authorization across the orchestrator + UI.
 
-### 11. **Labels should NOT be allowed to approve access requests — operator-only.**
+### 11. ✅ **Labels should NOT be allowed to approve access requests — operator-only.** (shipped 2026-06-06)
 
 Current behaviour (confirmed in code 2026-05-28):
 

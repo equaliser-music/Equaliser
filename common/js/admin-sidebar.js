@@ -448,6 +448,18 @@ const AdminSidebar = {
             </div>
         `;
 
+        // Access Requests reviews the *public* /join applicant queue and approves
+        // people onto the node — operator-only. Labels who want to onboard an artist
+        // into their own roster use the Add Existing Artist button on the Artists
+        // page (no public queue exposure).
+        const accessRequestsLink = role === 'operator' ? `
+                <a href="access-requests.html" class="nav-item ${currentPage === 'access-requests' ? 'active' : ''}">
+                    <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                    <span>Access Requests</span>
+                </a>` : '';
+
         const labelAdminNav = `
             <div class="nav-section" data-testid="nav-label-admin">
                 <div class="nav-title">${role === 'operator' ? 'Content' : 'Label Admin'}</div>
@@ -457,12 +469,7 @@ const AdminSidebar = {
                     </svg>
                     <span>Artists</span>
                 </a>
-                <a href="access-requests.html" class="nav-item ${currentPage === 'access-requests' ? 'active' : ''}">
-                    <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                    </svg>
-                    <span>Access Requests</span>
-                </a>
+                ${accessRequestsLink}
                 <a href="invite-codes.html" class="nav-item ${currentPage === 'invite-codes' ? 'active' : ''}">
                     <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 01-1.447.894L12 15.118l-2.553 1.776A1 1 0 018 16V4z"/>
