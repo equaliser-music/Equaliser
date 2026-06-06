@@ -338,6 +338,11 @@
                     <td style="color:rgba(255,255,255,0.5); font-size:13px">${onboardedDate}</td>
                     <td>
                         <div class="row-actions">
+                            <button class="btn btn-small btn-primary"
+                                    onclick="actAsAndUpload('${a.pubkey}')"
+                                    title="Switch the sidebar dropdown to this artist and go to Upload">
+                                Upload
+                            </button>
                             <button class="btn btn-small btn-secondary" onclick="openEditModal('${a.pubkey}')">Edit</button>
                             <button class="btn btn-small ${isSuspended ? 'btn-success' : 'btn-danger'}"
                                     onclick="quickToggleStatus('${a.pubkey}')">
@@ -429,6 +434,24 @@
             } finally {
                 btn.disabled = false;
                 btn.textContent = 'Save Changes';
+            }
+        }
+
+        /**
+         * Sidebar dropdown sets context; this is the per-row shortcut. Sets the
+         * selected artist and navigates to upload.html, which then scopes the
+         * upload form to that artist via SessionManager.getSelectedArtistPubkey().
+         */
+        function actAsAndUpload(pubkey) {
+            try {
+                SessionManager.setSelectedArtistPubkey(pubkey);
+                // Broadcast so any other open tabs catch up via _attachSwitchListener.
+                window.dispatchEvent(new CustomEvent('equaliser:artist-switched', {
+                    detail: { pubkey }
+                }));
+                window.location.href = 'upload.html';
+            } catch (e) {
+                showNotice('error', `Could not switch: ${e.message}`);
             }
         }
 

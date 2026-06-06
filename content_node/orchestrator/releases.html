@@ -785,6 +785,15 @@
                 <input type="text" class="search-box" id="search-box" placeholder="Search releases...">
             </div>
 
+            <!-- 10g — proactive warning when the label is acting as a managed artist
+                 with no active NIP-26 delegation. Without this, Publish would fail at
+                 sign time with a generic toast. Rendered by checkDelegationNeeded(). -->
+            <div id="no-delegation-warning" style="display:none; margin-bottom: 18px; padding: 12px 16px; border-radius: 10px; background: rgba(245, 158, 11, 0.10); border: 1px solid rgba(245, 158, 11, 0.35); color: rgba(255,255,255,0.85); font-size: 13px;">
+                <strong style="color: #fcd34d">No active Manager Authorization.</strong>
+                <span id="no-delegation-text"></span>
+                <a href="artist-management.html" style="color: #fcd34d; text-decoration: underline; margin-left: 8px;">Request one →</a>
+            </div>
+
             <!-- Releases List -->
             <div id="releases-container">
                 <div class="loading-state">
@@ -913,6 +922,10 @@
                     <p>Loading releases...</p>
                 </div>
             `;
+
+            // 10g — proactive delegation check. Fires only when the caller is acting
+            // on behalf of someone else; the result populates the no-delegation banner.
+            checkDelegationNeeded(targetPubkey);
 
             try {
                 await Promise.all([
@@ -1403,6 +1416,41 @@
                 tags,
                 content: unsigned.content,
             });
+        }
+
+        /**
+         * 10g — proactive delegation check. When a label/operator is acting as a
+         * managed artist, see whether an active delegation exists. If not, surface a
+         * warning banner with a link to artist-management.html so the label can request
+         * one before they hit Publish (and a confusing 404 toast).
+         *
+         * No-ops for: self-publish (caller === selected), signed artists (no delegation
+         * needed), self-relationship artists, or any backend failure.
+         */
+        async function checkDelegationNeeded(targetPubkey) {
+            const banner = document.getElementById('no-delegation-warning');
+            if (!banner) return;
+            banner.style.display = 'none';
+
+            const callerPubkey = SessionManager.getSession()?.publicKey;
+            if (!callerPubkey || targetPubkey === callerPubkey) return;
+
+            try {
+                const rel = await fetchArtistRelationship(targetPubkey);
+                const relType = rel?.relationship_type || 'managed';
+                // Only managed (Phase F) needs a NIP-26 delegation. signed (Phase G) uses
+                // the performer-tag flow; self artists publish themselves; etc.
+                if (relType !== 'managed') return;
+
+                const resp = await SessionManager.authFetch(`/api/delegations/active/${targetPubkey}`);
+                if (resp.status === 404) {
+                    const name = rel?.artist_name || (targetPubkey.slice(0, 8) + '…');
+                    document.getElementById('no-delegation-text').textContent =
+                        ` You need ${name}'s permission to publish on their behalf.`;
+                    banner.style.display = '';
+                }
+                // 200 means active delegation exists; nothing to do.
+            } catch (_) { /* leave banner hidden on any error */ }
         }
 
         // Cached lookup of an artist's node_artists row (relationship_type + managed_by)

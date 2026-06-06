@@ -5,9 +5,10 @@ Captured during manual UAT in Brave (operator) + Safari (label/artist) on a fres
 **Status:**
 - 2026-05-28: fixes 1–6, 9 shipped + smoke-verified (5/5 Playwright checks). Fix 10 audited; gaps documented inline.
 - 2026-05-29: fixes 7 + 8 shipped + smoke-verified (2/2 Playwright checks). onboarding.html is now a thin shim that hands off to redeem.html → profile-setup.html. setup.html routes operators through profile-setup with an operator-only "Skip for now" link.
-- 2026-06-03: fix 10 sub-fixes a + b + c + d + e + h shipped + smoke-verified (4/4 Playwright checks). Sub-fixes f + g (artist-management row CTAs + delegation column) deferred to a follow-up commit.
+- 2026-06-03: fix 10 sub-fixes a + b + c + d + e + h shipped + smoke-verified (4/4 Playwright checks).
+- 2026-06-06: fix 10 sub-fixes f + g shipped + smoke-verified (4/4 Playwright checks). Per-row Upload button on artist-management.html sets the selected artist and navigates to upload.html; releases.html surfaces a proactive "No active Manager Authorization" banner with a deep-link when the user is acting as a managed artist without an active NIP-26 delegation.
 
-Outstanding: 10f + 10g (artist-management refinements), 11 + 12 (role boundaries), 13 (`/join` redeem instructions).
+Outstanding: 11 + 12 (role boundaries), 13 (`/join` redeem instructions).
 
 ## Walkthroughs exercised
 
@@ -83,18 +84,15 @@ The label backup (Typically Magic Records) was saved to [packages/labels/](../pa
 
     h. ✅ **`equaliser:artist-switched` listeners wired.** dashboard.html reloads profile + releases; releases.html resets state and reloads; upload.html re-seeds form defaults. Sidebar's auto-injected banner refresh works everywhere.
 
-    **Still open (sub-fixes f + g — defer to follow-up commit):**
+    f. ✅ **Per-row Upload CTA on artist-management.html.** New `actAsAndUpload(pubkey)` handler sets `SessionManager.setSelectedArtistPubkey()`, dispatches `equaliser:artist-switched` for any other open tabs, and navigates to upload.html. The upload form's existing scope-by-selected-artist logic (from 10c) does the rest. Renders next to Edit + Suspend in the row actions column.
 
-    f. **No per-artist Upload CTA on artist-management.html.** The roster row has Edit + Suspend/Activate but no "Upload track for this artist" shortcut. Now that the sidebar dropdown actually scopes data, this is less urgent — but still the more discoverable entry point.
-
-    g. **No proactive delegation check for managed artists.** Label only finds out at Publish time (via the 404 from `/api/delegations/active/{pk}` surfaced as a toast). releases.html could check upfront when scoped to a managed artist with no active delegation, and link to delegations.html. Could also be a column on artist-management.html showing per-artist delegation status.
+    g. ✅ **Proactive delegation banner on releases.html.** New `checkDelegationNeeded(targetPubkey)` runs alongside `loadReleases()`. When the caller is acting on behalf of someone (`target !== self`) and that artist's `relationship_type === 'managed'` and `/api/delegations/active/{pk}` returns 404, a banner above the releases list reads "No active Manager Authorization. You need {artist}'s permission to publish on their behalf. Request one →" with a deep-link to artist-management.html (where the Request column button already exists). Hidden for self-publish, signed artists, and any backend error.
 
     *Also discovered during the audit (still unfixed):*
     - Dashboard greeting "Welcome back, Artist" before profile resolves — the initial unfilled state is "Artist" rather than something role-aware (e.g. blank or "Label"). Will resolve to the correct name once the Kind 0 lookup completes.
 
 ## What's left
 
-- **10f + 10g** — artist-management.html row-level Upload CTA + delegation-status column (smaller follow-up after the main "acting as" wiring landed)
 - **11** — label cannot approve a node-join — operator-only (see "Role boundaries to review")
 - **12** — label and operator roles are separate (see "Role boundaries to review")
 - **13** — `/join` success screen should hand the applicant the redeem URL + instructions (see "Application flow")
