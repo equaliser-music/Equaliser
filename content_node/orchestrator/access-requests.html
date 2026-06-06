@@ -100,6 +100,16 @@
                 <span class="code-text" id="generated-code"></span>
                 <button class="copy-btn" onclick="copyCode()">Copy</button>
             </div>
+
+            <div style="margin-top:18px">
+                <div style="font-size:12px; color:rgba(255,255,255,0.55); margin-bottom:6px; font-weight:500">Deep link to share via email</div>
+                <div class="code-display">
+                    <span class="code-text" id="generated-deep-link" style="font-size:11px; letter-spacing:0; word-break:break-all"></span>
+                    <button class="copy-btn" onclick="copyDeepLink()">Copy</button>
+                </div>
+                <p style="font-size:11px; color:rgba(255,255,255,0.4); margin-top:6px">Applicants land on the onboarding page with the code pre-filled.</p>
+            </div>
+
             <div class="modal-actions">
                 <button class="btn btn-primary" onclick="closeCodeModal()">Done</button>
             </div>
@@ -317,6 +327,10 @@
 
         function showCodeModal(code) {
             document.getElementById('generated-code').textContent = code;
+            const deepLink = code
+                ? `${window.location.origin}/admin/onboarding.html?invite=${encodeURIComponent(code)}`
+                : '';
+            document.getElementById('generated-deep-link').textContent = deepLink;
             document.getElementById('invite-code-modal').classList.add('visible');
         }
         function closeCodeModal() {
@@ -325,6 +339,10 @@
         function copyCode() {
             const code = document.getElementById('generated-code').textContent;
             navigator.clipboard.writeText(code).then(() => showNotice('success', 'Code copied to clipboard'));
+        }
+        function copyDeepLink() {
+            const link = document.getElementById('generated-deep-link').textContent;
+            navigator.clipboard.writeText(link).then(() => showNotice('success', 'Deep link copied to clipboard'));
         }
 
         // ===== Decline flow =====

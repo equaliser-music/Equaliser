@@ -95,10 +95,24 @@
         }
         .notice-success { background: rgba(16, 185, 129, 0.12); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.2); }
         .notice-error { background: rgba(239, 68, 68, 0.12); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.2); }
-        .success-card { display: none; text-align: center; }
-        .success-card svg { width: 56px; height: 56px; margin: 0 auto 16px; color: #10b981; }
-        .success-card h2 { font-size: 22px; margin-bottom: 8px; }
-        .success-card p { color: rgba(255, 255, 255, 0.6); }
+        .success-card { display: none; }
+        .success-card svg { width: 56px; height: 56px; margin: 0 auto 16px; color: #10b981; display: block; }
+        .success-card h2 { font-size: 22px; margin-bottom: 8px; text-align: center; }
+        .success-card > p { color: rgba(255, 255, 255, 0.6); text-align: center; }
+        .next-steps { margin-top: 24px; padding: 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; }
+        .next-steps h3 { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.85); margin-bottom: 12px; }
+        .next-steps ol { padding-left: 20px; color: rgba(255,255,255,0.7); font-size: 13px; line-height: 1.7; }
+        .next-steps ol li { margin-bottom: 8px; }
+        .url-block { margin-top: 18px; }
+        .url-block label { display: block; font-size: 12px; color: rgba(255,255,255,0.45); margin-bottom: 6px; font-weight: 500; }
+        .url-row { display: flex; gap: 8px; }
+        .url-row input { flex: 1; padding: 10px 12px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; color: #a855f7; font-family: 'SF Mono', Menlo, monospace; font-size: 12px; }
+        .url-row button { padding: 10px 14px; background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); border-radius: 8px; color: #c4b5fd; font-size: 12px; cursor: pointer; font-weight: 500; }
+        .url-row button:hover { background: rgba(168,85,247,0.25); }
+        .url-hint { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 6px; }
+        .existing-nsec-block { margin-top: 16px; padding: 12px 14px; background: rgba(34,197,94,0.06); border: 1px solid rgba(34,197,94,0.18); border-radius: 8px; font-size: 12px; color: rgba(255,255,255,0.7); }
+        .existing-nsec-block strong { color: #6ee7b7; }
+        .back-link { text-align: center; margin-top: 20px; }
         .footer-links { text-align: center; margin-top: 16px; font-size: 13px; color: rgba(255, 255, 255, 0.4); }
         .footer-links a { color: #a855f7; text-decoration: none; }
         .footer-links a:hover { text-decoration: underline; }
@@ -179,8 +193,35 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
             <h2>Application Received</h2>
-            <p>Your application is in the operator's queue. You'll get an invite code by email if approved.</p>
-            <p style="margin-top:16px"><a href="/" style="color:#a855f7">&larr; Back to listening</a></p>
+            <p>Your application is in the operator's queue.</p>
+
+            <div class="next-steps">
+                <h3>What happens next</h3>
+                <ol>
+                    <li>The operator reviews your application.</li>
+                    <li>If approved, they'll email you a 12-character invite code (looks like <code style="color:#c4b5fd">a8f3b2c14e90</code>).</li>
+                    <li>When the code arrives, use one of the URLs below to redeem it.</li>
+                </ol>
+
+                <div class="url-block">
+                    <label>New to Nostr — generate keys + redeem on this node</label>
+                    <div class="url-row">
+                        <input type="text" id="onboarding-url" readonly>
+                        <button type="button" onclick="copyText('onboarding-url', this)">Copy</button>
+                    </div>
+                    <p class="url-hint">Replace <code>YOUR_CODE</code> with the 12-char code when it arrives.</p>
+                </div>
+
+                <div class="existing-nsec-block" id="existing-nsec-hint">
+                    <strong>Already have a Nostr nsec?</strong> Sign in at
+                    <a href="/admin/login.html" style="color:#a855f7" id="login-link">/admin/login.html</a>
+                    and the node will route you to the redeem page automatically.
+                </div>
+
+                <p class="url-hint" style="margin-top:14px">Bookmark this page — these URLs will be ready when your code arrives.</p>
+            </div>
+
+            <div class="back-link"><a href="/" style="color:#a855f7">&larr; Back to listening</a></div>
         </div>
     </div>
 
@@ -223,6 +264,7 @@
                     const err = await resp.json().catch(() => ({}));
                     throw new Error(err.detail || `HTTP ${resp.status}`);
                 }
+                populateSuccessUrls(form.get('npub'));
                 document.getElementById('form-card').style.display = 'none';
                 document.getElementById('success-card').style.display = 'block';
             } catch (e) {
@@ -230,6 +272,28 @@
                 btn.disabled = false;
                 btn.textContent = 'Submit Application';
             }
+        }
+
+        function populateSuccessUrls(npub) {
+            const origin = window.location.origin;
+            document.getElementById('onboarding-url').value = `${origin}/admin/onboarding.html?invite=YOUR_CODE`;
+            document.getElementById('login-link').textContent = `${origin}/admin/login.html`;
+            document.getElementById('login-link').href = `${origin}/admin/login.html`;
+            // If the applicant pasted an npub, surface the existing-nsec path more prominently.
+            if (npub && npub.trim().startsWith('npub')) {
+                const hint = document.getElementById('existing-nsec-hint');
+                hint.style.background = 'rgba(34,197,94,0.12)';
+                hint.style.borderColor = 'rgba(34,197,94,0.35)';
+            }
+        }
+
+        function copyText(inputId, btn) {
+            const el = document.getElementById(inputId);
+            el.select();
+            try { navigator.clipboard.writeText(el.value); } catch (_) { document.execCommand('copy'); }
+            const orig = btn.textContent;
+            btn.textContent = 'Copied!';
+            setTimeout(() => { btn.textContent = orig; }, 1500);
         }
 
         function showNotice(type, msg) {

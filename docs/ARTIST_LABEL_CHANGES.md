@@ -94,33 +94,25 @@ The label backup (Typically Magic Records) was saved to [packages/labels/](../pa
 
 ## What's left
 
-- **13** — `/join` success screen should hand the applicant the redeem URL + instructions (see "Application flow")
+_All items shipped. UAT-tracked work for this branch is done._
 
 ## Application flow
 
-### 13. **`/join` success screen has no forward-pointer to the redeem URL.**
+### 13. ✅ **`/join` success screen has no forward-pointer to the redeem URL.** (shipped 2026-06-07)
 
-Today (`client/join.html:177-184`):
-> *"Application Received. Your application is in the operator's queue. You'll get an invite code by email if approved."*
+Shipped both halves of the closed loop — applicant-facing instructions on `/join` and the operator-facing deep link on the approve modal.
 
-That's the entire post-submit experience. The applicant has no idea:
-- What the invite code will look like (12-char hex)
-- Where to take it once received (which URL on this node)
-- The difference between using their existing nsec vs generating fresh keys
-- That the redeem URL can be deep-linked with `?invite=<CODE>` for one-click flow
+Applicant side (`client/join.html`):
+- Success card now leads with a "What happens next" 3-step list (operator reviews → emails 12-char code → use one of the URLs below to redeem).
+- Pre-built onboarding deep link `${origin}/admin/onboarding.html?invite=YOUR_CODE` rendered in a copyable input — applicant substitutes `YOUR_CODE` when their code arrives. Origin via `window.location.origin` so it works across localhost + production nodes.
+- Existing-nsec block points at `${origin}/admin/login.html` with a one-line note that login auto-redirects to redeem when the pubkey has no role yet (Phase A behaviour already in place).
+- npub heuristic: if the applicant pasted an npub in the optional field, the existing-nsec block is highlighted green so they prefer that path on landing.
+- Bookmark reminder closes the panel.
 
-What the user wants: when an applicant submits via `/join`, the confirmation screen should include the URL pattern they'll use later + a clear "what happens next" sequence. So when the operator's email arrives (currently manual; SMTP not yet wired), the applicant has the context to act on it.
+Operator side (`content_node/orchestrator/access-requests.html`):
+- Invite-code modal (the one shown after Approve) now renders the same deep-link pattern with the real code substituted in (`${origin}/admin/onboarding.html?invite=<CODE>`), with its own Copy button. Operator can paste either just the code or the full link into their email client.
 
-Concrete change:
-- Expand the `#success-card` content with:
-  1. ✓ Application received
-  2. **What happens next**: operator reviews → if approved, they email you a 12-char invite code
-  3. **When your code arrives**, visit: `http://<this-node>/admin/onboarding.html?invite=YOUR_CODE` (new identity) — or if you already have a Nostr nsec, sign in at `/admin/login.html` and you'll be redirected to redeem.
-  4. Save this page or bookmark the URL so the applicant has it ready.
-- The node's base URL should be derived from `window.location.origin` so it works across localhost + production nodes.
-- Operator-side change to pair with this: the **approve modal on `/admin/access-requests.html`** should display the same URL pattern alongside the generated code, so when the operator copies the code to paste into their email client, they can copy the pre-built deep link instead. This closes the loop without SMTP integration.
-
-Bonus (optional): if the applicant pastes an npub in the optional npub field during `/join`, surface the existing-nsec redeem URL (`/admin/login.html`) more prominently on the success screen since we already know they have keys.
+Nothing API-level changed — onboarding.html already consumed `?invite=` (existing Phase A code path), so the deep link works against any node without server changes.
 
 ## Role boundaries to review
 
