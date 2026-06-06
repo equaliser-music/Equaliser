@@ -10,7 +10,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 
-from dependencies import require_label, require_operator, RoleContext
+from dependencies import require_label, require_label_strict, require_operator, RoleContext
 from services import relay_admin
 
 router = APIRouter()
@@ -264,7 +264,7 @@ class AddExistingArtistRequest(BaseModel):
 @router.post("/add-existing-artist")
 async def add_existing_artist(
     body: AddExistingArtistRequest,
-    ctx: RoleContext = Depends(require_label),
+    ctx: RoleContext = Depends(require_label_strict),
 ):
     """
     Generate a roster invite code for an existing-pubkey artist.

@@ -22,7 +22,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from dependencies import require_auth, require_label, require_role, RoleContext
+from dependencies import require_auth, require_label_strict, require_role, RoleContext
 from services import relay_admin
 
 logger = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ class RequestDelegationBody(BaseModel):
 @router.post("/request")
 async def create_request(
     body: RequestDelegationBody,
-    ctx: RoleContext = Depends(require_label),
+    ctx: RoleContext = Depends(require_label_strict),
 ):
     """Label asks an artist for permission to publish on their behalf."""
     if not ctx.can_manage(body.artist_pubkey):
@@ -76,7 +76,7 @@ async def list_incoming(
 @router.get("/outgoing")
 async def list_outgoing(
     status: Optional[str] = None,
-    ctx: RoleContext = Depends(require_label),
+    ctx: RoleContext = Depends(require_label_strict),
 ):
     """List delegation requests the caller (label) has issued."""
     requests = await relay_admin.list_delegation_requests_for_label(
@@ -124,7 +124,7 @@ async def decline(
 
 
 @router.get("/active")
-async def list_active(ctx: RoleContext = Depends(require_label)):
+async def list_active(ctx: RoleContext = Depends(require_label_strict)):
     """List the caller (label) 's active delegations — used when constructing publishable events."""
     delegations = await relay_admin.list_active_delegations_for_label(ctx.pubkey)
     return {"delegations": delegations, "count": len(delegations)}
@@ -133,7 +133,7 @@ async def list_active(ctx: RoleContext = Depends(require_label)):
 @router.get("/active/{artist_pubkey}")
 async def get_for_artist(
     artist_pubkey: str,
-    ctx: RoleContext = Depends(require_label),
+    ctx: RoleContext = Depends(require_label_strict),
 ):
     """Get the caller's active delegation for a specific artist (or 404)."""
     if not ctx.can_manage(artist_pubkey):

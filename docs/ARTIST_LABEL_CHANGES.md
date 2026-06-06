@@ -94,7 +94,6 @@ The label backup (Typically Magic Records) was saved to [packages/labels/](../pa
 
 ## What's left
 
-- **12** — label and operator roles are separate (see "Role boundaries to review")
 - **13** — `/join` success screen should hand the applicant the redeem URL + instructions (see "Application flow")
 
 ## Application flow
@@ -150,24 +149,43 @@ Likely follow-ons:
 - Move the access-requests sidebar entry out of "Content" group into a label-specific "Roster" group, OR drop it entirely from the label sidebar.
 - Server-side tests confirming a label gets 403 on `/api/label/access-requests/*` after the change.
 
-### 12. **Label and operator roles are separate — operators should not auto-inherit label permissions.**
+### 12. ✅ **Label and operator roles are separate — operators should not auto-inherit label permissions.** (shipped 2026-06-06)
 
-Today the orchestrator collapses the two with `require_label` accepting both roles (see the table above + every other `Depends(require_label)` call site in `routers/label.py`). Per the principle: an operator is *infrastructure*, a label is *content/business*. The same pubkey shouldn't have both unless explicitly assigned each.
+Shipped a pragmatic "soft separation with sharper edges": every `Depends(require_label)` call site was audited; the endpoints that are genuinely meaningful only as a label-acting-for-themselves were moved to a new `require_label_strict` gate (label only, operator rejected); dual-role endpoints whose internal logic *already* branches per-role correctly kept `require_label`.
 
-Status check:
-- DB: separate (`node_operators` table vs `node_artists.role='label'`) ✅
-- Cross-row: a single pubkey can in principle be both an operator AND a label (one row in each table). No constraint prevents it today. Decision needed: forbid it (hard constraint), allow it (no change), or warn (operator UI banner if also a label).
-- Permissions: `require_label` admits operators today. To honour the principle, every `Depends(require_label)` would need to be reviewed:
-  - For genuinely label-tier endpoints (rosters, roster invites, the label's own artists), should operators *only* access them via an explicit "act as operator" path (e.g. via the operator-only `/api/operator/*` routes)?
-  - For operator-only endpoints (sync, IPFS, blossom, node-settings, node-overview) — already gated by `require_operator` ✅
-- UI: the sidebar already separates Manage / Label Admin / Infrastructure groups by role.
+New dependency in `content_node/orchestrator/api/dependencies.py`:
+```python
+async def require_label_strict(request: Request) -> RoleContext:
+    """Require label role specifically — operators are rejected."""
+    ctx = await require_role(request)
+    if ctx.role != "label":
+        raise HTTPException(status_code=403, detail="Label-only endpoint (operators have no analogue for this action)")
+    return ctx
+```
 
-Things to decide:
-- **Hard separation**: a pubkey is exactly one of {artist, label, operator}. The redeem flow already rejects re-redemption with `already_managed_by_other` for artists managed by a different label; would need similar guards for operator-vs-label.
-- **Soft separation**: a pubkey can be both, but the UI and API treat them as separate concerns (no role auto-inheritance). Operators wanting label-tier functionality would have to be onboarded as a label too.
-- **Status quo**: operators auto-inherit label-tier endpoints — convenient for single-operator nodes but blurs the boundary.
+Audit + gate decisions:
 
-Recommendation: **hard separation** + re-gate label-tier endpoints to `require_label_strict` (label-only, no operator). Operators get parallel operator-tier endpoints for the same actions they need (e.g. operator-side artist-management is already different — they see all artists, the label sees only their roster). Will need to audit each `require_label` call site.
+| Endpoint | Role gate | Rationale |
+|---|---|---|
+| `GET /api/label/artists` | `require_label` (unchanged) | Operator legitimately sees all artists; label sees their roster. Branching already inside endpoint. |
+| `GET /api/label/artists/{pubkey}` | `require_label` (unchanged) | `ctx.can_manage(pk)` enforces correct scope per role. |
+| `PATCH /api/label/artists/{pubkey}` | `require_label` (unchanged) | Operator-only fields (`managed_by` transfer) checked inside endpoint; otherwise both roles can edit. |
+| `GET /api/label/invite-codes` | `require_label` (unchanged) | Both roles need to see codes they can issue. |
+| `POST /api/label/invite-codes` | `require_label` (unchanged) | `target_role ∈ {label,operator}` already gated to operator inside endpoint. |
+| `POST /api/label/add-existing-artist` | **`require_label_strict`** | Only meaningful as label-roster-self-onboarding; the resulting code carries `target_managed_by = caller pubkey` which has no operator analogue. |
+| `POST /api/delegations/request` | **`require_label_strict`** | NIP-26 delegation is artist→label; operator isn't a delegation party. |
+| `GET /api/delegations/outgoing` | **`require_label_strict`** | The caller's own outgoing requests. Operators don't issue delegation requests. |
+| `GET /api/delegations/active` | **`require_label_strict`** | Used at publish time to insert delegation tag. Only labels publish on behalf via NIP-26. |
+| `GET /api/delegations/active/{artist_pubkey}` | **`require_label_strict`** | Same as above for a specific artist. |
+| `POST /api/label/access-requests/*` (4 endpoints) | `require_operator` | Already locked down in Fix 11. |
+
+Out of scope for this fix (already decided / unchanged):
+- DB cross-row constraint (operator + label on same pubkey) — not constrained today; no enforcement added. The audit shows no current path causes a single pubkey to land in both `node_operators` and `node_artists`, so this stays a known-soft invariant rather than a DB-enforced one.
+- Operator parallel endpoints for label-only actions — deferred until an actual use case appears. If an operator ever needs to onboard an artist into their *own* roster, they'd first onboard themselves as a label too.
+
+Frontend impact:
+- `releases.html` / `edit-release.html` `signTrackEvent` only enters the delegation branch when `relationship_type === 'managed'`. Labels still get the full 200/404 contract. An operator who somehow ends up acting-as a managed artist will now get an "HTTP 403" surfaced through the catch — explicit + correct (operators aren't supposed to be on this code path).
+- `artist-management.html` `/api/delegations/active` parallel fetch already uses `.catch(() => null)`; operator response is now 403 instead of 200 with empty delegations — UI continues to render normally.
 
 ## Open decisions (resolved 2026-05-29)
 

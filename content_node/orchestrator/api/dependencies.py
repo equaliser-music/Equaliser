@@ -114,10 +114,36 @@ async def require_role(request: Request) -> RoleContext:
 
 
 async def require_label(request: Request) -> RoleContext:
-    """Require label or operator role."""
+    """Require label or operator role.
+
+    Used for endpoints whose action makes sense for both — typically because they
+    branch per-role internally (e.g. artist CRUD: operator sees all artists, label
+    sees only their roster; invite-codes generation: operator may issue
+    label/operator codes, label only artist codes). The per-role logic in the
+    body keeps the semantics clean.
+    """
     ctx = await require_role(request)
     if ctx.role not in ("label", "operator"):
         raise HTTPException(status_code=403, detail="Label or operator access required")
+    return ctx
+
+
+async def require_label_strict(request: Request) -> RoleContext:
+    """Require label role specifically — operators are rejected.
+
+    Used for endpoints that only make sense when the caller IS a label acting on
+    its own behalf (asking for a NIP-26 delegation from one of their artists,
+    adding an existing artist to their own roster). Operators administering
+    these actions on behalf of a label are not a use case today; if they ever
+    need to be, parallel operator-tier endpoints can be added rather than
+    overloading the label routes.
+    """
+    ctx = await require_role(request)
+    if ctx.role != "label":
+        raise HTTPException(
+            status_code=403,
+            detail="Label-only endpoint (operators have no analogue for this action)",
+        )
     return ctx
 
 
