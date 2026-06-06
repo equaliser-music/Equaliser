@@ -847,7 +847,15 @@
             setupUploadZone();
             setDefaultDate();
             renderTrackList(); // Show empty state initially
+
+            // Wait for role/selected-artist resolution so loadArtistInfo() picks the
+            // right Kind 0 to seed the artist + pricing fields.
+            try { await SessionManager.fetchRole(); } catch (_) {}
+            AdminSidebar.renderActingAsBanner();
             await loadArtistInfo();
+
+            // Re-seed defaults when the user switches artists from the sidebar dropdown
+            window.addEventListener('equaliser:artist-switched', () => { loadArtistInfo(); });
         });
 
         // Set default release date to today
@@ -871,10 +879,13 @@
             }
         }
 
-        // Load artist info from profile
+        // Load artist info from profile — seeds the upload form with the SELECTED
+        // artist's Kind 0 (a label acting as Shibuya gets Shibuya's name + pricing
+        // pre-filled, not the label's). The sidebar profile card stays scoped to the
+        // caller via AdminSidebar._loadOwnProfile.
         async function loadArtistInfo() {
-            const session = SessionManager.getSession();
-            if (!session) return;
+            const targetPubkey = SessionManager.getSelectedArtistPubkey();
+            if (!targetPubkey) return;
 
             try {
                 const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/relay`);
@@ -882,7 +893,7 @@
                 ws.onopen = () => {
                     ws.send(JSON.stringify(['REQ', 'profile', {
                         kinds: [0],
-                        authors: [session.publicKey],
+                        authors: [targetPubkey],
                         limit: 1
                     }]));
                 };
@@ -892,10 +903,10 @@
                     if (msg[0] === 'EVENT' && msg[2]) {
                         try {
                             const profile = JSON.parse(msg[2].content);
-                            if (profile.name) {
-                                document.getElementById('default-artist').value = profile.name;
+                            const name = profile.display_name || profile.name;
+                            if (name) {
+                                document.getElementById('default-artist').value = name;
                             }
-                            // Load pricing preferences from profile
                             if (profile.equaliser) {
                                 if (profile.equaliser.price_currency) {
                                     document.getElementById('default-price-currency').value = profile.equaliser.price_currency;
@@ -904,9 +915,6 @@
                                     document.getElementById('default-price').value = profile.equaliser.default_track_price;
                                 }
                             }
-                            // Update sidebar
-                            const avatarUrl = profile.picture || null;
-                            AdminSidebar.updateArtistDisplay(profile.name, avatarUrl);
                         } catch (e) {
                             console.error('Error parsing profile:', e);
                         }
@@ -1342,6 +1350,13 @@
                 }
                 if (coverArtBlossomHash) {
                     formData.append('blossom_cover_hash', coverArtBlossomHash);
+                }
+                // If a label/operator is acting on behalf of an artist (sidebar dropdown),
+                // tell the orchestrator who the draft is for. /api/tracks/upload already
+                // accepts target_artist_pubkey and runs ctx.can_manage(artist_pubkey).
+                const targetPubkey = SessionManager.getSelectedArtistPubkey();
+                if (targetPubkey && session.publicKey && targetPubkey !== session.publicKey) {
+                    formData.append('target_artist_pubkey', targetPubkey);
                 }
 
                 // Upload file

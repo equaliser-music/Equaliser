@@ -57,6 +57,10 @@ const AdminSidebar = {
         // Runs on every admin page load (each navigation is a fresh JS context),
         // so the sidebar stays populated across navigation. Idempotent + cached.
         this._loadOwnProfile();
+
+        // One-time listener that keeps the "Acting as" banner in sync with the
+        // dropdown selection.
+        this._attachSwitchListener();
     },
 
     /**
@@ -131,6 +135,99 @@ const AdminSidebar = {
         if (this._lastDisplayName !== null || this._lastDisplayAvatar !== null) {
             this._applyArtistDisplay(this._lastDisplayName, this._lastDisplayAvatar);
         }
+
+        // Render the "Acting as" banner if the user is acting on behalf of someone other
+        // than themselves. Idempotent — removes the existing banner first.
+        this.renderActingAsBanner();
+    },
+
+    // === Acting-as banner ====================================================
+
+    /**
+     * Insert a small banner at the top of `.main-content` reading "Acting as <name>"
+     * whenever the selected artist differs from the caller's own pubkey. Hidden for
+     * artists managing only themselves (selected === self). Auto-resolves the
+     * display name via the Kind 0 cache (sessionStorage first, /api/cache/events
+     * fallback).
+     *
+     * Re-runs on every `equaliser:artist-switched` event (wired in _attachSwitchListener).
+     */
+    async renderActingAsBanner() {
+        const main = document.querySelector('.main-content');
+        if (!main) return;
+        const existing = document.getElementById('acting-as-banner');
+        if (existing) existing.remove();
+
+        const session = SessionManager.getSession();
+        if (!session) return;
+        const selected = SessionManager.getSelectedArtistPubkey();
+        if (!selected || selected === session.publicKey) return;
+
+        // Stub immediately with the truncated pubkey so the banner appears
+        // without a perceived delay; replace the text once the name arrives.
+        const banner = document.createElement('div');
+        banner.id = 'acting-as-banner';
+        banner.className = 'acting-as-banner';
+        const short = selected.slice(0, 8) + '…';
+        banner.innerHTML = `
+            <span class="acting-as-label">Acting as</span>
+            <strong id="acting-as-name">${this._escape(short)}</strong>
+            <span class="acting-as-hint">Use the sidebar dropdown to switch.</span>
+        `;
+        main.insertAdjacentElement('afterbegin', banner);
+
+        // Async name resolution
+        try {
+            const name = await this._resolveDisplayName(selected);
+            const target = document.getElementById('acting-as-name');
+            if (target && name) target.textContent = name;
+        } catch (_) { /* keep the truncated fallback */ }
+    },
+
+    /**
+     * Look up a Kind 0 display name for `pubkey`. First-paint from sessionStorage,
+     * background fill from /api/cache/events. Reuses the same cache key the sidebar
+     * profile card + dropdown name resolver already populate.
+     */
+    async _resolveDisplayName(pubkey) {
+        const cacheKey = 'equaliser_admin_profile_' + pubkey;
+        try {
+            const cached = sessionStorage.getItem(cacheKey);
+            if (cached) {
+                const p = JSON.parse(cached);
+                if (p && p.name) return p.name;
+            }
+        } catch (_) {}
+        try {
+            const url = '/api/cache/events?kinds=0&authors=' + encodeURIComponent(pubkey) + '&limit=1';
+            const resp = await fetch(url);
+            if (!resp.ok) return null;
+            const data = await resp.json();
+            const ev = (data.events || data || [])[0];
+            if (!ev) return null;
+            const profile = JSON.parse(ev.content || '{}');
+            const name = profile.display_name || profile.name || null;
+            if (name) {
+                sessionStorage.setItem(cacheKey, JSON.stringify({
+                    name, picture: profile.picture || null,
+                }));
+                return name;
+            }
+        } catch (_) {}
+        return null;
+    },
+
+    /**
+     * One-time listener for artist-switched events; re-renders the banner so the
+     * "Acting as <name>" text updates when the user picks a different artist from
+     * the dropdown. Attached lazily on first init to avoid double-binding.
+     */
+    _attachSwitchListener() {
+        if (this._switchListenerAttached) return;
+        this._switchListenerAttached = true;
+        window.addEventListener('equaliser:artist-switched', () => {
+            this.renderActingAsBanner();
+        });
     },
 
     /**
@@ -472,6 +569,37 @@ const AdminSidebar = {
                 height: 100vh;
                 overflow-y: auto;
                 z-index: 100;
+            }
+
+            /* Acting-as banner — shown when a label/operator is scoped to an artist
+               other than themselves. Sits at the top of .main-content. */
+            .acting-as-banner {
+                background: linear-gradient(135deg, rgba(168,85,247,0.10), rgba(168,85,247,0.04));
+                border: 1px solid rgba(168, 85, 247, 0.35);
+                border-radius: 10px;
+                padding: 10px 14px;
+                margin-bottom: 18px;
+                color: rgba(255,255,255,0.85);
+                font-size: 13px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+            .acting-as-banner .acting-as-label {
+                color: rgba(255,255,255,0.55);
+                text-transform: uppercase;
+                font-size: 11px;
+                letter-spacing: 0.5px;
+            }
+            .acting-as-banner strong {
+                color: #d8b4fe;
+                font-weight: 600;
+            }
+            .acting-as-banner .acting-as-hint {
+                color: rgba(255,255,255,0.4);
+                font-size: 12px;
+                margin-left: auto;
             }
 
             /* Logo */

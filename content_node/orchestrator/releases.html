@@ -865,8 +865,20 @@
             AdminSidebar.init();
             setupFilters();
             setupSearch();
+
+            // Wait for the role to resolve so getSelectedArtistPubkey() returns the
+            // right pubkey for labels/operators acting on behalf of an artist.
+            try { await SessionManager.fetchRole(); } catch (_) {}
+            AdminSidebar.renderActingAsBanner();
+
             await loadReleases();
             await loadArtistInfo();
+
+            // Reload when the user switches artists from the sidebar dropdown
+            window.addEventListener('equaliser:artist-switched', async () => {
+                releases = []; allTracks = []; allDrafts = []; expandedRelease = null;
+                await loadReleases();
+            });
         });
 
         function setupFilters() {
@@ -887,24 +899,25 @@
             });
         }
 
-        // Load both drafts (from API) and released tracks (from NOSTR)
+        // Load both drafts (from API) and released tracks (from NOSTR) — scoped to the
+        // currently selected artist (labels acting on behalf of someone else see *their*
+        // catalogue here, not the label's).
         async function loadReleases() {
-            const session = SessionManager.getSession();
-            if (!session) return;
+            const targetPubkey = SessionManager.getSelectedArtistPubkey();
+            if (!targetPubkey) return;
 
             const container = document.getElementById('releases-container');
             container.innerHTML = `
                 <div class="loading-state">
                     <div class="loading-spinner"></div>
-                    <p>Loading your releases...</p>
+                    <p>Loading releases...</p>
                 </div>
             `;
 
             try {
-                // Load drafts from API and released tracks from NOSTR in parallel
                 await Promise.all([
-                    loadDraftsFromAPI(session.publicKey),
-                    loadReleasedFromNostr(session.publicKey)
+                    loadDraftsFromAPI(targetPubkey),
+                    loadReleasedFromNostr(targetPubkey)
                 ]);
 
                 groupTracksIntoReleases();

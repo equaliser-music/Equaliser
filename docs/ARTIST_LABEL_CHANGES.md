@@ -5,8 +5,9 @@ Captured during manual UAT in Brave (operator) + Safari (label/artist) on a fres
 **Status:**
 - 2026-05-28: fixes 1–6, 9 shipped + smoke-verified (5/5 Playwright checks). Fix 10 audited; gaps documented inline.
 - 2026-05-29: fixes 7 + 8 shipped + smoke-verified (2/2 Playwright checks). onboarding.html is now a thin shim that hands off to redeem.html → profile-setup.html. setup.html routes operators through profile-setup with an operator-only "Skip for now" link.
+- 2026-06-03: fix 10 sub-fixes a + b + c + d + e + h shipped + smoke-verified (4/4 Playwright checks). Sub-fixes f + g (artist-management row CTAs + delegation column) deferred to a follow-up commit.
 
-Outstanding: 10 (label→artist workflow), 11 + 12 (role boundaries), 13 (`/join` redeem instructions).
+Outstanding: 10f + 10g (artist-management refinements), 11 + 12 (role boundaries), 13 (`/join` redeem instructions).
 
 ## Walkthroughs exercised
 
@@ -66,34 +67,34 @@ The label backup (Typically Magic Records) was saved to [packages/labels/](../pa
 
 9. ✅ **Sidebar "Managing Artist" dropdown shows pubkey hex instead of names** (e.g. `8ce7f5ce…6235` instead of "Typically Magic Records"). Should look up Kind 0 for each managed pubkey (including the label itself) via the cache API and render the display name, falling back to the pubkey prefix only if no profile exists. Same Kind 0 cache logic the sidebar profile card uses for the avatar/name.
 
-10. **Label → artist releases workflow needs review.** Audited 2026-05-28. The wiring exists at the sidebar + SessionManager level — `setSelectedArtistPubkey()` persists, the `equaliser:artist-switched` event broadcasts across tabs, and `signTrackEvent` on releases.html *correctly* routes self / managed / signed when given the right artist pubkey. **But no page on the admin surface consumes the selected artist.** The infrastructure exists; the UI does not expose or enforce it.
+10. **Label → artist releases workflow needs review.** Audited 2026-05-28; sub-fixes a + b + c + d + e + h shipped 2026-06-03. The wiring already existed at the sidebar + SessionManager level — `setSelectedArtistPubkey()` persists, the `equaliser:artist-switched` event broadcasts across tabs, and `signTrackEvent` on releases.html *correctly* routes self / managed / signed when given the right artist pubkey. The remaining gap was that no page consumed the selected-artist context; that's now closed for the four main editing surfaces.
 
-    Concrete gaps (each is its own sub-fix):
+    Concrete gaps + status:
 
-    a. **Dashboard greeting + Recent Releases ignore the selected artist.** `dashboard.html` always uses `session.publicKey` for the Kind 0 fetch (greeting "Welcome back, …") and the draft/Kind-30050 fetch. No `equaliser:artist-switched` listener. A label switching to Shibuya in the dropdown sees their own label name + their own releases. Greeting is also hardcoded "Welcome back, **Artist**" before profile resolves — role-blind.
+    a. ✅ **Dashboard greeting + Recent Releases now scope by selected artist.** `dashboard.html` awaits `fetchRole()`, then `loadProfile()` + `loadReleases()` read `getSelectedArtistPubkey()` instead of `session.publicKey`. The greeting reflects the artist the label is acting as. Switch listener wired.
 
-    b. **Releases page ignores the selected artist.** `releases.html` `loadDraftsFromAPI()` + `loadReleasedFromNostr()` both query `session.publicKey`. The Upload New button links to upload.html with no artist param. Switching dropdown does nothing.
+    b. ✅ **Releases page scopes by selected artist.** `releases.html` `loadDraftsFromAPI()` + `loadReleasedFromNostr()` now receive `getSelectedArtistPubkey()`. Switch listener clears + reloads on dropdown change.
 
-    c. **Upload page ignores the selected artist.** `upload.html` always defaults the artist field from the *caller's* Kind 0. No way to scope the upload to a managed artist via the form. The orchestrator side stores the draft under the caller pubkey too.
+    c. ✅ **Upload page scopes by selected artist.** `upload.html` defaults the artist + pricing fields from the *selected* artist's Kind 0 and sends `target_artist_pubkey` to `/api/tracks/upload` so the orchestrator stores the draft under the artist's pubkey (the endpoint already enforces `ctx.can_manage(target)`).
 
-    d. **Edit-release has no artist banner.** `edit-release.html` doesn't surface whose track is being edited.
+    d. ✅ **Edit-release scopes by selected artist + shows the banner.** All three `?pubkey=` reads now use `getSelectedArtistPubkey()`. The "Add Existing Track" modal lookup also pulls from the selected artist's catalogue.
 
-    e. **No "acting as" banner anywhere.** Codebase-wide search: zero hits for "Publishing as", "Acting as", "Publishing on behalf of". A label has no visual confirmation of who they're producing under.
+    e. ✅ **Shared "Acting as" banner.** `AdminSidebar.renderActingAsBanner()` injects a banner at the top of `.main-content` when `getSelectedArtistPubkey() !== session.publicKey`. Auto-resolves the display name via the same Kind 0 cache the sidebar dropdown uses. Re-renders on every `equaliser:artist-switched` event. Pages just call `AdminSidebar.renderActingAsBanner()` after `fetchRole()` resolves.
 
-    f. **No per-artist Upload CTA on artist-management.html.** The roster row has Edit + Suspend/Activate but no "Upload track for this artist" shortcut. Even if the sidebar dropdown worked, this is the more discoverable entry point.
+    h. ✅ **`equaliser:artist-switched` listeners wired.** dashboard.html reloads profile + releases; releases.html resets state and reloads; upload.html re-seeds form defaults. Sidebar's auto-injected banner refresh works everywhere.
 
-    g. **No proactive delegation check for managed artists.** Label only finds out at Publish time (via the 404 from `/api/delegations/active/{pk}` surfaced as a toast). releases.html doesn't link to delegations.html or warn upfront. Could be a column on artist-management.html and a banner on releases.html.
+    **Still open (sub-fixes f + g — defer to follow-up commit):**
 
-    h. **No pages listen to `equaliser:artist-switched`.** Dropdown broadcasts but no listener consumes; a full page reload is needed to see any change. Each of dashboard.html / releases.html / upload.html / edit-release.html needs the listener.
+    f. **No per-artist Upload CTA on artist-management.html.** The roster row has Edit + Suspend/Activate but no "Upload track for this artist" shortcut. Now that the sidebar dropdown actually scopes data, this is less urgent — but still the more discoverable entry point.
 
-    **Suggested approach**: tackle h first (wire the event listener everywhere that scopes by pubkey), then a → d together (use `getSelectedArtistPubkey()` everywhere a pubkey is read), then e (single shared banner component), then f + g (artist-management.html row-level affordances + delegation column). Plan and ship as its own commit after fixes 1-7 land.
+    g. **No proactive delegation check for managed artists.** Label only finds out at Publish time (via the 404 from `/api/delegations/active/{pk}` surfaced as a toast). releases.html could check upfront when scoped to a managed artist with no active delegation, and link to delegations.html. Could also be a column on artist-management.html showing per-artist delegation status.
 
-    *Also discovered during the audit but not strictly in scope of "label → artist":*
-    - Dashboard greeting "Welcome back, Artist" before profile resolves — role-blind regardless of selected artist (fix even without the dropdown work).
+    *Also discovered during the audit (still unfixed):*
+    - Dashboard greeting "Welcome back, Artist" before profile resolves — the initial unfilled state is "Artist" rather than something role-aware (e.g. blank or "Label"). Will resolve to the correct name once the Kind 0 lookup completes.
 
 ## What's left
 
-- **10** — label → artist publish workflow (sub-fixes a–h above; ready to plan as its own commit)
+- **10f + 10g** — artist-management.html row-level Upload CTA + delegation-status column (smaller follow-up after the main "acting as" wiring landed)
 - **11** — label cannot approve a node-join — operator-only (see "Role boundaries to review")
 - **12** — label and operator roles are separate (see "Role boundaries to review")
 - **13** — `/join` success screen should hand the applicant the redeem URL + instructions (see "Application flow")

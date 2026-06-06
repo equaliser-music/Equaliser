@@ -612,27 +612,37 @@
             // Initialize sidebar
             AdminSidebar.init();
 
-            // Load data
-            await Promise.all([
-                loadProfile(),
-                loadReleases()
-            ]);
+            // Wait for the role/selected-artist to resolve before scoping data loads.
+            // Without this, getSelectedArtistPubkey() returns the caller's session pubkey
+            // (the default for unresolved state), which is wrong for labels.
+            try { await SessionManager.fetchRole(); } catch (_) { /* keep going */ }
+
+            // Re-render the acting-as banner now that the role has resolved (sidebar's
+            // init kicks it off before fetchRole completes; this catches up).
+            AdminSidebar.renderActingAsBanner();
+
+            // Load data scoped by the selected artist
+            await loadAll();
+
+            // Refresh when the user switches artists from the sidebar dropdown
+            window.addEventListener('equaliser:artist-switched', () => { loadAll(); });
         });
 
-        // Load artist profile
+        async function loadAll() {
+            await Promise.all([loadProfile(), loadReleases()]);
+        }
+
+        // Load the profile for the selected artist (label "acting as" Shibuya etc.)
         async function loadProfile() {
-            const session = SessionManager.getSession();
-            if (!session) return;
+            const targetPubkey = SessionManager.getSelectedArtistPubkey();
+            if (!targetPubkey) return;
 
             try {
-                const profile = await fetchProfile(session.publicKey);
+                const profile = await fetchProfile(targetPubkey);
                 if (profile) {
-                    // Update welcome message
-                    const name = profile.name || 'Artist';
+                    const name = profile.name || profile.display_name || 'Artist';
                     document.getElementById('artist-name-display').textContent = name;
-
-                    // Update sidebar (use profile.picture directly for browser compatibility)
-                    AdminSidebar.updateArtistDisplay(name, profile.picture);
+                    // Don't touch the sidebar — that's "who am I" (always the caller).
                 }
             } catch (error) {
                 console.error('Failed to load profile:', error);
@@ -681,21 +691,19 @@
             });
         }
 
-        // Load releases from NOSTR relay and drafts from API
+        // Load releases for the selected artist (a label "acting as" Shibuya sees
+        // Shibuya's catalogue, not the label's own).
         async function loadReleases() {
-            const session = SessionManager.getSession();
-            if (!session) return;
+            const targetPubkey = SessionManager.getSelectedArtistPubkey();
+            if (!targetPubkey) return;
 
             try {
-                // Load both released tracks and drafts in parallel
                 const [releasedTracks, drafts] = await Promise.all([
-                    fetchReleases(session.publicKey),
-                    fetchDrafts(session.publicKey)
+                    fetchReleases(targetPubkey),
+                    fetchDrafts(targetPubkey)
                 ]);
 
                 displayReleases(releasedTracks, drafts);
-
-                // Update total tracks count (released + drafts)
                 document.getElementById('total-tracks').textContent = releasedTracks.length + drafts.length;
             } catch (error) {
                 console.error('Failed to load releases:', error);

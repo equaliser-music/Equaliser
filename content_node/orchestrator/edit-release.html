@@ -914,6 +914,11 @@
 
             AdminSidebar.init();
 
+            // Wait for the role to resolve so getSelectedArtistPubkey() is meaningful,
+            // and so the acting-as banner can render with the right name.
+            try { await SessionManager.fetchRole(); } catch (_) {}
+            AdminSidebar.renderActingAsBanner();
+
             // Get parameters from URL
             const params = new URLSearchParams(window.location.search);
             const releaseId = params.get('id');
@@ -934,14 +939,15 @@
             }
         });
 
-        // Load a draft from the API
+        // Load a draft from the API — scoped to the currently selected artist so labels
+        // acting as a managed artist see that artist's drafts.
         async function loadDraft(draftId) {
-            const session = SessionManager.getSession();
-            if (!session) return;
+            const targetPubkey = SessionManager.getSelectedArtistPubkey();
+            if (!targetPubkey) return;
 
             try {
                 // First, fetch the specific draft
-                const response = await fetch(`/api/drafts/${draftId}?pubkey=${session.publicKey}`);
+                const response = await fetch(`/api/drafts/${draftId}?pubkey=${targetPubkey}`);
                 if (!response.ok) {
                     const error = await response.json();
                     showError(error.detail || 'Failed to load draft');
@@ -959,7 +965,7 @@
                     // Fetch all drafts for this artist to find ones in the same album
                     // Filter by status=draft to exclude already-released tracks
                     const draftStatus = draftData.status || 'draft';
-                    const allDraftsResponse = await fetch(`/api/drafts?pubkey=${session.publicKey}&status=${draftStatus}`);
+                    const allDraftsResponse = await fetch(`/api/drafts?pubkey=${targetPubkey}&status=${draftStatus}`);
                     if (allDraftsResponse.ok) {
                         const allDraftsData = await allDraftsResponse.json();
                         const albumDrafts = allDraftsData.drafts.filter(d => d.album === albumName && d.status === draftStatus);
@@ -1019,7 +1025,7 @@
                 addedTracks = [];
 
                 // Load all artist drafts so "Add Track" modal can find singles
-                const allDraftsResp = await fetch(`/api/drafts?pubkey=${session.publicKey}&status=draft`);
+                const allDraftsResp = await fetch(`/api/drafts?pubkey=${targetPubkey}&status=draft`);
                 if (allDraftsResp.ok) {
                     const allDraftsData = await allDraftsResp.json();
                     allTracks = allDraftsData.drafts.map(d => ({
@@ -1047,8 +1053,10 @@
         }
 
         async function loadAllTracks() {
-            const session = SessionManager.getSession();
-            if (!session) return;
+            // Scope by the selected artist so labels acting on someone's behalf see
+            // *that* artist's catalogue (for the Add Existing Track modal).
+            const targetPubkey = SessionManager.getSelectedArtistPubkey();
+            if (!targetPubkey) return;
 
             return new Promise((resolve) => {
                 const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/relay`);
@@ -1056,7 +1064,7 @@
                 ws.onopen = () => {
                     ws.send(JSON.stringify(['REQ', 'tracks', {
                         kinds: [30050],
-                        authors: [session.publicKey],
+                        authors: [targetPubkey],
                         limit: 500
                     }]));
                 };
