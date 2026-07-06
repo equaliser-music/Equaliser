@@ -878,6 +878,10 @@
             // Wait for the role to resolve so getSelectedArtistPubkey() returns the
             // right pubkey for labels/operators acting on behalf of an artist.
             try { await SessionManager.fetchRole(); } catch (_) {}
+
+            // Operators are infrastructure-only — redirect to their home (hard role separation).
+            if (SessionManager.getRole() === 'operator') { location.href = 'node-overview.html'; return; }
+
             AdminSidebar.renderActingAsBanner();
 
             await loadReleases();

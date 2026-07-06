@@ -660,6 +660,12 @@
             // Initialize sidebar
             AdminSidebar.init();
 
+            // Operators are infrastructure-only — they have no personal-artist profile to
+            // edit here. Redirect them to their home page (hard role separation). Labels
+            // keep access (they edit their own Kind 0 label profile).
+            try { await SessionManager.fetchRole(); } catch (_) {}
+            if (SessionManager.getRole() === 'operator') { location.href = 'node-overview.html'; return; }
+
             // Setup UI
             setupGenreInput();
 

@@ -71,15 +71,44 @@
                 <input type="text" class="form-input" id="name-input" placeholder="Your name or organisation" value="Node Operator">
             </div>
 
+            <!-- Role-distinction callout (hard role separation). -->
+            <div class="help-box" style="background: rgba(168,85,247,0.08); border-color: rgba(168,85,247,0.25); color:#c4b5fd">
+                <strong>This identity becomes the node operator — infrastructure only.</strong>
+                On this node it can't also be an artist or a label. If you also want to publish
+                music or run a label, use a <strong>separate Nostr identity (nsec)</strong> for that.
+            </div>
+
             <div class="form-group">
                 <label class="form-label">Identity</label>
-                <p class="page-description" style="margin-bottom:8px">Use an existing nsec or generate a fresh keypair.</p>
-                <input type="password" class="form-input" id="nsec-input" placeholder="nsec1... (or leave blank to generate)" autocomplete="off">
+                <p class="page-description" style="margin-bottom:8px">
+                    <strong>Recommended:</strong> leave blank to generate a dedicated operator key.
+                    Advanced: paste an existing nsec to reuse an identity.
+                </p>
+                <input type="password" class="form-input" id="nsec-input" placeholder="Leave blank to generate a fresh operator key" autocomplete="off">
+            </div>
+
+            <!-- Acknowledgement gate (#17). -->
+            <div class="form-group">
+                <label style="display:flex; align-items:flex-start; gap:8px; font-size:13px; color:rgba(255,255,255,0.75); cursor:pointer">
+                    <input type="checkbox" id="ack-operator-only" onchange="updateClaimEnabled()" style="margin-top:3px">
+                    <span>I understand this identity will be <strong>operator-only</strong> on this node.</span>
+                </label>
+            </div>
+
+            <!-- Existing-identity warning (#18) — hidden until artist/label signals are found. -->
+            <div id="identity-warning" class="notice notice-error" style="display:none; margin-bottom:16px">
+                <strong>This identity already publishes as an artist or label on Nostr.</strong>
+                Operators should be a separate identity. We recommend using a different key.
+                <div id="identity-warning-detail" style="margin-top:6px; font-size:13px; opacity:0.85"></div>
+                <div class="modal-actions" style="margin-top:12px">
+                    <button class="btn btn-secondary" onclick="useDifferentKey()">Use a different key</button>
+                    <button class="btn btn-primary" onclick="claimAnyway()">Claim anyway</button>
+                </div>
             </div>
 
             <div class="modal-actions">
-                <button class="btn btn-primary" id="claim-btn" onclick="claimNode()">Claim Node</button>
-                <button class="btn btn-secondary" id="extension-btn" onclick="claimWithExtension()">Use Extension</button>
+                <button class="btn btn-primary" id="claim-btn" onclick="claimNode()" disabled>Claim Node</button>
+                <button class="btn btn-secondary" id="extension-btn" onclick="claimWithExtension()" disabled>Use Extension</button>
             </div>
         </div>
 
@@ -110,6 +139,31 @@
         let claimedNsec = null;
         let claimedPubkey = null;
         let claimedName = null;
+        let pendingClaim = null; // { token, name } stashed while the #18 warning is shown
+
+        // #18: default discovery relays (same set profile-setup.html uses) — queried
+        // alongside the node's configured standard relays + the local relay.
+        const DISCOVERY_RELAYS = [
+            'wss://relay.damus.io',
+            'wss://relay.primal.net',
+            'wss://nos.lol',
+            'wss://relay.nostr.band',
+        ];
+
+        // #17: the Claim / Use Extension buttons are gated on the operator-only acknowledgement.
+        function updateClaimEnabled() {
+            const ack = document.getElementById('ack-operator-only').checked;
+            document.getElementById('claim-btn').disabled = !ack;
+            document.getElementById('extension-btn').disabled = !ack;
+        }
+
+        function resetClaimButtons() {
+            const ack = document.getElementById('ack-operator-only').checked;
+            const cb = document.getElementById('claim-btn');
+            const eb = document.getElementById('extension-btn');
+            cb.disabled = !ack; cb.textContent = 'Claim Node';
+            eb.disabled = !ack; eb.textContent = 'Use Extension';
+        }
 
         document.addEventListener('DOMContentLoaded', async () => {
             SessionManager.init();
@@ -137,12 +191,13 @@
             if (!token) { showNotice('error', 'Setup token is required.'); return; }
 
             btn.disabled = true;
-            btn.innerHTML = '<span class="loading-spinner"></span> Claiming…';
+            btn.innerHTML = '<span class="loading-spinner"></span> Working…';
 
             try {
                 let nsec = nsecInput;
+                const isExisting = !!nsecInput; // a pasted nsec is an existing identity → pre-check it
                 if (!nsec) {
-                    // Generate fresh keypair
+                    // Generate fresh keypair — guaranteed clean, no pre-check needed.
                     const sk = NostrTools.generateSecretKey();
                     nsec = NostrTools.nip19.nsecEncode(sk);
                 }
@@ -150,28 +205,165 @@
                 claimedNsec = nsec;
                 claimedPubkey = SessionManager.getSession().publicKey;
                 claimedName = name;
-                await submitClaim(token, name);
+                await guardThenClaim(token, name, isExisting);
             } catch (e) {
                 showNotice('error', e.message);
-                btn.disabled = false;
-                btn.textContent = 'Claim Node';
+                resetClaimButtons();
             }
         }
 
         async function claimWithExtension() {
             const token = document.getElementById('token-input').value.trim();
             const name = document.getElementById('name-input').value.trim() || 'Node Operator';
+            const btn = document.getElementById('extension-btn');
             if (!token) { showNotice('error', 'Setup token is required.'); return; }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Working…';
 
             try {
                 await SessionManager.createSessionFromExtension();
                 claimedNsec = null;
                 claimedPubkey = SessionManager.getSession().publicKey;
                 claimedName = name;
-                await submitClaim(token, name);
+                // A NIP-07 extension is always an existing identity → pre-check it.
+                await guardThenClaim(token, name, true);
             } catch (e) {
                 showNotice('error', e.message);
+                resetClaimButtons();
             }
+        }
+
+        /**
+         * #18: for an existing identity, check public + Equaliser relays for artist/label
+         * activity before claiming. If found, show a warning with an override; otherwise
+         * claim straight through. Fail-open — relay errors/timeouts never block the claim.
+         */
+        async function guardThenClaim(token, name, isExisting) {
+            if (isExisting) {
+                let signal = null;
+                try { signal = await checkExistingArtistIdentity(claimedPubkey); } catch (_) { signal = null; }
+                if (signal && signal.isArtistOrLabel) {
+                    pendingClaim = { token, name };
+                    showIdentityWarning(signal);
+                    return; // stop — the user must choose "Use a different key" or "Claim anyway"
+                }
+            }
+            // The entry button already shows a spinner; submitClaim swaps to the backup step.
+            await submitClaim(token, name);
+        }
+
+        function showIdentityWarning(signal) {
+            resetClaimButtons(); // drop the spinner; the choice now lives in the warning panel
+            const reasons = [];
+            if (signal.userType) reasons.push(`a profile marked "${signal.userType}"`);
+            if (signal.hasTracks) reasons.push('published tracks');
+            document.getElementById('identity-warning-detail').textContent =
+                reasons.length ? `We found ${reasons.join(' and ')} on Nostr for this key.` : '';
+            document.getElementById('identity-warning').style.display = 'block';
+        }
+
+        function claimAnyway() {
+            if (!pendingClaim) return;
+            const { token, name } = pendingClaim;
+            pendingClaim = null;
+            document.getElementById('identity-warning').style.display = 'none';
+            document.getElementById('claim-btn').disabled = true;
+            document.getElementById('claim-btn').innerHTML = '<span class="loading-spinner"></span> Claiming…';
+            submitClaim(token, name).catch(e => { showNotice('error', e.message); resetClaimButtons(); });
+        }
+
+        function useDifferentKey() {
+            pendingClaim = null;
+            document.getElementById('identity-warning').style.display = 'none';
+            document.getElementById('nsec-input').value = '';
+            // The next claim attempt creates a fresh session, overwriting the one we made
+            // during the check — no explicit logout needed.
+            resetClaimButtons();
+            showNotice('info', 'Enter a different nsec, or leave blank to generate a fresh operator key.');
+        }
+
+        // ===== #18 relay pre-flight check =====
+
+        function localRelayWsUrl() {
+            const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            return `${proto}//${location.host}/relay`;
+        }
+
+        async function getConfiguredStandardRelays() {
+            try {
+                const resp = await fetch('/api/config');
+                if (resp.ok) {
+                    const cfg = await resp.json();
+                    if (Array.isArray(cfg.standard_relays)) return cfg.standard_relays.filter(Boolean);
+                }
+            } catch (_) { /* ignore */ }
+            return [];
+        }
+
+        /**
+         * Query the local relay + the node's standard relays + DISCOVERY_RELAYS for
+         * artist/label signals on a pubkey. Returns { isArtistOrLabel, userType, hasTracks }.
+         * Detection is specific to artist/label markers — a plain Kind 0 / social presence
+         * does NOT trigger. Fails open (isArtistOrLabel:false) on any error.
+         */
+        async function checkExistingArtistIdentity(pubkeyHex) {
+            const relays = Array.from(new Set([
+                localRelayWsUrl(),
+                ...(await getConfiguredStandardRelays()),
+                ...DISCOVERY_RELAYS,
+            ]));
+            const results = await Promise.allSettled(
+                relays.map(url => queryRelayForArtistSignals(url, pubkeyHex))
+            );
+            let userType = null, hasTracks = false;
+            for (const r of results) {
+                if (r.status !== 'fulfilled' || !r.value) continue;
+                if (r.value.userType === 'artist' || r.value.userType === 'label') {
+                    userType = userType || r.value.userType;
+                }
+                if (r.value.hasTracks) hasTracks = true;
+            }
+            return { isArtistOrLabel: !!userType || hasTracks, userType, hasTracks };
+        }
+
+        function queryRelayForArtistSignals(url, pubkeyHex) {
+            return new Promise((resolve) => {
+                let ws, settled = false, eoseCount = 0;
+                let userType = null, hasTracks = false;
+                const done = () => {
+                    if (settled) return;
+                    settled = true;
+                    clearTimeout(timeout);
+                    try { ws && ws.close(); } catch (_) {}
+                    resolve({ userType, hasTracks });
+                };
+                try { ws = new WebSocket(url); } catch (_) { return resolve(null); }
+                const timeout = setTimeout(done, 4000);
+                ws.onopen = () => {
+                    ws.send(JSON.stringify(['REQ', 'k0', { kinds: [0], authors: [pubkeyHex], limit: 1 }]));
+                    ws.send(JSON.stringify(['REQ', 'k30050', { kinds: [30050], authors: [pubkeyHex], limit: 1 }]));
+                };
+                ws.onmessage = (e) => {
+                    let msg; try { msg = JSON.parse(e.data); } catch (_) { return; }
+                    if (msg[0] === 'EVENT' && msg[2]) {
+                        const ev = msg[2];
+                        if (ev.kind === 0) {
+                            const ut = (ev.tags || []).find(t => t[0] === 'user-type');
+                            if (ut && ut[1]) userType = ut[1];
+                        } else if (ev.kind === 30050) {
+                            hasTracks = true;
+                        }
+                        // Resolve as soon as we have a definitive artist/label signal.
+                        if (userType === 'artist' || userType === 'label' || hasTracks) done();
+                    } else if (msg[0] === 'EOSE') {
+                        // Both subscriptions done with no positive signal → this relay is clean.
+                        if (++eoseCount >= 2) done();
+                    }
+                };
+                ws.onerror = () => done();
+                ws.onclose = () => done();
+            });
         }
 
         async function submitClaim(token, name) {
@@ -249,10 +441,11 @@
         }
 
         function goToDashboard() {
-            // Route through profile-setup so every artist/label/operator publishes a Kind 0
-            // before reaching their dashboard. Operators see a Skip link on profile-setup
-            // since the rule is universal but operators can opt out (they're infrastructure).
-            window.location.href = 'profile-setup.html?return=dashboard.html';
+            // Route through profile-setup so the operator can (optionally) publish a Kind 0
+            // before landing. setup.html only runs for operators, so the post-setup home is
+            // node-overview.html (their infrastructure home) — not the artist dashboard.
+            // Operators see a Skip link on profile-setup since they're infrastructure-only.
+            window.location.href = 'profile-setup.html?return=node-overview.html';
         }
 
         function showNotice(type, msg) {

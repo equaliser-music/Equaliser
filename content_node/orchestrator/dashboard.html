@@ -617,6 +617,10 @@
             // (the default for unresolved state), which is wrong for labels.
             try { await SessionManager.fetchRole(); } catch (_) { /* keep going */ }
 
+            // Operators are infrastructure-only — no personal-artist surface. Redirect
+            // them to their home page (hard role separation).
+            if (SessionManager.getRole() === 'operator') { location.href = 'node-overview.html'; return; }
+
             // Re-render the acting-as banner now that the role has resolved (sidebar's
             // init kicks it off before fetchRole completes; this catches up).
             AdminSidebar.renderActingAsBanner();

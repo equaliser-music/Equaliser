@@ -94,7 +94,17 @@ The label backup (Typically Magic Records) was saved to [packages/labels/](../pa
 
 ## What's left
 
-_All items shipped. UAT-tracked work for this branch is done._
+Three items surfaced during manual UAT on 2026-06-08. **Status: discussion before code.** Each has a recommendation but the user has asked we agree the approach before touching files.
+
+- ✅ **14** — operator role separation (shipped 2026-06-08, see "Role boundaries to review")
+- **15** — `/join` should let artists nominate a label they'd like to be represented by (see "Application flow")
+- **16** — release-package import for a freshly-onboarded artist doesn't surface drafts on the dashboard / releases page (see "Bugs surfaced during UAT")
+- ✅ **19** — "Add Existing Artist" roster invite now stores + displays the artist name (shipped 2026-06-14, see "Bugs surfaced during UAT")
+- **20** — in-app roster invite: notify the targeted artist instead of out-of-band-only code sharing (approach chosen, planning — see "Bugs surfaced during UAT")
+- ✅ **17** — operator claim education (shipped 2026-06-08, see "Role boundaries to review")
+- ✅ **18** — operator claim pre-flight identity check (shipped 2026-06-08, see "Role boundaries to review")
+
+**14, 17, 18 shipped together** as one coherent operator-identity-separation change. 15 and 16 remain independent + open.
 
 ## Application flow
 
@@ -113,6 +123,68 @@ Operator side (`content_node/orchestrator/access-requests.html`):
 - Invite-code modal (the one shown after Approve) now renders the same deep-link pattern with the real code substituted in (`${origin}/admin/onboarding.html?invite=<CODE>`), with its own Copy button. Operator can paste either just the code or the full link into their email client.
 
 Nothing API-level changed — onboarding.html already consumed `?invite=` (existing Phase A code path), so the deep link works against any node without server changes.
+
+### 15. **`/join` should let an artist nominate a label they'd like to be represented by.** (raised 2026-06-08, discussion stage)
+
+Today the artist application on `/join` collects name / email / npub / description / links — but no preference about which label, if any, they want to join. The operator approving the request guesses (or asks out-of-band). If the artist intends to onboard under a specific label that's already on the node, surfacing that intent up front lets the operator route the invite directly into that label's roster (`target_managed_by`) and pick the right relationship type (`managed` / `signed`) without a follow-up email.
+
+The plumbing already exists: `access_requests` has `target_managed_by` + `target_relationship_type`, both honoured by the approve flow and carried through redemption into `node_artists`. What's missing is the *applicant-side* expression of preference; today only operators set those fields at approval time.
+
+How to fix — options to discuss:
+
+| Option | What it costs | What it gives | Notes |
+|---|---|---|---|
+| **A. Add a label picker to `/join` artists.** Public `GET /api/access/labels` returns `[{pubkey, name}]` for all `node_artists.role='label'` rows; `/join` shows the list (or "Independent — no label" as default) when role=artist is selected; the chosen pubkey + relationship type go into a new `preferred_managed_by` (or reuse `target_managed_by`) column on `access_requests`. Approve modal pre-fills the picker from the applicant's choice; operator can still override. | One new public endpoint, one new column (or repurpose `target_managed_by` as "preferred"), one new form field, approve-modal pre-fill. | Closes the loop without requiring the operator to ask. | Public list of labels needs filtering — only labels who opted in to public listing? Or just any non-suspended label? Privacy of labels who don't want to be advertised needs an opt-in flag. |
+| **B. Free-text "preferred label" field on `/join`.** Just a string the operator reads alongside the application. No new endpoint, no DB join — just another `description`-like field. | Smallest code. | Less misleading: operator still does the routing decision, applicant just *hints*. No risk of leaking labels who don't want public exposure. | Operator still has to manually match the string to a label and pick its pubkey at approve time. Misses the point of "auto-route to chosen label". |
+| **C. Leave as-is, document as out-of-band.** Applicant emails the operator separately to express preference. | Zero code. | Recognises that low-volume nodes don't need automation. | Doesn't actually fix the user complaint. |
+
+Open questions to resolve before coding:
+- Is there a label-visibility flag today, or does *every* label on the node show up in a public list? (Need to grep `node_artists` schema; if not, a `public_listing` column probably needs adding before B is safe.)
+- If a label is chosen but later declines to take the artist on, does the operator just override `target_managed_by` to null + approve? That already works today.
+- Should labels themselves see incoming "preferred-by" applications and have a chance to claim them? Or stays operator-mediated?
+
+**Recommendation: A**, but explicitly gated on a `public_listing` flag (defaulting to false) so existing labels stay invisible until they opt in via `artist-management.html`'s edit modal. That avoids accidentally publishing the label roster to a public application form. Confirm with user before implementing — particularly the public-listing flag direction.
+
+## Bugs surfaced during UAT
+
+### 16. **Release-package import for a freshly-onboarded artist doesn't surface drafts on dashboard / releases page.** (raised 2026-06-08, investigation needed)
+
+Reproduction (per the user on 2026-06-08):
+1. Bootstrap operator → invite Shibuya Crossings as an artist.
+2. Shibuya redeems, lands on dashboard.
+3. Imports a release package (`./tools/import-artist.sh` or via the admin import UI).
+4. Expected: drafts visible on `releases.html` (Drafts tab) and recent-releases card on `dashboard.html`.
+5. Actual: neither surface shows the imported tracks.
+
+Likely root causes — needs verification before deciding a fix:
+
+| Hypothesis | How to verify | Likely fix |
+|---|---|---|
+| **A. Drafts written under wrong pubkey.** Package import (`POST /api/releases/import`) might write `draft_tracks.artist_pubkey` to a pubkey other than the onboarded artist (e.g. the importing operator's or the package signer's). | `docker exec equaliser-orchestrator sqlite3 /data/drafts.db 'SELECT artist_pubkey, title FROM draft_tracks'` after import; compare against Shibuya's pubkey from her backup file. | Server: derive `artist_pubkey` from NIP-98 caller pubkey when not explicitly set; or require client to pass `target_artist_pubkey` (Fix 10c added this on `/upload`). |
+| **B. Drafts list query filters by something else.** `releases.html` `loadDraftsFromAPI()` calls `/api/drafts?pubkey=${getSelectedArtistPubkey()}`. If onboarding doesn't set `selectedArtistPubkey` after Phase A redeem, the query may be running with `null` → empty result. | Open DevTools on `releases.html`, look at network request URL. Also check `sessionStorage.getItem('equaliser_session')` post-redeem — does `selectedArtistPubkey` exist? | If null, `redeem.html` should default `selectedArtistPubkey = publicKey` for self-publishing artists; or `releases.html` should fall back to `session.publicKey` when no selection. |
+| **C. Package import succeeds but background HLS encode silently fails.** Draft row not created or marked `status=failed`. | `docker logs equaliser-orchestrator` during import; check `draft_tracks.status` column. | Surface error to UI; clean failed rows; retry path. |
+| **D. Authorization gate rejects the import.** `POST /api/releases/import` is `Depends(require_role)` + `ctx.can_manage(artist_pubkey)`. If the package's stated artist pubkey doesn't match the caller, import returns 403. Tools script may not pass the right `--artist-pubkey`. | `import-artist.sh --help`; check what the script POSTs vs the caller's pubkey. | Document the script; or auto-fill `artist_pubkey` from NIP-98 caller. |
+
+How to fix — proposal:
+1. **First**: reproduce locally and walk through which hypothesis is correct (under 30 min). Don't write code yet; the trace dictates which file changes.
+2. **Then**: depending on root cause, one of B/A is most likely. If B, the fix is a one-liner in `redeem.html` or `releases.html`. If A, it's the orchestrator deriving artist_pubkey correctly on package import.
+3. **Verification**: re-run the user's exact flow + confirm drafts appear. Add a Playwright smoke test that covers Phase A redeem → import → drafts visible.
+
+**Recommendation:** investigate first. The wording of the issue ("doesn't appear as a draft release") + the symptom of *no* surface showing the tracks (dashboard, releases page, *both*) points toward B (selected-artist context missing for a fresh redeem) rather than A (wrong pubkey on import) — because A would still let the dashboard's *unscoped* Kind 30050 query find the published track, whereas B fails on the orchestrator's *scoped* drafts query. Confirm with the user before coding the fix.
+
+### 19. ✅ **"Add Existing Artist" roster invite discarded the artist name (showed npub / "Standalone").** (shipped 2026-06-14)
+
+UAT (2026-06-14): a label ("Typically Magic Records") used Add Existing Artist for "Shibuya Crossings"; the generated code showed on `invite-codes.html` as *Standalone (no request)* with the label's own pubkey prefix beside the role badge — never the artist's name.
+
+Root cause: the typed `artist_name` (and optional `npub`) were dropped on the way to storage. `routers/label.py:add_existing_artist` forwarded only role/managed_by/relationship_type to `relay_admin.create_invite_code`, which had no `artist_name` param; the relay's `CreateOrphanInviteCode` hardcoded `artist_name='(direct invite)'`.
+
+Fix (threaded both through all four layers): `add_existing_artist` → `relay_admin.create_invite_code(artist_name, npub)` → relay `handleCreateInviteCode` (decodes `artist_name`/`npub`) → `CreateOrphanInviteCode` (stores them; falls back to `'(direct invite)'` only when no name). `invite-codes.html` now renders three distinct provenances: **Roster invite: \<name\>** (name + managing label), **Approved request: \<name\>**, **Standalone (no request)**. `npub` is also persisted now (unused by the list view, but it's the key Issue 20 needs). Verified via the relay internal API: a roster code stores `artist_name='Shibuya Crossings'` + `npub`, while pre-fix codes keep `'(direct invite)'`. Relay + orchestrator rebuilt; existing onboarded data preserved (Postgres volume untouched). **Codes generated before the fix don't retroactively gain the name — generate a fresh roster invite to see it.**
+
+### 20. **Adding an existing artist gives the artist no in-app signal — they only get the code out-of-band.** (raised 2026-06-14, **approach chosen: in-app roster invite**, planning)
+
+UAT (2026-06-14): after a label "added" Shibuya Crossings, the artist (signed in separately on the same node) saw no pending request. This is *by design today* — Add Existing Artist generates a roster invite **code** the label must share out-of-band; the artist redeems it at `/admin/redeem.html`. There is no artist-facing inbox, and the `npub` the label enters was (until Issue 19) discarded.
+
+User decision (2026-06-14): build the **in-app roster invite** — when a label adds an existing artist *by npub*, the targeted artist sees a "\<Label\> invited you to their roster — redeem?" prompt on login and can accept in one click. Needs: persist the npub on the invite (done in Issue 19), an artist-facing query that finds unredeemed roster invites targeted at the caller's pubkey, a notification/banner surface, and a one-click redeem that reuses the existing redeem transaction. **Plan approved 2026-06-14, implementation pending — see [ROSTER_INVITE_PLAN.md](ROSTER_INVITE_PLAN.md).**
 
 ## Role boundaries to review
 
@@ -172,12 +244,108 @@ Audit + gate decisions:
 | `POST /api/label/access-requests/*` (4 endpoints) | `require_operator` | Already locked down in Fix 11. |
 
 Out of scope for this fix (already decided / unchanged):
-- DB cross-row constraint (operator + label on same pubkey) — not constrained today; no enforcement added. The audit shows no current path causes a single pubkey to land in both `node_operators` and `node_artists`, so this stays a known-soft invariant rather than a DB-enforced one.
-- Operator parallel endpoints for label-only actions — deferred until an actual use case appears. If an operator ever needs to onboard an artist into their *own* roster, they'd first onboard themselves as a label too.
+- DB cross-row constraint (operator on same pubkey as an artist/label) — not constrained *as of fix 12*; the audit showed no current path causes a single pubkey to land in both `node_operators` and `node_artists`. **Superseded 2026-06-08:** the hard-separation decision in #14 now mandates enforcing this mutual exclusion at claim/redeem time. See #14.
+- Operator parallel endpoints for label-only actions — deferred until an actual use case appears. (Note: with hard separation, an operator who also wants a label surface uses a *separate* pubkey onboarded as a label, rather than overloading the operator identity.)
 
 Frontend impact:
 - `releases.html` / `edit-release.html` `signTrackEvent` only enters the delegation branch when `relationship_type === 'managed'`. Labels still get the full 200/404 contract. An operator who somehow ends up acting-as a managed artist will now get an "HTTP 403" surfaced through the catch — explicit + correct (operators aren't supposed to be on this code path).
 - `artist-management.html` `/api/delegations/active` parallel fetch already uses `.catch(() => null)`; operator response is now 403 instead of 200 with empty delegations — UI continues to render normally.
+
+### 14. ✅ **Operator role separation — operator is infrastructure, not a personal-artist surface.** (shipped 2026-06-08)
+
+Today's behaviour: after `setup.html` → backup-save → `profile-setup.html`, the operator is sent to `dashboard.html`. From there the sidebar's *Manage* nav (dashboard / releases / upload / profile) is rendered the same as for an artist, so the operator can navigate into personal-artist release pages they have no business in. There is no page-level gate stopping them from rendering the page; the data calls just return empty (or 403 in some places after fix 12).
+
+**Conceptual model (agreed with user 2026-06-08):**
+- **Operator is its own role.** Claiming a node makes the pubkey infrastructure: they own the node and pay for the resources, so they get full visibility into the roster (`artist-management.html`), the applicant queue (`access-requests.html`), invite codes (`invite-codes.html`), and all node-admin tooling. They do **not** get a personal-artist surface — no own-releases dashboard, no upload, no profile-as-artist — because being an operator says nothing about whether they make music.
+- **Roles do not auto-inherit.** An operator pubkey (`node_operators` row) is *not* automatically an artist or label. This is already true at the DB level — `claim-operator` writes only a `node_operators` row, no `node_artists` row — so the UI fix is to stop showing operators the personal-artist surface.
+- **Hard separation — no pubkey holds two roles (decided 2026-06-08).** For now a pubkey is in **exactly one** of `node_operators` *or* `node_artists` (artist/label). No dual-role pubkeys. This must be **enforced** at the two entry points:
+  - `claim-operator` / operator-invite redemption → reject if the pubkey already has a `node_artists` row (artist or label).
+  - artist/label invite redemption (`/api/access/redeem`) → reject if the pubkey already has a `node_operators` row.
+  Both should return a clear error (e.g. `already_has_other_role`) so the UI can explain "this identity is already an operator/artist on this node — use a different key."
+- **Implication for multi-hat humans (incl. the project author).** Someone who is genuinely operator + label + artist uses **separate pubkeys (separate nsecs)** per role — one nsec for node operation, another for their artist/label identity. This is the deliberate cost of hard separation and is acceptable "for now."
+- **Multi-role UX is therefore moot for now.** No "switch hats" navigation, and the `/api/internal/auth/role` precedence question disappears — a pubkey can only resolve to one role because it can only hold one. If we later want true multi-role identities, that's a separate future phase that would revisit this decision.
+
+**Concrete behaviour wanted:**
+- After claim, operator lands on `node-overview.html` (their actual home page), not `dashboard.html`.
+- Operator **can** access (they own/pay for the node): `node-overview.html`, `artist-management.html`, `access-requests.html`, `invite-codes.html`, and all node-admin pages (`sync-manager`, `ipfs-storage`, `blossom-config`, `user-cache`, `node-settings`).
+- Operator **cannot** access the personal-artist surfaces — `dashboard.html`, `releases.html`, `upload.html`, `edit-release.html`, `profile.html` redirect to `node-overview.html`.
+- Sidebar does **not** render the *Manage* nav group for `role === 'operator'`. It keeps the *Label Admin* group (roster oversight — operators legitimately see all artists there) and the *Node Admin* group.
+- *Listener View* link stays (operators may want to QA the listener UI).
+- **Mutual-exclusion enforcement at onboarding** (per the hard-separation decision above): operator claim/redeem rejects pubkeys that already hold an artist/label role, and artist/label redeem rejects pubkeys that already hold an operator role. This is server-side (relay redeem/claim transaction) with a UI-friendly error.
+
+**Open question resolved:** `artist-management.html` (and the rest of the Label Admin group) **stays operator-accessible** — operators own the node and need roster visibility. Only the five personal-artist pages above are blocked. (This was option (a) from the prior discussion.)
+
+How to fix — options:
+
+| Option | What it costs | What it gives | Notes |
+|---|---|---|---|
+| **A. Per-page role gate + role-aware landing.** Each of the five personal-artist pages runs `if (getRole() === 'operator') location.href = 'node-overview.html'` after `fetchRole()` resolves. `setup.html` post-claim → `node-overview.html` (not `dashboard.html`). Sidebar drops `nav-manage` for operators (keeps `nav-label-admin` + `nav-node-admin`). | Small surface — setup.html, dashboard.html, releases.html, upload.html, edit-release.html, profile.html, admin-sidebar.js. | Clear contract: operators never land on a personal-artist page. Same role-gate pattern Phase D/E pages already use. | Recommended. Direct URL access is covered because the gate runs on every page load, not just sidebar clicks. |
+| **B. Generic `/admin/index.html` redirector** that reads role and bounces to the right home (`dashboard` for artist, `artist-management` or `node-overview` for label/operator), **plus** the per-page gates from A (direct URL access still needs them). | One extra page on top of A. | A clean "default admin entry" for future links/bookmarks. | A is sufficient for now; B can come later if we find bare `/admin/` links landing people wrong. |
+| **C. Strip operator access at nginx level.** `location ~* (dashboard\|releases\|upload\|edit-release\|profile)\.html` block. | Smallest code change. | — | Not viable: nginx can't read sessionStorage to know the role, and it duplicates role logic across nginx + Python + JS. Rejected. |
+
+Verification step before shipping (not a blocker, but check during implementation):
+- **No existing pubkey already holds both roles.** Before turning on mutual-exclusion enforcement, confirm no current seed/bootstrap/test data has the same pubkey in `node_operators` and `node_artists` (e.g. an `OPERATOR_PUBKEYS` env value that's also an onboarded artist). If one exists, enforcement would lock it — clean it up or migrate first. Quick check: compare `node_operators.pubkey` against `node_artists.pubkey` on a representative node.
+
+**Recommendation: A** for the UI separation (role-aware landing + per-page gates + sidebar drops `nav-manage` for operators), **plus** the server-side mutual-exclusion guard at claim/redeem so the hard-separation invariant is actually enforced, not just assumed. The two ship together: the UI fix makes operators behave as infrastructure-only; the server guard guarantees a pubkey can't accumulate a second role behind the UI's back.
+
+**Shipped 2026-06-08** (Option A + server guard), covering #14, #17, #18 in one change:
+- **Server guard (Go relay, `internal/storage/admin.go`)** — `RedeemInviteCode` rejects an operator-invite for a pubkey already in `node_artists` (`already_has_artist_role`, 409) and an artist/label invite for a pubkey already in `node_operators` (`already_operator`, 409); `ClaimFirstOperator` rejects a pubkey already in `node_artists`. New codes mapped to 409 in `internal/api/api.go`. Existing within-table `already_managed_by_other` retained.
+- **UI separation** — `setup.html` operator landing now routes through `profile-setup.html?return=node-overview.html`. The five personal-artist pages (`dashboard`, `releases`, `upload`, `edit-release`, `profile`) redirect operators to `node-overview.html` after `fetchRole()` resolves (`profile.html` gained the `fetchRole()` call). Sidebar (`common/js/admin-sidebar.js`) drops the *Manage* nav group, the artist-selector dropdown, and the bottom-nav *Edit Profile* + *Manager Authorizations* links for operators.
+- **Verification** — server guard 8/8 (both directions + happy paths); operator UI 19/19 (claim education + ack gate, fresh-key happy path, all five page redirects, sidebar, warn-panel + override); label regression 5/5 (labels keep all personal-artist pages + Manage nav); #18 real detection 3/3 (seeded artist Kind 0 + Kind 30050 on the local relay → genuine warning, claim blocked). All local-only; no VPS.
+
+### 17. ✅ **Operator claim: explain role distinction + the "one identity per role" consequence.** (shipped 2026-06-08)
+
+Falls out of the hard-separation decision in #14. With one role per pubkey, an operator who *also* wants to be an artist or label must use a **separate nsec** for that. The claim flow (`setup.html`) says nothing about this today, so a user is likely to claim with their everyday/personal nsec — the very key they'd want to publish music under — and then discover (at #14's enforcement gate, or worse, in confusion) that the identity is now operator-only on this node.
+
+Where: `setup.html`, the `step-claim` step. The claim form already offers three identity sources — paste an existing nsec, leave blank to generate fresh, or use a NIP-07 extension ([setup.html:76-82](../content_node/orchestrator/setup.html)).
+
+What to convey at claim time:
+- This identity becomes **the node operator** — infrastructure only. On this node it can't also be an artist or a label.
+- If you also want to publish music (artist) or run a roster (label), you'll do that with a **different Nostr identity (a separate nsec)**.
+- Recommendation to the user: claim with a **dedicated operator nsec**, not your personal artist/label key. The "generate fresh" option is the safe default for exactly this reason.
+
+How to fix — options:
+
+| Option | What it does | Notes |
+|---|---|---|
+| **A. Info callout + acknowledgement checkbox.** A short explainer panel above the claim button + a required "I understand this identity will be operator-only on this node" checkbox that gates Claim. | Guarantees the user sees it. Mild friction. Pairs naturally with #18 (the automated check) — the checkbox is the manual backstop. |
+| **B. Info callout only (no gate).** Same copy, but Claim stays enabled. | Lightest. Operators are technical; a clear callout may be enough. Risk: people skim and miss it. |
+| **C. Nudge the default toward "generate fresh".** Make generate-fresh the visually primary path with copy "Recommended: use a dedicated operator key", paste-existing demoted to a secondary disclosure. | Strongest steer without a hard gate. Could combine with A/B. |
+
+**Recommendation: A + C** — lead with "generate a dedicated operator key" as the recommended path, keep paste-existing available but secondary, and require a one-line acknowledgement checkbox. This sets the expectation *before* #18's automated check runs, so when #18 does flag an existing artist/label identity the user already understands why.
+
+**Shipped 2026-06-08** (A + C): `setup.html` `step-claim` gained a purple role-distinction callout, a "Recommended: generate a dedicated operator key" steer on the identity field, and a required *"I understand this identity will be operator-only on this node"* checkbox gating both Claim Node and Use Extension. See the shared shipped-note under #14.
+
+### 18. ✅ **Operator claim: pre-flight check for existing artist/label activity on the provided identity.** (shipped 2026-06-08, Option B)
+
+When the operator claims with an **existing** identity (pasted nsec or NIP-07 extension — not the generate-fresh path, which is a brand-new key and needs no check), the flow should look that pubkey up on public + Equaliser relays for signals that it's **already an artist or label**, and if found, explain why it shouldn't be reused as an operator identity and prompt for a different/new key.
+
+What counts as an "already an artist/label" signal (these are Equaliser-specific markers, not generic Nostr presence):
+- **Kind 0 with `["user-type", "artist"]` tag** — the Equaliser artist-profile marker.
+- **Kind 30050 track events** authored by the pubkey — only artists/labels publish music metadata.
+- (Maybe) **Kind 30051 release events**.
+- **Not** a trigger: a plain Kind 0 profile, follows, posts, reactions — i.e. a *listener/social* identity. Those don't conflict with becoming an operator (listeners aren't a `node_artists` role), so the check must be specific to artist/label markers, or it'll false-positive on anyone who's ever used Nostr.
+
+Where to query: the node's configured `STANDARD_RELAYS` + a hardcoded discovery set (the same `DISCOVERY_RELAYS` list `profile-setup.html` already uses: Damus / Primal / nos.lol / relay.nostr.band) + any Equaliser peer relays. Reuse the external-Kind-0 discovery pattern already in `profile-setup.html` / `onboarding.html` (`fetchExistingProfile`) and extend it to also query Kind 30050.
+
+**Key design tension — block vs warn (needs a decision):**
+- This is a **broader** policy than #14's enforcement. #14 blocks reuse of a role *on this node* (authoritative, local DB). #18 reacts to artist/label activity *anywhere on Nostr* — a heuristic from external relays that may time out, be incomplete, or (rarely) false-positive.
+- The user's framing ("explain why this id can't be used") leans toward a hard block. But a hard block driven by a flaky external query risks locking someone out of claiming *their own node* — e.g. relays are unreachable and we can't even run the check, or the pubkey genuinely is an artist elsewhere but the user has deliberately decided to also operate a node with it.
+
+| Option | Behaviour on detection | Behaviour when the check can't run (relays down/timeout) | Notes |
+|---|---|---|---|
+| **A. Hard block.** Detected artist/label → Claim disabled, must supply a different key or generate fresh. | Fail-open: allow claim (can't prove a conflict). | Matches the user's literal ask. Strongest separation. Risk: false-positive lockout. |
+| **B. Strong warning + explicit override.** Detected → red explainer ("This identity already publishes as an artist/label on Nostr — operators should be a separate identity") with two clear buttons: *Use a different key* (recommended) and *Claim anyway, I understand*. | Silent or a soft "couldn't verify" note; allow claim. | Robust against flaky relays. Still steers hard. The local #14 enforcement remains the real gate. Recommended. |
+| **C. Warn-only, no override needed.** Detected → informational note, Claim stays enabled. | Allow. | Weakest — basically just #17's copy with data behind it. |
+
+**Decision (user, 2026-06-08): Option B** — strong warning with an explicit, slightly-uncomfortable override, fail-open when relays are unreachable. Rationale: the *authoritative* separation guarantee is #14's local DB enforcement (which is exact and can't be fooled by relay flakiness); #18 is a UX steering layer to stop people *accidentally* burning a public artist identity on an operator slot. A heuristic on external relays shouldn't be able to hard-lock a user out of their own node, so it's a wall with a labelled door rather than no door.
+
+**Shipped 2026-06-08** (Option B): `setup.html` `checkExistingArtistIdentity(pubkey)` queries the local relay + the node's `STANDARD_RELAYS` (from `/api/config`) + the default `DISCOVERY_RELAYS` (Damus/Primal/nos.lol/relay.nostr.band) in parallel for **Kind 0 with `["user-type","artist"|"label"]`** or **any Kind 30050** — the artist/label markers only (plain Kind 0 / social presence doesn't trigger). Runs only for existing identities (pasted nsec or NIP-07 extension), skipped for generate-fresh. On a hit: a red warning panel with *Use a different key* / *Claim anyway*. Fails open (≤4s/relay, parallel) so unreachable relays never block the claim. Reuses the `profile-setup.html` parallel-query pattern. Detection verified end-to-end against the real relay (seeded artist signals → warning → claim blocked). Symmetric check on the artist/label redeem direction remains deferred (operators are rarer).
+
+Open questions:
+1. Should the check also run for the **artist/label redeem** flow in reverse — i.e. warn an artist/label onboarding with an identity that already operates a node elsewhere? Probably lower priority (operators are rarer), but symmetric.
+2. NIP-07 extension claims: we get the pubkey but the extension won't reveal the nsec — the relay check works on pubkey alone, so this is fine. Note it so the check isn't accidentally skipped for extension claims.
+3. How long do we let the relay queries run before letting the user proceed? Suggest a short budget (~3-4s, like `profile-setup.html`'s discovery) with a "checking…" state, then fail-open.
 
 ## Open decisions (resolved 2026-05-29)
 

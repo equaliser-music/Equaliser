@@ -148,6 +148,8 @@ async def create_invite_code(
     target_managed_by: Optional[str] = None,
     target_relationship_type: str = "managed",
     issued_by: str = "",
+    artist_name: str = "",
+    npub: str = "",
 ) -> Dict:
     body: Dict[str, Any] = {
         "target_role": target_role,
@@ -156,6 +158,12 @@ async def create_invite_code(
     }
     if target_managed_by is not None:
         body["target_managed_by"] = target_managed_by
+    # Roster invites ("Add Existing Artist") carry the artist's name (+ optional npub) so
+    # the invite-codes list shows who the code is for. Standalone codes omit both.
+    if artist_name:
+        body["artist_name"] = artist_name
+    if npub:
+        body["npub"] = npub
     return await _request("POST", "/api/internal/invite-codes", json=body)
 
 

@@ -851,6 +851,10 @@
             // Wait for role/selected-artist resolution so loadArtistInfo() picks the
             // right Kind 0 to seed the artist + pricing fields.
             try { await SessionManager.fetchRole(); } catch (_) {}
+
+            // Operators are infrastructure-only — redirect to their home (hard role separation).
+            if (SessionManager.getRole() === 'operator') { location.href = 'node-overview.html'; return; }
+
             AdminSidebar.renderActingAsBanner();
             await loadArtistInfo();
 

@@ -917,6 +917,10 @@
             // Wait for the role to resolve so getSelectedArtistPubkey() is meaningful,
             // and so the acting-as banner can render with the right name.
             try { await SessionManager.fetchRole(); } catch (_) {}
+
+            // Operators are infrastructure-only — redirect to their home (hard role separation).
+            if (SessionManager.getRole() === 'operator') { location.href = 'node-overview.html'; return; }
+
             AdminSidebar.renderActingAsBanner();
 
             // Get parameters from URL

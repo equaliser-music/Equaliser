@@ -274,24 +274,26 @@ const AdminSidebar = {
             ${this._getNavSectionsHTML(role, currentPage)}
 
             <div class="nav-section nav-section-bottom">
+                ${role === 'operator' ? '' : `
                 <a href="profile.html" class="nav-item ${currentPage === 'profile' ? 'active' : ''}">
                     <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
                     </svg>
                     <span>Edit Profile</span>
-                </a>
+                </a>`}
                 <a href="settings.html" class="nav-item ${currentPage === 'settings' ? 'active' : ''}">
                     <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
                     </svg>
                     <span>Settings</span>
                 </a>
+                ${role === 'operator' ? '' : `
                 <a href="delegations.html" class="nav-item ${currentPage === 'delegations' ? 'active' : ''}">
                     <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
                     </svg>
                     <span>Manager Authorizations</span>
-                </a>
+                </a>`}
                 <a href="/" class="nav-item">
                     <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
@@ -323,15 +325,17 @@ const AdminSidebar = {
     },
 
     /**
-     * Artist selector dropdown — visible for labels and operators who may
-     * manage more than one artist. Artists don't see it.
+     * Artist selector dropdown — visible for labels who may manage more than one
+     * artist. Artists and operators don't see it: artists only manage themselves,
+     * and operators are infrastructure-only (they don't "act as" an artist — hard
+     * role separation).
      *
      * First-paint shows the pubkey prefix as a placeholder; display names are
      * filled in asynchronously by _resolveArtistDropdownNames once the Kind 0
      * profiles arrive from the cache API.
      */
     _getArtistSelectorHTML(role) {
-        if (role === 'artist') return '';
+        if (role === 'artist' || role === 'operator') return '';
         const managed = SessionManager.getManagedArtists();
         if (managed.length <= 1) return '';
         const selected = SessionManager.getSelectedArtistPubkey();
@@ -523,14 +527,12 @@ const AdminSidebar = {
             </div>
         `;
 
-        // Hide "Manage Artist" for operators with nothing to manage — links would
-        // just point at empty Dashboard/Releases pages. Labels keep theirs (they can
-        // always edit their own label profile). Artists always see "Manage" (their own).
-        const managed = SessionManager.getManagedArtists();
-        const showManageArtist = role !== 'operator' || managed.length > 0;
-
+        // Operators are infrastructure-only (hard role separation): they don't have a
+        // personal-artist surface, so the "Manage" group is hidden entirely. They get
+        // Content (roster oversight) + Infrastructure. Labels keep "Manage" (their own
+        // label profile + releases). Artists see only "Manage" (their own catalogue).
         if (role === 'operator') {
-            return (showManageArtist ? manageArtistNav : '') + labelAdminNav + nodeAdminNav;
+            return labelAdminNav + nodeAdminNav;
         }
         if (role === 'label') {
             return manageArtistNav + labelAdminNav;

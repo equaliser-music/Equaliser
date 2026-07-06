@@ -828,6 +828,8 @@ func (s *Server) handleCreateInviteCode(w http.ResponseWriter, r *http.Request) 
 		TargetManagedBy        *string `json:"target_managed_by"`
 		TargetRelationshipType string  `json:"target_relationship_type"`
 		IssuedBy               string  `json:"issued_by"`
+		ArtistName             string  `json:"artist_name"` // roster invites carry the artist's name
+		Npub                   string  `json:"npub"`        // optional, for record-keeping / future notification
 	}
 	json.NewDecoder(r.Body).Decode(&req) // body optional
 
@@ -840,7 +842,8 @@ func (s *Server) handleCreateInviteCode(w http.ResponseWriter, r *http.Request) 
 	}
 
 	code, err := s.adminStore.CreateOrphanInviteCode(r.Context(),
-		req.TargetRole, req.TargetManagedBy, req.TargetRelationshipType, req.IssuedBy)
+		req.TargetRole, req.TargetManagedBy, req.TargetRelationshipType, req.IssuedBy,
+		req.ArtistName, req.Npub)
 	if err != nil {
 		log.Printf("Failed to create invite code: %v", err)
 		http.Error(w, `{"error": "internal error"}`, http.StatusInternalServerError)
@@ -1037,9 +1040,10 @@ func (s *Server) handleRedeemInviteCode(w http.ResponseWriter, r *http.Request) 
 		var redeemErr *storage.RedeemErr
 		if errors.As(err, &redeemErr) {
 			status := http.StatusBadRequest
-			if redeemErr.Code == "concurrent_redeem" || redeemErr.Code == "already_managed_by_other" {
+			switch redeemErr.Code {
+			case "concurrent_redeem", "already_managed_by_other", "already_operator", "already_has_artist_role":
 				status = http.StatusConflict
-			} else if redeemErr.Code == "invalid_code" {
+			case "invalid_code":
 				status = http.StatusNotFound
 			}
 			w.Header().Set("Content-Type", "application/json")
@@ -1106,7 +1110,7 @@ func (s *Server) handleClaimOperator(w http.ResponseWriter, r *http.Request) {
 		var redeemErr *storage.RedeemErr
 		if errors.As(err, &redeemErr) {
 			status := http.StatusBadRequest
-			if redeemErr.Code == "already_claimed" {
+			if redeemErr.Code == "already_claimed" || redeemErr.Code == "already_has_artist_role" {
 				status = http.StatusConflict
 			}
 			w.Header().Set("Content-Type", "application/json")

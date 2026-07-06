@@ -402,6 +402,8 @@ func (s *AdminStore) CreateOrphanInviteCode(
 	targetManagedBy *string,
 	targetRelationshipType string,
 	issuedBy string,
+	artistName string,
+	npub string,
 ) (string, error) {
 	if targetRole == "" {
 		targetRole = "artist"
@@ -418,6 +420,11 @@ func (s *AdminStore) CreateOrphanInviteCode(
 	if targetRole == "label" && targetManagedBy == nil {
 		targetRelationshipType = "self"
 	}
+	// A roster invite ("Add Existing Artist") carries the artist's name (and optional
+	// npub) so the invite-codes list shows who it's for. Standalone codes have neither.
+	if artistName == "" {
+		artistName = "(direct invite)"
+	}
 	code, err := s.generateUniqueInviteCode(ctx)
 	if err != nil {
 		return "", err
@@ -425,11 +432,11 @@ func (s *AdminStore) CreateOrphanInviteCode(
 
 	// Insert an "approved" placeholder request to hold the invite code
 	_, err = s.pool.Exec(ctx, `
-		INSERT INTO access_requests (artist_name, status, invite_code, reviewed_at,
+		INSERT INTO access_requests (artist_name, npub, status, invite_code, reviewed_at,
 		                              target_role, target_managed_by, issued_by,
 		                              target_relationship_type)
-		VALUES ('(direct invite)', 'approved', $1, NOW(), $2, $3, $4, $5)
-	`, code, targetRole, targetManagedBy, nullableString(issuedBy), targetRelationshipType)
+		VALUES ($1, $2, 'approved', $3, NOW(), $4, $5, $6, $7)
+	`, artistName, nullableString(npub), code, targetRole, targetManagedBy, nullableString(issuedBy), targetRelationshipType)
 	if err != nil {
 		return "", fmt.Errorf("create orphan invite: %w", err)
 	}
@@ -645,6 +652,20 @@ func (s *AdminStore) RedeemInviteCode(
 	result := &RedeemResult{Role: targetRole}
 
 	if targetRole == "operator" {
+		// Hard role separation: a pubkey is in node_operators XOR node_artists.
+		// Reject an operator redemption for a pubkey that's already an artist/label.
+		var isArtist bool
+		if err := tx.QueryRow(ctx,
+			"SELECT EXISTS(SELECT 1 FROM node_artists WHERE pubkey = $1)", pubkey,
+		).Scan(&isArtist); err != nil {
+			return nil, fmt.Errorf("check artist: %w", err)
+		}
+		if isArtist {
+			return nil, &RedeemErr{
+				Code:    "already_has_artist_role",
+				Message: "this pubkey is already an artist or label on this node; operators must use a separate identity",
+			}
+		}
 		_, err := tx.Exec(ctx, `
 			INSERT INTO node_operators (pubkey, name)
 			VALUES ($1, $2)
@@ -662,6 +683,20 @@ func (s *AdminStore) RedeemInviteCode(
 		result.NodeOperator = &op
 	} else {
 		// artist or label
+		// Hard role separation: reject if this pubkey is already an operator.
+		var isOperator bool
+		if err := tx.QueryRow(ctx,
+			"SELECT EXISTS(SELECT 1 FROM node_operators WHERE pubkey = $1)", pubkey,
+		).Scan(&isOperator); err != nil {
+			return nil, fmt.Errorf("check operator: %w", err)
+		}
+		if isOperator {
+			return nil, &RedeemErr{
+				Code:    "already_operator",
+				Message: "this pubkey is already an operator on this node; artists/labels must use a separate identity",
+			}
+		}
+
 		// Check for existing row with conflicting managed_by
 		var existingManagedBy *string
 		var existingRole string
@@ -804,6 +839,20 @@ func (s *AdminStore) ClaimFirstOperator(
 	}
 	if hasOps {
 		return nil, &RedeemErr{Code: "already_claimed", Message: "node already has an operator"}
+	}
+
+	// Hard role separation: reject if this pubkey is already an artist/label.
+	var isArtist bool
+	if err := tx.QueryRow(ctx,
+		"SELECT EXISTS(SELECT 1 FROM node_artists WHERE pubkey = $1)", pubkey,
+	).Scan(&isArtist); err != nil {
+		return nil, fmt.Errorf("check artist: %w", err)
+	}
+	if isArtist {
+		return nil, &RedeemErr{
+			Code:    "already_has_artist_role",
+			Message: "this pubkey is already an artist or label on this node; operators must use a separate identity",
+		}
 	}
 
 	// Insert operator

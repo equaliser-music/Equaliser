@@ -156,9 +156,13 @@
             const created = c.created_at ? new Date(c.created_at).toLocaleString() : '—';
             // The relay marks orphan/standalone invites with artist_name='(direct invite)' or '__orphan__'
             const isOrphan = !c.artist_name || c.artist_name === '__orphan__' || c.artist_name === '(direct invite)';
+            // A roster invite ("Add Existing Artist") has a name AND a managing label.
+            const isRoster = !isOrphan && c.target_managed_by;
             const source = isOrphan
                 ? '<em style="color:rgba(255,255,255,0.5)">Standalone (no request)</em>'
-                : `Approved request: <strong>${escapeHtml(c.artist_name)}</strong>`;
+                : isRoster
+                    ? `Roster invite: <strong>${escapeHtml(c.artist_name)}</strong>`
+                    : `Approved request: <strong>${escapeHtml(c.artist_name)}</strong>`;
             const role = c.target_role || 'artist';
             const managedSuffix = c.target_managed_by
                 ? ` <span style="color:rgba(255,255,255,0.4); font-family:monospace; font-size:11px">→ ${escapeHtml(c.target_managed_by.slice(0,8))}…</span>`

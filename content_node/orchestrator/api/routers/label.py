@@ -284,4 +284,6 @@ async def add_existing_artist(
         target_managed_by=ctx.pubkey,
         target_relationship_type=rel_type,
         issued_by=ctx.pubkey,
+        artist_name=body.artist_name.strip(),
+        npub=(body.npub or "").strip(),
     )
