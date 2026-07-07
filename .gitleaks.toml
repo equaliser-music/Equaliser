@@ -1,0 +1,15 @@
+# Gitleaks configuration for the Equaliser repo.
+# Extends the default ruleset; allowlists the intentional dev/test fixtures.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Intentional throwaway test personas used to seed demo data on local/test relays. They hold no funds and no real identity. Real keys live in gitignored packages/ and demo_accounts/."
+paths = [
+  '''tools/seed-feed\.mjs''',
+  '''tools/seed-release-drafts\.mjs''',
+  '''tools/seed-social\.mjs''',
+  '''tools/seed-user-cache\.mjs''',
+  '''tools/seed-users\.mjs''',
+]

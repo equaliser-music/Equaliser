@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// ⚠️  INTENTIONAL TEST KEYS — NOT A LEAK
+// The private keys below are throwaway DEV/TEST personas used only to seed
+// demo data on local/test relays. They hold no funds and no real identity.
+// Do NOT reuse this pattern for real identities (real keys live in gitignored packages/).
 /**
  * Seed Equaliser with 10 test users.
  *

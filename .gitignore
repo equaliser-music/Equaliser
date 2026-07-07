@@ -34,3 +34,6 @@ screenshots/
 # …except the live-pages documentation screenshots, which are tracked.
 !docs/live_pages/screenshots/
 !docs/live_pages/screenshots/**
+
+# Private strategy & analysis (kept out of the public repo; synced/backed up via Dropbox)
+docs/Fable_Analysis/
