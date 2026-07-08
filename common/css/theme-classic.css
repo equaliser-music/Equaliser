@@ -155,4 +155,15 @@
   --eq-dur-pulse: 2s;
   --eq-shadow-pulse-start: 0 0 0 0 var(--eq-focus-ring);
   --eq-shadow-pulse-end: 0 0 0 4px var(--eq-accent-transparent);
+  /* extended (Phase A) — batch A3 (eq-player.css consolidation) */
+  --eq-panel-bg-95: rgba(15,15,25,0.95);
+  --eq-panel-bg-97: rgba(15,15,25,0.97);
+  --eq-brand-pink-90: rgba(255,0,110,0.9);
+  --eq-brand-pink: #ff006e;
+  --eq-black: #000000;
+  --eq-radius-2px: 2px;
+  --eq-radius-3px: 3px;
+  --eq-radius-top-xl: 12px 12px 0 0;
+  --eq-grad-progress: linear-gradient(90deg, #8b5cf6, #a855f7);
+  --eq-accent-soft-12: rgba(139,92,246,0.12);
 }
