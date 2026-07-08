@@ -706,7 +706,7 @@ const NostrSocial = (() => {
                     <button class="follow-list-modal-close" id="follow-list-close">&times;</button>
                 </div>
                 <div class="follow-list-modal-body" id="follow-list-body">
-                    <div style="padding:24px;text-align:center;color:rgba(255,255,255,0.4);">Loading...</div>
+                    <div class="eq-note eq-note--pad24">Loading...</div>
                 </div>
             </div>`;
         document.body.appendChild(modal);
@@ -750,7 +750,7 @@ const NostrSocial = (() => {
 
             if (pubkeys.length === 0) {
                 document.getElementById('follow-list-body').innerHTML = `
-                    <div style="padding:32px;text-align:center;color:rgba(255,255,255,0.4);">
+                    <div class="eq-note eq-note--pad32">
                         ${type === 'following' ? 'Not following anyone yet' : 'No followers yet'}
                     </div>`;
                 return;
@@ -832,7 +832,7 @@ const NostrSocial = (() => {
         } catch (err) {
             console.error('Failed to load follow list:', err);
             const body = document.getElementById('follow-list-body');
-            if (body) body.innerHTML = `<div style="padding:24px;text-align:center;color:rgba(255,255,255,0.4);">Failed to load</div>`;
+            if (body) body.innerHTML = `<div class="eq-note eq-note--pad24">Failed to load</div>`;
         }
     }
 
@@ -908,7 +908,7 @@ const NostrSocial = (() => {
             try {
                 const quotedEvent = await fetchEventById(quotedId);
                 if (!quotedEvent) {
-                    card.innerHTML = '<div style="padding:10px;color:rgba(255,255,255,0.3);font-size:12px;">Quoted post not found</div>';
+                    card.innerHTML = '<div class="eq-note--quote">Quoted post not found</div>';
                     return;
                 }
 
@@ -933,11 +933,11 @@ const NostrSocial = (() => {
                     else window.location.href = '/thread.html?id=' + quotedEvent.id;
                 };
             } catch (err) {
-                card.innerHTML = '<div style="padding:10px;color:rgba(255,255,255,0.3);font-size:12px;">Could not load quoted post</div>';
+                card.innerHTML = '<div class="eq-note--quote">Could not load quoted post</div>';
             }
         }, 0);
 
-        return `<div class="quoted-post-card" id="${cardId}"><div style="padding:10px;color:rgba(255,255,255,0.3);font-size:12px;">Loading quote...</div></div>`;
+        return `<div class="quoted-post-card" id="${cardId}"><div class="eq-note--quote">Loading quote...</div></div>`;
     }
 
     // ===== Release Announcement Cards =====
@@ -977,12 +977,12 @@ const NostrSocial = (() => {
         if (chevron) chevron.style.transform = 'rotate(180deg)';
 
         const trackListId = `${cardId}-tracks`;
-        card.insertAdjacentHTML('afterend', `<div class="feed-playlist-tracklist" id="${trackListId}"><div style="padding:12px;color:rgba(255,255,255,0.4);font-size:13px;">Loading tracks...</div></div>`);
+        card.insertAdjacentHTML('afterend', `<div class="feed-playlist-tracklist" id="${trackListId}"><div class="eq-note--tracks">Loading tracks...</div></div>`);
 
         try {
             const tracks = await NostrPlaylists.resolveTrackEvents(eventIds);
             if (!tracks || tracks.length === 0) {
-                document.getElementById(trackListId).innerHTML = `<div style="padding:12px;color:rgba(255,255,255,0.4);font-size:13px;">Could not load tracks</div>`;
+                document.getElementById(trackListId).innerHTML = `<div class="eq-note--tracks">Could not load tracks</div>`;
                 return;
             }
 
@@ -1035,7 +1035,7 @@ const NostrSocial = (() => {
             };
         } catch (err) {
             console.error('Failed to load release tracks:', err);
-            document.getElementById(trackListId).innerHTML = `<div style="padding:12px;color:rgba(255,255,255,0.4);font-size:13px;">Failed to load tracks</div>`;
+            document.getElementById(trackListId).innerHTML = `<div class="eq-note--tracks">Failed to load tracks</div>`;
         }
     }
 

@@ -33,10 +33,10 @@ const RULES = [
   { name: 'hex-color', re: /[:(,]\s*#[0-9a-fA-F]{3,8}\b/ },
   { name: 'rgb/hsl', re: /\b(rgba?|hsla?)\(/ },
   { name: 'gradient', re: /\b(linear|radial|conic)-gradient\(/ },
-  { name: 'box-shadow', re: /box-shadow\s*:\s*(?!none|var\(|inherit|unset)/ },
-  { name: 'border-radius', re: /border-radius\s*:\s*(?!0[;\s}]|var\(|inherit|unset|initial)/ },
-  { name: 'font-family', re: /font-family\s*:\s*(?!inherit|var\(|unset)/ },
-  { name: 'backdrop-filter', re: /backdrop-filter\s*:\s*(?!none|var\(|unset)/ },
+  { name: 'box-shadow', re: /box-shadow\s*:(?!\s*(?:none|var\(|inherit|unset))/ },
+  { name: 'border-radius', re: /border-radius\s*:(?!\s*(?:0[;\s}]|var\(|inherit|unset|initial))/ },
+  { name: 'font-family', re: /font-family\s*:(?!\s*(?:inherit|var\(|unset))/ },
+  { name: 'backdrop-filter', re: /backdrop-filter\s*:(?!\s*(?:none|var\(|unset))/ },
   { name: 'visual-filter', re: /(?<!backdrop-)filter\s*:\s*(grayscale|blur|drop-shadow|sepia|contrast)/ },
 ];
 // Behavioral style="" properties never flagged even if literal-looking values present

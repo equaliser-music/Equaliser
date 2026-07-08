@@ -14,9 +14,9 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
-            color: #ffffff;
+            font-family: var(--eq-font-body);
+            background: var(--eq-bg-app);
+            color: var(--eq-text-1);
             overflow-x: hidden;
         }
 
@@ -50,7 +50,7 @@
             align-items: center;
             justify-content: center;
             height: 60vh;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             flex-direction: column;
             gap: 16px;
         }
@@ -59,10 +59,10 @@
             display: inline-block;
             width: 32px;
             height: 32px;
-            border: 3px solid rgba(139, 92, 246, 0.3);
-            border-top-color: #a855f7;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+            border: 3px solid var(--eq-accent-soft-hover);
+            border-top-color: var(--eq-accent);
+            border-radius: var(--eq-radius-round);
+            animation: spin var(--eq-dur-spin) linear infinite;
         }
 
         @keyframes spin {
@@ -72,34 +72,34 @@
         /* Playlist picker dropdown (used across pages) */
         .eq-playlist-picker {
             width: 250px;
-            background: rgba(20, 20, 35, 0.98);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
+            background: var(--eq-surface-raised);
+            backdrop-filter: var(--eq-blur-backdrop);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-xl);
             overflow: hidden;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            box-shadow: var(--eq-shadow-2);
         }
 
         .eq-playlist-picker-header {
             padding: 12px 16px;
             font-size: 13px;
             font-weight: 600;
-            color: rgba(255, 255, 255, 0.6);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            color: var(--eq-text-2-dim);
+            border-bottom: var(--eq-border-soft);
         }
 
         .eq-playlist-picker-list {
             max-height: 200px;
             overflow-y: auto;
             scrollbar-width: thin;
-            scrollbar-color: rgba(255,255,255,0.15) transparent;
+            scrollbar-color: var(--eq-border-15) transparent;
         }
 
         .eq-playlist-picker-empty {
             padding: 16px;
             text-align: center;
             font-size: 13px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
         }
 
         .eq-playlist-picker-item {
@@ -109,31 +109,31 @@
             padding: 10px 16px;
             cursor: pointer;
             font-size: 13px;
-            transition: background 0.15s;
+            transition: background var(--eq-dur-fast);
         }
 
-        .eq-playlist-picker-item:hover { background: rgba(255, 255, 255, 0.05); }
+        .eq-playlist-picker-item:hover { background: var(--eq-surface-2); }
 
         .eq-playlist-picker-item input[type="checkbox"] {
-            accent-color: #a855f7;
+            accent-color: var(--eq-accent);
         }
 
         .eq-playlist-picker-create {
-            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            border-top: var(--eq-border-soft);
             padding: 10px 16px;
         }
 
         .eq-playlist-picker-create-btn {
             background: none;
             border: none;
-            color: #a855f7;
+            color: var(--eq-accent);
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
             padding: 4px 0;
         }
 
-        .eq-playlist-picker-create-btn:hover { color: #c084fc; }
+        .eq-playlist-picker-create-btn:hover { color: var(--eq-accent-text); }
 
         .eq-playlist-picker-create-form {
             display: flex;
@@ -144,22 +144,22 @@
         .eq-playlist-picker-create-input {
             flex: 1;
             padding: 6px 10px;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 6px;
-            color: #fff;
+            background: var(--eq-surface-1-hover);
+            border: 1px solid var(--eq-border-15);
+            border-radius: var(--eq-radius-sm);
+            color: var(--eq-text-1);
             font-size: 13px;
             outline: none;
         }
 
-        .eq-playlist-picker-create-input:focus { border-color: #a855f7; }
+        .eq-playlist-picker-create-input:focus { border-color: var(--eq-accent); }
 
         .eq-playlist-picker-create-save {
             padding: 6px 12px;
-            background: #a855f7;
+            background: var(--eq-accent);
             border: none;
-            border-radius: 6px;
-            color: #fff;
+            border-radius: var(--eq-radius-sm);
+            color: var(--eq-text-1);
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
@@ -171,23 +171,23 @@
         .link-preview {
             display: block;
             margin: 8px 0 12px;
-            border-radius: 12px;
+            border-radius: var(--eq-radius-xl);
             overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            background: rgba(255, 255, 255, 0.03);
+            border: var(--eq-border);
+            background: var(--eq-surface-1);
             text-decoration: none;
-            transition: background 0.2s, border-color 0.2s;
+            transition: background var(--eq-dur-quick), border-color var(--eq-dur-quick);
         }
         .link-preview:hover {
-            background: rgba(255, 255, 255, 0.06);
-            border-color: rgba(255, 255, 255, 0.2);
+            background: var(--eq-surface-1-hover);
+            border-color: var(--eq-border-20);
             text-decoration: none;
         }
         .link-preview-image {
             position: relative;
             width: 100%;
             aspect-ratio: 16 / 9;
-            background: rgba(0, 0, 0, 0.3);
+            background: var(--eq-scrim-soft);
             overflow: hidden;
         }
         .link-preview-image img {
@@ -203,27 +203,27 @@
             transform: translate(-50%, -50%);
             width: 56px;
             height: 56px;
-            background: rgba(0, 0, 0, 0.7);
-            border-radius: 50%;
+            background: var(--eq-scrim-strong);
+            border-radius: var(--eq-radius-round);
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.2s;
+            transition: background var(--eq-dur-quick);
         }
         .link-preview:hover .link-preview-play {
-            background: rgba(255, 0, 0, 0.85);
+            background: var(--eq-brand-youtube);
         }
         .link-preview-meta {
             padding: 10px 14px;
         }
         .link-preview-domain {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
         }
         .link-preview-inline-image {
             border: none;
             background: none;
-            border-radius: 12px;
+            border-radius: var(--eq-radius-xl);
             overflow: hidden;
         }
         .link-preview-inline-image:hover {
@@ -235,7 +235,7 @@
             max-width: 100%;
             max-height: 400px;
             width: auto;
-            border-radius: 12px;
+            border-radius: var(--eq-radius-xl);
             object-fit: contain;
         }
 
@@ -248,17 +248,17 @@
         .composer-attach-btn {
             background: none;
             border: none;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
             cursor: pointer;
             padding: 6px;
-            border-radius: 8px;
-            transition: color 0.2s, background 0.2s;
+            border-radius: var(--eq-radius-md);
+            transition: color var(--eq-dur-quick), background var(--eq-dur-quick);
             display: flex;
             align-items: center;
         }
         .composer-attach-btn:hover {
-            color: #a855f7;
-            background: rgba(168, 85, 247, 0.1);
+            color: var(--eq-accent);
+            background: var(--eq-accent-tint-10);
         }
         .composer-image-preview {
             margin-top: 8px;
@@ -268,8 +268,8 @@
         .composer-image-preview img {
             max-width: 100%;
             max-height: 200px;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--eq-radius-lg);
+            border: var(--eq-border);
         }
         .composer-image-remove {
             position: absolute;
@@ -277,10 +277,10 @@
             right: 6px;
             width: 24px;
             height: 24px;
-            background: rgba(0, 0, 0, 0.7);
+            background: var(--eq-scrim-strong);
             border: none;
-            border-radius: 50%;
-            color: white;
+            border-radius: var(--eq-radius-round);
+            color: var(--eq-text-1);
             font-size: 14px;
             cursor: pointer;
             display: flex;
@@ -289,22 +289,22 @@
             line-height: 1;
         }
         .composer-image-remove:hover {
-            background: rgba(239, 68, 68, 0.8);
+            background: var(--eq-danger-strong);
         }
         .composer-upload-status {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
             margin-top: 4px;
         }
-        .composer-upload-status.uploading { color: #a855f7; }
-        .composer-upload-status.error { color: #ef4444; }
+        .composer-upload-status.uploading { color: var(--eq-accent); }
+        .composer-upload-status.error { color: var(--eq-danger); }
 
         /* Inline playlist card (expanded) */
         .feed-playlist-tracklist {
-            border: 1px solid rgba(139, 92, 246, 0.15);
+            border: 1px solid var(--eq-accent-soft);
             border-top: none;
-            border-radius: 0 0 10px 10px;
-            background: rgba(139, 92, 246, 0.03);
+            border-radius: 0 0 var(--eq-radius-lg) var(--eq-radius-lg);
+            background: var(--eq-accent-soft-03);
             margin-top: -1px;
             margin-bottom: 12px;
             overflow: hidden;
@@ -314,51 +314,51 @@
             align-items: center;
             gap: 12px;
             padding: 10px 14px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: var(--eq-divider);
         }
         .feed-playlist-play-all {
             display: flex;
             align-items: center;
             gap: 6px;
-            background: rgba(139, 92, 246, 0.2);
+            background: var(--eq-accent-soft-20);
             border: none;
-            color: #c084fc;
+            color: var(--eq-accent-text);
             font-size: 13px;
             font-weight: 600;
             padding: 6px 14px;
-            border-radius: 20px;
+            border-radius: var(--eq-radius-3xl);
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background var(--eq-dur-quick);
         }
-        .feed-playlist-play-all:hover { background: rgba(139, 92, 246, 0.35); }
+        .feed-playlist-play-all:hover { background: var(--eq-accent-soft-35); }
         .feed-playlist-count {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.35);
+            color: var(--eq-text-mute);
         }
         .feed-playlist-open {
             margin-left: auto;
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.35);
+            color: var(--eq-text-mute);
             text-decoration: none;
         }
-        .feed-playlist-open:hover { color: #c084fc; }
+        .feed-playlist-open:hover { color: var(--eq-accent-text); }
         .feed-playlist-track {
             display: flex;
             align-items: center;
             gap: 10px;
             padding: 8px 14px;
             cursor: pointer;
-            transition: background 0.15s;
+            transition: background var(--eq-dur-fast);
         }
         .feed-playlist-track:hover {
-            background: rgba(139, 92, 246, 0.08);
+            background: var(--eq-accent-soft-08);
         }
         .feed-playlist-track:hover .feed-playlist-track-play { opacity: 1; }
         .feed-playlist-track-cover {
             width: 36px;
             height: 36px;
-            border-radius: 4px;
-            background: rgba(139, 92, 246, 0.15);
+            border-radius: var(--eq-radius-xs);
+            background: var(--eq-accent-soft);
             overflow: hidden;
             flex-shrink: 0;
         }
@@ -374,25 +374,25 @@
         .feed-playlist-track-title {
             font-size: 13px;
             font-weight: 500;
-            color: rgba(255, 255, 255, 0.85);
+            color: var(--eq-text-bright);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
         .feed-playlist-track-artist {
             font-size: 11px;
-            color: rgba(255, 255, 255, 0.35);
+            color: var(--eq-text-mute);
         }
         .feed-playlist-track-duration {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.3);
+            color: var(--eq-text-faint);
             flex-shrink: 0;
         }
         .feed-playlist-track-play {
             flex-shrink: 0;
-            color: #c084fc;
+            color: var(--eq-accent-text);
             opacity: 0.4;
-            transition: opacity 0.15s;
+            transition: opacity var(--eq-dur-fast);
         }
 
         /* Follow list modal */
@@ -400,16 +400,16 @@
             display: none;
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.6);
+            background: var(--eq-scrim);
             z-index: 1000;
             align-items: center;
             justify-content: center;
         }
         .follow-list-modal.open { display: flex; }
         .follow-list-modal-content {
-            background: #1a1a2e;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
+            background: var(--eq-surface-modal);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-2xl);
             width: 100%;
             max-width: 440px;
             max-height: 70vh;
@@ -422,7 +422,7 @@
             align-items: center;
             justify-content: space-between;
             padding: 18px 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid var(--eq-border-08);
         }
         .follow-list-modal-header h3 {
             font-size: 16px;
@@ -432,13 +432,13 @@
         .follow-list-modal-close {
             background: none;
             border: none;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             font-size: 22px;
             cursor: pointer;
             padding: 0 4px;
             line-height: 1;
         }
-        .follow-list-modal-close:hover { color: #fff; }
+        .follow-list-modal-close:hover { color: var(--eq-text-1); }
         .follow-list-modal-body {
             overflow-y: auto;
             flex: 1;
@@ -448,14 +448,14 @@
             align-items: center;
             gap: 12px;
             padding: 12px 20px;
-            transition: background 0.15s;
+            transition: background var(--eq-dur-fast);
         }
-        .follow-list-item:hover { background: rgba(255, 255, 255, 0.03); }
+        .follow-list-item:hover { background: var(--eq-surface-1); }
         .follow-list-avatar {
             width: 40px;
             height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            border-radius: var(--eq-radius-round);
+            background: var(--eq-grad-accent);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -464,7 +464,7 @@
             flex-shrink: 0;
             overflow: hidden;
             text-decoration: none;
-            color: #fff;
+            color: var(--eq-text-1);
         }
         .follow-list-avatar img {
             width: 100%;
@@ -478,7 +478,7 @@
         .follow-list-name {
             font-size: 14px;
             font-weight: 600;
-            color: #fff;
+            color: var(--eq-text-1);
             text-decoration: none;
             display: block;
             white-space: nowrap;
@@ -488,7 +488,7 @@
         .follow-list-name:hover { text-decoration: underline; }
         .follow-list-bio {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
             margin-top: 2px;
             white-space: nowrap;
             overflow: hidden;
@@ -497,57 +497,57 @@
         .follow-list-btn {
             flex-shrink: 0;
             padding: 6px 16px;
-            border-radius: 20px;
+            border-radius: var(--eq-radius-3xl);
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
-            border: 1px solid rgba(139, 92, 246, 0.5);
-            background: rgba(139, 92, 246, 0.2);
-            color: #c084fc;
+            transition: all var(--eq-dur-quick);
+            border: 1px solid var(--eq-accent-mid);
+            background: var(--eq-accent-soft-20);
+            color: var(--eq-accent-text);
         }
-        .follow-list-btn:hover { background: rgba(139, 92, 246, 0.35); }
+        .follow-list-btn:hover { background: var(--eq-accent-soft-35); }
         .follow-list-btn.following {
             background: transparent;
-            border-color: rgba(255, 255, 255, 0.15);
-            color: rgba(255, 255, 255, 0.6);
+            border-color: var(--eq-border-15);
+            color: var(--eq-text-2-dim);
         }
         .follow-list-btn.following:hover {
-            border-color: rgba(239, 68, 68, 0.5);
-            color: #ef4444;
+            border-color: var(--eq-danger-mid);
+            color: var(--eq-danger);
         }
         .follow-list-btn:disabled { opacity: 0.4; cursor: default; }
 
         /* Release announcement card accent */
         .feed-release-card {
-            border-color: rgba(34, 197, 94, 0.25);
-            background: rgba(34, 197, 94, 0.06);
-            color: #4ade80;
+            border-color: var(--eq-success-soft-25);
+            background: var(--eq-success-soft-06);
+            color: var(--eq-success);
         }
-        .feed-release-card:hover { background: rgba(34, 197, 94, 0.12); }
+        .feed-release-card:hover { background: var(--eq-success-soft-12); }
 
         /* Add to Library button */
         .add-to-library-btn {
             margin-left: auto;
             background: none;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            color: rgba(255, 255, 255, 0.5);
+            border: 1px solid var(--eq-border-15);
+            color: var(--eq-text-3);
             font-size: 12px;
             font-weight: 600;
             padding: 5px 12px;
-            border-radius: 16px;
+            border-radius: var(--eq-radius-2xl);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--eq-dur-quick);
             white-space: nowrap;
         }
         .add-to-library-btn:hover {
-            border-color: rgba(139, 92, 246, 0.5);
-            color: #c084fc;
-            background: rgba(139, 92, 246, 0.1);
+            border-color: var(--eq-accent-mid);
+            color: var(--eq-accent-text);
+            background: var(--eq-accent-soft-10);
         }
         .add-to-library-btn.added {
-            border-color: rgba(34, 197, 94, 0.4);
-            color: #4ade80;
+            border-color: var(--eq-success-soft-40);
+            color: var(--eq-success);
             cursor: default;
         }
         .add-to-library-btn:disabled { opacity: 0.5; cursor: default; }
@@ -564,47 +564,47 @@
             align-items: center;
             gap: 4px;
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
             cursor: pointer;
             padding: 4px 6px;
-            border-radius: 16px;
-            transition: all 0.2s;
+            border-radius: var(--eq-radius-2xl);
+            transition: all var(--eq-dur-quick);
         }
         .reply-action:hover {
-            color: rgba(255, 255, 255, 0.7);
-            background: rgba(255, 255, 255, 0.05);
+            color: var(--eq-text-2);
+            background: var(--eq-surface-2);
         }
         .reply-action svg { width: 16px; height: 16px; }
-        .reply-action.like-btn.liked { color: #ef4444; }
-        .reply-action.repost-btn.reposted { color: #22c55e; }
+        .reply-action.like-btn.liked { color: var(--eq-danger); }
+        .reply-action.repost-btn.reposted { color: var(--eq-success-2); }
 
         /* Replying-to context label */
         .reply-context {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.35);
+            color: var(--eq-text-mute);
             margin-bottom: 4px;
         }
 
         /* Inline reply composer (reply-to-reply and quote) */
         .reply-inline-composer, .quote-composer {
             padding: 12px 20px 12px 72px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: var(--eq-divider);
         }
         .reply-inline-composer textarea, .quote-composer textarea {
             width: 100%;
             min-height: 50px;
             padding: 10px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            color: #fff;
+            background: var(--eq-surface-1);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-lg);
+            color: var(--eq-text-1);
             font-size: 14px;
             font-family: inherit;
             resize: vertical;
             outline: none;
         }
         .reply-inline-composer textarea:focus, .quote-composer textarea:focus {
-            border-color: rgba(168, 85, 247, 0.4);
+            border-color: var(--eq-focus-ring);
         }
         .reply-inline-actions {
             display: flex;
@@ -613,10 +613,10 @@
         }
         .reply-inline-submit {
             padding: 6px 16px;
-            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            background: var(--eq-grad-accent);
             border: none;
-            border-radius: 20px;
-            color: white;
+            border-radius: var(--eq-radius-3xl);
+            color: var(--eq-text-1);
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
@@ -629,14 +629,14 @@
             bottom: 100%;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(20, 20, 35, 0.98);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 10px;
+            background: var(--eq-surface-raised);
+            backdrop-filter: var(--eq-blur-backdrop);
+            border: 1px solid var(--eq-border-12);
+            border-radius: var(--eq-radius-lg);
             overflow: hidden;
             z-index: 100;
             min-width: 140px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            box-shadow: var(--eq-shadow-1);
         }
         .repost-menu-item {
             display: flex;
@@ -644,27 +644,27 @@
             gap: 10px;
             padding: 10px 16px;
             font-size: 13px;
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--eq-text-strong);
             cursor: pointer;
             white-space: nowrap;
         }
         .repost-menu-item:hover {
-            background: rgba(139, 92, 246, 0.15);
-            color: #c084fc;
+            background: var(--eq-accent-soft);
+            color: var(--eq-accent-text);
         }
 
         /* Quoted post card */
         .quoted-post-card {
             margin: 8px 0 12px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-xl);
             padding: 12px;
-            background: rgba(255, 255, 255, 0.02);
+            background: var(--eq-surface-0);
             overflow: hidden;
         }
         .quoted-post-card:hover {
-            background: rgba(255, 255, 255, 0.04);
-            border-color: rgba(255, 255, 255, 0.15);
+            background: var(--eq-surface-0-hover);
+            border-color: var(--eq-border-15);
         }
         .quoted-post-author {
             display: flex;
@@ -675,35 +675,45 @@
         .quoted-post-author img {
             width: 18px;
             height: 18px;
-            border-radius: 50%;
+            border-radius: var(--eq-radius-round);
             object-fit: cover;
         }
         .quoted-post-name {
             font-size: 13px;
             font-weight: 600;
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--eq-text-strong);
         }
         .quoted-post-time {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.3);
+            color: var(--eq-text-faint);
         }
         .quoted-post-content {
             font-size: 13px;
             line-height: 1.5;
-            color: rgba(255, 255, 255, 0.6);
+            color: var(--eq-text-2-dim);
         }
-        .quoted-post-content a { color: #60a5fa; text-decoration: none; }
+        .quoted-post-content a { color: var(--eq-text-link); text-decoration: none; }
 
         /* Via NOSTR badge for non-Equaliser tagged posts */
         .feed-nostr-badge {
             font-size: 10px;
             font-weight: 600;
-            color: rgba(96, 165, 250, 0.7);
-            background: rgba(96, 165, 250, 0.1);
+            color: var(--eq-info-dim);
+            background: var(--eq-info-soft);
             padding: 2px 6px;
-            border-radius: 4px;
+            border-radius: var(--eq-radius-xs);
             white-space: nowrap;
         }
+
+        /* === eq theme hooks (classic-neutral; Signal overrides via tokens) === */
+        img { filter: var(--eq-img-filter); }
+        a:hover img, .card:hover img, .keepcolor img { filter: var(--eq-img-filter-hover); }
+        /* === eq state-note utilities (consumed by JS-rendered markup) === */
+        .eq-note { text-align: center; color: var(--eq-text-4); }
+        .eq-note--pad24 { padding: 24px; }
+        .eq-note--pad32 { padding: 32px; }
+        .eq-note--quote { padding: 10px; color: var(--eq-text-faint); font-size: 12px; text-align: left; }
+        .eq-note--tracks { padding: 12px; color: var(--eq-text-4); font-size: 13px; text-align: left; }
     </style>
 </head>
 <body>
