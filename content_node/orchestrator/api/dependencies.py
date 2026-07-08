@@ -30,7 +30,20 @@ class RoleContext:
     managed_artists: List[str] = field(default_factory=list)
 
     def can_manage(self, artist_pubkey: str) -> bool:
-        """Check if this role can manage a given artist's content."""
+        """Check if this role can act on a given artist's content (drafts,
+        uploads, publishing, packages, delegations).
+
+        Hard role separation: operators are infrastructure-only and never act
+        as an artist, so there is no operator bypass here. Use can_administer
+        for roster administration.
+        """
+        return artist_pubkey == self.pubkey or artist_pubkey in self.managed_artists
+
+    def can_administer(self, artist_pubkey: str) -> bool:
+        """Check if this role can administer an artist's node_artists row
+        (status, fees, relationship type, managed_by transfers) — distinct
+        from acting on their content.
+        """
         if self.role == "operator":
             return True
         return artist_pubkey in self.managed_artists
