@@ -37,3 +37,10 @@ screenshots/
 
 # Private strategy & analysis (kept out of the public repo; synced/backed up via Dropbox)
 docs/Fable_Analysis/
+
+# Restyle harness local state (identities, baselines, artifacts)
+tools/restyle-tests/.test-identity.json
+tools/restyle-tests/.throwaway-identity.json
+tools/restyle-tests/.seed-refs.json
+tools/restyle-tests/baselines/
+tools/restyle-tests/artifacts/
