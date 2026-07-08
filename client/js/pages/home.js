@@ -350,7 +350,7 @@
                             ${!NostrSocial.isEqualiiserEvent(note) ? '<span class="feed-nostr-badge">via NOSTR</span>' : ''}
                             <div class="nostr-time">${time}</div>
                         </div>
-                        <div class="nostr-content" style="cursor:pointer" onclick="Router.navigate('/thread.html?id=${note.id}')">${content}</div>
+                        <div class="nostr-content eq-clickable" onclick="Router.navigate('/thread.html?id=${note.id}')">${content}</div>
                         ${NostrSocial.generateLinkPreviews(note.content)}
                         ${NostrSocial.generateReleaseAnnouncementCard(note)}
                         ${NostrSocial.generateQuotedPostCard(note)}

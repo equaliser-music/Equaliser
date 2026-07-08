@@ -195,4 +195,16 @@
   --eq-orange-soft-10: rgba(249,115,22,0.1);
   --eq-orange-soft-30: rgba(249,115,22,0.3);
   --eq-success-soft-20: rgba(34,197,94,0.2);
+  /* extended (Phase A) — batch A6 (client/home.html) */
+  --eq-purple-alt: #9333ea;
+  --eq-brand-pink-10: rgba(255,0,110,0.1);
+  --eq-brand-pink-20: rgba(255,0,110,0.2);
+  --eq-brand-violet-alt-10: rgba(131,56,236,0.1);
+  --eq-brand-violet-alt-50: rgba(131,56,236,0.5);
+  --eq-grad-hero: linear-gradient(135deg, var(--eq-brand-pink-10), var(--eq-brand-violet-alt-10));
+  --eq-grad-hero-glow: radial-gradient(circle, var(--eq-brand-pink-20), transparent);
+  --eq-blur-hero-glow: blur(80px);
+  --eq-shadow-play-btn: 0 4px 24px rgba(139,92,246,0.5);
+  --eq-shadow-play-btn-hover: 0 6px 28px rgba(139,92,246,0.7);
+  --eq-radius-24: 24px;
 }
