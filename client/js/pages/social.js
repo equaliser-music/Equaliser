@@ -553,7 +553,7 @@
                                         </svg>
                                         <span class="like-count">${likeCount || ''}</span>
                                     </div>
-                                    <div class="feed-action repost-btn${userReposted ? ' reposted' : ''}" style="position:relative" onclick="event.stopPropagation(); showFeedRepostMenu('${note.id}', '${note.pubkey}', this)">
+                                    <div class="feed-action repost-btn${userReposted ? ' reposted' : ''} eq-anchor" onclick="event.stopPropagation(); showFeedRepostMenu('${note.id}', '${note.pubkey}', this)">
                                         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
                                             <path d="M7 16V4m0 0L3 8m4-4l4 4M13 4v12m0 0l4-4m-4 4l-4-4"/>
                                         </svg>
@@ -576,9 +576,9 @@
             const cardId = `playlist-card-${note.id.substring(0, 8)}`;
             return `
                 <div class="feed-playlist-card" id="${cardId}" data-pubkey="${pubkey}" data-dtag="${dTag}" onclick="expandPlaylistCard('${cardId}')">
-                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20" style="opacity:0.6;flex-shrink:0"><path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/></svg>
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20" class="eq-icon-60"><path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/></svg>
                     <span>View Playlist</span>
-                    <svg class="feed-playlist-chevron" width="16" height="16" fill="currentColor" viewBox="0 0 20 20" style="opacity:0.4;margin-left:auto;transition:transform 0.2s"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                    <svg class="feed-playlist-chevron" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
                 </div>`;
         },
 
@@ -597,12 +597,12 @@
 
             // Show loading
             const trackListId = `${cardId}-tracks`;
-            card.insertAdjacentHTML('afterend', `<div class="feed-playlist-tracklist" id="${trackListId}"><div style="padding:12px;color:rgba(255,255,255,0.4);font-size:13px;">Loading tracks...</div></div>`);
+            card.insertAdjacentHTML('afterend', `<div class="feed-playlist-tracklist" id="${trackListId}"><div class="eq-note eq-note--tracks">Loading tracks...</div></div>`);
 
             try {
                 const playlist = await NostrPlaylists.fetchPlaylist(pubkey, dTag);
                 if (!playlist || playlist.trackIds.length === 0) {
-                    document.getElementById(trackListId).innerHTML = `<div style="padding:12px;color:rgba(255,255,255,0.4);font-size:13px;">No tracks in this playlist</div>`;
+                    document.getElementById(trackListId).innerHTML = `<div class="eq-note eq-note--tracks">No tracks in this playlist</div>`;
                     return;
                 }
 
@@ -612,7 +612,7 @@
 
                 const tracks = await NostrPlaylists.resolveTrackEvents(playlist.trackIds);
                 if (tracks.length === 0) {
-                    document.getElementById(trackListId).innerHTML = `<div style="padding:12px;color:rgba(255,255,255,0.4);font-size:13px;">Could not load tracks</div>`;
+                    document.getElementById(trackListId).innerHTML = `<div class="eq-note eq-note--tracks">Could not load tracks</div>`;
                     return;
                 }
 
@@ -659,7 +659,7 @@
                 };
             } catch (err) {
                 console.error('Failed to load playlist:', err);
-                document.getElementById(trackListId).innerHTML = `<div style="padding:12px;color:rgba(255,255,255,0.4);font-size:13px;">Failed to load playlist</div>`;
+                document.getElementById(trackListId).innerHTML = `<div class="eq-note eq-note--tracks">Failed to load playlist</div>`;
             }
         },
 
@@ -1089,7 +1089,7 @@
                         <div class="thread-reply-item" data-note-id="${reply.id}">
                             <div class="thread-reply-inner">
                                 <div class="thread-reply-avatar">
-                                    ${rNpub ? `<a href="/user.html?npub=${rNpub}" style="display:contents">` : ''}
+                                    ${rNpub ? `<a href="/user.html?npub=${rNpub}" class="eq-contents">` : ''}
                                     ${rp.picture
                                         ? `<img src="${escapeHtml(rp.picture)}" alt="" onerror="this.style.display='none';this.parentElement.textContent='${rInitial}'">`
                                         : rInitial
@@ -1131,13 +1131,13 @@
 
             detailContent.innerHTML = `
                 <div class="thread-op">
-                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                    <div class="eq-board-badge-row">
                         <span class="board-badge ${boardName}">${escapeHtml(boardName)}</span>
                     </div>
                     <div class="thread-op-subject">${escapeHtml(subjectText)}</div>
                     <div class="thread-op-header">
                         <div class="thread-op-avatar">
-                            ${npub ? `<a href="/user.html?npub=${npub}" style="display:contents">` : ''}
+                            ${npub ? `<a href="/user.html?npub=${npub}" class="eq-contents">` : ''}
                             ${profile.picture
                                 ? `<img src="${escapeHtml(profile.picture)}" alt="" onerror="this.style.display='none';this.parentElement.textContent='${initial}'">`
                                 : initial
@@ -1152,7 +1152,7 @@
                     <div class="thread-op-content">${content}</div>
                     ${NostrSocial.generateLinkPreviews(ev.content)}
                     ${NostrSocial.generateQuotedPostCard(ev)}
-                    <div class="reply-actions" style="padding-top:12px">
+                    <div class="reply-actions reply-actions--op">
                         <div class="reply-action like-btn${this._activeThreadReactionData.userLiked.has(ev.id) ? ' liked' : ''}" onclick="handleCommunityLike('${ev.id}', '${ev.pubkey}')">
                             <svg viewBox="0 0 20 20" fill="${this._activeThreadReactionData.userLiked.has(ev.id) ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.5"><path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/></svg>
                             <span>${this._activeThreadReactionData.likes[ev.id] || ''}</span>
@@ -1313,7 +1313,7 @@
             composer.className = 'reply-inline-composer';
             composer.dataset.replyTo = replyId;
             composer.innerHTML = `
-                <div class="quoted-post-card" style="margin:0 0 8px;cursor:default;">
+                <div class="quoted-post-card quoted-post-card--preview">
                     <div class="quoted-post-author">
                         <span class="quoted-post-name">${NostrSocial.escapeHtml(quotedName)}</span>
                     </div>
