@@ -166,4 +166,28 @@
   --eq-radius-top-xl: 12px 12px 0 0;
   --eq-grad-progress: linear-gradient(90deg, #8b5cf6, #a855f7);
   --eq-accent-soft-12: rgba(139,92,246,0.12);
+  /* extended (Phase A) — batch A4 (client standalone pages: index.html/login.html/join.html) */
+  --eq-blur-glow: blur(100px);
+  --eq-accent-soft-40: rgba(139,92,246,0.4);
+  --eq-accent-tint-40: rgba(168,85,247,0.4);
+  --eq-shadow-glow-lg: 0 8px 30px rgba(168,85,247,0.4);
+  --eq-brand-pink-30: rgba(255,0,110,0.3);
+  --eq-violet-600: #7c3aed;
+  --eq-violet-700: #6d28d9;
+  --eq-amber-400: #fbbf24;
+  --eq-amber-soft-10: rgba(251,191,36,0.1);
+  --eq-amber-soft-30: rgba(251,191,36,0.3);
+  --eq-danger-soft-12: rgba(239,68,68,0.12);
+  --eq-danger-soft-30: rgba(239,68,68,0.3);
+  --eq-danger-light: #fca5a5;
+  --eq-emerald-500: #10b981;
+  --eq-emerald-12: rgba(16,185,129,0.12);
+  --eq-emerald-20: rgba(16,185,129,0.2);
+  --eq-success-soft-18: rgba(34,197,94,0.18);
+  --eq-border-07: rgba(255,255,255,0.07);
+  --eq-font-mono-alt: 'SF Mono', Menlo, monospace;
+  --eq-grad-glow-1: radial-gradient(circle, var(--eq-accent-soft-40), transparent);
+  --eq-grad-glow-2: radial-gradient(circle, var(--eq-brand-pink-30), transparent);
+  --eq-grad-demo-btn: linear-gradient(135deg, var(--eq-accent), var(--eq-violet-600));
+  --eq-grad-btn-extension: linear-gradient(135deg, var(--eq-accent-2), var(--eq-violet-700));
 }

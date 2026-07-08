@@ -4,12 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Equaliser - Apply for Access</title>
+    <link id="eq-theme" rel="stylesheet" href="/common/css/theme-classic.css?v=1">
+    <script src="/common/js/theme.js?v=1"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
-            color: #ffffff;
+            font-family: var(--eq-font-body);
+            background: var(--eq-bg-app);
+            color: var(--eq-text-1);
             min-height: 100vh;
             padding: 40px 20px;
             display: flex;
@@ -19,31 +21,31 @@
         .container { max-width: 540px; width: 100%; }
         .logo { text-align: center; margin-bottom: 32px; }
         .logo img { width: 160px; height: auto; }
-        .logo p { color: rgba(255, 255, 255, 0.5); margin-top: 8px; }
+        .logo p { color: var(--eq-text-3); margin-top: 8px; }
         .card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
+            background: var(--eq-surface-1);
+            border: var(--eq-divider);
+            border-radius: var(--eq-radius-2xl);
             padding: 32px;
         }
         .card h1 { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
-        .card .lead { color: rgba(255, 255, 255, 0.6); margin-bottom: 24px; font-size: 14px; }
+        .card .lead { color: var(--eq-text-2-dim); margin-bottom: 24px; font-size: 14px; }
         .form-group { margin-bottom: 16px; }
-        .form-label { display: block; font-size: 13px; color: rgba(255, 255, 255, 0.7); margin-bottom: 6px; font-weight: 500; }
+        .form-label { display: block; font-size: 13px; color: var(--eq-text-2); margin-bottom: 6px; font-weight: 500; }
         .form-input, .form-textarea {
             width: 100%;
             padding: 12px 14px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            color: #ffffff;
+            background: var(--eq-surface-input);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-lg);
+            color: var(--eq-text-1);
             font-size: 14px;
             font-family: inherit;
         }
         .form-input:focus, .form-textarea:focus {
             outline: none;
-            border-color: #a855f7;
-            background: rgba(139, 92, 246, 0.08);
+            border-color: var(--eq-accent);
+            background: var(--eq-accent-soft-08);
         }
         .form-textarea { resize: vertical; min-height: 80px; }
         .role-radio { display: flex; gap: 12px; margin-bottom: 4px; }
@@ -53,69 +55,73 @@
             align-items: flex-start;
             gap: 10px;
             padding: 12px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
+            background: var(--eq-surface-1);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-lg);
             cursor: pointer;
-            transition: all 0.15s;
+            transition: all var(--eq-dur-fast);
         }
-        .role-radio label:hover { background: rgba(255, 255, 255, 0.06); }
+        .role-radio label:hover { background: var(--eq-surface-1-hover); }
         .role-radio input[type=radio]:checked + .role-content {
-            color: #c4b5fd;
+            color: var(--eq-role-artist-text);
         }
         .role-radio input[type=radio]:checked ~ * + * {  /* not used; we colour via JS class */ }
         .role-radio label.selected {
-            background: rgba(168, 85, 247, 0.15);
-            border-color: rgba(168, 85, 247, 0.4);
+            background: var(--eq-accent-tint-15);
+            border-color: var(--eq-accent-tint-40);
         }
-        .role-radio input[type=radio] { margin-top: 3px; accent-color: #a855f7; }
+        .role-radio input[type=radio] { margin-top: 3px; accent-color: var(--eq-accent); }
         .role-content { flex: 1; }
         .role-content .role-title { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
-        .role-content .role-desc { font-size: 12px; color: rgba(255, 255, 255, 0.5); }
-        .form-hint { font-size: 12px; color: rgba(255, 255, 255, 0.4); margin-top: 4px; }
+        .role-content .role-desc { font-size: 12px; color: var(--eq-text-3); }
+        .form-hint { font-size: 12px; color: var(--eq-text-4); margin-top: 4px; }
         .btn {
             width: 100%;
             padding: 14px;
-            background: linear-gradient(135deg, #8b5cf6, #a855f7);
-            color: #ffffff;
-            border: none;
-            border-radius: 10px;
+            background: var(--eq-grad-accent);
+            color: var(--eq-text-1);
+            border: var(--eq-btn-border);
+            border-radius: var(--eq-radius-lg);
             font-size: 15px;
             font-weight: 600;
             cursor: pointer;
             margin-top: 12px;
         }
-        .btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4); }
+        .btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--eq-shadow-glow); }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .notice {
             padding: 12px 16px;
-            border-radius: 10px;
+            border-radius: var(--eq-radius-lg);
             font-size: 14px;
             margin-bottom: 16px;
         }
-        .notice-success { background: rgba(16, 185, 129, 0.12); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.2); }
-        .notice-error { background: rgba(239, 68, 68, 0.12); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.2); }
+        .notice-success { background: var(--eq-emerald-12); color: var(--eq-role-operator-text); border: 1px solid var(--eq-emerald-20); }
+        .notice-error { background: var(--eq-danger-soft-12); color: var(--eq-danger-light); border: 1px solid var(--eq-danger-soft-20); }
         .success-card { display: none; }
-        .success-card svg { width: 56px; height: 56px; margin: 0 auto 16px; color: #10b981; display: block; }
+        .success-card svg { width: 56px; height: 56px; margin: 0 auto 16px; color: var(--eq-emerald-500); display: block; }
         .success-card h2 { font-size: 22px; margin-bottom: 8px; text-align: center; }
-        .success-card > p { color: rgba(255, 255, 255, 0.6); text-align: center; }
-        .next-steps { margin-top: 24px; padding: 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; }
-        .next-steps h3 { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.85); margin-bottom: 12px; }
-        .next-steps ol { padding-left: 20px; color: rgba(255,255,255,0.7); font-size: 13px; line-height: 1.7; }
+        .success-card > p { color: var(--eq-text-2-dim); text-align: center; }
+        .next-steps { margin-top: 24px; padding: 20px; background: var(--eq-surface-1); border: 1px solid var(--eq-border-07); border-radius: var(--eq-radius-xl); }
+        .next-steps h3 { font-size: 14px; font-weight: 600; color: var(--eq-text-bright); margin-bottom: 12px; }
+        .next-steps ol { padding-left: 20px; color: var(--eq-text-2); font-size: 13px; line-height: 1.7; }
         .next-steps ol li { margin-bottom: 8px; }
         .url-block { margin-top: 18px; }
-        .url-block label { display: block; font-size: 12px; color: rgba(255,255,255,0.45); margin-bottom: 6px; font-weight: 500; }
+        .url-block label { display: block; font-size: 12px; color: var(--eq-text-45); margin-bottom: 6px; font-weight: 500; }
         .url-row { display: flex; gap: 8px; }
-        .url-row input { flex: 1; padding: 10px 12px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; color: #a855f7; font-family: 'SF Mono', Menlo, monospace; font-size: 12px; }
-        .url-row button { padding: 10px 14px; background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); border-radius: 8px; color: #c4b5fd; font-size: 12px; cursor: pointer; font-weight: 500; }
-        .url-row button:hover { background: rgba(168,85,247,0.25); }
-        .url-hint { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 6px; }
-        .existing-nsec-block { margin-top: 16px; padding: 12px 14px; background: rgba(34,197,94,0.06); border: 1px solid rgba(34,197,94,0.18); border-radius: 8px; font-size: 12px; color: rgba(255,255,255,0.7); }
-        .existing-nsec-block strong { color: #6ee7b7; }
+        .url-row input { flex: 1; padding: 10px 12px; background: var(--eq-scrim-soft); border: 1px solid var(--eq-border-08); border-radius: var(--eq-radius-md); color: var(--eq-accent); font-family: var(--eq-font-mono-alt); font-size: 12px; }
+        .url-row button { padding: 10px 14px; background: var(--eq-accent-tint-15); border: 1px solid var(--eq-accent-tint-30); border-radius: var(--eq-radius-md); color: var(--eq-role-artist-text); font-size: 12px; cursor: pointer; font-weight: 500; }
+        .url-row button:hover { background: var(--eq-accent-tint-25); }
+        .url-hint { font-size: 11px; color: var(--eq-text-4); margin-top: 6px; }
+        .existing-nsec-block { margin-top: 16px; padding: 12px 14px; background: var(--eq-success-soft-06); border: 1px solid var(--eq-success-soft-18); border-radius: var(--eq-radius-md); font-size: 12px; color: var(--eq-text-2); }
+        .existing-nsec-block strong { color: var(--eq-role-operator-text); }
         .back-link { text-align: center; margin-top: 20px; }
-        .footer-links { text-align: center; margin-top: 16px; font-size: 13px; color: rgba(255, 255, 255, 0.4); }
-        .footer-links a { color: #a855f7; text-decoration: none; }
+        .footer-links { text-align: center; margin-top: 16px; font-size: 13px; color: var(--eq-text-4); }
+        .footer-links a { color: var(--eq-accent); text-decoration: none; }
         .footer-links a:hover { text-decoration: underline; }
+        /* === eq extracted inline styles (A4) === */
+        .eq-optional-hint { color: var(--eq-text-4); }
+        .eq-invite-code-sample { color: var(--eq-role-artist-text); }
+        .eq-link-accent { color: var(--eq-accent); }
     </style>
 </head>
 <body>
@@ -164,7 +170,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">npub <span style="color:rgba(255,255,255,0.4)">(optional)</span></label>
+                    <label class="form-label">npub <span class="eq-optional-hint">(optional)</span></label>
                     <input type="text" class="form-input" name="npub" placeholder="npub1...">
                     <p class="form-hint">If you already have a NOSTR identity, share it for record-keeping.</p>
                 </div>
@@ -175,7 +181,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Links <span style="color:rgba(255,255,255,0.4)">(optional)</span></label>
+                    <label class="form-label">Links <span class="eq-optional-hint">(optional)</span></label>
                     <input type="text" class="form-input" name="links" placeholder="Bandcamp, Spotify, website, etc.">
                 </div>
 
@@ -199,7 +205,7 @@
                 <h3>What happens next</h3>
                 <ol>
                     <li>The operator reviews your application.</li>
-                    <li>If approved, they'll email you a 12-character invite code (looks like <code style="color:#c4b5fd">a8f3b2c14e90</code>).</li>
+                    <li>If approved, they'll email you a 12-character invite code (looks like <code class="eq-invite-code-sample">a8f3b2c14e90</code>).</li>
                     <li>When the code arrives, use one of the URLs below to redeem it.</li>
                 </ol>
 
@@ -214,14 +220,14 @@
 
                 <div class="existing-nsec-block" id="existing-nsec-hint">
                     <strong>Already have a Nostr nsec?</strong> Sign in at
-                    <a href="/admin/login.html" style="color:#a855f7" id="login-link">/admin/login.html</a>
+                    <a href="/admin/login.html" class="eq-link-accent" id="login-link">/admin/login.html</a>
                     and the node will route you to the redeem page automatically.
                 </div>
 
                 <p class="url-hint" style="margin-top:14px">Bookmark this page — these URLs will be ready when your code arrives.</p>
             </div>
 
-            <div class="back-link"><a href="/" style="color:#a855f7">&larr; Back to listening</a></div>
+            <div class="back-link"><a href="/" class="eq-link-accent">&larr; Back to listening</a></div>
         </div>
     </div>
 
