@@ -52,7 +52,7 @@ log "Checking DNS resolution..."
 SERVER_IP=$(curl -s ifconfig.me)
 log "Server IP: $SERVER_IP"
 
-for domain in test1.equaliser.app shibuyacrossings.com; do
+for domain in test1.equaliser.app relay1.equaliser.app shibuyacrossings.com; do
     RESOLVED=$(dig +short "$domain" | head -1)
     if [ "$RESOLVED" != "$SERVER_IP" ]; then
         warn "$domain resolves to '$RESOLVED' (expected $SERVER_IP)"
@@ -74,6 +74,16 @@ certbot --nginx \
     --agree-tos \
     --email "$EMAIL" \
     -d test1.equaliser.app
+
+# relay1 needs its own cert: without one, nginx serves the default (test1)
+# cert for wss://relay1.equaliser.app and TLS-verifying clients (e.g. the
+# relay's standard-relay syncer) refuse to connect.
+log "Requesting SSL certificate for relay1.equaliser.app..."
+certbot --nginx \
+    --non-interactive \
+    --agree-tos \
+    --email "$EMAIL" \
+    -d relay1.equaliser.app
 
 log "Requesting SSL certificate for shibuyacrossings.com..."
 certbot --nginx \
@@ -97,6 +107,7 @@ echo "=============================================="
 echo ""
 echo "Certificates installed:"
 echo "  https://test1.equaliser.app"
+echo "  https://relay1.equaliser.app"
 echo "  https://shibuyacrossings.com"
 echo ""
 echo "Auto-renewal is configured via certbot systemd timer."

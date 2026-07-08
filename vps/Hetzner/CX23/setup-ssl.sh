@@ -10,6 +10,12 @@
 # Usage:
 #   sudo bash setup-ssl.sh --domain example.com
 #   sudo bash setup-ssl.sh --domain example.com --email you@example.com
+#   sudo bash setup-ssl.sh --domain relay2.equaliser.app --no-www   # single-host cert
+#
+# --no-www skips the www.<domain> SAN — required for service subdomains like
+# relay2.equaliser.app that have no www DNS record. Without a cert installed
+# for its vhost, nginx serves the default (test2) cert and TLS-verifying
+# clients (e.g. the relay's standard-relay syncer) refuse to connect.
 # ==============================================================================
 
 set -euo pipefail
@@ -31,11 +37,13 @@ fi
 
 DOMAIN=""
 EMAIL=""
+WITH_WWW=1
 while [[ $# -gt 0 ]]; do
     case $1 in
         --domain) DOMAIN="$2"; shift 2 ;;
         --email) EMAIL="$2"; shift 2 ;;
-        *) err "Unknown option: $1. Usage: setup-ssl.sh --domain example.com [--email you@example.com]" ;;
+        --no-www) WITH_WWW=0; shift ;;
+        *) err "Unknown option: $1. Usage: setup-ssl.sh --domain example.com [--email you@example.com] [--no-www]" ;;
     esac
 done
 
@@ -62,7 +70,10 @@ log "Checking DNS resolution..."
 SERVER_IP=$(curl -s ifconfig.me)
 log "Server IP: $SERVER_IP"
 
-for subdomain in "" "www."; do
+SUBDOMAINS=("")
+[ "$WITH_WWW" -eq 1 ] && SUBDOMAINS+=("www.")
+
+for subdomain in "${SUBDOMAINS[@]}"; do
     fqdn="${subdomain}${DOMAIN}"
     RESOLVED=$(dig +short "$fqdn" | head -1)
     if [ "$RESOLVED" != "$SERVER_IP" ]; then
@@ -80,24 +91,35 @@ done
 # --- Update nginx config with domain -----------------------------------------
 
 NGINX_CONF="/etc/nginx/sites-available/equaliser"
-if [ -f "$NGINX_CONF" ]; then
-    log "Updating nginx config with domain: $DOMAIN"
-    sed -i "s/server_name _;/server_name ${DOMAIN} www.${DOMAIN};/" "$NGINX_CONF"
+if [ -f "$NGINX_CONF" ] && grep -q "server_name _;" "$NGINX_CONF"; then
+    if [ "$WITH_WWW" -eq 1 ]; then
+        log "Updating nginx config with domain: $DOMAIN"
+        sed -i "s/server_name _;/server_name ${DOMAIN} www.${DOMAIN};/" "$NGINX_CONF"
+    else
+        log "Updating nginx config with domain: $DOMAIN (no www)"
+        sed -i "s/server_name _;/server_name ${DOMAIN};/" "$NGINX_CONF"
+    fi
     nginx -t || err "nginx config test failed after domain update"
     systemctl reload nginx
-else
+elif [ ! -f "$NGINX_CONF" ] && [ "$WITH_WWW" -eq 1 ]; then
     err "nginx config not found at $NGINX_CONF. Run setup.sh first."
+else
+    # Service subdomains (e.g. relay2) ship their own vhost with server_name
+    # already set — nothing to substitute here.
+    log "Skipping server_name substitution (vhost already configured)"
 fi
 
 # --- Obtain certificate -------------------------------------------------------
+
+CERT_DOMAINS=(-d "$DOMAIN")
+[ "$WITH_WWW" -eq 1 ] && CERT_DOMAINS+=(-d "www.$DOMAIN")
 
 log "Requesting SSL certificate for $DOMAIN..."
 certbot --nginx \
     --non-interactive \
     --agree-tos \
     --email "$EMAIL" \
-    -d "$DOMAIN" \
-    -d "www.$DOMAIN"
+    "${CERT_DOMAINS[@]}"
 
 # --- Verify auto-renewal ------------------------------------------------------
 
