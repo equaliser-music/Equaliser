@@ -128,4 +128,31 @@
   --eq-success-soft-25: rgba(34,197,94,0.25);
   --eq-success-soft-40: rgba(34,197,94,0.4);
   --eq-info-dim: rgba(96,165,250,0.7);
+  /* extended (Phase A) — batch A2 (eq-sidebar.css consolidation) */
+  --eq-border-10: rgba(255,255,255,0.1);
+  --eq-text-90: rgba(255,255,255,0.9);
+  --eq-text-55: rgba(255,255,255,0.55);
+  --eq-text-45: rgba(255,255,255,0.45);
+  --eq-text-25: rgba(255,255,255,0.25);
+  --eq-danger-soft-20: rgba(239,68,68,0.2);
+  --eq-danger-soft-40: rgba(239,68,68,0.4);
+  --eq-grad-nav-active: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(168,85,247,0.15));
+  --eq-grad-acting-banner: linear-gradient(135deg, rgba(168,85,247,0.10), rgba(168,85,247,0.04));
+  --eq-accent-border-35: rgba(168,85,247,0.35);
+  --eq-accent-border-50: rgba(168,85,247,0.5);
+  --eq-accent-tint-15: rgba(168,85,247,0.15);
+  --eq-accent-tint-25: rgba(168,85,247,0.25);
+  --eq-accent-tint-30: rgba(168,85,247,0.3);
+  --eq-accent-transparent: rgba(168,85,247,0);
+  --eq-accent-light: #d8b4fe;
+  --eq-role-artist-text: #c4b5fd;
+  --eq-role-label-bg: rgba(59,130,246,0.25);
+  --eq-role-label-text: #93c5fd;
+  --eq-role-operator-bg: rgba(16,185,129,0.25);
+  --eq-role-operator-text: #6ee7b7;
+  --eq-select-bg: rgba(15,15,25,0.9);
+  --eq-font-mono-generic: monospace;
+  --eq-dur-pulse: 2s;
+  --eq-shadow-pulse-start: 0 0 0 0 var(--eq-focus-ring);
+  --eq-shadow-pulse-end: 0 0 0 4px var(--eq-accent-transparent);
 }

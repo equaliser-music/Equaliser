@@ -1,0 +1,584 @@
+/* Equaliser sidebar styles — consolidated from client/js/sidebar.js and
+   common/js/admin-sidebar.js JS-injected <style> blocks (Restyle batch A2).
+   Tokenised per common/css/theme-classic.css contract. Both JS files now
+   inject a <link> to this stylesheet instead of a <style> template literal. */
+
+/* === shared core (identical in both surfaces) === */
+
+.sidebar .nav-section {
+    margin-bottom: 24px;
+}
+
+.sidebar .nav-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--eq-text-4);
+    margin-bottom: 12px;
+    padding: 0 12px;
+    font-weight: 600;
+}
+
+.sidebar .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: var(--eq-radius-md);
+    cursor: pointer;
+    transition: all var(--eq-dur-quick);
+    color: var(--eq-text-2);
+    margin-bottom: 4px;
+    text-decoration: none;
+}
+
+.sidebar .nav-item:hover {
+    background: var(--eq-surface-2);
+    color: var(--eq-text-1);
+}
+
+.sidebar .nav-item.active {
+    background: var(--eq-grad-nav-active);
+    color: var(--eq-text-1);
+}
+
+.sidebar .nav-icon {
+    width: 20px;
+    height: 20px;
+    opacity: 0.8;
+}
+
+.sidebar .nav-section-bottom {
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: var(--eq-divider);
+}
+
+.sidebar .logout-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+    background: var(--eq-danger-soft);
+    border: 1px solid var(--eq-danger-soft-20);
+    border-radius: var(--eq-radius-lg);
+    color: var(--eq-danger);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--eq-dur-quick);
+}
+
+.sidebar .logout-btn:hover {
+    background: var(--eq-danger-soft-20);
+    border-color: var(--eq-danger-soft-40);
+}
+
+.sidebar .logout-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.main-content {
+    margin-left: 240px;
+}
+
+/* === client surface === */
+
+/* Divergent selectors below are scoped with `html:has(#client-sidebar-styles)` /
+   `html:has(#admin-sidebar-styles)` (keyed off the surface-specific <link> id each
+   JS file injects). Both surfaces load this SAME physical file via an identical
+   href, so a plain repeated selector (e.g. two `.sidebar .sidebar-footer` rules)
+   would cascade into each other on both pages. The :has() scope prevents that
+   bleed without needing any extra JS/HTML changes beyond the prescribed injector. */
+
+/* divergent from admin: admin .sidebar uses padding: 24px 16px (computed-equal, byte-different) */
+html:has(#client-sidebar-styles) .sidebar {
+    width: 240px;
+    background: var(--eq-sidebar-bg);
+    backdrop-filter: var(--eq-blur-backdrop);
+    border-right: var(--eq-divider);
+    display: flex;
+    flex-direction: column;
+    padding: 24px 16px 24px;
+    position: fixed;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 100;
+}
+
+/* Logo */
+.sidebar .sidebar-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    padding: 0 8px;
+}
+
+.sidebar .sidebar-logo a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar .sidebar-logo img {
+    width: 160px;
+    height: auto;
+}
+
+/* User Profile Card */
+.sidebar .user-profile-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 12px;
+    background: var(--eq-surface-1);
+    border: var(--eq-divider);
+    border-radius: var(--eq-radius-xl);
+    margin-bottom: 24px;
+    text-decoration: none;
+    color: inherit;
+    transition: all var(--eq-dur-quick);
+}
+
+.sidebar .user-profile-card:not(.guest):hover {
+    background: var(--eq-surface-1-hover);
+    border-color: var(--eq-border-10);
+}
+
+.sidebar .user-avatar-sidebar {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--eq-radius-round);
+    background: var(--eq-grad-avatar);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+    overflow: hidden;
+    color: var(--eq-text-90);
+}
+
+.sidebar .user-avatar-sidebar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.sidebar .guest-avatar {
+    background: var(--eq-border-10);
+    color: var(--eq-text-4);
+}
+
+.sidebar .user-info-sidebar {
+    flex: 1;
+    min-width: 0;
+}
+
+.sidebar .user-name-sidebar {
+    font-weight: 600;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--eq-text-1);
+}
+
+.sidebar .user-npub-sidebar {
+    font-size: 11px;
+    color: var(--eq-text-4);
+    font-family: var(--eq-font-mono);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Navigation (client-only) */
+.sidebar .nav-item.disabled {
+    opacity: 0.4;
+    cursor: default;
+    pointer-events: none;
+}
+
+/* Footer */
+/* divergent from admin: admin .sidebar-footer has no display/flex-direction/gap and a
+   different padding-top (24px vs 20px) */
+html:has(#client-sidebar-styles) .sidebar .sidebar-footer {
+    margin-top: auto;
+    padding-top: 20px;
+    border-top: var(--eq-divider);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sidebar .sidebar-signup-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 11px;
+    background: var(--eq-surface-1-hover);
+    border: 1px solid var(--eq-border-12);
+    border-radius: var(--eq-radius-lg);
+    color: var(--eq-text-bright);
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    transition: all var(--eq-dur-quick);
+}
+
+.sidebar .sidebar-signup-btn:hover {
+    background: var(--eq-border-10);
+    border-color: var(--eq-border-20);
+    color: var(--eq-text-1);
+}
+
+.sidebar .sidebar-login-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    color: var(--eq-text-45);
+    font-size: 13px;
+    text-decoration: none;
+    transition: color var(--eq-dur-quick);
+}
+
+.sidebar .sidebar-login-link:hover {
+    color: var(--eq-text-strong);
+}
+
+/* divergent from admin: admin .sidebar-version ends with margin-top: 8px instead of padding-top: 4px */
+html:has(#client-sidebar-styles) .sidebar .sidebar-version {
+    text-align: center;
+    font-size: 10px;
+    color: var(--eq-text-25);
+    letter-spacing: 0.5px;
+    padding-top: 4px;
+}
+
+/* Responsive (client-only; admin hides the sidebar entirely instead) */
+@media (max-width: 768px) {
+    html:has(#client-sidebar-styles) .sidebar {
+        width: 64px;
+        padding: 16px 8px;
+    }
+
+    html:has(#client-sidebar-styles) .sidebar .sidebar-logo img {
+        width: 40px;
+    }
+
+    html:has(#client-sidebar-styles) .sidebar .user-profile-card {
+        padding: 8px;
+        justify-content: center;
+    }
+
+    html:has(#client-sidebar-styles) .sidebar .user-info-sidebar,
+    html:has(#client-sidebar-styles) .sidebar .nav-title,
+    html:has(#client-sidebar-styles) .sidebar .nav-item span {
+        display: none;
+    }
+
+    html:has(#client-sidebar-styles) .sidebar .nav-item {
+        justify-content: center;
+        padding: 12px 8px;
+    }
+
+    html:has(#client-sidebar-styles) .sidebar .sidebar-signup-btn {
+        font-size: 11px;
+        padding: 10px 4px;
+    }
+
+    html:has(#client-sidebar-styles) .sidebar .sidebar-login-link {
+        font-size: 11px;
+    }
+
+    html:has(#client-sidebar-styles) .main-content {
+        margin-left: 64px;
+    }
+}
+
+/* === admin surface === */
+
+/* divergent from client: client .sidebar uses padding: 24px 16px 24px (computed-equal, byte-different) */
+html:has(#admin-sidebar-styles) .sidebar {
+    width: 240px;
+    background: var(--eq-sidebar-bg);
+    backdrop-filter: var(--eq-blur-backdrop);
+    border-right: var(--eq-divider);
+    display: flex;
+    flex-direction: column;
+    padding: 24px 16px;
+    position: fixed;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 100;
+}
+
+/* Acting-as banner — shown when a label/operator is scoped to an artist
+   other than themselves. Sits at the top of .main-content. */
+.acting-as-banner {
+    background: var(--eq-grad-acting-banner);
+    border: 1px solid var(--eq-accent-border-35);
+    border-radius: var(--eq-radius-lg);
+    padding: 10px 14px;
+    margin-bottom: 18px;
+    color: var(--eq-text-bright);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.acting-as-banner .acting-as-label {
+    color: var(--eq-text-55);
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+}
+.acting-as-banner strong {
+    color: var(--eq-accent-light);
+    font-weight: 600;
+}
+.acting-as-banner .acting-as-hint {
+    color: var(--eq-text-4);
+    font-size: 12px;
+    margin-left: auto;
+}
+
+/* Logo */
+.sidebar .logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 0 8px;
+}
+
+.sidebar .logo-main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar .logo-main img {
+    width: 160px;
+    height: auto;
+}
+
+.sidebar .logo-subtitle {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--eq-text-1);
+    margin-top: 6px;
+    font-weight: 700;
+}
+
+/* Artist Profile */
+.sidebar .artist-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 12px;
+    background: var(--eq-surface-1);
+    border-radius: var(--eq-radius-xl);
+    margin-bottom: 24px;
+}
+
+.sidebar .artist-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--eq-radius-round);
+    background: var(--eq-grad-avatar);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+    flex-shrink: 0;
+    overflow: hidden;
+    color: var(--eq-text-1);
+}
+
+.sidebar .artist-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.sidebar .artist-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.sidebar .artist-name {
+    font-weight: 600;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--eq-text-1);
+}
+
+.sidebar .artist-status {
+    font-size: 11px;
+    color: var(--eq-accent);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.sidebar .artist-status::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--eq-accent);
+    border-radius: var(--eq-radius-round);
+    animation: pulse-dot var(--eq-dur-pulse) infinite;
+}
+
+/* Role badge */
+.sidebar .role-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: var(--eq-radius-pill);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    color: var(--eq-text-1);
+}
+.sidebar .role-badge.role-artist {
+    background: var(--eq-accent-tint-25);
+    color: var(--eq-role-artist-text);
+}
+.sidebar .role-badge.role-label {
+    background: var(--eq-role-label-bg);
+    color: var(--eq-role-label-text);
+}
+.sidebar .role-badge.role-operator {
+    background: var(--eq-role-operator-bg);
+    color: var(--eq-role-operator-text);
+}
+
+/* Artist selector (label/operator only) */
+.sidebar .artist-selector {
+    margin-bottom: 20px;
+    padding: 12px;
+    background: var(--eq-surface-0);
+    border: var(--eq-divider);
+    border-radius: var(--eq-radius-lg);
+}
+.sidebar .artist-selector-label {
+    display: block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--eq-text-3);
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+.sidebar .artist-selector select {
+    width: 100%;
+    padding: 8px 10px;
+    background: var(--eq-select-bg);
+    color: var(--eq-text-1);
+    border: 1px solid var(--eq-border-10);
+    border-radius: var(--eq-radius-sm);
+    font-family: var(--eq-font-mono-generic);
+    font-size: 12px;
+    cursor: pointer;
+}
+.sidebar .artist-selector select:focus {
+    outline: none;
+    border-color: var(--eq-accent-border-50);
+}
+
+@keyframes pulse-dot {
+    0%, 100% {
+        box-shadow: var(--eq-shadow-pulse-start);
+    }
+    50% {
+        box-shadow: var(--eq-shadow-pulse-end);
+    }
+}
+
+/* Footer */
+/* divergent from client: client .sidebar-footer has display/flex-direction/gap and a
+   different padding-top (20px vs 24px) */
+html:has(#admin-sidebar-styles) .sidebar .sidebar-footer {
+    margin-top: auto;
+    padding-top: 24px;
+    border-top: var(--eq-divider);
+}
+
+.sidebar .session-info {
+    padding: 12px;
+    background: var(--eq-surface-0);
+    border-radius: var(--eq-radius-lg);
+    margin-bottom: 12px;
+}
+
+.sidebar .session-identity {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.sidebar .npub-badge {
+    padding: 4px 8px;
+    background: var(--eq-accent-tint-15);
+    border: 1px solid var(--eq-accent-tint-30);
+    border-radius: var(--eq-radius-sm);
+    color: var(--eq-accent);
+    font-size: 11px;
+    font-family: var(--eq-font-mono-generic);
+    flex-shrink: 0;
+}
+
+.sidebar .session-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.sidebar .session-type {
+    font-size: 10px;
+    color: var(--eq-text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.sidebar .session-duration {
+    font-size: 10px;
+    color: var(--eq-text-4);
+    white-space: nowrap;
+}
+
+/* divergent from client: client .sidebar-version ends with padding-top: 4px instead of margin-top: 8px */
+html:has(#admin-sidebar-styles) .sidebar .sidebar-version {
+    text-align: center;
+    font-size: 10px;
+    color: var(--eq-text-25);
+    letter-spacing: 0.5px;
+    margin-top: 8px;
+}
+
+/* Responsive (admin-only; client keeps a narrow icon rail instead of hiding) */
+@media (max-width: 768px) {
+    html:has(#admin-sidebar-styles) .sidebar {
+        display: none;
+    }
+    html:has(#admin-sidebar-styles) .main-content {
+        margin-left: 0;
+    }
+}
