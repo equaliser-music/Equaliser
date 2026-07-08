@@ -190,4 +190,9 @@
   --eq-grad-glow-2: radial-gradient(circle, var(--eq-brand-pink-30), transparent);
   --eq-grad-demo-btn: linear-gradient(135deg, var(--eq-accent), var(--eq-violet-600));
   --eq-grad-btn-extension: linear-gradient(135deg, var(--eq-accent-2), var(--eq-violet-700));
+  /* extended (Phase A) — batch A5 */
+  --eq-orange: #f97316;
+  --eq-orange-soft-10: rgba(249,115,22,0.1);
+  --eq-orange-soft-30: rgba(249,115,22,0.3);
+  --eq-success-soft-20: rgba(34,197,94,0.2);
 }
