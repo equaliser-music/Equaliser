@@ -1,0 +1,97 @@
+/* Equaliser theme: Classic — token values reproduce the pre-refactor look exactly.
+   Tokens are consumed progressively by the Phase A tokenisation batches. */
+:root {
+  /* surfaces */
+  --eq-bg-app: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+  --eq-surface-1: rgba(255,255,255,0.03);
+  --eq-surface-1-hover: rgba(255,255,255,0.06);
+  --eq-surface-2: rgba(255,255,255,0.05);
+  --eq-surface-2-hover: rgba(255,255,255,0.08);
+  --eq-surface-raised: rgba(20,20,35,0.98);
+  --eq-surface-input: rgba(255,255,255,0.05);
+  --eq-surface-inverse: #1a1a2e;
+  --eq-surface-modal: #1a1a2e;
+  --eq-scrim: rgba(0,0,0,0.6);
+  /* text */
+  --eq-text-1: #ffffff;
+  --eq-text-2: rgba(255,255,255,0.7);
+  --eq-text-3: rgba(255,255,255,0.5);
+  --eq-text-4: rgba(255,255,255,0.35);
+  --eq-text-inverse: #0a0a0f;
+  --eq-text-link: #60a5fa;
+  /* accent */
+  --eq-accent: #a855f7;
+  --eq-accent-2: #8b5cf6;
+  --eq-accent-text: #c084fc;
+  --eq-accent-contrast: #ffffff;
+  --eq-accent-soft: rgba(139,92,246,0.15);
+  --eq-accent-soft-hover: rgba(139,92,246,0.3);
+  --eq-focus-ring: rgba(168,85,247,0.4);
+  /* status */
+  --eq-danger: #ef4444;
+  --eq-danger-soft: rgba(239,68,68,0.1);
+  --eq-success: #4ade80;
+  --eq-success-soft: rgba(34,197,94,0.1);
+  --eq-warning: #f59e0b;
+  --eq-warning-soft: rgba(245,158,11,0.1);
+  --eq-info: #60a5fa;
+  --eq-info-soft: rgba(96,165,250,0.1);
+  /* gradients (Signal will flatten these) */
+  --eq-grad-accent: linear-gradient(135deg, #8b5cf6, #a855f7);
+  --eq-grad-avatar: linear-gradient(135deg, #8b5cf6, #a855f7);
+  --eq-grad-display-text: linear-gradient(135deg, #ffffff, #a855f7);
+  /* borders & dividers (whole-shorthand tokens) */
+  --eq-border: 1px solid rgba(255,255,255,0.1);
+  --eq-border-strong: 1px solid rgba(255,255,255,0.2);
+  --eq-border-soft: 1px solid rgba(255,255,255,0.06);
+  --eq-divider: 1px solid rgba(255,255,255,0.05);
+  --eq-border-focus: #a855f7;
+  --eq-border-inverse: 1px solid rgba(0,0,0,0.2);
+  /* radii */
+  --eq-radius-xs: 4px;
+  --eq-radius-sm: 6px;
+  --eq-radius-md: 10px;
+  --eq-radius-lg: 12px;
+  --eq-radius-xl: 16px;
+  --eq-radius-pill: 20px;
+  --eq-radius-round: 50%;
+  /* shadows & effects */
+  --eq-shadow-1: 0 8px 24px rgba(0,0,0,0.4);
+  --eq-shadow-2: 0 8px 32px rgba(0,0,0,0.4);
+  --eq-shadow-glow: 0 4px 20px rgba(139,92,246,0.4);
+  --eq-blur-backdrop: blur(20px);
+  --eq-img-filter: none;
+  --eq-img-filter-hover: none;
+  /* typography */
+  --eq-font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  --eq-font-display: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  --eq-font-mono: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  --eq-transform-display: none;
+  --eq-tracking-display: 0em;
+  --eq-weight-display: 700;
+  --eq-transform-label: none;
+  --eq-tracking-label: 0em;
+  /* motion */
+  --eq-dur-fast: 0.15s;
+  --eq-dur-med: 0.3s;
+  /* component hooks (canonical values refined at consolidation batches A2/A3/A13) */
+  --eq-btn-radius: 8px;
+  --eq-btn-border: none;
+  --eq-btn-transform: none;
+  --eq-btn-primary-bg: var(--eq-grad-accent);
+  --eq-btn-primary-color: #ffffff;
+  --eq-badge-radius: 4px;
+  --eq-badge-transform: none;
+  --eq-card-bg: var(--eq-surface-1);
+  --eq-card-border: var(--eq-border);
+  --eq-card-radius: var(--eq-radius-xl);
+  --eq-player-bg: rgba(10,10,15,0.95);
+  --eq-player-text: #ffffff;
+  --eq-player-border-top: 1px solid rgba(255,255,255,0.1);
+  --eq-sidebar-bg: rgba(15,15,25,0.8);
+  --eq-sidebar-border: 1px solid rgba(255,255,255,0.08);
+  --eq-sidebar-active-bg: rgba(139,92,246,0.15);
+  --eq-sidebar-active-color: #c084fc;
+  --eq-input-radius: 8px;
+  --eq-checkbox-accent: #a855f7;
+}
