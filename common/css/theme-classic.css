@@ -15,8 +15,10 @@
   /* text */
   --eq-text-1: #ffffff;
   --eq-text-2: rgba(255,255,255,0.7);
+  --eq-text-2-dim: rgba(255,255,255,0.6);
   --eq-text-3: rgba(255,255,255,0.5);
-  --eq-text-4: rgba(255,255,255,0.35);
+  --eq-text-4: rgba(255,255,255,0.4);
+  --eq-text-faint: rgba(255,255,255,0.3);
   --eq-text-inverse: #0a0a0f;
   --eq-text-link: #60a5fa;
   /* accent */
@@ -50,10 +52,12 @@
   /* radii */
   --eq-radius-xs: 4px;
   --eq-radius-sm: 6px;
-  --eq-radius-md: 10px;
-  --eq-radius-lg: 12px;
-  --eq-radius-xl: 16px;
-  --eq-radius-pill: 20px;
+  --eq-radius-md: 8px;
+  --eq-radius-lg: 10px;
+  --eq-radius-xl: 12px;
+  --eq-radius-2xl: 16px;
+  --eq-radius-3xl: 20px;
+  --eq-radius-pill: 999px;
   --eq-radius-round: 50%;
   /* shadows & effects */
   --eq-shadow-1: 0 8px 24px rgba(0,0,0,0.4);
@@ -84,7 +88,7 @@
   --eq-badge-transform: none;
   --eq-card-bg: var(--eq-surface-1);
   --eq-card-border: var(--eq-border);
-  --eq-card-radius: var(--eq-radius-xl);
+  --eq-card-radius: var(--eq-radius-2xl);
   --eq-player-bg: rgba(10,10,15,0.95);
   --eq-player-text: #ffffff;
   --eq-player-border-top: 1px solid rgba(255,255,255,0.1);
