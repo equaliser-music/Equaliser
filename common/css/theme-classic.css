@@ -297,4 +297,6 @@
   --eq-amber-soft-90: rgba(251,191,36,0.9);
   --eq-success-soft-90: rgba(34,197,94,0.9);
   --eq-danger-soft-90: rgba(239,68,68,0.9);
+  /* extended (Phase A) — batch A21 (content_node/orchestrator/upload.html) */
+  --eq-grad-progress-complete: linear-gradient(90deg, #22c55e, #16a34a);
 }
