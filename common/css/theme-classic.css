@@ -285,4 +285,12 @@
   --eq-grad-release: linear-gradient(135deg, #22c55e, #16a34a);
   --eq-shadow-release: 0 4px 12px rgba(34,197,94,0.4);
   --eq-warning-soft-35: rgba(245,158,11,0.35);
+  /* extended (Phase A) — batch A18 (content_node/orchestrator/edit-release.html) */
+  --eq-grad-danger: linear-gradient(135deg, #ef4444, #dc2626);
+  --eq-shadow-danger: 0 4px 20px rgba(239,68,68,0.4);
+  --eq-radius-top-md: 8px 8px 0 0;
+  --eq-radius-bottom-md: 0 0 8px 8px;
+  --eq-scrim-20: rgba(0,0,0,0.2);
+  --eq-grad-dup-progress: linear-gradient(90deg, #8b5cf6, #6d28d9);
+  --eq-shadow-glow-release: 0 4px 20px rgba(34,197,94,0.4);
 }

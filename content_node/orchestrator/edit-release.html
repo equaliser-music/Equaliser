@@ -12,9 +12,9 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
-            color: #ffffff;
+            font-family: var(--eq-font-body);
+            background: var(--eq-bg-app);
+            color: var(--eq-text-1);
             min-height: 100vh;
         }
 
@@ -51,22 +51,22 @@
         .back-btn {
             width: 40px;
             height: 40px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.05);
-            color: rgba(255, 255, 255, 0.7);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-lg);
+            background: var(--eq-surface-2);
+            color: var(--eq-text-2);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s;
+            transition: all var(--eq-dur-quick);
             text-decoration: none;
         }
 
         .back-btn:hover {
-            background: rgba(139, 92, 246, 0.2);
-            border-color: rgba(139, 92, 246, 0.3);
-            color: #ffffff;
+            background: var(--eq-accent-soft-20);
+            border-color: var(--eq-accent-soft-hover);
+            color: var(--eq-text-1);
         }
 
         .back-btn svg {
@@ -80,7 +80,7 @@
         }
 
         .page-description {
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             font-size: 14px;
             margin-top: 4px;
         }
@@ -95,23 +95,23 @@
             align-items: center;
             gap: 8px;
             padding: 12px 24px;
-            border: none;
-            border-radius: 10px;
+            border: var(--eq-btn-border);
+            border-radius: var(--eq-radius-lg);
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--eq-dur-quick);
             text-decoration: none;
             font-size: 14px;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #8b5cf6, #a855f7);
-            color: #ffffff;
+            background: var(--eq-grad-accent);
+            color: var(--eq-text-1);
         }
 
         .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+            box-shadow: var(--eq-shadow-glow);
         }
 
         .btn-primary:disabled {
@@ -120,38 +120,38 @@
         }
 
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
-            color: #ffffff;
+            background: var(--eq-border-10);
+            color: var(--eq-text-1);
         }
 
         .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.15);
+            background: var(--eq-border-15);
         }
 
         .btn-release {
-            background: linear-gradient(135deg, #22c55e, #16a34a);
-            color: #ffffff;
+            background: var(--eq-grad-release);
+            color: var(--eq-text-1);
         }
 
         .btn-release:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4);
+            box-shadow: var(--eq-shadow-glow-release);
         }
 
         .btn-danger {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            color: #ffffff;
+            background: var(--eq-grad-danger);
+            color: var(--eq-text-1);
         }
 
         .btn-danger:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
+            box-shadow: var(--eq-shadow-danger);
         }
 
         .draft-banner {
-            background: rgba(251, 191, 36, 0.1);
-            border: 1px solid rgba(251, 191, 36, 0.3);
-            border-radius: 12px;
+            background: var(--eq-amber-soft-10);
+            border: 1px solid var(--eq-amber-soft-30);
+            border-radius: var(--eq-radius-xl);
             padding: 16px 20px;
             margin-bottom: 24px;
             display: flex;
@@ -162,7 +162,7 @@
         .draft-banner svg {
             width: 24px;
             height: 24px;
-            color: #fbbf24;
+            color: var(--eq-amber-400);
             flex-shrink: 0;
         }
 
@@ -172,13 +172,13 @@
 
         .draft-banner-title {
             font-weight: 600;
-            color: #fbbf24;
+            color: var(--eq-amber-400);
             margin-bottom: 4px;
         }
 
         .draft-banner-description {
             font-size: 13px;
-            color: rgba(255, 255, 255, 0.6);
+            color: var(--eq-text-2-dim);
         }
 
         .btn svg {
@@ -188,9 +188,9 @@
 
         /* Sections */
         .edit-section {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
+            background: var(--eq-surface-1);
+            border: var(--eq-divider);
+            border-radius: var(--eq-radius-2xl);
             padding: 24px;
             margin-bottom: 24px;
         }
@@ -213,7 +213,7 @@
         .section-title svg {
             width: 20px;
             height: 20px;
-            color: #a855f7;
+            color: var(--eq-accent);
         }
 
         /* Form Elements */
@@ -236,19 +236,19 @@
             display: block;
             font-size: 13px;
             font-weight: 600;
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--eq-text-2);
             margin-bottom: 8px;
         }
 
         .form-input, .form-select, .form-textarea {
             width: 100%;
             padding: 12px 16px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            color: #ffffff;
+            background: var(--eq-surface-2);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-lg);
+            color: var(--eq-text-1);
             font-size: 14px;
-            transition: all 0.2s;
+            transition: all var(--eq-dur-quick);
         }
 
         .form-textarea {
@@ -259,17 +259,17 @@
 
         .form-input:focus, .form-select:focus, .form-textarea:focus {
             outline: none;
-            border-color: #a855f7;
-            background: rgba(139, 92, 246, 0.1);
+            border-color: var(--eq-accent);
+            background: var(--eq-accent-soft-10);
         }
 
         .form-input::placeholder, .form-textarea::placeholder {
-            color: rgba(255, 255, 255, 0.3);
+            color: var(--eq-text-faint);
         }
 
         .form-select option {
-            background: #1a1a2e;
-            color: #ffffff;
+            background: var(--eq-surface-inverse);
+            color: var(--eq-text-1);
         }
 
         /* Cover Art */
@@ -282,20 +282,20 @@
         .cover-preview {
             width: 180px;
             height: 180px;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 2px dashed rgba(255, 255, 255, 0.1);
+            border-radius: var(--eq-radius-xl);
+            background: var(--eq-surface-2);
+            border: 2px dashed var(--eq-border-10);
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
             overflow: hidden;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--eq-dur-quick);
         }
 
         .cover-preview:hover {
-            border-color: rgba(139, 92, 246, 0.5);
+            border-color: var(--eq-accent-mid);
         }
 
         .cover-preview img {
@@ -307,7 +307,7 @@
         .cover-preview svg {
             width: 48px;
             height: 48px;
-            color: rgba(255, 255, 255, 0.3);
+            color: var(--eq-text-faint);
         }
 
         .cover-info {
@@ -321,7 +321,7 @@
 
         .cover-info p {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             margin-bottom: 12px;
         }
 
@@ -329,14 +329,14 @@
         .tracklist-header {
             display: flex;
             padding: 12px 16px;
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 8px 8px 0 0;
+            background: var(--eq-surface-0);
+            border-radius: var(--eq-radius-top-md);
             font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: rgba(255, 255, 255, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--eq-text-4);
+            border: var(--eq-divider);
             border-bottom: none;
         }
 
@@ -348,9 +348,9 @@
         .tracklist-header .col-actions { width: 50px; }
 
         .tracklist-editor {
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 0 0 8px 8px;
+            background: var(--eq-scrim-20);
+            border: var(--eq-divider);
+            border-radius: var(--eq-radius-bottom-md);
             min-height: 100px;
             max-height: 500px;
             overflow-y: auto;
@@ -360,8 +360,8 @@
             display: flex;
             align-items: center;
             padding: 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            transition: background 0.2s;
+            border-bottom: var(--eq-divider);
+            transition: background var(--eq-dur-quick);
         }
 
         .tracklist-row:last-child {
@@ -369,7 +369,7 @@
         }
 
         .tracklist-row:hover {
-            background: rgba(255, 255, 255, 0.03);
+            background: var(--eq-surface-1);
         }
 
         .col-move {
@@ -381,21 +381,21 @@
 
         .move-btn {
             background: none;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-            color: rgba(255, 255, 255, 0.5);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-xs);
+            color: var(--eq-text-3);
             cursor: pointer;
             padding: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.15s;
+            transition: all var(--eq-dur-fast);
         }
 
         .move-btn:hover {
-            color: #a855f7;
-            border-color: rgba(168, 85, 247, 0.4);
-            background: rgba(168, 85, 247, 0.1);
+            color: var(--eq-accent);
+            border-color: var(--eq-accent-tint-40);
+            background: var(--eq-accent-tint-10);
         }
 
         .move-btn:disabled {
@@ -410,20 +410,20 @@
         }
 
         .tracklist-row.active-track {
-            background: rgba(168, 85, 247, 0.08);
-            border-left: 3px solid #a855f7;
+            background: var(--eq-accent-tint-08);
+            border-left: 3px solid var(--eq-accent);
             padding-left: 13px;
         }
 
         .tracklist-row.active-track .col-num {
-            color: #a855f7;
+            color: var(--eq-accent);
             font-weight: 600;
         }
 
         .col-num {
             width: 40px;
             font-size: 14px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
             text-align: center;
         }
 
@@ -434,24 +434,24 @@
         }
 
         .track-title-input {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 6px;
+            background: var(--eq-surface-2);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-sm);
             padding: 8px 12px;
-            color: #ffffff;
+            color: var(--eq-text-1);
             font-size: 14px;
             width: 100%;
         }
 
         .track-title-input:focus {
             outline: none;
-            border-color: #a855f7;
+            border-color: var(--eq-accent);
         }
 
         .col-duration {
             width: 70px;
             font-size: 13px;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             text-align: right;
             padding-right: 16px;
         }
@@ -464,11 +464,11 @@
         }
 
         .price-input {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 6px;
+            background: var(--eq-surface-2);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-sm);
             padding: 8px 10px;
-            color: #ffffff;
+            color: var(--eq-text-1);
             font-size: 13px;
             width: 70px;
             text-align: right;
@@ -476,12 +476,12 @@
 
         .price-input:focus {
             outline: none;
-            border-color: #a855f7;
+            border-color: var(--eq-accent);
         }
 
         .price-label {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
         }
 
         .col-actions {
@@ -493,20 +493,20 @@
         .remove-btn {
             width: 32px;
             height: 32px;
-            border: none;
-            border-radius: 6px;
+            border: var(--eq-btn-border);
+            border-radius: var(--eq-radius-sm);
             background: transparent;
-            color: rgba(255, 255, 255, 0.3);
+            color: var(--eq-text-faint);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s;
+            transition: all var(--eq-dur-quick);
         }
 
         .remove-btn:hover {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
+            background: var(--eq-danger-soft-20);
+            color: var(--eq-danger);
         }
 
         .remove-btn svg {
@@ -517,7 +517,7 @@
         .tracklist-empty {
             padding: 48px;
             text-align: center;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
             font-size: 14px;
         }
 
@@ -525,13 +525,13 @@
             flex: 1;
             padding: 14px;
             margin-top: 0;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px dashed rgba(255, 255, 255, 0.15);
-            border-radius: 8px;
-            color: rgba(255, 255, 255, 0.5);
+            background: var(--eq-surface-1);
+            border: 1px dashed var(--eq-border-15);
+            border-radius: var(--eq-radius-md);
+            color: var(--eq-text-3);
             font-size: 14px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--eq-dur-quick);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -539,9 +539,9 @@
         }
 
         .add-track-btn:hover {
-            background: rgba(139, 92, 246, 0.1);
-            border-color: rgba(139, 92, 246, 0.3);
-            color: #a855f7;
+            background: var(--eq-accent-soft-10);
+            border-color: var(--eq-accent-soft-hover);
+            color: var(--eq-accent);
         }
 
         .add-track-btn svg {
@@ -557,8 +557,8 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(4px);
+            background: var(--eq-scrim-strong);
+            backdrop-filter: var(--eq-blur-4);
             z-index: 1000;
             align-items: center;
             justify-content: center;
@@ -569,9 +569,9 @@
         }
 
         .modal {
-            background: #1a1a2e;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
+            background: var(--eq-surface-modal);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-2xl);
             padding: 24px;
             max-width: 500px;
             width: 90%;
@@ -594,17 +594,17 @@
         .modal-close {
             background: none;
             border: none;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             cursor: pointer;
             padding: 4px;
         }
 
         .modal-close:hover {
-            color: #ffffff;
+            color: var(--eq-text-1);
         }
 
         .modal-description {
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             font-size: 13px;
             margin-bottom: 16px;
         }
@@ -612,9 +612,9 @@
         .add-track-list {
             max-height: 300px;
             overflow-y: auto;
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
+            background: var(--eq-scrim-20);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-lg);
             margin-bottom: 16px;
         }
 
@@ -623,9 +623,9 @@
             align-items: center;
             gap: 12px;
             padding: 12px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: var(--eq-divider);
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background var(--eq-dur-quick);
         }
 
         .add-track-item:last-child {
@@ -633,11 +633,11 @@
         }
 
         .add-track-item:hover {
-            background: rgba(139, 92, 246, 0.1);
+            background: var(--eq-accent-soft-10);
         }
 
         .add-track-item.selected {
-            background: rgba(139, 92, 246, 0.2);
+            background: var(--eq-accent-soft-20);
         }
 
         .add-track-info {
@@ -655,14 +655,14 @@
 
         .add-track-meta {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
         }
 
         .add-track-check {
             width: 20px;
             height: 20px;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 4px;
+            border: 2px solid var(--eq-border-20);
+            border-radius: var(--eq-radius-xs);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -670,14 +670,14 @@
         }
 
         .add-track-item.selected .add-track-check {
-            background: #a855f7;
-            border-color: #a855f7;
+            background: var(--eq-accent);
+            border-color: var(--eq-accent);
         }
 
         .add-track-check svg {
             width: 12px;
             height: 12px;
-            color: white;
+            color: var(--eq-text-1);
             display: none;
         }
 
@@ -688,7 +688,7 @@
         .no-tracks-available {
             padding: 32px;
             text-align: center;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
             font-size: 13px;
         }
 
@@ -710,10 +710,10 @@
         .loading-spinner {
             width: 48px;
             height: 48px;
-            border: 3px solid rgba(139, 92, 246, 0.2);
-            border-top-color: #a855f7;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+            border: 3px solid var(--eq-accent-soft-20);
+            border-top-color: var(--eq-accent);
+            border-radius: var(--eq-radius-round);
+            animation: spin var(--eq-dur-spin-1s) linear infinite;
             margin: 0 auto 16px;
         }
 
@@ -727,15 +727,15 @@
             top: 24px;
             right: 24px;
             padding: 16px 24px;
-            background: rgba(15, 15, 25, 0.95);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
+            background: var(--eq-panel-bg-95);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-xl);
             display: flex;
             align-items: center;
             gap: 12px;
             z-index: 1100;
             transform: translateX(120%);
-            transition: transform 0.3s;
+            transition: transform var(--eq-dur-med);
         }
 
         .notification.show {
@@ -743,11 +743,11 @@
         }
 
         .notification.success {
-            border-color: rgba(34, 197, 94, 0.3);
+            border-color: var(--eq-success-soft-30);
         }
 
         .notification.error {
-            border-color: rgba(239, 68, 68, 0.3);
+            border-color: var(--eq-danger-soft-30);
         }
 
         .notification-icon {
@@ -756,11 +756,11 @@
         }
 
         .notification.success .notification-icon {
-            color: #22c55e;
+            color: var(--eq-success-2);
         }
 
         .notification.error .notification-icon {
-            color: #ef4444;
+            color: var(--eq-danger);
         }
 
         /* Responsive */
@@ -796,6 +796,31 @@
                 width: 100%;
                 max-width: 200px;
             }
+        }
+
+        /* === eq extracted inline styles (A18) === */
+        .eq-error-icon {
+            color: var(--eq-text-faint);
+        }
+
+        .eq-error-desc {
+            color: var(--eq-text-3);
+        }
+
+        .eq-dup-track {
+            background: var(--eq-border-10);
+            border-radius: var(--eq-radius-2px);
+        }
+
+        .eq-dup-bar {
+            background: var(--eq-grad-dup-progress);
+            border-radius: var(--eq-radius-2px);
+            transition: width var(--eq-dur-med) ease;
+        }
+
+        .eq-announce-cover-img {
+            border-radius: var(--eq-radius-lg);
+            border: var(--eq-border);
         }
     </style>
 </head>
@@ -1183,11 +1208,11 @@
         function showError(message) {
             document.getElementById('content-area').innerHTML = `
                 <div class="edit-section" style="text-align: center; padding: 60px;">
-                    <svg fill="currentColor" viewBox="0 0 20 20" style="width: 48px; height: 48px; color: rgba(255,255,255,0.3); margin-bottom: 16px;">
+                    <svg fill="currentColor" viewBox="0 0 20 20" class="eq-error-icon" style="width: 48px; height: 48px; margin-bottom: 16px;">
                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                     </svg>
                     <h3 style="margin-bottom: 8px;">${message}</h3>
-                    <p style="color: rgba(255,255,255,0.5); margin-bottom: 24px;">Please go back and try again.</p>
+                    <p class="eq-error-desc" style="margin-bottom: 24px;">Please go back and try again.</p>
                     <a href="releases.html" class="btn btn-primary">Back to Releases</a>
                 </div>
             `;
@@ -1598,8 +1623,8 @@
                     <div class="add-track-info" style="width:100%;">
                         <div class="add-track-title">${escapeHtml(track.title)}</div>
                         <div class="add-track-meta" id="dup-msg-${trackD}">Waiting...</div>
-                        <div style="height:4px;background:rgba(255,255,255,0.1);border-radius:2px;margin-top:8px;overflow:hidden;">
-                            <div id="dup-bar-${trackD}" style="width:0%;height:100%;background:linear-gradient(90deg,#8b5cf6,#6d28d9);border-radius:2px;transition:width 0.3s ease;"></div>
+                        <div class="eq-dup-track" style="height:4px;margin-top:8px;overflow:hidden;">
+                            <div id="dup-bar-${trackD}" class="eq-dup-bar" style="width:0%;height:100%;"></div>
                         </div>
                     </div>
                 </div>`;
@@ -2387,7 +2412,7 @@
             const coverPreview = document.getElementById('announce-cover-preview');
             const coverUrl = editingRelease?.blossomCoverUrl || (editingRelease?.blossomCoverHash ? `/blossom/${editingRelease.blossomCoverHash}` : (editingRelease?.coverArtCid ? `/ipfs/${editingRelease.coverArtCid}` : null));
             if (coverUrl && coverPreview) {
-                coverPreview.innerHTML = `<img src="${coverUrl}" style="max-width:200px;max-height:200px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);" onerror="this.parentElement.style.display='none'">`;
+                coverPreview.innerHTML = `<img src="${coverUrl}" class="eq-announce-cover-img" style="max-width:200px;max-height:200px;" onerror="this.parentElement.style.display='none'">`;
             }
 
             modal.classList.add('active');
