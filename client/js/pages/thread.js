@@ -175,7 +175,7 @@
                                 <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
                             </svg>
                         </div>
-                        <div class="root-action repost-btn${userReposted ? ' reposted' : ''}" style="position:relative" onclick="showRepostMenu('${ev.id}', '${ev.pubkey}', this)">
+                        <div class="root-action repost-btn eq-anchor${userReposted ? ' reposted' : ''}" onclick="showRepostMenu('${ev.id}', '${ev.pubkey}', this)">
                             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
                                 <path d="M7 16V4m0 0L3 8m4-4l4 4M13 4v12m0 0l4-4m-4 4l-4-4"/>
                             </svg>
@@ -248,7 +248,7 @@
                                         <path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7z"/>
                                     </svg>
                                 </div>
-                                <div class="reply-action repost-btn${userReposted ? ' reposted' : ''}" style="position:relative" onclick="showRepostMenu('${reply.id}', '${reply.pubkey}', this)">
+                                <div class="reply-action repost-btn eq-anchor${userReposted ? ' reposted' : ''}" onclick="showRepostMenu('${reply.id}', '${reply.pubkey}', this)">
                                     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
                                         <path d="M7 16V4m0 0L3 8m4-4l4 4M13 4v12m0 0l4-4m-4 4l-4-4"/>
                                     </svg>

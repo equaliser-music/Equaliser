@@ -212,4 +212,8 @@
   --eq-success-soft-15: rgba(34,197,94,0.15);
   --eq-amber-soft-15: rgba(251,191,36,0.15);
   --eq-shadow-btn-hover: 0 4px 16px rgba(139,92,246,0.4);
+  /* extended (Phase A) — batch A8 (client/thread.html, client/messages.html) */
+  --eq-text-95: rgba(255,255,255,0.95);
+  --eq-radius-18: 18px;
+  --eq-grad-msg-outgoing: linear-gradient(135deg, rgba(139,92,246,0.4), rgba(168,85,247,0.3));
 }
