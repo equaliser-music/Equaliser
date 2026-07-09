@@ -27,8 +27,8 @@
   --eq-text-inverse: #f2f0ea;
   --eq-text-link: #0d0d0d;
   /* accent */
-  --eq-accent: #c8ff00;
-  --eq-accent-2: #c8ff00;
+  --eq-accent: #506600;
+  --eq-accent-2: #4c6100;
   --eq-accent-text: #0d0d0d;
   --eq-accent-contrast: #0d0d0d;
   --eq-accent-soft: rgba(200,255,0,0.15);
@@ -110,7 +110,7 @@
   --eq-text-strong: rgba(13,13,13,0.8);
   --eq-accent-soft-20: rgba(200,255,0,0.2);
   --eq-accent-soft-35: rgba(200,255,0,0.35);
-  --eq-accent-mid: rgba(200,255,0,0.5);
+  --eq-accent-mid: rgba(76,97,0,0.5);
   --eq-scrim-strong: rgba(13,13,13,0.7);
   --eq-dur-spin: 0.8s;
   --eq-border-20: rgba(13,13,13,0.2);
@@ -127,7 +127,7 @@
   --eq-accent-soft-10: rgba(200,255,0,0.1);
   --eq-danger-mid: rgba(200,30,30,0.5);
   --eq-danger-strong: rgba(200,30,30,0.8);
-  --eq-success-2: #2f9e44;
+  --eq-success-2: #237633;
   --eq-success-soft-06: rgba(30,122,52,0.06);
   --eq-success-soft-12: rgba(30,122,52,0.12);
   --eq-success-soft-25: rgba(30,122,52,0.25);
@@ -149,7 +149,7 @@
   --eq-accent-tint-25: rgba(200,255,0,0.25);
   --eq-accent-tint-30: rgba(200,255,0,0.3);
   --eq-accent-transparent: rgba(200,255,0,0);
-  --eq-accent-light: #0d0d0d;
+  --eq-accent-light: #5c7500;
   --eq-role-artist-text: #0d0d0d;
   --eq-role-label-bg: rgba(59,130,246,0.25);
   --eq-role-label-text: #1e3a8a;
@@ -177,8 +177,8 @@
   --eq-accent-tint-40: rgba(200,255,0,0.4);
   --eq-shadow-glow-lg: 6px 6px 0 #c8ff00;
   --eq-brand-pink-30: rgba(255,43,43,0.3);
-  --eq-violet-600: #c8ff00;
-  --eq-violet-700: #a8d600;
+  --eq-violet-600: #344200;
+  --eq-violet-700: #283300;
   --eq-amber-400: #8a5a00;
   --eq-amber-soft-10: rgba(138,90,0,0.1);
   --eq-amber-soft-30: rgba(138,90,0,0.3);
@@ -193,8 +193,8 @@
   --eq-font-mono-alt: 'Space Mono', monospace;
   --eq-grad-glow-1: transparent;
   --eq-grad-glow-2: transparent;
-  --eq-grad-demo-btn: var(--eq-accent);
-  --eq-grad-btn-extension: var(--eq-accent-2);
+  --eq-grad-demo-btn: #c8ff00;
+  --eq-grad-btn-extension: #c8ff00;
   /* extended (Phase A) — batch A5 */
   --eq-orange: #9a4a0a;
   --eq-orange-soft-10: rgba(154,74,10,0.1);
