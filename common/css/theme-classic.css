@@ -225,4 +225,8 @@
   --eq-dur-spin-1s: 1s;
   /* extended (Phase A) — batch A10 (client/artist.html) */
   --eq-shadow-play-btn-sm: 0 4px 20px rgba(139,92,246,0.5);
+  /* extended (Phase A) — batch A11 (client/library.html, client/playlist.html) */
+  --eq-grad-playlist-cover: linear-gradient(135deg, #1a1a2e, #2d1b69);
+  --eq-danger-vivid: #ff6b6b;
+  --eq-danger-vivid-soft-15: rgba(255,59,48,0.15);
 }

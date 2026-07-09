@@ -7,9 +7,9 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
-            color: #ffffff;
+            font-family: var(--eq-font-body);
+            background: var(--eq-bg-app);
+            color: var(--eq-text-1);
             overflow-x: hidden;
         }
         .container { display: flex; height: 100vh; }
@@ -18,20 +18,20 @@
         .playlist-loading {
             text-align: center;
             padding: 60px 20px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
             font-size: 14px;
         }
 
         .playlist-not-found {
             text-align: center;
             padding: 60px 20px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
         }
 
         .playlist-not-found h3 {
             font-size: 18px;
             margin-bottom: 8px;
-            color: rgba(255, 255, 255, 0.6);
+            color: var(--eq-text-2-dim);
         }
 
         .playlist-header {
@@ -44,13 +44,13 @@
         .playlist-cover {
             width: 220px;
             height: 220px;
-            border-radius: 12px;
+            border-radius: var(--eq-radius-xl);
             overflow: hidden;
             flex-shrink: 0;
             display: grid;
             grid-template-columns: 1fr 1fr;
             grid-template-rows: 1fr 1fr;
-            background: linear-gradient(135deg, #1a1a2e, #2d1b69);
+            background: var(--eq-grad-playlist-cover);
         }
 
         .playlist-cover img {
@@ -84,12 +84,12 @@
 
         .playlist-creator {
             font-size: 14px;
-            color: rgba(255, 255, 255, 0.6);
+            color: var(--eq-text-2-dim);
             margin-bottom: 4px;
         }
 
         .playlist-creator a {
-            color: #a855f7;
+            color: var(--eq-accent);
             text-decoration: none;
         }
 
@@ -97,13 +97,13 @@
 
         .playlist-meta {
             font-size: 13px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
             margin-bottom: 8px;
         }
 
         .playlist-description {
             font-size: 14px;
-            color: rgba(255, 255, 255, 0.6);
+            color: var(--eq-text-2-dim);
             margin-bottom: 16px;
             line-height: 1.5;
         }
@@ -117,46 +117,46 @@
         .playlist-btn {
             padding: 10px 20px;
             border: none;
-            border-radius: 8px;
+            border-radius: var(--eq-radius-md);
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
             display: flex;
             align-items: center;
             gap: 6px;
-            transition: opacity 0.2s;
+            transition: opacity var(--eq-dur-quick);
         }
 
         .playlist-btn:hover { opacity: 0.85; }
 
         .playlist-btn-primary {
-            background: linear-gradient(135deg, #8b5cf6, #a855f7);
-            color: #fff;
+            background: var(--eq-grad-accent);
+            color: var(--eq-text-1);
         }
 
         .playlist-btn-secondary {
-            background: rgba(255, 255, 255, 0.08);
-            color: rgba(255, 255, 255, 0.8);
+            background: var(--eq-surface-2-hover);
+            color: var(--eq-text-strong);
         }
 
         .playlist-btn-danger {
-            background: rgba(255, 59, 48, 0.15);
-            color: #ff6b6b;
+            background: var(--eq-danger-vivid-soft-15);
+            color: var(--eq-danger-vivid);
         }
 
         .playlist-btn-follow {
-            background: rgba(168, 85, 247, 0.15);
-            color: #a855f7;
+            background: var(--eq-accent-tint-15);
+            color: var(--eq-accent);
         }
 
         .playlist-btn-following {
-            background: rgba(168, 85, 247, 0.3);
-            color: #d8b4fe;
+            background: var(--eq-accent-tint-30);
+            color: var(--eq-accent-light);
         }
 
         /* Track list */
         .playlist-tracks {
-            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            border-top: 1px solid var(--eq-surface-1-hover);
         }
 
         .playlist-track-item {
@@ -164,38 +164,38 @@
             align-items: center;
             gap: 14px;
             padding: 10px 8px;
-            border-radius: 8px;
+            border-radius: var(--eq-radius-md);
             cursor: pointer;
-            transition: background 0.15s;
+            transition: background var(--eq-dur-fast);
         }
 
         .playlist-track-item:hover {
-            background: rgba(255, 255, 255, 0.05);
+            background: var(--eq-surface-2);
         }
 
         .playlist-track-item.playing {
-            background: rgba(139, 92, 246, 0.12);
+            background: var(--eq-accent-soft-12);
         }
 
         .playlist-track-number {
             width: 28px;
             text-align: center;
             font-size: 13px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
             flex-shrink: 0;
         }
 
         .playlist-track-item.playing .playlist-track-number {
-            color: #a855f7;
+            color: var(--eq-accent);
         }
 
         .playlist-track-cover {
             width: 48px;
             height: 48px;
-            border-radius: 6px;
+            border-radius: var(--eq-radius-sm);
             overflow: hidden;
             flex-shrink: 0;
-            background: rgba(255, 255, 255, 0.05);
+            background: var(--eq-surface-2);
         }
 
         .playlist-track-cover img {
@@ -218,27 +218,27 @@
         }
 
         .playlist-track-item.playing .playlist-track-title {
-            color: #a855f7;
+            color: var(--eq-accent);
         }
 
         .playlist-track-artist {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
         }
 
         .playlist-track-artist a {
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             text-decoration: none;
         }
 
         .playlist-track-artist a:hover {
-            color: #a855f7;
+            color: var(--eq-accent);
             text-decoration: underline;
         }
 
         .playlist-track-duration {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
             flex-shrink: 0;
             min-width: 40px;
             text-align: right;
@@ -247,30 +247,30 @@
         .playlist-track-remove {
             background: none;
             border: none;
-            color: rgba(255, 255, 255, 0.2);
+            color: var(--eq-border-20);
             font-size: 16px;
             cursor: pointer;
             padding: 4px 6px;
             opacity: 0;
-            transition: opacity 0.15s, color 0.15s;
+            transition: opacity var(--eq-dur-fast), color var(--eq-dur-fast);
         }
 
         .playlist-track-item:hover .playlist-track-remove { opacity: 1; }
-        .playlist-track-remove:hover { color: #ff6b6b; }
+        .playlist-track-remove:hover { color: var(--eq-danger-vivid); }
 
         .playlist-empty-tracks {
             text-align: center;
             padding: 40px 20px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
             font-size: 14px;
         }
 
         /* Edit mode */
         .playlist-edit-field {
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            color: #fff;
+            background: var(--eq-surface-1-hover);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-md);
+            color: var(--eq-text-1);
             font-size: inherit;
             font-family: inherit;
             padding: 8px 12px;
@@ -278,14 +278,14 @@
             width: 100%;
         }
 
-        .playlist-edit-field:focus { border-color: #a855f7; }
+        .playlist-edit-field:focus { border-color: var(--eq-accent); }
 
         /* Share modal */
         .share-modal {
             display: none;
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.6);
+            background: var(--eq-scrim);
             z-index: 1000;
             align-items: center;
             justify-content: center;
@@ -294,9 +294,9 @@
         .share-modal.open { display: flex; }
 
         .share-modal-content {
-            background: #1a1a2e;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
+            background: var(--eq-surface-modal);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-2xl);
             padding: 32px;
             width: 100%;
             max-width: 480px;
@@ -311,10 +311,10 @@
             width: 100%;
             min-height: 100px;
             padding: 12px;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            color: #fff;
+            background: var(--eq-surface-1-hover);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-md);
+            color: var(--eq-text-1);
             font-size: 14px;
             font-family: inherit;
             resize: vertical;
@@ -322,7 +322,7 @@
             outline: none;
         }
 
-        .share-modal-content textarea:focus { border-color: #a855f7; }
+        .share-modal-content textarea:focus { border-color: var(--eq-accent); }
 
         .share-modal-actions {
             display: flex;
@@ -333,7 +333,7 @@
         .share-modal-actions button {
             padding: 10px 20px;
             border: none;
-            border-radius: 8px;
+            border-radius: var(--eq-radius-md);
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
@@ -345,14 +345,14 @@
             bottom: 100px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(15, 15, 25, 0.95);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #fff;
+            background: var(--eq-panel-bg-95);
+            border: var(--eq-border);
+            color: var(--eq-text-1);
             padding: 10px 20px;
-            border-radius: 8px;
+            border-radius: var(--eq-radius-md);
             font-size: 13px;
             z-index: 10001;
-            animation: toastFade 2s ease forwards;
+            animation: toastFade var(--eq-dur-pulse) ease forwards;
         }
 
         @keyframes toastFade {

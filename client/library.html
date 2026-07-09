@@ -7,9 +7,9 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
-            color: #ffffff;
+            font-family: var(--eq-font-body);
+            background: var(--eq-bg-app);
+            color: var(--eq-text-1);
             overflow-x: hidden;
         }
         .container { display: flex; height: 100vh; }
@@ -27,7 +27,7 @@
         .library-tabs {
             display: flex;
             gap: 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid var(--eq-border-08);
             margin-bottom: 24px;
         }
 
@@ -36,17 +36,17 @@
             background: none;
             border: none;
             border-bottom: 2px solid transparent;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            transition: color 0.2s;
+            transition: color var(--eq-dur-quick);
         }
 
-        .library-tab:hover { color: rgba(255, 255, 255, 0.7); }
+        .library-tab:hover { color: var(--eq-text-2); }
         .library-tab.active {
-            color: #ffffff;
-            border-bottom-color: #a855f7;
+            color: var(--eq-text-1);
+            border-bottom-color: var(--eq-accent);
         }
 
         .library-toolbar {
@@ -60,14 +60,14 @@
             align-items: center;
             gap: 6px;
             padding: 10px 20px;
-            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            background: var(--eq-grad-accent);
             border: none;
-            border-radius: 8px;
-            color: #fff;
+            border-radius: var(--eq-radius-md);
+            color: var(--eq-text-1);
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            transition: opacity 0.2s;
+            transition: opacity var(--eq-dur-quick);
         }
 
         .library-create-btn:hover { opacity: 0.9; }
@@ -79,21 +79,21 @@
         }
 
         .playlist-card {
-            background: rgba(255, 255, 255, 0.04);
-            border-radius: 12px;
+            background: var(--eq-surface-0-hover);
+            border-radius: var(--eq-radius-xl);
             overflow: hidden;
             cursor: pointer;
-            transition: background 0.2s, transform 0.2s;
+            transition: background var(--eq-dur-quick), transform var(--eq-dur-quick);
         }
 
         .playlist-card:hover {
-            background: rgba(255, 255, 255, 0.08);
+            background: var(--eq-surface-2-hover);
             transform: translateY(-2px);
         }
 
         .playlist-card-cover {
             aspect-ratio: 1;
-            background: linear-gradient(135deg, #1a1a2e, #2d1b69);
+            background: var(--eq-grad-playlist-cover);
             display: grid;
             grid-template-columns: 1fr 1fr;
             grid-template-rows: 1fr 1fr;
@@ -135,7 +135,7 @@
 
         .playlist-card-meta {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -144,24 +144,24 @@
         .playlist-card-link {
             background: none;
             border: none;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
             cursor: pointer;
             padding: 2px;
-            transition: color 0.2s;
+            transition: color var(--eq-dur-quick);
         }
 
-        .playlist-card-link:hover { color: #ffffff; }
+        .playlist-card-link:hover { color: var(--eq-text-1); }
 
         .library-empty {
             text-align: center;
             padding: 60px 20px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
         }
 
         .library-empty h3 {
             font-size: 18px;
             margin-bottom: 8px;
-            color: rgba(255, 255, 255, 0.6);
+            color: var(--eq-text-2-dim);
         }
 
         .library-empty p {
@@ -172,24 +172,24 @@
         .library-loading {
             text-align: center;
             padding: 60px 20px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
             font-size: 14px;
         }
 
         .library-login-prompt {
             text-align: center;
             padding: 60px 20px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
         }
 
         .library-login-prompt h3 {
             font-size: 18px;
             margin-bottom: 8px;
-            color: rgba(255, 255, 255, 0.6);
+            color: var(--eq-text-2-dim);
         }
 
         .library-login-prompt a {
-            color: #a855f7;
+            color: var(--eq-accent);
             text-decoration: none;
         }
 
@@ -198,7 +198,7 @@
             display: none;
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.6);
+            background: var(--eq-scrim);
             z-index: 1000;
             align-items: center;
             justify-content: center;
@@ -207,9 +207,9 @@
         .create-playlist-modal.open { display: flex; }
 
         .create-playlist-form {
-            background: #1a1a2e;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
+            background: var(--eq-surface-modal);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-2xl);
             padding: 32px;
             width: 100%;
             max-width: 420px;
@@ -223,7 +223,7 @@
         .create-playlist-form label {
             display: block;
             font-size: 13px;
-            color: rgba(255, 255, 255, 0.6);
+            color: var(--eq-text-2-dim);
             margin-bottom: 6px;
         }
 
@@ -231,10 +231,10 @@
         .create-playlist-form textarea {
             width: 100%;
             padding: 10px 14px;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            color: #fff;
+            background: var(--eq-surface-1-hover);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-md);
+            color: var(--eq-text-1);
             font-size: 14px;
             font-family: inherit;
             margin-bottom: 16px;
@@ -243,7 +243,7 @@
 
         .create-playlist-form input[type="text"]:focus,
         .create-playlist-form textarea:focus {
-            border-color: #a855f7;
+            border-color: var(--eq-accent);
         }
 
         .create-playlist-form textarea { resize: vertical; min-height: 60px; }
@@ -260,7 +260,7 @@
             gap: 6px;
             cursor: pointer;
             font-size: 14px;
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--eq-text-strong);
         }
 
         .create-playlist-actions {
@@ -272,22 +272,22 @@
         .create-playlist-actions button {
             padding: 10px 20px;
             border: none;
-            border-radius: 8px;
+            border-radius: var(--eq-radius-md);
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
         }
 
         .btn-cancel {
-            background: rgba(255, 255, 255, 0.08);
-            color: rgba(255, 255, 255, 0.7);
+            background: var(--eq-surface-2-hover);
+            color: var(--eq-text-2);
         }
 
-        .btn-cancel:hover { background: rgba(255, 255, 255, 0.12); }
+        .btn-cancel:hover { background: var(--eq-border-12); }
 
         .btn-create {
-            background: linear-gradient(135deg, #8b5cf6, #a855f7);
-            color: #fff;
+            background: var(--eq-grad-accent);
+            color: var(--eq-text-1);
         }
 
         .btn-create:hover { opacity: 0.9; }
@@ -299,14 +299,14 @@
             bottom: 100px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(15, 15, 25, 0.95);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #fff;
+            background: var(--eq-panel-bg-95);
+            border: var(--eq-border);
+            color: var(--eq-text-1);
             padding: 10px 20px;
-            border-radius: 8px;
+            border-radius: var(--eq-radius-md);
             font-size: 13px;
             z-index: 10001;
-            animation: toastFade 2s ease forwards;
+            animation: toastFade var(--eq-dur-pulse) ease forwards;
         }
 
         @keyframes toastFade {
