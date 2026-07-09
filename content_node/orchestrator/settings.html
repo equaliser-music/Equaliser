@@ -12,9 +12,9 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
-            color: #ffffff;
+            font-family: var(--eq-font-body);
+            background: var(--eq-bg-app);
+            color: var(--eq-text-1);
             min-height: 100vh;
         }
 
@@ -43,15 +43,15 @@
         }
 
         .page-description {
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             font-size: 14px;
         }
 
         /* Settings Sections */
         .settings-section {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
+            background: var(--eq-surface-1);
+            border: var(--eq-divider);
+            border-radius: var(--eq-radius-2xl);
             padding: 24px;
             margin-bottom: 24px;
         }
@@ -62,7 +62,7 @@
             align-items: center;
             margin-bottom: 24px;
             padding-bottom: 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: var(--eq-divider);
         }
 
         .section-title {
@@ -76,7 +76,7 @@
         .section-title svg {
             width: 20px;
             height: 20px;
-            color: #a855f7;
+            color: var(--eq-accent);
         }
 
         /* Form Elements */
@@ -92,34 +92,34 @@
             display: block;
             font-size: 13px;
             font-weight: 600;
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--eq-text-2);
             margin-bottom: 8px;
         }
 
         .form-input {
             width: 100%;
             padding: 12px 16px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            color: #ffffff;
+            background: var(--eq-surface-2);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-lg);
+            color: var(--eq-text-1);
             font-size: 14px;
-            transition: all 0.2s;
+            transition: all var(--eq-dur-quick);
         }
 
         .form-input:focus {
             outline: none;
-            border-color: #a855f7;
-            background: rgba(139, 92, 246, 0.1);
+            border-color: var(--eq-accent);
+            background: var(--eq-accent-soft-10);
         }
 
         .form-input::placeholder {
-            color: rgba(255, 255, 255, 0.3);
+            color: var(--eq-text-faint);
         }
 
         .form-hint {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
             margin-top: 6px;
         }
 
@@ -133,43 +133,43 @@
             align-items: center;
             gap: 12px;
             padding: 12px;
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 8px;
+            background: var(--eq-surface-0);
+            border-radius: var(--eq-radius-md);
             margin-bottom: 8px;
         }
 
         .relay-url {
             flex: 1;
-            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-family: var(--eq-font-mono);
             font-size: 13px;
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--eq-text-2);
         }
 
         .relay-status {
             font-size: 11px;
             padding: 4px 8px;
-            border-radius: 4px;
-            background: rgba(255, 255, 255, 0.1);
+            border-radius: var(--eq-radius-xs);
+            background: var(--eq-border-10);
         }
 
         .relay-status.local {
-            background: rgba(59, 130, 246, 0.2);
-            color: #3b82f6;
+            background: var(--eq-blue-soft-20);
+            color: var(--eq-blue);
         }
 
         .relay-status.public {
-            background: rgba(34, 197, 94, 0.2);
-            color: #22c55e;
+            background: var(--eq-success-soft-20);
+            color: var(--eq-success-2);
         }
 
         .relay-status.read {
-            background: rgba(251, 191, 36, 0.2);
-            color: #fbbf24;
+            background: var(--eq-amber-soft-20);
+            color: var(--eq-amber-400);
         }
 
         .relay-status.write {
-            background: rgba(168, 85, 247, 0.2);
-            color: #a855f7;
+            background: var(--eq-accent-tint-20);
+            color: var(--eq-accent);
         }
 
         .relay-actions {
@@ -180,18 +180,18 @@
         .relay-action-btn {
             background: none;
             border: none;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
             cursor: pointer;
             padding: 4px;
-            transition: color 0.2s;
+            transition: color var(--eq-dur-quick);
         }
 
         .relay-action-btn:hover {
-            color: #ffffff;
+            color: var(--eq-text-1);
         }
 
         .relay-action-btn.delete:hover {
-            color: #ef4444;
+            color: var(--eq-danger);
         }
 
         .add-relay-form {
@@ -211,22 +211,22 @@
             gap: 8px;
             padding: 12px 24px;
             border: none;
-            border-radius: 10px;
+            border-radius: var(--eq-radius-lg);
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--eq-dur-quick);
             font-size: 14px;
             text-decoration: none;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #8b5cf6, #a855f7);
-            color: #ffffff;
+            background: var(--eq-grad-accent);
+            color: var(--eq-text-1);
         }
 
         .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+            box-shadow: var(--eq-shadow-glow);
         }
 
         .btn-primary:disabled {
@@ -235,13 +235,13 @@
         }
 
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.05);
-            color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: var(--eq-surface-2);
+            color: var(--eq-text-1);
+            border: var(--eq-border);
         }
 
         .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--eq-border-10);
         }
 
         .btn-small {
@@ -257,9 +257,9 @@
 
         /* Success Box */
         .success-box {
-            background: rgba(34, 197, 94, 0.1);
-            border: 1px solid rgba(34, 197, 94, 0.3);
-            border-radius: 10px;
+            background: var(--eq-success-soft);
+            border: 1px solid var(--eq-success-soft-30);
+            border-radius: var(--eq-radius-lg);
             padding: 16px;
             margin-bottom: 20px;
             display: none;
@@ -274,21 +274,21 @@
             align-items: center;
             gap: 8px;
             font-weight: 600;
-            color: #22c55e;
+            color: var(--eq-success-2);
             margin-bottom: 8px;
         }
 
         .success-text {
             font-size: 14px;
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--eq-text-2);
             line-height: 1.6;
         }
 
         /* Error Box */
         .error-box {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            border-radius: 10px;
+            background: var(--eq-danger-soft);
+            border: 1px solid var(--eq-danger-soft-30);
+            border-radius: var(--eq-radius-lg);
             padding: 16px;
             margin-bottom: 20px;
             display: none;
@@ -303,14 +303,14 @@
             align-items: center;
             gap: 8px;
             font-weight: 600;
-            color: #ef4444;
+            color: var(--eq-danger);
         }
 
         /* Info Box */
         .info-box {
-            background: rgba(59, 130, 246, 0.1);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            border-radius: 10px;
+            background: var(--eq-blue-soft-10);
+            border: 1px solid var(--eq-blue-soft-30);
+            border-radius: var(--eq-radius-lg);
             padding: 16px;
             margin-bottom: 20px;
         }
@@ -320,13 +320,13 @@
             align-items: center;
             gap: 8px;
             font-weight: 600;
-            color: #3b82f6;
+            color: var(--eq-blue);
             margin-bottom: 8px;
         }
 
         .info-text {
             font-size: 14px;
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--eq-text-2);
             line-height: 1.6;
         }
 
@@ -335,10 +335,10 @@
             display: inline-block;
             width: 16px;
             height: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top-color: #ffffff;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+            border: 2px solid var(--eq-text-faint);
+            border-top-color: var(--eq-text-1);
+            border-radius: var(--eq-radius-round);
+            animation: spin var(--eq-dur-spin) linear infinite;
         }
 
         @keyframes spin {
@@ -349,8 +349,8 @@
         .publish-status {
             margin-top: 16px;
             padding: 16px;
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 10px;
+            background: var(--eq-surface-0);
+            border-radius: var(--eq-radius-lg);
         }
 
         .publish-status-item {
@@ -370,32 +370,32 @@
         }
 
         .publish-status-item.pending .status-icon {
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
         }
 
         .publish-status-item.connecting .status-icon {
-            color: #fbbf24;
+            color: var(--eq-amber-400);
         }
 
         .publish-status-item.success .status-icon {
-            color: #22c55e;
+            color: var(--eq-success-2);
         }
 
         .publish-status-item.error .status-icon {
-            color: #ef4444;
+            color: var(--eq-danger);
         }
 
         .publish-status-item .status-text {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
         }
 
         /* NIP-05 Setup Panel */
         .nip05-setup-panel {
             margin-top: 16px;
-            background: rgba(139, 92, 246, 0.05);
-            border: 1px solid rgba(139, 92, 246, 0.15);
-            border-radius: 12px;
+            background: var(--eq-accent-soft-05);
+            border: 1px solid var(--eq-accent-soft);
+            border-radius: var(--eq-radius-xl);
             overflow: hidden;
         }
 
@@ -405,11 +405,11 @@
             align-items: center;
             padding: 14px 16px;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background var(--eq-dur-quick);
         }
 
         .nip05-setup-header:hover {
-            background: rgba(139, 92, 246, 0.08);
+            background: var(--eq-accent-soft-08);
         }
 
         .nip05-setup-title {
@@ -418,12 +418,12 @@
             gap: 8px;
             font-size: 14px;
             font-weight: 600;
-            color: #a855f7;
+            color: var(--eq-accent);
         }
 
         .nip05-chevron {
-            color: rgba(255, 255, 255, 0.4);
-            transition: transform 0.2s;
+            color: var(--eq-text-4);
+            transition: transform var(--eq-dur-quick);
         }
 
         .nip05-chevron.open {
@@ -438,7 +438,7 @@
             display: flex;
             gap: 14px;
             padding: 16px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: var(--eq-divider);
         }
 
         .nip05-step:last-child {
@@ -450,9 +450,9 @@
             flex-shrink: 0;
             width: 28px;
             height: 28px;
-            border-radius: 50%;
-            background: rgba(139, 92, 246, 0.2);
-            color: #a855f7;
+            border-radius: var(--eq-radius-round);
+            background: var(--eq-accent-soft-20);
+            color: var(--eq-accent);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -473,41 +473,41 @@
 
         .nip05-step-content p {
             font-size: 13px;
-            color: rgba(255, 255, 255, 0.6);
+            color: var(--eq-text-2-dim);
             margin-bottom: 10px;
             line-height: 1.5;
         }
 
         .nip05-step-content code {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--eq-border-10);
             padding: 2px 6px;
-            border-radius: 4px;
+            border-radius: var(--eq-radius-xs);
             font-size: 12px;
-            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-family: var(--eq-font-mono);
         }
 
         .nip05-code-block {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 8px;
+            background: var(--eq-scrim-soft);
+            border: 1px solid var(--eq-border-08);
+            border-radius: var(--eq-radius-md);
             padding: 12px 14px;
-            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-family: var(--eq-font-mono);
             font-size: 12px;
             line-height: 1.6;
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--eq-text-strong);
             white-space: pre;
             overflow-x: auto;
             margin-bottom: 10px;
         }
 
         .nip05-url-display {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(139, 92, 246, 0.2);
-            border-radius: 8px;
+            background: var(--eq-scrim-soft);
+            border: 1px solid var(--eq-accent-soft-20);
+            border-radius: var(--eq-radius-md);
             padding: 10px 14px;
-            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-family: var(--eq-font-mono);
             font-size: 13px;
-            color: #a855f7;
+            color: var(--eq-accent);
             margin-bottom: 8px;
             word-break: break-all;
         }
@@ -537,23 +537,23 @@
             padding: 5px 12px;
             font-size: 12px;
             font-weight: 600;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 6px;
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-sm);
             background: transparent;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--eq-dur-quick);
         }
 
         .nip05-config-tab.active {
-            background: rgba(139, 92, 246, 0.2);
-            border-color: rgba(139, 92, 246, 0.3);
-            color: #a855f7;
+            background: var(--eq-accent-soft-20);
+            border-color: var(--eq-accent-soft-hover);
+            color: var(--eq-accent);
         }
 
         .nip05-config-tab:hover:not(.active) {
-            background: rgba(255, 255, 255, 0.05);
-            color: rgba(255, 255, 255, 0.7);
+            background: var(--eq-surface-2);
+            color: var(--eq-text-2);
         }
 
         .nip05-check {
@@ -573,28 +573,28 @@
             flex-shrink: 0;
         }
 
-        .nip05-check.pass .nip05-check-icon { color: #22c55e; }
-        .nip05-check.fail .nip05-check-icon { color: #ef4444; }
-        .nip05-check.checking .nip05-check-icon { color: #fbbf24; }
-        .nip05-check.pass .nip05-check-text { color: rgba(255, 255, 255, 0.7); }
-        .nip05-check.fail .nip05-check-text { color: rgba(239, 68, 68, 0.9); }
+        .nip05-check.pass .nip05-check-icon { color: var(--eq-success-2); }
+        .nip05-check.fail .nip05-check-icon { color: var(--eq-danger); }
+        .nip05-check.checking .nip05-check-icon { color: var(--eq-amber-400); }
+        .nip05-check.pass .nip05-check-text { color: var(--eq-text-2); }
+        .nip05-check.fail .nip05-check-text { color: var(--eq-danger-soft-90); }
 
         .nip05-check-detail {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
             margin-left: 30px;
             margin-top: -4px;
             margin-bottom: 4px;
         }
 
         .nip05-no-address {
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
             font-size: 14px;
             font-style: italic;
         }
 
         .link {
-            color: #a855f7;
+            color: var(--eq-accent);
             text-decoration: none;
         }
 
@@ -611,6 +611,26 @@
             .add-relay-form {
                 flex-direction: column;
             }
+        }
+
+        /* === eq extracted inline styles (A20) === */
+        .eq-section-desc {
+            color: var(--eq-text-3);
+        }
+        .eq-identity-actions {
+            border-top: var(--eq-divider);
+        }
+        .eq-readonly-input {
+            background: var(--eq-surface-0);
+        }
+        .eq-hex-mono {
+            font-family: var(--eq-font-mono-generic);
+        }
+        .eq-current-address-text {
+            color: var(--eq-text-2);
+        }
+        .eq-current-address-strong {
+            color: var(--eq-accent);
         }
     </style>
 </head>
@@ -650,7 +670,7 @@
                     </p>
                 </div>
 
-                <p style="color: rgba(255,255,255,0.5); font-size: 14px; margin-bottom: 16px;">
+                <p class="eq-section-desc" style="font-size: 14px; margin-bottom: 16px;">
                     Manage the relays in your NOSTR profile. Toggle read/write permissions for each relay.
                 </p>
 
@@ -709,7 +729,7 @@
                     </h2>
                 </div>
 
-                <p style="color: rgba(255,255,255,0.5); font-size: 14px; margin-bottom: 16px;">
+                <p class="eq-section-desc" style="font-size: 14px; margin-bottom: 16px;">
                     NIP-05 lets NOSTR clients verify your identity using your domain name. Set your NIP-05 address in your <a href="profile.html" class="link">Profile</a>, then follow the steps below to configure your domain.
                 </p>
 
@@ -844,23 +864,23 @@
 
                 <div class="form-group">
                     <label class="form-label">Your Public Key (npub)</label>
-                    <input type="text" class="form-input" id="user-npub-display" readonly style="background: rgba(255,255,255,0.02); cursor: default;">
+                    <input type="text" class="form-input eq-readonly-input" id="user-npub-display" readonly style="cursor: default;">
                     <p class="form-hint">Share this to let others find you on NOSTR</p>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label">Hex Public Key</label>
-                    <input type="text" class="form-input" id="user-hex-display" readonly style="background: rgba(255,255,255,0.02); cursor: default; font-family: monospace; font-size: 12px;">
+                    <input type="text" class="form-input eq-readonly-input eq-hex-mono" id="user-hex-display" readonly style="cursor: default; font-size: 12px;">
                     <p class="form-hint">Your public key in hexadecimal format</p>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label">Session Type</label>
-                    <input type="text" class="form-input" id="session-type-display" readonly style="background: rgba(255,255,255,0.02); cursor: default;">
+                    <input type="text" class="form-input eq-readonly-input" id="session-type-display" readonly style="cursor: default;">
                     <p class="form-hint">How you're authenticated (NIP-07 Extension or manual nsec)</p>
                 </div>
 
-                <div class="button-group" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.05);">
+                <div class="button-group eq-identity-actions" style="margin-top: 20px; padding-top: 16px;">
                     <button class="btn btn-secondary" onclick="downloadBackup()">
                         <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
@@ -1337,7 +1357,7 @@
                 return;
             }
 
-            addressEl.innerHTML = `<p style="font-size: 14px; color: rgba(255,255,255,0.7);">Current address: <strong style="color: #a855f7;">${nip05Value}</strong></p>`;
+            addressEl.innerHTML = `<p class="eq-current-address-text" style="font-size: 14px;">Current address: <strong class="eq-current-address-strong">${nip05Value}</strong></p>`;
             panelEl.style.display = 'block';
 
             // Update JSON preview
