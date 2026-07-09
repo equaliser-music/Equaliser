@@ -12,9 +12,9 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
-            color: #ffffff;
+            font-family: var(--eq-font-body);
+            background: var(--eq-bg-app);
+            color: var(--eq-text-1);
             min-height: 100vh;
         }
 
@@ -47,7 +47,7 @@
         }
 
         .page-description {
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             font-size: 14px;
             margin-top: 4px;
         }
@@ -64,31 +64,31 @@
             gap: 8px;
             padding: 10px 20px;
             border: none;
-            border-radius: 10px;
+            border-radius: var(--eq-radius-lg);
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--eq-dur-quick);
             text-decoration: none;
             font-size: 14px;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #8b5cf6, #a855f7);
-            color: #ffffff;
+            background: var(--eq-grad-accent);
+            color: var(--eq-text-1);
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+            box-shadow: var(--eq-shadow-glow);
         }
 
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
-            color: #ffffff;
+            background: var(--eq-border-10);
+            color: var(--eq-text-1);
         }
 
         .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.15);
+            background: var(--eq-border-15);
         }
 
         .btn svg {
@@ -106,39 +106,39 @@
 
         .filter-btn {
             padding: 8px 16px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            color: rgba(255, 255, 255, 0.7);
+            background: var(--eq-surface-2);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-3xl);
+            color: var(--eq-text-2);
             font-size: 13px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--eq-dur-quick);
         }
 
         .filter-btn:hover, .filter-btn.active {
-            background: rgba(139, 92, 246, 0.2);
-            border-color: rgba(139, 92, 246, 0.3);
-            color: #ffffff;
+            background: var(--eq-accent-soft-20);
+            border-color: var(--eq-accent-soft-hover);
+            color: var(--eq-text-1);
         }
 
         .search-box {
             flex: 1;
             max-width: 300px;
             padding: 8px 16px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            color: #ffffff;
+            background: var(--eq-surface-2);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-3xl);
+            color: var(--eq-text-1);
             font-size: 13px;
         }
 
         .search-box:focus {
             outline: none;
-            border-color: rgba(139, 92, 246, 0.5);
+            border-color: var(--eq-accent-mid);
         }
 
         .search-box::placeholder {
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
         }
 
         /* Stats Bar */
@@ -147,9 +147,9 @@
             gap: 24px;
             margin-bottom: 24px;
             padding: 16px 24px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
+            background: var(--eq-surface-1);
+            border: var(--eq-divider);
+            border-radius: var(--eq-radius-xl);
         }
 
         .stat-item {
@@ -161,12 +161,12 @@
         .stat-value {
             font-size: 20px;
             font-weight: 700;
-            color: #a855f7;
+            color: var(--eq-accent);
         }
 
         .stat-label {
             font-size: 13px;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
         }
 
         /* Releases List */
@@ -178,19 +178,19 @@
 
         /* Release Card */
         .release-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
+            background: var(--eq-surface-1);
+            border: var(--eq-divider);
+            border-radius: var(--eq-radius-2xl);
             overflow: hidden;
-            transition: all 0.3s;
+            transition: all var(--eq-dur-med);
         }
 
         .release-card:hover {
-            border-color: rgba(139, 92, 246, 0.3);
+            border-color: var(--eq-accent-soft-hover);
         }
 
         .release-card.expanded {
-            border-color: rgba(139, 92, 246, 0.4);
+            border-color: var(--eq-accent-soft-40);
         }
 
         .release-header {
@@ -204,8 +204,8 @@
         .release-cover {
             width: 120px;
             height: 120px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(168, 85, 247, 0.2));
+            border-radius: var(--eq-radius-xl);
+            background: var(--eq-grad-user-banner);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -223,7 +223,7 @@
         .release-cover svg {
             width: 40px;
             height: 40px;
-            color: rgba(255, 255, 255, 0.3);
+            color: var(--eq-text-faint);
         }
 
         .release-type-badge {
@@ -231,9 +231,9 @@
             top: 8px;
             left: 8px;
             padding: 3px 8px;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(10px);
-            border-radius: 8px;
+            background: var(--eq-scrim-strong);
+            backdrop-filter: var(--eq-blur-10);
+            border-radius: var(--eq-radius-md);
             font-size: 10px;
             font-weight: 600;
             text-transform: uppercase;
@@ -241,40 +241,40 @@
 
         .release-status-badge {
             padding: 4px 10px;
-            border-radius: 6px;
+            border-radius: var(--eq-radius-sm);
             font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
         }
 
         .release-status-badge.draft {
-            background: rgba(251, 191, 36, 0.2);
-            color: #fbbf24;
+            background: var(--eq-amber-soft-20);
+            color: var(--eq-amber-400);
         }
 
         .release-status-badge.released {
-            background: rgba(34, 197, 94, 0.2);
-            color: #22c55e;
+            background: var(--eq-success-soft-20);
+            color: var(--eq-success-2);
         }
 
         .btn-release {
-            background: linear-gradient(135deg, #22c55e, #16a34a);
-            color: #ffffff;
+            background: var(--eq-grad-release);
+            color: var(--eq-text-1);
             padding: 8px 16px;
             border: none;
-            border-radius: 8px;
+            border-radius: var(--eq-radius-md);
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
             display: flex;
             align-items: center;
             gap: 6px;
-            transition: all 0.2s;
+            transition: all var(--eq-dur-quick);
         }
 
         .btn-release:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+            box-shadow: var(--eq-shadow-release);
         }
 
         .btn-release:disabled {
@@ -304,7 +304,7 @@
 
         .release-meta {
             font-size: 14px;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             margin-bottom: 12px;
         }
 
@@ -319,10 +319,10 @@
             align-items: center;
             gap: 6px;
             font-size: 13px;
-            color: rgba(255, 255, 255, 0.6);
-            background: rgba(255, 255, 255, 0.05);
+            color: var(--eq-text-2-dim);
+            background: var(--eq-surface-2);
             padding: 4px 10px;
-            border-radius: 6px;
+            border-radius: var(--eq-radius-sm);
         }
 
         .release-stat svg {
@@ -339,21 +339,21 @@
         .release-action-btn {
             width: 40px;
             height: 40px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.05);
-            color: rgba(255, 255, 255, 0.7);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-lg);
+            background: var(--eq-surface-2);
+            color: var(--eq-text-2);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s;
+            transition: all var(--eq-dur-quick);
         }
 
         .release-action-btn:hover {
-            background: rgba(139, 92, 246, 0.2);
-            border-color: rgba(139, 92, 246, 0.3);
-            color: #ffffff;
+            background: var(--eq-accent-soft-20);
+            border-color: var(--eq-accent-soft-hover);
+            color: var(--eq-text-1);
         }
 
         .release-action-btn svg {
@@ -362,7 +362,7 @@
         }
 
         .expand-icon {
-            transition: transform 0.3s;
+            transition: transform var(--eq-dur-med);
         }
 
         .release-card.expanded .expand-icon {
@@ -371,10 +371,10 @@
 
         /* Track List */
         .track-list {
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            border-top: var(--eq-divider);
             max-height: 0;
             overflow: hidden;
-            transition: max-height 0.3s ease-out;
+            transition: max-height var(--eq-dur-med) ease-out;
         }
 
         .release-card.expanded .track-list {
@@ -384,12 +384,12 @@
         .track-list-header {
             display: flex;
             padding: 12px 20px;
-            background: rgba(255, 255, 255, 0.02);
+            background: var(--eq-surface-0);
             font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
         }
 
         .track-list-header .track-num { width: 50px; }
@@ -402,12 +402,12 @@
             display: flex;
             align-items: center;
             padding: 12px 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-            transition: background 0.2s;
+            border-bottom: 1px solid var(--eq-surface-1);
+            transition: background var(--eq-dur-quick);
         }
 
         .track-row:hover {
-            background: rgba(255, 255, 255, 0.03);
+            background: var(--eq-surface-1);
         }
 
         .track-row:last-child {
@@ -417,7 +417,7 @@
         .track-num {
             width: 50px;
             font-size: 14px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
         }
 
         .track-title-col {
@@ -435,22 +435,22 @@
 
         .track-cid {
             font-size: 11px;
-            color: rgba(255, 255, 255, 0.3);
-            font-family: monospace;
+            color: var(--eq-text-faint);
+            font-family: var(--eq-font-mono-generic);
         }
 
         .track-duration {
             width: 80px;
             text-align: right;
             font-size: 14px;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
         }
 
         .track-price {
             width: 80px;
             text-align: right;
             font-size: 14px;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
         }
 
         .track-actions-col {
@@ -464,19 +464,19 @@
             width: 32px;
             height: 32px;
             border: none;
-            border-radius: 6px;
-            background: rgba(255, 255, 255, 0.05);
-            color: rgba(255, 255, 255, 0.6);
+            border-radius: var(--eq-radius-sm);
+            background: var(--eq-surface-2);
+            color: var(--eq-text-2-dim);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s;
+            transition: all var(--eq-dur-quick);
         }
 
         .track-btn:hover {
-            background: rgba(139, 92, 246, 0.2);
-            color: #ffffff;
+            background: var(--eq-accent-soft-20);
+            color: var(--eq-text-1);
         }
 
         .track-btn svg {
@@ -488,15 +488,15 @@
         .empty-state {
             text-align: center;
             padding: 60px 20px;
-            background: rgba(255, 255, 255, 0.02);
-            border: 2px dashed rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
+            background: var(--eq-surface-0);
+            border: 2px dashed var(--eq-border-10);
+            border-radius: var(--eq-radius-2xl);
         }
 
         .empty-state svg {
             width: 64px;
             height: 64px;
-            color: rgba(255, 255, 255, 0.2);
+            color: var(--eq-border-20);
             margin-bottom: 16px;
         }
 
@@ -507,7 +507,7 @@
         }
 
         .empty-state p {
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             margin-bottom: 24px;
         }
 
@@ -520,10 +520,10 @@
         .loading-spinner {
             width: 48px;
             height: 48px;
-            border: 3px solid rgba(139, 92, 246, 0.2);
-            border-top-color: #a855f7;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+            border: 3px solid var(--eq-accent-soft-20);
+            border-top-color: var(--eq-accent);
+            border-radius: var(--eq-radius-round);
+            animation: spin var(--eq-dur-spin-1s) linear infinite;
             margin: 0 auto 16px;
         }
 
@@ -532,7 +532,7 @@
         }
 
         .loading-state p {
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
         }
 
         /* Notification */
@@ -541,15 +541,15 @@
             top: 24px;
             right: 24px;
             padding: 16px 24px;
-            background: rgba(15, 15, 25, 0.95);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
+            background: var(--eq-panel-bg-95);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-xl);
             display: flex;
             align-items: center;
             gap: 12px;
             z-index: 1100;
             transform: translateX(120%);
-            transition: transform 0.3s;
+            transition: transform var(--eq-dur-med);
         }
 
         .notification.show {
@@ -557,11 +557,11 @@
         }
 
         .notification.success {
-            border-color: rgba(34, 197, 94, 0.3);
+            border-color: var(--eq-success-soft-30);
         }
 
         .notification.error {
-            border-color: rgba(239, 68, 68, 0.3);
+            border-color: var(--eq-danger-soft-30);
         }
 
         .notification-icon {
@@ -570,11 +570,11 @@
         }
 
         .notification.success .notification-icon {
-            color: #22c55e;
+            color: var(--eq-success-2);
         }
 
         .notification.error .notification-icon {
-            color: #ef4444;
+            color: var(--eq-danger);
         }
 
         /* Import Modal */
@@ -584,15 +584,15 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(4px);
+            background: var(--eq-scrim-strong);
+            backdrop-filter: var(--eq-blur-4);
             z-index: 1000;
             display: flex;
             align-items: center;
             justify-content: center;
             opacity: 0;
             visibility: hidden;
-            transition: all 0.3s;
+            transition: all var(--eq-dur-med);
         }
 
         .modal-overlay.show {
@@ -601,14 +601,14 @@
         }
 
         .modal {
-            background: #1a1a2e;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
+            background: var(--eq-surface-modal);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-2xl);
             padding: 32px;
             width: 90%;
             max-width: 500px;
             transform: translateY(20px);
-            transition: transform 0.3s;
+            transition: transform var(--eq-dur-med);
         }
 
         .modal-overlay.show .modal {
@@ -622,45 +622,45 @@
         }
 
         .modal p {
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             font-size: 14px;
             margin-bottom: 24px;
         }
 
         .drop-zone {
-            border: 2px dashed rgba(139, 92, 246, 0.3);
-            border-radius: 12px;
+            border: 2px dashed var(--eq-accent-soft-hover);
+            border-radius: var(--eq-radius-xl);
             padding: 40px 20px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--eq-dur-quick);
         }
 
         .drop-zone:hover, .drop-zone.drag-over {
-            border-color: rgba(139, 92, 246, 0.6);
-            background: rgba(139, 92, 246, 0.05);
+            border-color: var(--eq-accent-soft-60);
+            background: var(--eq-accent-soft-05);
         }
 
         .drop-zone svg {
             width: 48px;
             height: 48px;
-            color: rgba(255, 255, 255, 0.3);
+            color: var(--eq-text-faint);
             margin-bottom: 12px;
         }
 
         .drop-zone .drop-text {
             font-size: 14px;
-            color: rgba(255, 255, 255, 0.6);
+            color: var(--eq-text-2-dim);
         }
 
         .drop-zone .drop-hint {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.3);
+            color: var(--eq-text-faint);
             margin-top: 8px;
         }
 
         .drop-zone .file-selected {
-            color: #a855f7;
+            color: var(--eq-accent);
             font-weight: 500;
         }
 
@@ -682,21 +682,21 @@
 
         .progress-bar {
             height: 4px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 2px;
+            background: var(--eq-border-10);
+            border-radius: var(--eq-radius-2px);
             overflow: hidden;
         }
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #8b5cf6, #a855f7);
+            background: var(--eq-grad-progress);
             width: 0%;
-            transition: width 0.3s;
+            transition: width var(--eq-dur-med);
         }
 
         .progress-text {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             margin-top: 8px;
         }
 
@@ -720,6 +720,39 @@
             .stats-bar {
                 flex-wrap: wrap;
             }
+        }
+
+        /* === eq extracted inline styles (A17) === */
+        .stat-value.eq-draft-value { color: var(--eq-amber-400); }
+        .eq-no-delegation-banner {
+            margin-bottom: 18px;
+            padding: 12px 16px;
+            border-radius: var(--eq-radius-lg);
+            background: var(--eq-warning-soft);
+            border: 1px solid var(--eq-warning-soft-35);
+            color: var(--eq-text-bright);
+            font-size: 13px;
+        }
+        .eq-no-delegation-strong { color: var(--eq-amber-light); }
+        .eq-no-delegation-link {
+            color: var(--eq-amber-light);
+            text-decoration: underline;
+            margin-left: 8px;
+        }
+        .eq-announce-textarea {
+            resize: vertical;
+            padding: 10px;
+            background: var(--eq-surface-2);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-md);
+            color: var(--eq-text-1);
+            font-family: inherit;
+            font-size: 14px;
+        }
+        .release-cover svg.eq-cover-fallback-icon { color: var(--eq-text-faint); }
+        .eq-announce-cover-img {
+            border-radius: var(--eq-radius-lg);
+            border: var(--eq-border);
         }
     </style>
 </head>
@@ -758,7 +791,7 @@
             <!-- Stats Bar -->
             <div class="stats-bar" id="stats-bar">
                 <div class="stat-item">
-                    <span class="stat-value" id="total-drafts" style="color: #fbbf24;">-</span>
+                    <span class="stat-value eq-draft-value" id="total-drafts">-</span>
                     <span class="stat-label">Drafts</span>
                 </div>
                 <div class="stat-item">
@@ -788,10 +821,10 @@
             <!-- 10g — proactive warning when the label is acting as a managed artist
                  with no active NIP-26 delegation. Without this, Publish would fail at
                  sign time with a generic toast. Rendered by checkDelegationNeeded(). -->
-            <div id="no-delegation-warning" style="display:none; margin-bottom: 18px; padding: 12px 16px; border-radius: 10px; background: rgba(245, 158, 11, 0.10); border: 1px solid rgba(245, 158, 11, 0.35); color: rgba(255,255,255,0.85); font-size: 13px;">
-                <strong style="color: #fcd34d">No active Manager Authorization.</strong>
+            <div id="no-delegation-warning" class="eq-no-delegation-banner" style="display:none;">
+                <strong class="eq-no-delegation-strong">No active Manager Authorization.</strong>
                 <span id="no-delegation-text"></span>
-                <a href="artist-management.html" style="color: #fcd34d; text-decoration: underline; margin-left: 8px;">Request one →</a>
+                <a href="artist-management.html" class="eq-no-delegation-link">Request one →</a>
             </div>
 
             <!-- Releases List -->
@@ -836,7 +869,7 @@
             <h2>Announce Release</h2>
             <p>Share this release with your fans on the social feed.</p>
             <div id="announce-cover-preview" style="margin-bottom: 12px; text-align: center;"></div>
-            <textarea class="form-input" id="announce-message" rows="3" maxlength="500" style="resize: vertical; width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; font-family: inherit; font-size: 14px;"></textarea>
+            <textarea class="form-input eq-announce-textarea" id="announce-message" rows="3" maxlength="500" style="width: 100%;"></textarea>
             <div class="modal-actions">
                 <button class="btn btn-secondary" onclick="skipAnnouncement()">Skip</button>
                 <button class="btn btn-primary" id="announce-btn" onclick="postAnnouncement()">Post Announcement</button>
@@ -1229,7 +1262,7 @@
                                     : release.coverArtCid ? `/ipfs/${release.coverArtCid}` : null;
                                 return coverUrl
                                     ? `<img src="${coverUrl}" alt="${escapeHtml(release.title)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                                       <svg fill="currentColor" viewBox="0 0 20 20" style="display:none; width:40px; height:40px; color:rgba(255,255,255,0.3);">
+                                       <svg fill="currentColor" viewBox="0 0 20 20" class="eq-cover-fallback-icon" style="display:none; width:40px; height:40px;">
                                            <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/>
                                        </svg>`
                                     : `<svg fill="currentColor" viewBox="0 0 20 20">
@@ -1653,7 +1686,7 @@
             const firstTrack = release?.tracks?.[0];
             const coverUrl = firstTrack?.blossom_cover_url || (firstTrack?.blossom_cover_hash ? `/blossom/${firstTrack.blossom_cover_hash}` : (firstTrack?.cover_art_cid ? `/ipfs/${firstTrack.cover_art_cid}` : null));
             if (coverUrl && coverPreview) {
-                coverPreview.innerHTML = `<img src="${coverUrl}" style="max-width:200px;max-height:200px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);" onerror="this.parentElement.style.display='none'">`;
+                coverPreview.innerHTML = `<img src="${coverUrl}" class="eq-announce-cover-img" style="max-width:200px;max-height:200px;" onerror="this.parentElement.style.display='none'">`;
             } else if (coverPreview) {
                 coverPreview.innerHTML = '';
             }
