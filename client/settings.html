@@ -12,9 +12,9 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
-            color: #ffffff;
+            font-family: var(--eq-font-body);
+            background: var(--eq-bg-app);
+            color: var(--eq-text-1);
             min-height: 100vh;
         }
 
@@ -42,15 +42,15 @@
         }
 
         .page-description {
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             font-size: 14px;
         }
 
         /* Settings Sections */
         .settings-section {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
+            background: var(--eq-surface-1);
+            border: var(--eq-divider);
+            border-radius: var(--eq-radius-2xl);
             padding: 24px;
             margin-bottom: 24px;
         }
@@ -61,7 +61,7 @@
             align-items: center;
             margin-bottom: 24px;
             padding-bottom: 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: var(--eq-divider);
         }
 
         .section-title {
@@ -75,7 +75,7 @@
         .section-title svg {
             width: 20px;
             height: 20px;
-            color: #a855f7;
+            color: var(--eq-accent);
         }
 
         /* Form Elements */
@@ -91,29 +91,29 @@
             display: block;
             font-size: 13px;
             font-weight: 600;
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--eq-text-2);
             margin-bottom: 8px;
         }
 
         .form-input {
             width: 100%;
             padding: 12px 16px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            color: #ffffff;
+            background: var(--eq-surface-2);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-lg);
+            color: var(--eq-text-1);
             font-size: 14px;
-            transition: all 0.2s;
+            transition: all var(--eq-dur-quick);
         }
 
         .form-input:focus {
             outline: none;
-            border-color: #8b5cf6;
-            background: rgba(139, 92, 246, 0.1);
+            border-color: var(--eq-accent-2);
+            background: var(--eq-accent-soft-10);
         }
 
         .form-input::placeholder {
-            color: rgba(255, 255, 255, 0.3);
+            color: var(--eq-text-faint);
         }
 
         textarea.form-input {
@@ -123,7 +123,7 @@
 
         .form-hint {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
             margin-top: 6px;
             line-height: 1.5;
         }
@@ -136,21 +136,21 @@
             gap: 8px;
             padding: 12px 24px;
             border: none;
-            border-radius: 10px;
+            border-radius: var(--eq-radius-lg);
             font-weight: 600;
             font-size: 14px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--eq-dur-quick);
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #8b5cf6, #a855f7);
-            color: #ffffff;
+            background: var(--eq-grad-accent);
+            color: var(--eq-text-1);
         }
 
         .btn-primary:hover:not(:disabled) {
             transform: translateY(-1px);
-            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
+            box-shadow: var(--eq-shadow-btn-hover);
         }
 
         .btn-primary:disabled {
@@ -159,23 +159,23 @@
         }
 
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.05);
-            color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: var(--eq-surface-2);
+            color: var(--eq-text-1);
+            border: var(--eq-border);
         }
 
         .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--eq-border-10);
         }
 
         .btn-danger {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.2);
-            color: #ef4444;
+            background: var(--eq-danger-soft);
+            border: 1px solid var(--eq-danger-soft-20);
+            color: var(--eq-danger);
         }
 
         .btn-danger:hover {
-            background: rgba(239, 68, 68, 0.2);
+            background: var(--eq-danger-soft-20);
         }
 
         .btn-sm {
@@ -193,48 +193,48 @@
             align-items: center;
             gap: 12px;
             padding: 12px;
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 8px;
+            background: var(--eq-surface-0);
+            border-radius: var(--eq-radius-md);
             margin-bottom: 8px;
         }
 
         .relay-item .relay-url {
             flex: 1;
-            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-family: var(--eq-font-mono);
             font-size: 13px;
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--eq-text-2);
         }
 
         .relay-item .relay-badge {
             font-size: 10px;
             padding: 3px 8px;
-            border-radius: 4px;
+            border-radius: var(--eq-radius-xs);
             text-transform: uppercase;
             letter-spacing: 0.5px;
             font-weight: 600;
         }
 
         .relay-badge.local {
-            background: rgba(139, 92, 246, 0.2);
-            color: #a855f7;
+            background: var(--eq-accent-soft-20);
+            color: var(--eq-accent);
         }
 
         .relay-badge.external {
-            background: rgba(34, 197, 94, 0.2);
-            color: #22c55e;
+            background: var(--eq-success-soft-20);
+            color: var(--eq-success-2);
         }
 
         .relay-remove-btn {
             background: none;
             border: none;
-            color: rgba(255, 255, 255, 0.3);
+            color: var(--eq-text-faint);
             cursor: pointer;
             padding: 4px;
-            transition: color 0.2s;
+            transition: color var(--eq-dur-quick);
         }
 
         .relay-remove-btn:hover {
-            color: #ef4444;
+            color: var(--eq-danger);
         }
 
         .add-relay-row {
@@ -248,9 +248,9 @@
 
         /* Key Display */
         .key-display {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
+            background: var(--eq-scrim-soft);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-lg);
             padding: 16px;
             margin-bottom: 16px;
             position: relative;
@@ -260,16 +260,16 @@
             font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             margin-bottom: 8px;
         }
 
         .key-value {
-            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-family: var(--eq-font-mono);
             font-size: 13px;
             word-break: break-all;
             line-height: 1.5;
-            color: #a855f7;
+            color: var(--eq-accent);
         }
 
         .copy-btn {
@@ -277,27 +277,27 @@
             top: 12px;
             right: 12px;
             padding: 6px 12px;
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--eq-border-10);
             border: none;
-            border-radius: 6px;
-            color: #ffffff;
+            border-radius: var(--eq-radius-sm);
+            color: var(--eq-text-1);
             font-size: 12px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--eq-dur-quick);
         }
 
         .copy-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: var(--eq-border-20);
         }
 
         .copy-btn.copied {
-            background: #22c55e;
+            background: var(--eq-success-2);
         }
 
         /* Status Messages */
         .status-msg {
             padding: 10px 16px;
-            border-radius: 8px;
+            border-radius: var(--eq-radius-md);
             font-size: 13px;
             margin-top: 12px;
             display: none;
@@ -305,37 +305,37 @@
 
         .status-msg.success {
             display: block;
-            background: rgba(34, 197, 94, 0.1);
-            border: 1px solid rgba(34, 197, 94, 0.3);
-            color: #22c55e;
+            background: var(--eq-success-soft);
+            border: 1px solid var(--eq-success-soft-30);
+            color: var(--eq-success-2);
         }
 
         .status-msg.error {
             display: block;
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: #ef4444;
+            background: var(--eq-danger-soft);
+            border: 1px solid var(--eq-danger-soft-30);
+            color: var(--eq-danger);
         }
 
         /* NIP-05 Instructions */
         .instructions {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
+            background: var(--eq-surface-0);
+            border: var(--eq-divider);
+            border-radius: var(--eq-radius-md);
             padding: 16px;
             margin-top: 12px;
             font-size: 13px;
             line-height: 1.6;
-            color: rgba(255, 255, 255, 0.6);
+            color: var(--eq-text-2-dim);
         }
 
         .instructions code {
-            background: rgba(0, 0, 0, 0.3);
+            background: var(--eq-scrim-soft);
             padding: 2px 6px;
-            border-radius: 4px;
-            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            border-radius: var(--eq-radius-xs);
+            font-family: var(--eq-font-mono);
             font-size: 12px;
-            color: #a855f7;
+            color: var(--eq-accent);
         }
 
         .instructions ol {
@@ -352,10 +352,10 @@
             display: inline-block;
             width: 16px;
             height: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top-color: #ffffff;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+            border: 2px solid var(--eq-text-faint);
+            border-top-color: var(--eq-text-1);
+            border-radius: var(--eq-radius-round);
+            animation: spin var(--eq-dur-spin) linear infinite;
         }
 
         @keyframes spin {
@@ -372,6 +372,40 @@
             .add-relay-row {
                 flex-direction: column;
             }
+        }
+
+        /* === eq extracted inline styles (A12) === */
+        .eq-avatar-picker {
+            border-radius: var(--eq-radius-round);
+            background: var(--eq-accent-soft-20);
+            border: 2px solid var(--eq-border-10);
+        }
+
+        .eq-avatar-plus-icon {
+            font-size: 28px;
+            color: var(--eq-text-faint);
+        }
+
+        .eq-banner-picker {
+            border-radius: var(--eq-radius-lg);
+            background: var(--eq-accent-soft-10);
+            border: var(--eq-border);
+        }
+
+        .eq-banner-placeholder-text {
+            font-size: 14px;
+            color: var(--eq-text-faint);
+        }
+
+        .eq-relay-hint {
+            color: var(--eq-text-4);
+            font-size: 13px;
+        }
+
+        .eq-upload-badge {
+            background: var(--eq-success-2);
+            color: var(--eq-text-1);
+            border-radius: var(--eq-radius-xs);
         }
     </style>
 </head>
@@ -395,8 +429,8 @@
                 <div class="form-group">
                     <label class="form-label">Avatar</label>
                     <div style="display: flex; align-items: center; gap: 16px;">
-                        <div id="avatar-preview" style="width: 80px; height: 80px; border-radius: 50%; background: rgba(139, 92, 246, 0.2); display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px solid rgba(255,255,255,0.1); cursor: pointer; position: relative;" onclick="document.getElementById('avatar-input').click()">
-                            <span id="avatar-placeholder" style="font-size: 28px; color: rgba(255,255,255,0.3);">+</span>
+                        <div id="avatar-preview" class="eq-avatar-picker" style="width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; position: relative;" onclick="document.getElementById('avatar-input').click()">
+                            <span id="avatar-placeholder" class="eq-avatar-plus-icon">+</span>
                         </div>
                         <div>
                             <button class="btn btn-secondary btn-sm" onclick="document.getElementById('avatar-input').click()">Upload Avatar</button>
@@ -408,8 +442,8 @@
 
                 <div class="form-group">
                     <label class="form-label">Banner</label>
-                    <div id="banner-preview" style="width: 100%; height: 120px; border-radius: 10px; background: rgba(139, 92, 246, 0.1); display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; position: relative;" onclick="document.getElementById('banner-input').click()">
-                        <span id="banner-placeholder" style="font-size: 14px; color: rgba(255,255,255,0.3);">Click to upload banner</span>
+                    <div id="banner-preview" class="eq-banner-picker" style="width: 100%; height: 120px; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; position: relative;" onclick="document.getElementById('banner-input').click()">
+                        <span id="banner-placeholder" class="eq-banner-placeholder-text">Click to upload banner</span>
                     </div>
                     <input type="file" id="banner-input" accept="image/jpeg,image/png,image/webp" style="display: none;" onchange="handleBannerUpload(event)">
                 </div>
@@ -498,7 +532,7 @@
                 <p class="form-hint" style="margin-bottom: 16px;">Your local Equaliser relay stores your data on this node and syncs it with other Equaliser nodes. Adding external NOSTR relays preserves your data on the wider network and helps new people discover you and Equaliser.</p>
 
                 <div class="relay-list" id="relay-list">
-                    <p style="color: rgba(255,255,255,0.4); font-size: 13px;">Loading relays...</p>
+                    <p class="eq-relay-hint">Loading relays...</p>
                 </div>
 
                 <div class="add-relay-row">
@@ -625,13 +659,13 @@
             // Show existing avatar
             if (profile.picture) {
                 const preview = document.getElementById('avatar-preview');
-                preview.innerHTML = `<img src="${profile.picture}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='<span style=\\'font-size:28px;color:rgba(255,255,255,0.3)\\'>+</span>'">`;
+                preview.innerHTML = `<img src="${profile.picture}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='<span style=\\'font-size:28px;color:rgba(255,255,255,0.3)\\'>+</span>'">`; // eq-allow: dead script under router (see settings.js)
             }
 
             // Show existing banner
             if (profile.banner) {
                 const preview = document.getElementById('banner-preview');
-                preview.innerHTML = `<img src="${profile.banner}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='<span style=\\'font-size:14px;color:rgba(255,255,255,0.3)\\'>Click to upload banner</span>'">`;
+                preview.innerHTML = `<img src="${profile.banner}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='<span style=\\'font-size:14px;color:rgba(255,255,255,0.3)\\'>Click to upload banner</span>'">`; // eq-allow: dead script under router (see settings.js)
             }
         }
 
@@ -666,7 +700,7 @@
                 const result = await uploadImage(file);
                 avatarBlossomUrl = result.blossom_url;
                 URL.revokeObjectURL(localPreview);
-                preview.innerHTML = `<img src="${avatarBlossomUrl}" style="width:100%;height:100%;object-fit:cover;"><span style="position:absolute;bottom:4px;right:4px;background:#22c55e;color:white;font-size:10px;padding:2px 6px;border-radius:4px;">Uploaded</span>`;
+                preview.innerHTML = `<img src="${avatarBlossomUrl}" style="width:100%;height:100%;object-fit:cover;"><span style="position:absolute;bottom:4px;right:4px;background:#22c55e;color:white;font-size:10px;padding:2px 6px;border-radius:4px;">Uploaded</span>`; // eq-allow: dead script under router (see settings.js)
             } catch (error) {
                 console.error('Avatar upload error:', error);
                 alert('Failed to upload avatar: ' + error.message);
@@ -685,7 +719,7 @@
                 const result = await uploadImage(file);
                 bannerBlossomUrl = result.blossom_url;
                 URL.revokeObjectURL(localPreview);
-                preview.innerHTML = `<img src="${bannerBlossomUrl}" style="width:100%;height:100%;object-fit:cover;"><span style="position:absolute;bottom:4px;right:4px;background:#22c55e;color:white;font-size:10px;padding:2px 6px;border-radius:4px;">Uploaded</span>`;
+                preview.innerHTML = `<img src="${bannerBlossomUrl}" style="width:100%;height:100%;object-fit:cover;"><span style="position:absolute;bottom:4px;right:4px;background:#22c55e;color:white;font-size:10px;padding:2px 6px;border-radius:4px;">Uploaded</span>`; // eq-allow: dead script under router (see settings.js)
             } catch (error) {
                 console.error('Banner upload error:', error);
                 alert('Failed to upload banner: ' + error.message);
@@ -799,7 +833,7 @@
         function renderRelays() {
             const container = document.getElementById('relay-list');
             if (relays.length === 0) {
-                container.innerHTML = '<p style="color: rgba(255,255,255,0.4); font-size: 13px;">No relays configured</p>';
+                container.innerHTML = '<p style="color: rgba(255,255,255,0.4); font-size: 13px;">No relays configured</p>'; // eq-allow: dead script under router (see settings.js)
                 return;
             }
 

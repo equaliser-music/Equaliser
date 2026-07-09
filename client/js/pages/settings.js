@@ -107,12 +107,12 @@
             // Show existing avatar
             if (profile.picture) {
                 const preview = document.getElementById('avatar-preview');
-                if (preview) preview.innerHTML = `<img src="${profile.picture}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='<span style=\\'font-size:28px;color:rgba(255,255,255,0.3)\\'>+</span>'">`;
+                if (preview) preview.innerHTML = `<img src="${profile.picture}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='<span class=\\'eq-avatar-plus-icon\\'>+</span>'">`;
             }
             // Show existing banner
             if (profile.banner) {
                 const preview = document.getElementById('banner-preview');
-                if (preview) preview.innerHTML = `<img src="${profile.banner}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='<span style=\\'font-size:14px;color:rgba(255,255,255,0.3)\\'>Click to upload banner</span>'">`;
+                if (preview) preview.innerHTML = `<img src="${profile.banner}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='<span class=\\'eq-banner-placeholder-text\\'>Click to upload banner</span>'">`;
             }
         },
 
@@ -142,7 +142,7 @@
                 const result = await this._uploadImage(file);
                 this._avatarBlossomUrl = result.blossom_url;
                 URL.revokeObjectURL(localPreview);
-                preview.innerHTML = `<img src="${this._avatarBlossomUrl}" style="width:100%;height:100%;object-fit:cover;"><span style="position:absolute;bottom:4px;right:4px;background:#22c55e;color:white;font-size:10px;padding:2px 6px;border-radius:4px;">Uploaded</span>`;
+                preview.innerHTML = `<img src="${this._avatarBlossomUrl}" style="width:100%;height:100%;object-fit:cover;"><span class="eq-upload-badge" style="position:absolute;bottom:4px;right:4px;font-size:10px;padding:2px 6px;">Uploaded</span>`;
             } catch (error) {
                 console.error('Avatar upload error:', error);
                 alert('Failed to upload avatar: ' + error.message);
@@ -162,7 +162,7 @@
                 const result = await this._uploadImage(file);
                 this._bannerBlossomUrl = result.blossom_url;
                 URL.revokeObjectURL(localPreview);
-                preview.innerHTML = `<img src="${this._bannerBlossomUrl}" style="width:100%;height:100%;object-fit:cover;"><span style="position:absolute;bottom:4px;right:4px;background:#22c55e;color:white;font-size:10px;padding:2px 6px;border-radius:4px;">Uploaded</span>`;
+                preview.innerHTML = `<img src="${this._bannerBlossomUrl}" style="width:100%;height:100%;object-fit:cover;"><span class="eq-upload-badge" style="position:absolute;bottom:4px;right:4px;font-size:10px;padding:2px 6px;">Uploaded</span>`;
             } catch (error) {
                 console.error('Banner upload error:', error);
                 alert('Failed to upload banner: ' + error.message);
@@ -267,7 +267,7 @@
             const container = document.getElementById('relay-list');
             if (!container) return;
             if (this._relays.length === 0) {
-                container.innerHTML = '<p style="color: rgba(255,255,255,0.4); font-size: 13px;">No relays configured</p>';
+                container.innerHTML = '<p class="eq-relay-hint">No relays configured</p>';
                 return;
             }
 

@@ -229,4 +229,6 @@
   --eq-grad-playlist-cover: linear-gradient(135deg, #1a1a2e, #2d1b69);
   --eq-danger-vivid: #ff6b6b;
   --eq-danger-vivid-soft-15: rgba(255,59,48,0.15);
+  /* extended (Phase A) — batch A12 (client/settings.html) */
+  --eq-success-soft-30: rgba(34,197,94,0.3);
 }
