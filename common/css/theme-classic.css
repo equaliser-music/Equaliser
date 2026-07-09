@@ -275,4 +275,7 @@
   --eq-blue-soft-02: rgba(59,130,246,0.02);
   --eq-blue-soft-30: rgba(59,130,246,0.3);
   --eq-grad-found-banner-info: linear-gradient(135deg, var(--eq-blue-soft-08), var(--eq-blue-soft-02));
+  /* extended (Phase A) — batch A16 */
+  --eq-blue: #3b82f6;
+  --eq-orange-soft-20: rgba(249,115,22,0.2);
 }

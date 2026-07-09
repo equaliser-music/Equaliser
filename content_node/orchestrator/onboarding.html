@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Equaliser - Onboarding</title>
+    <link id="eq-theme" rel="stylesheet" href="/common/css/theme-classic.css?v=1">
+    <script src="/common/js/theme.js?v=1"></script>
     <style>
         * {
             margin: 0;
@@ -12,9 +14,9 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
-            color: #ffffff;
+            font-family: var(--eq-font-body);
+            background: var(--eq-bg-app);
+            color: var(--eq-text-1);
             min-height: 100vh;
             padding: 40px 20px;
         }
@@ -32,14 +34,14 @@
         .logo h1 {
             font-size: 32px;
             font-weight: 700;
-            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            background: var(--eq-grad-accent);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
         .logo p {
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             margin-top: 8px;
         }
 
@@ -54,24 +56,24 @@
         .progress-step {
             width: 40px;
             height: 4px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 2px;
-            transition: background 0.3s;
+            background: var(--eq-border-10);
+            border-radius: var(--eq-radius-2px);
+            transition: background var(--eq-dur-med);
         }
 
         .progress-step.active {
-            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            background: var(--eq-grad-accent);
         }
 
         .progress-step.completed {
-            background: #22c55e;
+            background: var(--eq-success-2);
         }
 
         /* Card */
         .card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
+            background: var(--eq-surface-1);
+            border: var(--eq-divider);
+            border-radius: var(--eq-radius-2xl);
             padding: 32px;
             margin-bottom: 24px;
         }
@@ -83,7 +85,7 @@
         }
 
         .card-description {
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             margin-bottom: 24px;
             line-height: 1.6;
         }
@@ -107,28 +109,28 @@
             font-size: 14px;
             font-weight: 500;
             margin-bottom: 8px;
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--eq-text-strong);
         }
 
         .form-input {
             width: 100%;
             padding: 12px 16px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            color: #ffffff;
+            background: var(--eq-surface-2);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-lg);
+            color: var(--eq-text-1);
             font-size: 14px;
-            transition: all 0.2s;
+            transition: all var(--eq-dur-quick);
         }
 
         .form-input:focus {
             outline: none;
-            border-color: #8b5cf6;
-            background: rgba(139, 92, 246, 0.1);
+            border-color: var(--eq-accent-2);
+            background: var(--eq-accent-soft-10);
         }
 
         .form-input::placeholder {
-            color: rgba(255, 255, 255, 0.3);
+            color: var(--eq-text-faint);
         }
 
         textarea.form-input {
@@ -138,15 +140,15 @@
 
         .form-hint {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
             margin-top: 6px;
         }
 
         /* Key Display */
         .key-display {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
+            background: var(--eq-scrim-soft);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-lg);
             padding: 16px;
             margin-bottom: 16px;
             position: relative;
@@ -156,20 +158,20 @@
             font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             margin-bottom: 8px;
         }
 
         .key-value {
-            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-family: var(--eq-font-mono);
             font-size: 13px;
             word-break: break-all;
             line-height: 1.5;
-            color: #a855f7;
+            color: var(--eq-accent);
         }
 
         .key-value.private {
-            color: #f97316;
+            color: var(--eq-orange);
         }
 
         .copy-btn {
@@ -177,28 +179,28 @@
             top: 12px;
             right: 12px;
             padding: 6px 12px;
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--eq-border-10);
             border: none;
-            border-radius: 6px;
-            color: #ffffff;
+            border-radius: var(--eq-radius-sm);
+            color: var(--eq-text-1);
             font-size: 12px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--eq-dur-quick);
         }
 
         .copy-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: var(--eq-border-20);
         }
 
         .copy-btn.copied {
-            background: #22c55e;
+            background: var(--eq-success-2);
         }
 
         /* Warning Box */
         .warning {
-            background: rgba(249, 115, 22, 0.1);
-            border: 1px solid rgba(249, 115, 22, 0.3);
-            border-radius: 10px;
+            background: var(--eq-orange-soft-10);
+            border: 1px solid var(--eq-orange-soft-30);
+            border-radius: var(--eq-radius-lg);
             padding: 16px;
             margin-bottom: 20px;
         }
@@ -208,13 +210,13 @@
             align-items: center;
             gap: 8px;
             font-weight: 600;
-            color: #f97316;
+            color: var(--eq-orange);
             margin-bottom: 8px;
         }
 
         .warning-text {
             font-size: 14px;
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--eq-text-2);
             line-height: 1.6;
         }
 
@@ -224,8 +226,8 @@
             align-items: flex-start;
             gap: 12px;
             padding: 16px;
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 10px;
+            background: var(--eq-surface-0);
+            border-radius: var(--eq-radius-lg);
             margin-bottom: 16px;
             cursor: pointer;
         }
@@ -233,14 +235,14 @@
         .checkbox-group input {
             width: 20px;
             height: 20px;
-            accent-color: #8b5cf6;
+            accent-color: var(--eq-accent-2);
             cursor: pointer;
         }
 
         .checkbox-label {
             font-size: 14px;
             line-height: 1.5;
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--eq-text-strong);
         }
 
         /* Buttons */
@@ -251,22 +253,22 @@
             gap: 8px;
             padding: 14px 28px;
             border: none;
-            border-radius: 10px;
+            border-radius: var(--eq-radius-lg);
             font-weight: 600;
             font-size: 14px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--eq-dur-quick);
             width: 100%;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #8b5cf6, #a855f7);
-            color: #ffffff;
+            background: var(--eq-grad-accent);
+            color: var(--eq-text-1);
         }
 
         .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+            box-shadow: var(--eq-shadow-glow);
         }
 
         .btn-primary:disabled {
@@ -275,13 +277,13 @@
         }
 
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.05);
-            color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: var(--eq-surface-2);
+            color: var(--eq-text-1);
+            border: var(--eq-border);
         }
 
         .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--eq-border-10);
         }
 
         .btn-group {
@@ -304,47 +306,47 @@
             align-items: center;
             gap: 12px;
             padding: 12px;
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 8px;
+            background: var(--eq-surface-0);
+            border-radius: var(--eq-radius-md);
             margin-bottom: 8px;
         }
 
         .relay-item input[type="checkbox"] {
             width: 18px;
             height: 18px;
-            accent-color: #8b5cf6;
+            accent-color: var(--eq-accent-2);
         }
 
         .relay-url {
             flex: 1;
-            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-family: var(--eq-font-mono);
             font-size: 13px;
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--eq-text-2);
         }
 
         .relay-status {
             font-size: 11px;
             padding: 4px 8px;
-            border-radius: 4px;
-            background: rgba(255, 255, 255, 0.1);
+            border-radius: var(--eq-radius-xs);
+            background: var(--eq-border-10);
         }
 
         .relay-status.connected {
-            background: rgba(34, 197, 94, 0.2);
-            color: #22c55e;
+            background: var(--eq-success-soft-20);
+            color: var(--eq-success-2);
         }
 
         .relay-status.disconnected {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
+            background: var(--eq-danger-soft-20);
+            color: var(--eq-danger);
         }
 
         /* Success State */
         .success-icon {
             width: 80px;
             height: 80px;
-            background: rgba(34, 197, 94, 0.2);
-            border-radius: 50%;
+            background: var(--eq-success-soft-20);
+            border-radius: var(--eq-radius-round);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -354,7 +356,7 @@
         .success-icon svg {
             width: 40px;
             height: 40px;
-            color: #22c55e;
+            color: var(--eq-success-2);
         }
 
         /* Genre Tags */
@@ -367,21 +369,21 @@
 
         .genre-tag {
             padding: 6px 12px;
-            background: rgba(139, 92, 246, 0.2);
-            border: 1px solid rgba(139, 92, 246, 0.3);
-            border-radius: 20px;
+            background: var(--eq-accent-soft-20);
+            border: 1px solid var(--eq-accent-soft-hover);
+            border-radius: var(--eq-radius-3xl);
             font-size: 13px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--eq-dur-quick);
         }
 
         .genre-tag:hover {
-            background: rgba(139, 92, 246, 0.3);
+            background: var(--eq-accent-soft-hover);
         }
 
         .genre-tag.selected {
-            background: #8b5cf6;
-            border-color: #8b5cf6;
+            background: var(--eq-accent-2);
+            border-color: var(--eq-accent-2);
         }
 
         .genre-tag .remove {
@@ -394,10 +396,10 @@
             display: inline-block;
             width: 16px;
             height: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top-color: #ffffff;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+            border: 2px solid var(--eq-text-faint);
+            border-top-color: var(--eq-text-1);
+            border-radius: var(--eq-radius-round);
+            animation: spin var(--eq-dur-spin) linear infinite;
         }
 
         @keyframes spin {
@@ -417,21 +419,21 @@
             content: '';
             flex: 1;
             height: 1px;
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--eq-border-10);
         }
 
         .divider span {
             font-size: 13px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
             text-transform: uppercase;
             letter-spacing: 1px;
         }
 
         /* Login Section */
         .login-section {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
+            background: var(--eq-surface-0);
+            border: var(--eq-divider);
+            border-radius: var(--eq-radius-xl);
             padding: 24px;
         }
 
@@ -443,7 +445,7 @@
 
         .login-description {
             font-size: 14px;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             margin-bottom: 16px;
             line-height: 1.5;
         }
@@ -457,15 +459,15 @@
         }
 
         .file-upload-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--eq-border-10);
         }
 
         /* Publishing Status */
         .publish-status {
             margin-top: 16px;
             padding: 16px;
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 10px;
+            background: var(--eq-surface-0);
+            border-radius: var(--eq-radius-lg);
         }
 
         .publish-status-item {
@@ -485,31 +487,31 @@
         }
 
         .publish-status-item.pending .status-icon {
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
         }
 
         .publish-status-item.connecting .status-icon {
-            color: #fbbf24;
+            color: var(--eq-amber-400);
         }
 
         .publish-status-item.success .status-icon {
-            color: #22c55e;
+            color: var(--eq-success-2);
         }
 
         .publish-status-item.error .status-icon {
-            color: #ef4444;
+            color: var(--eq-danger);
         }
 
         .publish-status-item .relay-url {
             flex: 1;
-            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-family: var(--eq-font-mono);
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--eq-text-2);
         }
 
         .publish-status-item .status-text {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
         }
 
         /* Responsive */
@@ -517,6 +519,26 @@
             .btn-group {
                 flex-direction: column;
             }
+        }
+
+        /* === eq extracted inline styles (A16) === */
+        .eq-join-link { color: var(--eq-accent); }
+        .eq-invite-error {
+            padding: 12px 16px;
+            border-radius: var(--eq-radius-lg);
+            background: var(--eq-danger-soft-12);
+            color: var(--eq-danger-light);
+            border: 1px solid var(--eq-danger-soft-20);
+            font-size: 14px;
+            margin-top: 16px;
+        }
+        .eq-invite-preview {
+            padding: 14px;
+            border-radius: var(--eq-radius-lg);
+            background: var(--eq-accent-tint-08);
+            border: 1px solid var(--eq-accent-tint-25);
+            margin-bottom: 16px;
+            font-size: 13px;
         }
     </style>
 </head>
@@ -537,17 +559,17 @@
                     This node is invite-only. Paste the invite code you received from a label or operator to begin onboarding.
                 </p>
                 <p class="card-description" style="margin-top:8px">
-                    Don't have one yet? <a href="/join" style="color:#a855f7">Apply for access</a>.
+                    Don't have one yet? <a href="/join" class="eq-join-link">Apply for access</a>.
                 </p>
 
-                <div id="invite-error" style="display:none; padding:12px 16px; border-radius:10px; background:rgba(239,68,68,0.12); color:#fca5a5; border:1px solid rgba(239,68,68,0.2); font-size:14px; margin-top:16px"></div>
+                <div id="invite-error" class="eq-invite-error" style="display:none"></div>
 
                 <div class="form-group" style="margin-top:20px">
                     <label class="form-label">Invite Code</label>
                     <input type="text" class="form-input" id="invite-code-input" placeholder="12-char hex code" autocomplete="off" maxlength="12">
                 </div>
 
-                <div id="invite-preview" style="display:none; padding:14px; border-radius:10px; background:rgba(168,85,247,0.08); border:1px solid rgba(168,85,247,0.25); margin-bottom:16px; font-size:13px"></div>
+                <div id="invite-preview" class="eq-invite-preview" style="display:none"></div>
 
                 <button class="btn btn-primary" id="invite-check-btn" onclick="checkInviteCode()">Continue</button>
             </div>
