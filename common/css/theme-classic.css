@@ -293,4 +293,8 @@
   --eq-scrim-20: rgba(0,0,0,0.2);
   --eq-grad-dup-progress: linear-gradient(90deg, #8b5cf6, #6d28d9);
   --eq-shadow-glow-release: 0 4px 20px rgba(34,197,94,0.4);
+  /* extended (Phase A) — batch A19 (content_node/orchestrator/profile.html) */
+  --eq-amber-soft-90: rgba(251,191,36,0.9);
+  --eq-success-soft-90: rgba(34,197,94,0.9);
+  --eq-danger-soft-90: rgba(239,68,68,0.9);
 }
