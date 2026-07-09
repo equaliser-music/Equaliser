@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Equaliser - IPFS Storage</title>
-    <link rel="stylesheet" href="css/admin-base.css">
+    <link rel="stylesheet" href="/common/css/admin-base.css?v=1">
     <style>
         .stat-grid {
             display: grid;
@@ -13,25 +13,28 @@
             margin-bottom: 24px;
         }
         .stat-tile {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
+            background: var(--eq-surface-1);
+            border: var(--eq-divider);
+            border-radius: var(--eq-radius-xl);
             padding: 18px;
         }
         .stat-tile .stat-value { font-size: 22px; font-weight: 700; }
-        .stat-tile .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255, 255, 255, 0.5); margin-top: 4px; }
+        .stat-tile .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--eq-text-3); margin-top: 4px; }
         .id-row {
-            background: rgba(255, 255, 255, 0.02);
+            background: var(--eq-surface-0);
             padding: 14px 18px;
-            border-radius: 10px;
+            border-radius: var(--eq-radius-lg);
             margin-bottom: 16px;
-            font-family: monospace;
+            font-family: var(--eq-font-mono-generic);
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.6);
+            color: var(--eq-text-2-dim);
             word-break: break-all;
         }
-        .pin-cell { font-family: monospace; font-size: 12px; color: #c4b5fd; }
+        .pin-cell { font-family: var(--eq-font-mono-generic); font-size: 12px; color: var(--eq-role-artist-text); }
         .section h2 { font-size: 18px; font-weight: 600; margin: 24px 0 12px; }
+        /* === eq extracted inline styles (A13) === */
+        .eq-strong-label { color: var(--eq-text-2); font-family: inherit; font-weight: 600; }
+        .eq-muted-14 { color: var(--eq-text-4); font-size: 14px; font-weight: 400; }
     </style>
 </head>
 <body>
@@ -94,9 +97,9 @@
 
             document.getElementById('content').innerHTML = `
                 <div class="id-row" data-testid="ipfs-peer-id">
-                    <strong style="color:rgba(255,255,255,0.7); font-family: inherit; font-weight:600">Peer ID:</strong> ${escapeHtml(data.peer_id || '—')}
-                    ${data.agent_version ? `<br><strong style="color:rgba(255,255,255,0.7); font-family: inherit; font-weight:600">Agent:</strong> ${escapeHtml(data.agent_version)}` : ''}
-                    <br><strong style="color:rgba(255,255,255,0.7); font-family: inherit; font-weight:600">API URL:</strong> ${escapeHtml(data.api_url || '')}
+                    <strong class="eq-strong-label">Peer ID:</strong> ${escapeHtml(data.peer_id || '—')}
+                    ${data.agent_version ? `<br><strong class="eq-strong-label">Agent:</strong> ${escapeHtml(data.agent_version)}` : ''}
+                    <br><strong class="eq-strong-label">API URL:</strong> ${escapeHtml(data.api_url || '')}
                 </div>
 
                 <div class="stat-grid" data-testid="ipfs-stats">
@@ -109,7 +112,7 @@
                 </div>
 
                 <div class="section">
-                    <h2>Recent Pinned CIDs <span style="color:rgba(255,255,255,0.4); font-size:14px; font-weight:400">(sample of ${(data.pins_sample || []).length})</span></h2>
+                    <h2>Recent Pinned CIDs <span class="eq-muted-14">(sample of ${(data.pins_sample || []).length})</span></h2>
                     ${(data.pins_sample || []).length === 0 ? `
                         <div class="empty-state"><h3>No pinned content</h3><p>Pinned CIDs will appear here once tracks are uploaded.</p></div>
                     ` : `

@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Equaliser - Node Settings</title>
-    <link rel="stylesheet" href="css/admin-base.css">
+    <link rel="stylesheet" href="/common/css/admin-base.css?v=1">
     <style>
         .settings-section {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
+            background: var(--eq-surface-1);
+            border: var(--eq-divider);
+            border-radius: var(--eq-radius-xl);
             padding: 20px 24px;
             margin-bottom: 16px;
         }
@@ -17,26 +17,26 @@
             font-size: 16px;
             font-weight: 600;
             margin-bottom: 16px;
-            color: rgba(255, 255, 255, 0.9);
+            color: var(--eq-text-90);
         }
         .setting-row {
             display: grid;
             grid-template-columns: 220px 1fr;
             gap: 16px;
             padding: 10px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            border-bottom: 1px solid var(--eq-surface-0-hover);
         }
         .setting-row:last-child { border-bottom: none; }
-        .setting-key { color: rgba(255, 255, 255, 0.6); font-size: 13px; font-weight: 500; }
-        .setting-value { font-family: monospace; font-size: 13px; word-break: break-all; }
-        .setting-value.empty { color: rgba(255, 255, 255, 0.3); font-style: italic; font-family: inherit; }
+        .setting-key { color: var(--eq-text-2-dim); font-size: 13px; font-weight: 500; }
+        .setting-value { font-family: var(--eq-font-mono-generic); font-size: 13px; word-break: break-all; }
+        .setting-value.empty { color: var(--eq-text-faint); font-style: italic; font-family: inherit; }
         .setting-list { display: flex; flex-direction: column; gap: 4px; }
         .read-only-banner {
-            background: rgba(59, 130, 246, 0.1);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            color: #93c5fd;
+            background: var(--eq-blue-soft-10);
+            border: 1px solid var(--eq-blue-soft-20);
+            color: var(--eq-role-label-text);
             padding: 12px 16px;
-            border-radius: 10px;
+            border-radius: var(--eq-radius-lg);
             margin-bottom: 24px;
             font-size: 14px;
         }

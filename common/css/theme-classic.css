@@ -231,4 +231,26 @@
   --eq-danger-vivid-soft-15: rgba(255,59,48,0.15);
   /* extended (Phase A) — batch A12 (client/settings.html) */
   --eq-success-soft-30: rgba(34,197,94,0.3);
+  /* extended (Phase A) — batch A13 (admin: common/css/admin-base.css + operator pages) */
+  --eq-grad-success: linear-gradient(135deg, #10b981, #34d399);
+  --eq-shadow-glow-success: 0 4px 20px rgba(16,185,129,0.4);
+  --eq-danger-soft-25: rgba(239,68,68,0.25);
+  --eq-radius-14: 14px;
+  --eq-font-mono-sf: 'SF Mono', 'Monaco', monospace;
+  --eq-amber-soft-20: rgba(251,191,36,0.2);
+  --eq-amber-light: #fcd34d;
+  --eq-accent-tint-20: rgba(168,85,247,0.2);
+  --eq-accent-tint-08: rgba(168,85,247,0.08);
+  --eq-blue-soft-05: rgba(59,130,246,0.05);
+  --eq-blue-soft-10: rgba(59,130,246,0.1);
+  --eq-blue-soft-12: rgba(59,130,246,0.12);
+  --eq-blue-soft-15: rgba(59,130,246,0.15);
+  --eq-blue-soft-20: rgba(59,130,246,0.2);
+  --eq-blur-4: blur(4px);
+  --eq-grad-modal: linear-gradient(135deg, #1a1a2e 0%, #0f0f19 100%);
+  --eq-scrim-40: rgba(0,0,0,0.4);
+  --eq-grad-future-card: linear-gradient(135deg, var(--eq-accent-tint-08), var(--eq-blue-soft-05));
+  --eq-emerald-light: #34d399;
+  --eq-shadow-dot-ok: 0 0 8px rgba(52,211,153,0.6);
+  --eq-red-400: #f87171;
 }

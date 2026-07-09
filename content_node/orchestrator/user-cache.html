@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Equaliser - User Cache</title>
-    <link rel="stylesheet" href="css/admin-base.css">
+    <link rel="stylesheet" href="/common/css/admin-base.css?v=1">
     <style>
         .pagination {
             display: flex;
@@ -12,10 +12,12 @@
             align-items: center;
             margin-top: 16px;
             padding: 12px;
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 8px;
+            background: var(--eq-surface-0);
+            border-radius: var(--eq-radius-md);
         }
-        .pagination .page-info { color: rgba(255, 255, 255, 0.5); font-size: 13px; }
+        .pagination .page-info { color: var(--eq-text-3); font-size: 13px; }
+        /* === eq extracted inline styles (A13) === */
+        .eq-dim-13, .data-table td.eq-dim-13 { color: var(--eq-text-3); font-size: 13px; }
     </style>
 </head>
 <body>
@@ -122,8 +124,8 @@
                 <tr>
                     <td><span class="pubkey-cell" title="${escapeHtml(npub)}">${escapeHtml(shortNpub)}</span></td>
                     <td><span class="pubkey-cell" title="${escapeHtml(pubkey)}">${escapeHtml(shortPub)}</span></td>
-                    <td style="color:rgba(255,255,255,0.5); font-size:13px">${registered}</td>
-                    <td style="color:rgba(255,255,255,0.5); font-size:13px">${lastSeen}</td>
+                    <td class="eq-dim-13">${registered}</td>
+                    <td class="eq-dim-13">${lastSeen}</td>
                     <td><span class="badge ${enabled ? 'badge-active' : 'badge-suspended'}">${enabled ? 'enabled' : 'disabled'}</span></td>
                 </tr>
             `;

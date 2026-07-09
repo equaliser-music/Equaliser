@@ -4,29 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Equaliser - Blossom Config</title>
-    <link rel="stylesheet" href="css/admin-base.css">
+    <link rel="stylesheet" href="/common/css/admin-base.css?v=1">
     <style>
         .info-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 14px 18px;
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 8px;
+            background: var(--eq-surface-0);
+            border-radius: var(--eq-radius-md);
             margin-bottom: 8px;
         }
-        .info-row .info-label { color: rgba(255, 255, 255, 0.5); font-size: 13px; }
-        .info-row .info-value { font-family: monospace; font-size: 13px; }
+        .info-row .info-label { color: var(--eq-text-3); font-size: 13px; }
+        .info-row .info-value { font-family: var(--eq-font-mono-generic); font-size: 13px; }
         .future-card {
-            background: linear-gradient(135deg, rgba(168, 85, 247, 0.08), rgba(59, 130, 246, 0.05));
-            border: 1px solid rgba(168, 85, 247, 0.2);
-            border-radius: 12px;
+            background: var(--eq-grad-future-card);
+            border: 1px solid var(--eq-accent-tint-20);
+            border-radius: var(--eq-radius-xl);
             padding: 24px;
             margin-top: 24px;
         }
-        .future-card h3 { font-size: 16px; margin-bottom: 8px; color: #c4b5fd; }
-        .future-card p { font-size: 14px; color: rgba(255, 255, 255, 0.7); margin-bottom: 8px; }
-        .future-card ul { margin: 8px 0 0 20px; color: rgba(255, 255, 255, 0.6); font-size: 13px; }
+        .future-card h3 { font-size: 16px; margin-bottom: 8px; color: var(--eq-role-artist-text); }
+        .future-card p { font-size: 14px; color: var(--eq-text-2); margin-bottom: 8px; }
+        .future-card ul { margin: 8px 0 0 20px; color: var(--eq-text-2-dim); font-size: 13px; }
+        /* === eq extracted inline styles (A13) === */
+        .eq-muted-inherit { color: var(--eq-text-4); font-family: inherit; }
     </style>
 </head>
 <body>
@@ -86,7 +88,7 @@
                     </div>
                     <div class="info-row">
                         <span class="info-label">Public URL</span>
-                        <span class="info-value">${data.public_url ? escapeHtml(data.public_url) : '<span style="color:rgba(255,255,255,0.4); font-family:inherit">not configured</span>'}</span>
+                        <span class="info-value">${data.public_url ? escapeHtml(data.public_url) : '<span class="eq-muted-inherit">not configured</span>'}</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Status</span>

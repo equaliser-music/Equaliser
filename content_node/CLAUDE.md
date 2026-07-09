@@ -243,11 +243,11 @@ Conventions to preserve:
 - Use `SessionManager.authFetch` for all API calls — it adds NIP-98 auth automatically
 - Pages that scope by artist read `SessionManager.getSelectedArtistPubkey()` and listen for `window.addEventListener('equaliser:artist-switched', ...)` to refresh on switch
 - The first paint may briefly show `role='artist'` (the sessionStorage fallback) before `fetchRole()` resolves — gate role-sensitive UI on `SessionManager.getRole()` being non-null and the awaited fetchRole
-- Reference `css/admin-base.css` for shared styles; add page-specific CSS in a per-page `<style>` block
+- Reference `/common/css/admin-base.css` for shared styles; add page-specific CSS in a per-page `<style>` block
 
 ### Shared admin CSS
 
-`content_node/orchestrator/css/admin-base.css` is referenced by Phase D pages (and any new admin page going forward). Existing admin pages keep their inline `<style>` blocks for historical reasons — don't refactor them as part of unrelated work. Page-specific styles still go in a per-page `<style>` block; only common patterns (buttons, tables, modals, badges, layout) belong in the shared sheet.
+`common/css/admin-base.css` (moved from `content_node/orchestrator/css/` in batch A13; mounted at `/common/` by nginx, sibling of `client/`/`content_node/`) is referenced by Phase D pages (and any new admin page going forward). Existing admin pages keep their inline `<style>` blocks for historical reasons — don't refactor them as part of unrelated work. Page-specific styles still go in a per-page `<style>` block; only common patterns (buttons, tables, modals, badges, layout) belong in the shared sheet.
 
 ## Config Files
 

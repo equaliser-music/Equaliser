@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Equaliser - Node Overview</title>
-    <link rel="stylesheet" href="css/admin-base.css">
+    <link rel="stylesheet" href="/common/css/admin-base.css?v=1">
     <style>
         .stat-grid {
             display: grid;
@@ -13,24 +13,24 @@
             margin-bottom: 32px;
         }
         .stat-tile {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
+            background: var(--eq-surface-1);
+            border: var(--eq-divider);
+            border-radius: var(--eq-radius-xl);
             padding: 20px;
         }
         .stat-tile .stat-value { font-size: 28px; font-weight: 700; }
-        .stat-tile .stat-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255, 255, 255, 0.5); margin-top: 4px; }
+        .stat-tile .stat-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--eq-text-3); margin-top: 4px; }
         .node-meta {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
+            background: var(--eq-surface-1);
+            border: var(--eq-divider);
+            border-radius: var(--eq-radius-xl);
             padding: 20px;
             margin-bottom: 24px;
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 20px;
         }
-        .node-meta .meta-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255, 255, 255, 0.4); margin-bottom: 4px; }
+        .node-meta .meta-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--eq-text-4); margin-bottom: 4px; }
         .node-meta .meta-value { font-size: 15px; }
         .services-section { margin-top: 24px; }
         .services-section h2 { font-size: 18px; font-weight: 600; margin-bottom: 12px; }
@@ -39,16 +39,18 @@
             justify-content: space-between;
             align-items: center;
             padding: 14px 16px;
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 8px;
+            background: var(--eq-surface-0);
+            border-radius: var(--eq-radius-md);
             margin-bottom: 6px;
         }
         .service-name { font-weight: 600; }
-        .service-url { font-family: monospace; font-size: 12px; color: rgba(255, 255, 255, 0.5); margin-top: 2px; }
-        .health-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; }
-        .health-dot.ok { background: #34d399; box-shadow: 0 0 8px rgba(52, 211, 153, 0.6); }
-        .health-dot.error { background: #fca5a5; }
-        .health-dot.unreachable { background: #f87171; }
+        .service-url { font-family: var(--eq-font-mono-generic); font-size: 12px; color: var(--eq-text-3); margin-top: 2px; }
+        .health-dot { width: 10px; height: 10px; border-radius: var(--eq-radius-round); display: inline-block; margin-right: 8px; }
+        .health-dot.ok { background: var(--eq-emerald-light); box-shadow: var(--eq-shadow-dot-ok); }
+        .health-dot.error { background: var(--eq-danger-light); }
+        .health-dot.unreachable { background: var(--eq-red-400); }
+        /* === eq extracted inline styles (A13) === */
+        .eq-muted { color: var(--eq-text-4); }
     </style>
 </head>
 <body>
@@ -124,7 +126,7 @@
                     </div>
                     <div>
                         <div class="meta-label">Public Base URL</div>
-                        <div class="meta-value">${data.public_base_url ? escapeHtml(data.public_base_url) : '<span style="color:rgba(255,255,255,0.4)">not configured</span>'}</div>
+                        <div class="meta-value">${data.public_base_url ? escapeHtml(data.public_base_url) : '<span class="eq-muted">not configured</span>'}</div>
                     </div>
                 </div>
 
