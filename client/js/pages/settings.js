@@ -35,12 +35,16 @@
             window.handleLogout = () => this._handleLogout();
             window.handleAvatarUpload = (e) => this._handleAvatarUpload(e);
             window.handleBannerUpload = (e) => this._handleBannerUpload(e);
+            window.handleThemeChange = (value) => this._handleThemeChange(value);
 
             const session = SessionManager.getSession();
             const npubEl = document.getElementById('account-npub');
             if (npubEl) npubEl.textContent = session.npub;
             const hintEl = document.getElementById('nip05-pubkey-hint');
             if (hintEl) hintEl.textContent = session.publicKey;
+
+            const themeSelect = document.getElementById('theme-select');
+            if (themeSelect && window.EqTheme) themeSelect.value = window.EqTheme.get();
 
             Promise.all([this._loadProfile(), this._loadRelayList()]);
         },
@@ -56,6 +60,7 @@
             delete window.handleLogout;
             delete window.handleAvatarUpload;
             delete window.handleBannerUpload;
+            delete window.handleThemeChange;
             this._currentProfile = {};
             this._relays = [];
             this._avatarBlossomUrl = null;
@@ -398,6 +403,10 @@
         _handleLogout() {
             SessionManager.logout();
             window.location.href = '/home.html';
+        },
+
+        _handleThemeChange(value) {
+            if (window.EqTheme) window.EqTheme.set(value);
         },
 
         // ===== Helpers =====

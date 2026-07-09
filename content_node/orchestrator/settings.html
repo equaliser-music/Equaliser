@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Equaliser - Settings</title>
+    <link id="eq-theme" rel="stylesheet" href="/common/css/theme-classic.css?v=1">
+    <script src="/common/js/theme.js?v=1"></script>
     <style>
         * {
             margin: 0;
@@ -890,6 +892,25 @@
                     <p class="form-hint" style="margin: 0; align-self: center;">Save your keys securely. Required to restore your identity.</p>
                 </div>
             </div>
+
+            <!-- Appearance Section -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <svg fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 14a6 6 0 010-12v12z"/></svg>
+                        Appearance
+                    </h2>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Theme</label>
+                    <select class="form-input" id="theme-select" onchange="handleThemeChange(this.value)">
+                        <option value="classic">Classic</option>
+                        <option value="signal">Signal</option>
+                    </select>
+                    <p class="form-hint">Choose how the admin interface looks on this device. Signal is a stark, ink-on-paper look.</p>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -931,6 +952,10 @@
             document.getElementById('user-npub-display').value = session.npub;
             document.getElementById('user-hex-display').value = session.publicKey;
             document.getElementById('session-type-display').value = session.type === 'extension' ? 'NIP-07 Browser Extension' : 'Manual (nsec)';
+
+            // Reflect current theme
+            const themeSelect = document.getElementById('theme-select');
+            if (themeSelect && window.EqTheme) themeSelect.value = window.EqTheme.get();
 
             // Fetch existing relay list
             await fetchExistingRelayList(session.publicKey);
@@ -1611,6 +1636,10 @@
                 console.error('Backup download failed:', err);
                 alert('Failed to download backup: ' + err.message);
             }
+        }
+
+        function handleThemeChange(value) {
+            if (window.EqTheme) window.EqTheme.set(value);
         }
 
         async function publishToRelay(relayUrl, signedEvent) {

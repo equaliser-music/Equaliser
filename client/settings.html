@@ -546,6 +546,25 @@
                 <div class="status-msg" id="relay-status"></div>
             </div>
 
+            <!-- Appearance -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <div class="section-title">
+                        <svg fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 14a6 6 0 010-12v12z"/></svg>
+                        Appearance
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Theme</label>
+                    <select class="form-input" id="theme-select" onchange="handleThemeChange(this.value)">
+                        <option value="classic">Classic</option>
+                        <option value="signal">Signal</option>
+                    </select>
+                    <p class="form-hint">Choose how Equaliser looks on this device. Signal is a stark, ink-on-paper look.</p>
+                </div>
+            </div>
+
             <!-- Account -->
             <div class="settings-section">
                 <div class="section-header">
@@ -606,6 +625,9 @@
             const session = SessionManager.getSession();
             document.getElementById('account-npub').textContent = session.npub;
             document.getElementById('nip05-pubkey-hint').textContent = session.publicKey;
+
+            const themeSelect = document.getElementById('theme-select');
+            if (themeSelect && window.EqTheme) themeSelect.value = window.EqTheme.get();
 
             // Load existing profile and relay list
             await Promise.all([loadProfile(), loadRelayList()]);
@@ -1016,6 +1038,10 @@
         function handleLogout() {
             SessionManager.logout();
             window.location.href = '/home.html';
+        }
+
+        function handleThemeChange(value) {
+            if (window.EqTheme) window.EqTheme.set(value);
         }
     </script>
 </body>
