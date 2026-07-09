@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Equaliser</title>
+    <link id="eq-theme" rel="stylesheet" href="/common/css/theme-classic.css?v=1">
+    <script src="/common/js/theme.js?v=1"></script>
     <style>
         * {
             margin: 0;
@@ -12,13 +14,13 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0a0a0f 100%);
+            font-family: var(--eq-font-body);
+            background: var(--eq-grad-login-bg);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #ffffff;
+            color: var(--eq-text-1);
             padding: 20px;
         }
 
@@ -35,22 +37,22 @@
         .logo h1 {
             font-size: 32px;
             font-weight: 700;
-            background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+            background: var(--eq-grad-logo-text);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
         .logo p {
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             font-size: 14px;
             margin-top: 8px;
         }
 
         .login-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
+            background: var(--eq-surface-1);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-3xl);
             padding: 32px;
         }
 
@@ -66,16 +68,16 @@
         }
 
         .card-header p {
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             font-size: 14px;
         }
 
         /* Session expired notice */
         .expired-notice {
             display: none;
-            background: rgba(251, 191, 36, 0.1);
-            border: 1px solid rgba(251, 191, 36, 0.3);
-            border-radius: 12px;
+            background: var(--eq-amber-soft-10);
+            border: 1px solid var(--eq-amber-soft-30);
+            border-radius: var(--eq-radius-xl);
             padding: 16px;
             margin-bottom: 24px;
             text-align: center;
@@ -88,12 +90,12 @@
         .expired-notice svg {
             width: 24px;
             height: 24px;
-            color: #fbbf24;
+            color: var(--eq-amber-400);
             margin-bottom: 8px;
         }
 
         .expired-notice p {
-            color: #fbbf24;
+            color: var(--eq-amber-400);
             font-size: 14px;
         }
 
@@ -105,10 +107,10 @@
         .extension-btn {
             width: 100%;
             padding: 16px 24px;
-            background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
+            background: var(--eq-grad-btn-purple);
             border: none;
-            border-radius: 12px;
-            color: #ffffff;
+            border-radius: var(--eq-radius-xl);
+            color: var(--eq-text-1);
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
@@ -116,12 +118,12 @@
             align-items: center;
             justify-content: center;
             gap: 12px;
-            transition: all 0.2s;
+            transition: all var(--eq-dur-quick);
         }
 
         .extension-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(168, 85, 247, 0.3);
+            box-shadow: var(--eq-shadow-btn-purple);
         }
 
         .extension-btn:disabled {
@@ -139,19 +141,19 @@
         .extension-unavailable {
             text-align: center;
             padding: 16px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px dashed rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
+            background: var(--eq-surface-1);
+            border: 1px dashed var(--eq-border-10);
+            border-radius: var(--eq-radius-xl);
         }
 
         .extension-unavailable p {
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             font-size: 14px;
             margin-bottom: 8px;
         }
 
         .extension-unavailable a {
-            color: #a855f7;
+            color: var(--eq-accent);
             text-decoration: none;
             font-size: 13px;
         }
@@ -166,7 +168,7 @@
             align-items: center;
             gap: 16px;
             margin: 24px 0;
-            color: rgba(255, 255, 255, 0.3);
+            color: var(--eq-text-faint);
             font-size: 13px;
         }
 
@@ -175,7 +177,7 @@
             content: '';
             flex: 1;
             height: 1px;
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--eq-border-10);
         }
 
         /* Form elements */
@@ -188,34 +190,34 @@
             font-size: 14px;
             font-weight: 500;
             margin-bottom: 8px;
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--eq-text-2);
         }
 
         .form-input {
             width: 100%;
             padding: 14px 16px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            color: #ffffff;
+            background: var(--eq-surface-input);
+            border: var(--eq-border);
+            border-radius: var(--eq-radius-lg);
+            color: var(--eq-text-1);
             font-size: 15px;
-            font-family: monospace;
-            transition: all 0.2s;
+            font-family: var(--eq-font-mono-generic);
+            transition: all var(--eq-dur-quick);
         }
 
         .form-input:focus {
             outline: none;
-            border-color: #a855f7;
-            background: rgba(139, 92, 246, 0.1);
+            border-color: var(--eq-accent);
+            background: var(--eq-accent-soft-10);
         }
 
         .form-input::placeholder {
-            color: rgba(255, 255, 255, 0.3);
+            color: var(--eq-text-faint);
         }
 
         .form-hint {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
             margin-top: 8px;
         }
 
@@ -225,34 +227,34 @@
             align-items: flex-start;
             gap: 12px;
             padding: 14px;
-            background: rgba(251, 191, 36, 0.1);
-            border: 1px solid rgba(251, 191, 36, 0.2);
-            border-radius: 10px;
+            background: var(--eq-amber-soft-10);
+            border: 1px solid var(--eq-amber-soft-20);
+            border-radius: var(--eq-radius-lg);
             margin-bottom: 20px;
         }
 
         .warning-box svg {
             width: 20px;
             height: 20px;
-            color: #fbbf24;
+            color: var(--eq-amber-400);
             flex-shrink: 0;
             margin-top: 2px;
         }
 
         .warning-text {
             font-size: 13px;
-            color: #fbbf24;
+            color: var(--eq-amber-400);
             line-height: 1.5;
         }
 
         /* Buttons */
         .btn {
             padding: 14px 24px;
-            border-radius: 10px;
+            border-radius: var(--eq-radius-lg);
             font-size: 15px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--eq-dur-quick);
             border: none;
             display: inline-flex;
             align-items: center;
@@ -261,14 +263,14 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
-            color: #ffffff;
+            background: var(--eq-grad-btn-purple);
+            color: var(--eq-text-1);
             width: 100%;
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(168, 85, 247, 0.3);
+            box-shadow: var(--eq-shadow-btn-purple);
         }
 
         .btn-primary:disabled {
@@ -282,9 +284,9 @@
         .error-box {
             display: none;
             padding: 14px;
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            border-radius: 10px;
+            background: var(--eq-danger-soft);
+            border: 1px solid var(--eq-danger-soft-30);
+            border-radius: var(--eq-radius-lg);
             margin-bottom: 20px;
         }
 
@@ -297,12 +299,12 @@
         .error-box svg {
             width: 20px;
             height: 20px;
-            color: #ef4444;
+            color: var(--eq-danger);
             flex-shrink: 0;
         }
 
         .error-text {
-            color: #ef4444;
+            color: var(--eq-danger);
             font-size: 14px;
         }
 
@@ -311,10 +313,10 @@
             display: inline-block;
             width: 16px;
             height: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: #ffffff;
-            animation: spin 0.8s linear infinite;
+            border: 2px solid var(--eq-text-faint);
+            border-radius: var(--eq-radius-round);
+            border-top-color: var(--eq-text-1);
+            animation: spin var(--eq-dur-spin) linear infinite;
         }
 
         @keyframes spin {
@@ -326,18 +328,18 @@
             text-align: center;
             margin-top: 24px;
             padding-top: 24px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: var(--eq-border);
         }
 
         .footer-links a {
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--eq-text-3);
             text-decoration: none;
             font-size: 13px;
             margin: 0 12px;
         }
 
         .footer-links a:hover {
-            color: #a855f7;
+            color: var(--eq-accent);
         }
 
         /* Security badge */
@@ -347,7 +349,7 @@
             justify-content: center;
             gap: 8px;
             margin-top: 24px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--eq-text-4);
             font-size: 12px;
         }
 
@@ -363,21 +365,21 @@
 
         .backup-btn {
             width: 100%;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #ffffff;
+            background: var(--eq-surface-2);
+            border: var(--eq-border);
+            color: var(--eq-text-1);
             cursor: pointer;
         }
 
         .backup-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--eq-border-10);
             transform: translateY(-1px);
         }
 
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #ffffff;
+            background: var(--eq-surface-2);
+            border: var(--eq-border);
+            color: var(--eq-text-1);
         }
 
         /* Responsive */
@@ -390,6 +392,9 @@
                 font-size: 28px;
             }
         }
+
+        /* === eq extracted inline styles (A15) === */
+        .eq-pipe-sep { color: var(--eq-text-faint); margin: 0 8px; }
     </style>
 </head>
 <body>
@@ -430,7 +435,7 @@
             <div class="extension-unavailable" id="no-extension" style="display: none;">
                 <p>No NOSTR extension detected</p>
                 <a href="https://github.com/nickydev/nos2x" target="_blank">Install nos2x</a>
-                <span style="color: rgba(255,255,255,0.3); margin: 0 8px;">|</span>
+                <span class="eq-pipe-sep">|</span>
                 <a href="https://getalby.com" target="_blank">Install Alby</a>
             </div>
 

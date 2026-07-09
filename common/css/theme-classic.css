@@ -259,4 +259,20 @@
   --eq-blue-soft-25: rgba(59,130,246,0.25);
   --eq-blue-soft-08: rgba(59,130,246,0.08);
   --eq-text-75: rgba(255,255,255,0.75);
+  /* extended (Phase A) — batch A15 */
+  --eq-grad-login-bg: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0a0a0f 100%);
+  --eq-grad-logo-text: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+  --eq-grad-btn-purple: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
+  --eq-shadow-btn-purple: 0 8px 24px rgba(168,85,247,0.3);
+  --eq-grad-profile-setup-bg: linear-gradient(135deg, #0f0a1e 0%, #1a0f2e 100%);
+  --eq-success-soft-08: rgba(34,197,94,0.08);
+  --eq-success-light: #86efac;
+  --eq-danger-soft-08: rgba(239,68,68,0.08);
+  --eq-warning-soft-08: rgba(245,158,11,0.08);
+  --eq-warning-soft-30: rgba(245,158,11,0.3);
+  --eq-accent-tint-02: rgba(168,85,247,0.02);
+  --eq-grad-found-banner: linear-gradient(135deg, var(--eq-accent-tint-08), var(--eq-accent-tint-02));
+  --eq-blue-soft-02: rgba(59,130,246,0.02);
+  --eq-blue-soft-30: rgba(59,130,246,0.3);
+  --eq-grad-found-banner-info: linear-gradient(135deg, var(--eq-blue-soft-08), var(--eq-blue-soft-02));
 }
