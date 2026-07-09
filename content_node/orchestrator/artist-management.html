@@ -9,11 +9,15 @@
         .fee-input-row { display: flex; gap: 12px; }
         .fee-input-row .form-group { flex: 1; margin-bottom: 0; }
         .artist-name-cell { font-weight: 600; }
-        .managed-by-cell { font-size: 12px; color: rgba(255, 255, 255, 0.4); }
+        .managed-by-cell { font-size: 12px; color: var(--eq-text-4); }
         /* Phase G relationship badges */
-        .badge-relationship-self    { background: rgba(100, 116, 139, 0.25); color: #cbd5e1; }
-        .badge-relationship-managed { background: rgba(59, 130, 246, 0.25); color: #93c5fd; }
-        .badge-relationship-signed  { background: rgba(168, 85, 247, 0.25); color: #d8b4fe; }
+        .badge-relationship-self    { background: var(--eq-slate-soft-25); color: var(--eq-slate-light); }
+        .badge-relationship-managed { background: var(--eq-blue-soft-25); color: var(--eq-role-label-text); }
+        .badge-relationship-signed  { background: var(--eq-accent-tint-25); color: var(--eq-accent-light); }
+        /* === eq extracted inline styles (A14) === */
+        .eq-artist-info { font-size: 14px; color: var(--eq-text-2); }
+        .eq-dim-dash { color: var(--eq-text-faint); }
+        .eq-onboarded-cell, .data-table td.eq-onboarded-cell { color: var(--eq-text-3); font-size: 13px; }
     </style>
 </head>
 <body>
@@ -55,7 +59,7 @@
 
             <div class="form-group">
                 <label class="form-label">Artist</label>
-                <div id="edit-artist-info" style="font-size:14px; color:rgba(255,255,255,0.7)"></div>
+                <div id="edit-artist-info" class="eq-artist-info"></div>
             </div>
 
             <div class="form-group">
@@ -315,7 +319,7 @@
             const hasDelegation = delegationsByArtist.has(a.pubkey);
             let delegationCell;
             if (a.role === 'label' || isSelf || relType === 'self' || relType === 'signed') {
-                delegationCell = '<span style="color:rgba(255,255,255,0.3)">—</span>';
+                delegationCell = '<span class="eq-dim-dash">—</span>';
             } else if (hasDelegation) {
                 delegationCell = '<span class="badge badge-active">active</span>';
             } else {
@@ -335,7 +339,7 @@
                     <td>${feeValue}</td>
                     ${showManagedBy ? `<td class="managed-by-cell">${managedShort}</td>` : ''}
                     <td>${delegationCell}</td>
-                    <td style="color:rgba(255,255,255,0.5); font-size:13px">${onboardedDate}</td>
+                    <td class="eq-onboarded-cell">${onboardedDate}</td>
                     <td>
                         <div class="row-actions">
                             <button class="btn btn-small btn-primary"

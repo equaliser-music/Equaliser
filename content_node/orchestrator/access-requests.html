@@ -7,19 +7,24 @@
     <link rel="stylesheet" href="/common/css/admin-base.css?v=1">
     <style>
         .request-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
+            background: var(--eq-surface-1);
+            border: var(--eq-divider);
+            border-radius: var(--eq-radius-xl);
             padding: 20px;
             margin-bottom: 12px;
         }
         .request-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 16px; }
         .request-name { font-size: 16px; font-weight: 700; }
-        .request-meta { font-size: 12px; color: rgba(255, 255, 255, 0.4); margin-top: 4px; }
+        .request-meta { font-size: 12px; color: var(--eq-text-4); margin-top: 4px; }
         .request-field { margin-top: 10px; }
-        .request-field-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255, 255, 255, 0.4); margin-bottom: 4px; }
-        .request-field-value { font-size: 13px; color: rgba(255, 255, 255, 0.8); white-space: pre-wrap; word-break: break-word; }
+        .request-field-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--eq-text-4); margin-bottom: 4px; }
+        .request-field-value { font-size: 13px; color: var(--eq-text-strong); white-space: pre-wrap; word-break: break-word; }
         .request-actions { display: flex; gap: 8px; margin-top: 16px; }
+        /* === eq extracted inline styles (A14) === */
+        .eq-modal-lead { color: var(--eq-text-2); font-size: 14px; margin-bottom: 16px; }
+        .eq-code-modal-desc { color: var(--eq-text-2); font-size: 14px; }
+        .eq-deep-link-label { font-size: 12px; color: var(--eq-text-55); margin-bottom: 6px; font-weight: 500; }
+        .eq-deep-link-hint { font-size: 11px; color: var(--eq-text-4); margin-top: 6px; }
     </style>
 </head>
 <body>
@@ -62,7 +67,7 @@
                 <div class="modal-title">Approve Access Request</div>
                 <button class="modal-close" onclick="closeApproveModal()">&times;</button>
             </div>
-            <p style="color:rgba(255,255,255,0.7); font-size:14px; margin-bottom:16px">
+            <p class="eq-modal-lead">
                 An invite code will be generated. Share it with the applicant — they'll use it during onboarding.
             </p>
 
@@ -93,7 +98,7 @@
                 <div class="modal-title">Invite Code Generated</div>
                 <button class="modal-close" onclick="closeCodeModal()">&times;</button>
             </div>
-            <p style="color:rgba(255,255,255,0.7); font-size:14px">
+            <p class="eq-code-modal-desc">
                 Share this code with the applicant. It can be used once during onboarding.
             </p>
             <div class="code-display">
@@ -102,12 +107,12 @@
             </div>
 
             <div style="margin-top:18px">
-                <div style="font-size:12px; color:rgba(255,255,255,0.55); margin-bottom:6px; font-weight:500">Deep link to share via email</div>
+                <div class="eq-deep-link-label">Deep link to share via email</div>
                 <div class="code-display">
                     <span class="code-text" id="generated-deep-link" style="font-size:11px; letter-spacing:0; word-break:break-all"></span>
                     <button class="copy-btn" onclick="copyDeepLink()">Copy</button>
                 </div>
-                <p style="font-size:11px; color:rgba(255,255,255,0.4); margin-top:6px">Applicants land on the onboarding page with the code pre-filled.</p>
+                <p class="eq-deep-link-hint">Applicants land on the onboarding page with the code pre-filled.</p>
             </div>
 
             <div class="modal-actions">

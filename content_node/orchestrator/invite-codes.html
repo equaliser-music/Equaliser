@@ -7,11 +7,16 @@
     <link rel="stylesheet" href="/common/css/admin-base.css?v=1">
     <style>
         .code-cell {
-            font-family: 'SF Mono', 'Monaco', monospace;
+            font-family: var(--eq-font-mono-sf);
             font-size: 14px;
-            color: #c4b5fd;
+            color: var(--eq-role-artist-text);
             letter-spacing: 1px;
         }
+        /* === eq extracted inline styles (A14) === */
+        .eq-new-code-desc { color: var(--eq-text-2); font-size: 14px; }
+        .eq-standalone-label { color: var(--eq-text-3); }
+        .eq-managed-suffix { color: var(--eq-text-4); font-family: var(--eq-font-mono-generic); font-size: 11px; }
+        .eq-created-cell { color: var(--eq-text-3); font-size: 13px; }
     </style>
 </head>
 <body>
@@ -74,7 +79,7 @@
                 <div class="modal-title">New Invite Code</div>
                 <button class="modal-close" onclick="closeNewCodeModal()">&times;</button>
             </div>
-            <p style="color:rgba(255,255,255,0.7); font-size:14px">
+            <p class="eq-new-code-desc">
                 Share this code with an artist. Standalone codes aren't tied to a specific access request.
             </p>
             <div class="code-display">
@@ -159,20 +164,20 @@
             // A roster invite ("Add Existing Artist") has a name AND a managing label.
             const isRoster = !isOrphan && c.target_managed_by;
             const source = isOrphan
-                ? '<em style="color:rgba(255,255,255,0.5)">Standalone (no request)</em>'
+                ? '<em class="eq-standalone-label">Standalone (no request)</em>'
                 : isRoster
                     ? `Roster invite: <strong>${escapeHtml(c.artist_name)}</strong>`
                     : `Approved request: <strong>${escapeHtml(c.artist_name)}</strong>`;
             const role = c.target_role || 'artist';
             const managedSuffix = c.target_managed_by
-                ? ` <span style="color:rgba(255,255,255,0.4); font-family:monospace; font-size:11px">→ ${escapeHtml(c.target_managed_by.slice(0,8))}…</span>`
+                ? ` <span class="eq-managed-suffix">→ ${escapeHtml(c.target_managed_by.slice(0,8))}…</span>`
                 : '';
             return `
                 <tr>
                     <td><span class="code-cell">${escapeHtml(c.invite_code)}</span></td>
                     <td><span class="badge badge-${role}">${role}</span>${managedSuffix}</td>
                     <td>${source}</td>
-                    <td style="color:rgba(255,255,255,0.5); font-size:13px">${created}</td>
+                    <td class="eq-created-cell">${created}</td>
                     <td>
                         <div class="row-actions">
                             <button class="btn btn-small btn-secondary" onclick="copyCode('${c.invite_code}')">Copy</button>

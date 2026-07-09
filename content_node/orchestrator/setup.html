@@ -12,40 +12,44 @@
         .setup-card {
             max-width: 560px;
             width: 100%;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
+            background: var(--eq-surface-1);
+            border: var(--eq-divider);
+            border-radius: var(--eq-radius-2xl);
             padding: 36px;
             margin: 32px auto;
         }
         .setup-card h1 { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
-        .setup-card p.lead { color: rgba(255, 255, 255, 0.6); margin-bottom: 24px; }
+        .setup-card p.lead { color: var(--eq-text-2-dim); margin-bottom: 24px; }
         .help-box {
-            background: rgba(59, 130, 246, 0.08);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            color: #93c5fd;
+            background: var(--eq-blue-soft-08);
+            border: 1px solid var(--eq-blue-soft-20);
+            color: var(--eq-role-label-text);
             padding: 12px 16px;
-            border-radius: 10px;
+            border-radius: var(--eq-radius-lg);
             font-size: 13px;
             margin-bottom: 20px;
         }
-        .help-box code { background: rgba(0,0,0,0.3); padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+        .help-box code { background: var(--eq-scrim-soft); padding: 1px 6px; border-radius: var(--eq-radius-xs); font-size: 12px; }
         .step { display: none; }
         .step.active { display: block; }
         .keys-display {
-            background: rgba(0, 0, 0, 0.3);
+            background: var(--eq-scrim-soft);
             padding: 14px;
-            border-radius: 10px;
-            font-family: monospace;
+            border-radius: var(--eq-radius-lg);
+            font-family: var(--eq-font-mono-generic);
             font-size: 11px;
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--eq-text-2);
             word-break: break-all;
             margin-bottom: 16px;
         }
-        .keys-display .key-label { color: rgba(255, 255, 255, 0.4); display: block; margin-bottom: 4px; font-family: inherit; font-size: 11px; }
+        .keys-display .key-label { color: var(--eq-text-4); display: block; margin-bottom: 4px; font-family: inherit; font-size: 11px; }
         .keys-display .key-value { display: block; margin-bottom: 12px; }
         .keys-display .key-value:last-child { margin-bottom: 0; }
-        .or-divider { text-align: center; color: rgba(255, 255, 255, 0.3); font-size: 12px; margin: 16px 0; text-transform: uppercase; letter-spacing: 1px; }
+        .or-divider { text-align: center; color: var(--eq-text-faint); font-size: 12px; margin: 16px 0; text-transform: uppercase; letter-spacing: 1px; }
+        /* === eq extracted inline styles (A14) === */
+        .eq-help-box-accent { background: var(--eq-accent-tint-08); border-color: var(--eq-accent-tint-25); color: var(--eq-role-artist-text); }
+        .eq-ack-label { align-items: flex-start; gap: 8px; font-size: 13px; color: var(--eq-text-75); cursor: pointer; }
+        .eq-nsec-value { color: var(--eq-amber-400); }
     </style>
 </head>
 <body>
@@ -74,7 +78,7 @@
             </div>
 
             <!-- Role-distinction callout (hard role separation). -->
-            <div class="help-box" style="background: rgba(168,85,247,0.08); border-color: rgba(168,85,247,0.25); color:#c4b5fd">
+            <div class="help-box eq-help-box-accent">
                 <strong>This identity becomes the node operator — infrastructure only.</strong>
                 On this node it can't also be an artist or a label. If you also want to publish
                 music or run a label, use a <strong>separate Nostr identity (nsec)</strong> for that.
@@ -91,7 +95,7 @@
 
             <!-- Acknowledgement gate (#17). -->
             <div class="form-group">
-                <label style="display:flex; align-items:flex-start; gap:8px; font-size:13px; color:rgba(255,255,255,0.75); cursor:pointer">
+                <label class="eq-ack-label" style="display:flex">
                     <input type="checkbox" id="ack-operator-only" onchange="updateClaimEnabled()" style="margin-top:3px">
                     <span>I understand this identity will be <strong>operator-only</strong> on this node.</span>
                 </label>
@@ -394,7 +398,7 @@
             html += '<span class="key-label">Public Key (npub)</span><span class="key-value">' + escapeHtml(npub) + '</span>';
             html += '<span class="key-label">Hex Pubkey</span><span class="key-value">' + escapeHtml(claimedPubkey) + '</span>';
             if (sessionType === 'nsec' && claimedNsec) {
-                html += '<span class="key-label">Private Key (nsec) — KEEP SECRET</span><span class="key-value" style="color:#fbbf24">' + escapeHtml(claimedNsec) + '</span>';
+                html += '<span class="key-label">Private Key (nsec) — KEEP SECRET</span><span class="key-value eq-nsec-value">' + escapeHtml(claimedNsec) + '</span>';
             } else {
                 html += '<span class="key-label">Identity</span><span class="key-value">NIP-07 extension (no nsec to back up — manage in your extension)</span>';
             }

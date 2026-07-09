@@ -253,4 +253,10 @@
   --eq-emerald-light: #34d399;
   --eq-shadow-dot-ok: 0 0 8px rgba(52,211,153,0.6);
   --eq-red-400: #f87171;
+  /* extended (Phase A) — batch A14 */
+  --eq-slate-soft-25: rgba(100,116,139,0.25);
+  --eq-slate-light: #cbd5e1;
+  --eq-blue-soft-25: rgba(59,130,246,0.25);
+  --eq-blue-soft-08: rgba(59,130,246,0.08);
+  --eq-text-75: rgba(255,255,255,0.75);
 }

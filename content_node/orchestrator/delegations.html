@@ -7,28 +7,28 @@
     <link rel="stylesheet" href="/common/css/admin-base.css?v=1">
     <style>
         .request-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
+            background: var(--eq-surface-1);
+            border: var(--eq-divider);
+            border-radius: var(--eq-radius-xl);
             padding: 20px;
             margin-bottom: 12px;
         }
-        .request-meta { font-size: 12px; color: rgba(255, 255, 255, 0.4); margin-top: 4px; }
+        .request-meta { font-size: 12px; color: var(--eq-text-4); margin-top: 4px; }
         .request-field { margin-top: 10px; font-size: 13px; }
-        .request-field-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255, 255, 255, 0.4); margin-bottom: 4px; }
-        .request-field-value { color: rgba(255, 255, 255, 0.8); }
-        .pubkey-mono { font-family: monospace; font-size: 12px; color: rgba(255, 255, 255, 0.6); }
+        .request-field-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--eq-text-4); margin-bottom: 4px; }
+        .request-field-value { color: var(--eq-text-strong); }
+        .pubkey-mono { font-family: var(--eq-font-mono-generic); font-size: 12px; color: var(--eq-text-2-dim); }
         .request-actions { display: flex; gap: 8px; margin-top: 16px; }
         .kinds-list { display: flex; gap: 6px; flex-wrap: wrap; }
-        .kind-badge { padding: 2px 8px; border-radius: 4px; background: rgba(168, 85, 247, 0.15); color: #c4b5fd; font-family: monospace; font-size: 12px; }
+        .kind-badge { padding: 2px 8px; border-radius: var(--eq-radius-xs); background: var(--eq-accent-tint-15); color: var(--eq-role-artist-text); font-family: var(--eq-font-mono-generic); font-size: 12px; }
         .delegation-row {
             display: grid;
             grid-template-columns: 1fr auto auto;
             gap: 12px;
             align-items: center;
             padding: 14px 16px;
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 8px;
+            background: var(--eq-surface-0);
+            border-radius: var(--eq-radius-md);
             margin-bottom: 8px;
         }
     </style>
