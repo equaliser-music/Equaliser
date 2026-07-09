@@ -582,3 +582,7 @@ html:has(#admin-sidebar-styles) .sidebar .sidebar-version {
         margin-left: 0;
     }
 }
+
+/* eq theme hooks (B4) — admin surface */
+html:has(#admin-sidebar-styles) img { filter: var(--eq-img-filter); }
+html:has(#admin-sidebar-styles) a:hover img, html:has(#admin-sidebar-styles) .card:hover img, html:has(#admin-sidebar-styles) .keepcolor img { filter: var(--eq-img-filter-hover); }
