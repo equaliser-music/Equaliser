@@ -216,4 +216,11 @@
   --eq-text-95: rgba(255,255,255,0.95);
   --eq-radius-18: 18px;
   --eq-grad-msg-outgoing: linear-gradient(135deg, rgba(139,92,246,0.4), rgba(168,85,247,0.3));
+  /* extended (Phase A) — batch A9 (client/profile.html, client/user.html) */
+  --eq-grad-profile-banner: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(255,0,110,0.2), rgba(59,130,246,0.2));
+  --eq-border-avatar: 4px solid rgba(10,10,15,1);
+  --eq-grad-user-banner: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(168,85,247,0.2));
+  --eq-grad-banner-fade: linear-gradient(transparent, rgba(10,10,15,1));
+  --eq-danger-soft-15: rgba(239,68,68,0.15);
+  --eq-dur-spin-1s: 1s;
 }

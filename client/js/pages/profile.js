@@ -62,7 +62,7 @@
                 } catch (e) {
                     console.error('Invalid npub:', e);
                     const loadingEl = document.getElementById('loading-state');
-                    if (loadingEl) loadingEl.innerHTML = '<p style="color: rgba(255,255,255,0.5);">Invalid profile link</p>';
+                    if (loadingEl) loadingEl.innerHTML = '<p class="eq-invalid-link">Invalid profile link</p>';
                     return;
                 }
 
@@ -312,7 +312,7 @@
                         ${item.tags && !NostrSocial.isEqualiiserEvent(item) ? '<span class="feed-nostr-badge">via NOSTR</span>' : ''}
                         <span class="feed-time">${time}</span>
                     </div>
-                    <div class="feed-item-content" style="cursor:pointer" onclick="Router.navigate('/thread.html?id=${item.noteId}')">${content}</div>
+                    <div class="feed-item-content eq-clickable" onclick="Router.navigate('/thread.html?id=${item.noteId}')">${content}</div>
                     ${NostrSocial.generateLinkPreviews(item.content)}
                     ${NostrSocial.generateReleaseAnnouncementCard(item)}
                     ${NostrSocial.generateQuotedPostCard(item)}
