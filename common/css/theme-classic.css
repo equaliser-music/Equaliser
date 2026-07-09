@@ -223,4 +223,6 @@
   --eq-grad-banner-fade: linear-gradient(transparent, rgba(10,10,15,1));
   --eq-danger-soft-15: rgba(239,68,68,0.15);
   --eq-dur-spin-1s: 1s;
+  /* extended (Phase A) — batch A10 (client/artist.html) */
+  --eq-shadow-play-btn-sm: 0 4px 20px rgba(139,92,246,0.5);
 }

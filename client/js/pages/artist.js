@@ -232,8 +232,8 @@
 
                 <!-- Follow Stats -->
                 <div class="artist-follow-stats" id="artist-follow-stats" data-pubkey="${pubkeyHex}">
-                    <span class="artist-follow-stat" style="cursor:pointer" onclick="NostrSocial.showFollowListModal(document.getElementById('artist-follow-stats').dataset.pubkey, 'following')"><strong id="artist-following-count">0</strong> Following</span>
-                    <span class="artist-follow-stat" style="cursor:pointer" onclick="NostrSocial.showFollowListModal(document.getElementById('artist-follow-stats').dataset.pubkey, 'followers')"><strong id="artist-followers-count">0</strong> Followers</span>
+                    <span class="artist-follow-stat eq-clickable" onclick="NostrSocial.showFollowListModal(document.getElementById('artist-follow-stats').dataset.pubkey, 'following')"><strong id="artist-following-count">0</strong> Following</span>
+                    <span class="artist-follow-stat eq-clickable" onclick="NostrSocial.showFollowListModal(document.getElementById('artist-follow-stats').dataset.pubkey, 'followers')"><strong id="artist-followers-count">0</strong> Followers</span>
                 </div>
 
                 <!-- Two-column body -->
@@ -288,7 +288,7 @@
                                 ${profile.website ? `
                                     <div class="info-row">
                                         <span class="info-label">Website</span>
-                                        <span class="info-value"><a href="${escapeHtml(profile.website)}" target="_blank" style="color: #a855f7;">${escapeHtml(profile.website)}</a></span>
+                                        <span class="info-value"><a href="${escapeHtml(profile.website)}" target="_blank" class="eq-link-accent">${escapeHtml(profile.website)}</a></span>
                                     </div>
                                 ` : ''}
                                 ${joinedDate ? `
@@ -668,7 +668,7 @@
                         const hasPreview = !!track.previewCid;
                         const isLoggedIn = SessionManager.hasSession();
                         return `
-                            <li class="tracklist-item${hasPreview ? ' playable' : ''}" style="${hasPreview ? 'cursor:pointer' : ''}"
+                            <li class="tracklist-item${hasPreview ? ' playable eq-clickable' : ''}"
                                 ${hasPreview ? `onclick="if(!event.target.closest('.track-add-playlist'))window._playArtistTrack(${index}, ${i})"` : ''}>
                                 <span class="tracklist-num">${i + 1}</span>
                                 <span class="tracklist-title">${escapeHtml(track.title)}</span>
