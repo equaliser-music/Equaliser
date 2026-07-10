@@ -11,7 +11,7 @@ import { execSync } from 'child_process';
 
 const ARGS = process.argv.slice(2);
 const REPO = new URL('..', import.meta.url).pathname;
-const THEME_FILES = /common\/css\/theme-(classic|signal)\.css$/;
+const THEME_FILES = /common\/css\/theme-[a-z0-9-]+\.css$/;
 
 let files = [];
 if (ARGS[0] === '--files') files = ARGS[1].split(',').map(s => s.trim());

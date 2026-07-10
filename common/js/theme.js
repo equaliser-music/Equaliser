@@ -10,7 +10,8 @@
 
   var EQ_THEMES = [
     { id: 'classic', label: 'Classic' },
-    { id: 'signal',  label: 'Signal' }
+    { id: 'signal',  label: 'Signal' },
+    { id: 'sleeve',  label: 'Sleeve' }
   ];
   var STORAGE_KEY = 'equaliser_theme';
 
