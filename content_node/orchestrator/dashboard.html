@@ -739,7 +739,7 @@
         // Fetch drafts from API
         async function fetchDrafts(pubkeyHex) {
             try {
-                const response = await fetch(`/api/drafts?pubkey=${pubkeyHex}&status=draft`);
+                const response = await SessionManager.authFetch(`/api/drafts?pubkey=${pubkeyHex}&status=draft`);
                 if (!response.ok) return [];
                 const data = await response.json();
                 return data.drafts || [];

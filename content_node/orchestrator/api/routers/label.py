@@ -48,7 +48,7 @@ async def list_managed_artists(ctx: RoleContext = Depends(require_label)):
 @router.get("/artists/{pubkey}")
 async def get_managed_artist(pubkey: str, ctx: RoleContext = Depends(require_label)):
     """Get a single managed artist's details."""
-    if not ctx.can_manage(pubkey):
+    if not ctx.can_administer(pubkey):
         raise HTTPException(status_code=403, detail="Cannot manage this artist")
 
     artist = await relay_admin.get_artist(pubkey)
@@ -69,7 +69,7 @@ async def update_managed_artist(
     - managed_by transfer (Phase G — Magic→Sony etc.): operator-only. Setting "" clears
       the field (artist becomes self / unmanaged).
     """
-    if not ctx.can_manage(pubkey):
+    if not ctx.can_administer(pubkey):
         raise HTTPException(status_code=403, detail="Cannot manage this artist")
 
     if req.relationship_type is not None and req.relationship_type not in ("self", "managed", "signed"):

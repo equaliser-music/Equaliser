@@ -976,7 +976,7 @@
 
             try {
                 // First, fetch the specific draft
-                const response = await fetch(`/api/drafts/${draftId}?pubkey=${targetPubkey}`);
+                const response = await SessionManager.authFetch(`/api/drafts/${draftId}?pubkey=${targetPubkey}`);
                 if (!response.ok) {
                     const error = await response.json();
                     showError(error.detail || 'Failed to load draft');
@@ -994,7 +994,7 @@
                     // Fetch all drafts for this artist to find ones in the same album
                     // Filter by status=draft to exclude already-released tracks
                     const draftStatus = draftData.status || 'draft';
-                    const allDraftsResponse = await fetch(`/api/drafts?pubkey=${targetPubkey}&status=${draftStatus}`);
+                    const allDraftsResponse = await SessionManager.authFetch(`/api/drafts?pubkey=${targetPubkey}&status=${draftStatus}`);
                     if (allDraftsResponse.ok) {
                         const allDraftsData = await allDraftsResponse.json();
                         const albumDrafts = allDraftsData.drafts.filter(d => d.album === albumName && d.status === draftStatus);
@@ -1054,7 +1054,7 @@
                 addedTracks = [];
 
                 // Load all artist drafts so "Add Track" modal can find singles
-                const allDraftsResp = await fetch(`/api/drafts?pubkey=${targetPubkey}&status=draft`);
+                const allDraftsResp = await SessionManager.authFetch(`/api/drafts?pubkey=${targetPubkey}&status=draft`);
                 if (allDraftsResp.ok) {
                     const allDraftsData = await allDraftsResp.json();
                     allTracks = allDraftsData.drafts.map(d => ({

@@ -991,7 +991,7 @@
         // Load drafts from the database API
         async function loadDraftsFromAPI(pubkey) {
             try {
-                const response = await fetch(`/api/drafts?pubkey=${pubkey}&status=draft`);
+                const response = await SessionManager.authFetch(`/api/drafts?pubkey=${pubkey}&status=draft`);
                 if (!response.ok) throw new Error('Failed to load drafts');
                 const data = await response.json();
                 allDrafts = data.drafts.map(draft => ({

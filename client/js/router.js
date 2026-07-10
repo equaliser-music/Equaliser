@@ -52,8 +52,12 @@ const Router = {
         this._pageStyleEl.id = 'eq-page-styles';
         document.head.appendChild(this._pageStyleEl);
 
-        // Intercept link clicks
-        document.addEventListener('click', (e) => this._handleClick(e));
+        // Intercept link clicks. Capture phase: feed cards call stopPropagation()
+        // on inner elements (avatar, display name) to keep link clicks from
+        // triggering the card's own navigation, which would otherwise stop the
+        // event before it bubbles up to this listener — forcing a full page
+        // load that kills the persistent player.
+        document.addEventListener('click', (e) => this._handleClick(e), true);
 
         // Handle browser back/forward
         window.addEventListener('popstate', (e) => {

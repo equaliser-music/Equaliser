@@ -310,7 +310,7 @@ async def publish_track_event(request: SignedEventRequest, ctx: RoleContext = De
 
     else:
         # Self-publish: caller must be able to manage themselves (always true for own pubkey,
-        # but ctx.can_manage covers operator-as-artist and label-as-artist cases too).
+        # but ctx.can_manage covers the label-as-artist case too; operators never manage content).
         if not ctx.can_manage(effective_artist):
             raise HTTPException(
                 status_code=403,
