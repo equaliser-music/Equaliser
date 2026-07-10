@@ -1,0 +1,467 @@
+/* Equaliser theme: Stencil — spray-stencil street aesthetic, cut-cardboard signage
+   pasted straight onto a kraft-paper wall.
+   Design source: docs/Fable_Analysis/mockup-stencil-home.html
+   Palette: kraft #b5977a (the wall itself — a mid-brown cardboard/kraft-paper tone,
+   used flat as --eq-bg-app; the mockup's own subtle dot-pattern + sheen overlay is
+   flattened away, matching Signal-family precedent of no gradients). ink #181512
+   (near-black spray/ink, the mockup's --ink, used for all borders/text). white/
+   cream #f4efe6 (the mockup's --white — wheat-pasted paper stock, used for card
+   surfaces: --eq-surface-1/-raised/-modal all become this solid paper, mirroring
+   the mockup's .paste/.ration "lifted sheet on the wall" cards). orange #e8541e
+   (the mockup's single vivid accent — CTAs, "Support" buttons, the .kline
+   progress fill, active nav states). This is Stencil's ONLY hue beyond kraft/ink/
+   paper — the mockup's own :root literally defines nothing else — so every
+   "second accent" slot elsewhere in the 267-token contract is repurposed:
+   --eq-brand-pink → ink (the mockup's other dominant graphic colour, alternating
+   with orange row-by-row in its "fresh on the wall" list — .srow.white vs
+   .srow.orange), --eq-purple-alt → ink, --eq-violet-600/700 → darker burnt-rust
+   shades of the accent itself (a same-hue gradient partner, not an invented
+   colour).
+   Geometry: ZERO radius everywhere, including --eq-radius-round (avatars/crops
+   go square) — the mockup never draws a single curve; every border, button,
+   image crop, and stamp is cut-stencil sharp (nav links, .sb buttons, .srow
+   images, the kerb player artwork all use hard rectangular borders, 2-3px ink
+   or dashed). This makes Stencil a Signal-family theme (see theme-signal.css,
+   theme-flyposter.css) for radius/geometry purposes.
+   Effects — the one departure from Signal/Flyposter's "flatten everything, hard
+   shadows only" doctrine: the mockup's own .spray/.spray-o/.spray-w classes
+   apply `filter:drop-shadow(...)` halos to stencilled text (masthead, ledger
+   figure, slogans, srow titles) — a real, deliberate soft-glow effect baked
+   into the design (spray-paint bleed at a cut edge), not hard-offset brutalism.
+   So --eq-shadow-glow and friends stay real soft-blurred orange halos (not
+   flattened to `none`/hard-offset like Flyposter/Signal), while --eq-shadow-1/-2
+   reuse the mockup's own literal soft "lifted paper" shadow
+   (`0 12px 30px rgba(0,0,0,.35)` off .paste/.ration) rather than a hard offset.
+   --eq-blur-backdrop stays `none` (no frosted glass in the mockup) and
+   --eq-img-filter stays `none` — cover art keeps full colour, matching
+   Flyposter/Pirate's precedent for themes whose grit comes from ink borders
+   rather than desaturation. All --eq-grad-* tokens are flattened to solid/rgba
+   (the mockup contains zero linear/radial gradients beyond its own flattened-
+   away body-sheen texture).
+   Text ladder (ink alpha over kraft, computed): kraft's own luminance (~0.334)
+   is high enough that NO alpha-reduced ink clears 4.5:1 by going lighter — only
+   darker/more-opaque ink works, so text-1 is solid ink (6.65:1), text-2 is 85%
+   ink (5.25:1), text-2-dim is 80% ink (4.80:1), text-3 is 78% ink (4.61:1) — all
+   ≥4.5:1 on --eq-bg-app as required; text-4 (55%, 2.85:1) and text-faint (40%,
+   2.09:1) are intentionally sub-AA decorative tiers, matching reference themes.
+   The same "kraft only clears 4.5:1 via darkening" constraint applies to every
+   AA-text token: --eq-accent-text is a hand-darkened rust #5c1c08 (4.72:1) since
+   the mockup's raw orange #e8541e only manages ~1.34:1 directly on kraft (the
+   mockup itself only gets away with raw orange text via its spray drop-shadow
+   halo, or by placing it on the white paste-paper instead — not a real contrast
+   fix, so Stencil hand-darkens for its actual text-color token). Status colors
+   (--eq-danger #611709 4.70:1, --eq-success #123310 5.09:1, --eq-warning
+   #402c00 4.86:1, --eq-info #142c4d 5.13:1) are likewise darkened for AA on
+   kraft; raw-vivid siblings (--eq-red-400 #e8503a and --eq-checkbox-accent/
+   -border-focus at the raw accent #e8541e) are reserved for true bg-only
+   contexts (health dots, focus edges, control fills) — anything the app
+   renders as text on a light surface (--eq-accent-light, --eq-danger-vivid,
+   --eq-sidebar-active-color) gets a darkened member of the same family.
+   Chrome: the sidebar and player are LIGHT paper panels, NOT the mockup's ink
+   kerb — sidebar nav-item/nav-title text comes from the GLOBAL ink text ladder
+   (common/css/eq-sidebar.css uses --eq-text-1/2/4 directly), so the token
+   contract cannot express an inverted dark chrome on a light theme.
+   --eq-sidebar-bg is a slightly toned paper (#ece4d4, between the cream cards
+   and the kraft wall) so the sidebar reads as another pasted sheet;
+   --eq-sidebar-border reuses the dashed-ink divider idiom (echoing the
+   mockup's own `border:2.5px dashed var(--ink)` nav language);
+   --eq-sidebar-active-color is the darkened rust #5c1c08 (10.2:1 on the
+   sidebar paper, 8.4:1 on the orange-wash active bg). The player bar likewise
+   carries cream paper (--eq-player-bg #f4efe6, ink --eq-player-text) with a
+   raw-orange top edge quoting the mockup's .kline fill.
+   Fonts: 'Stardos Stencil' (400/700 vendored) for --eq-font-display, uppercase,
+   weight 400 (the mockup never bolds its stencil display type), matching every
+   h1/h2/nav-link/button label. 'Barlow Condensed' (400/500/600/700 vendored)
+   for --eq-font-body — the mockup's literal `body{font-family:'Barlow
+   Condensed'}`. 'Space Mono' (400/700 + 400 italic vendored) for
+   --eq-font-mono/-generic/-alt/-sf — the mockup's meta/label/price/tag font
+   throughout (.strap, .tag, .specs, .m, .hd, .ktime). Token list mirrors
+   theme-classic.css exactly — same names, same order, same batch fence
+   comments for traceability. */
+:root {
+  /* surfaces */
+  --eq-bg-app: #b5977a;
+  --eq-surface-1: #f4efe6;
+  --eq-surface-1-hover: #fbf8f2;
+  --eq-surface-2: #e4d9c4;
+  --eq-surface-2-hover: #d9cab0;
+  --eq-surface-raised: #f4efe6;
+  --eq-surface-input: #fbf8f2;
+  --eq-surface-inverse: #181512;
+  --eq-surface-modal: #f4efe6;
+  --eq-scrim: rgba(24,21,18,0.6);
+  /* text */
+  --eq-text-1: #181512;
+  --eq-text-2: rgba(24,21,18,0.85);
+  --eq-text-2-dim: rgba(24,21,18,0.80);
+  --eq-text-3: rgba(24,21,18,0.78);
+  --eq-text-4: rgba(24,21,18,0.55);
+  --eq-text-faint: rgba(24,21,18,0.40);
+  --eq-text-inverse: #f4efe6;
+  --eq-text-link: #5c1c08;
+  /* accent */
+  --eq-accent: #e8541e;
+  --eq-accent-2: #d1481a;
+  --eq-accent-text: #5c1c08;
+  --eq-accent-contrast: #f4efe6;
+  --eq-accent-soft: rgba(232,84,30,0.15);
+  --eq-accent-soft-hover: rgba(232,84,30,0.3);
+  --eq-focus-ring: rgba(232,84,30,0.4);
+  /* status */
+  --eq-danger: #611709;
+  --eq-danger-soft: rgba(97,23,9,0.1);
+  --eq-success: #123310;
+  --eq-success-soft: rgba(18,51,16,0.1);
+  --eq-warning: #402c00;
+  --eq-warning-soft: rgba(64,44,0,0.1);
+  --eq-info: #142c4d;
+  --eq-info-soft: rgba(20,44,77,0.1);
+  /* gradients (Signal will flatten these) */
+  --eq-grad-accent: #e8541e;
+  --eq-grad-avatar: #e8541e;
+  --eq-grad-display-text: #181512;
+  /* borders & dividers (whole-shorthand tokens) */
+  --eq-border: 2px solid #181512;
+  --eq-border-strong: 3px solid #181512;
+  --eq-border-soft: 1px solid rgba(24,21,18,0.15);
+  --eq-divider: 1.5px dashed rgba(24,21,18,0.35);
+  --eq-border-focus: #e8541e;
+  --eq-border-inverse: 1px solid rgba(244,239,230,0.25);
+  /* radii */
+  --eq-radius-xs: 0;
+  --eq-radius-sm: 0;
+  --eq-radius-md: 0;
+  --eq-radius-lg: 0;
+  --eq-radius-xl: 0;
+  --eq-radius-2xl: 0;
+  --eq-radius-3xl: 0;
+  --eq-radius-pill: 0;
+  --eq-radius-round: 0;
+  /* shadows & effects */
+  --eq-shadow-1: 0 12px 30px rgba(0,0,0,0.35);
+  --eq-shadow-2: 0 16px 40px rgba(0,0,0,0.4);
+  --eq-shadow-glow: 0 0 16px rgba(232,84,30,0.45);
+  --eq-blur-backdrop: none;
+  --eq-img-filter: none;
+  --eq-img-filter-hover: none;
+  /* typography */
+  --eq-font-body: 'Barlow Condensed', sans-serif;
+  --eq-font-display: 'Stardos Stencil', cursive;
+  --eq-font-mono: 'Space Mono', monospace;
+  --eq-transform-display: uppercase;
+  --eq-tracking-display: 0.02em;
+  --eq-weight-display: 400;
+  --eq-transform-label: uppercase;
+  --eq-tracking-label: 0.16em;
+  /* motion */
+  --eq-dur-fast: 0.15s;
+  --eq-dur-med: 0.3s;
+  /* component hooks (canonical values refined at consolidation batches A2/A3/A13) */
+  --eq-btn-radius: 0;
+  --eq-btn-border: 3px solid #181512;
+  --eq-btn-transform: uppercase;
+  --eq-btn-primary-bg: var(--eq-grad-accent);
+  --eq-btn-primary-color: #f4efe6;
+  --eq-badge-radius: 0;
+  --eq-badge-transform: uppercase;
+  --eq-card-bg: var(--eq-surface-1);
+  --eq-card-border: var(--eq-border);
+  --eq-card-radius: var(--eq-radius-2xl);
+  --eq-player-bg: #f4efe6;
+  --eq-player-text: #181512;
+  --eq-player-border-top: 2px solid #e8541e;
+  --eq-sidebar-bg: #ece4d4;
+  --eq-sidebar-border: 1.5px dashed rgba(24,21,18,0.35);
+  --eq-sidebar-active-bg: rgba(232,84,30,0.18);
+  --eq-sidebar-active-color: #5c1c08;
+  --eq-input-radius: 0;
+  --eq-checkbox-accent: #e8541e;
+  /* extended (Phase A) */
+  --eq-dur-quick: 0.2s;
+  --eq-border-15: rgba(24,21,18,0.15);
+  --eq-text-mute: rgba(24,21,18,0.35);
+  --eq-text-strong: rgba(24,21,18,0.85);
+  --eq-accent-soft-20: rgba(232,84,30,0.2);
+  --eq-accent-soft-35: rgba(232,84,30,0.35);
+  --eq-accent-mid: rgba(232,84,30,0.5);
+  --eq-scrim-strong: rgba(24,21,18,0.7);
+  --eq-dur-spin: 0.8s;
+  --eq-border-20: rgba(24,21,18,0.2);
+  --eq-border-12: rgba(24,21,18,0.12);
+  --eq-border-08: rgba(24,21,18,0.08);
+  --eq-surface-0: rgba(24,21,18,0.02);
+  --eq-surface-0-hover: rgba(24,21,18,0.04);
+  --eq-text-bright: rgba(24,21,18,0.88);
+  --eq-scrim-soft: rgba(24,21,18,0.3);
+  --eq-brand-youtube: rgba(255,0,0,0.85);
+  --eq-accent-tint-10: rgba(232,84,30,0.1);
+  --eq-accent-soft-03: rgba(232,84,30,0.03);
+  --eq-accent-soft-08: rgba(232,84,30,0.08);
+  --eq-accent-soft-10: rgba(232,84,30,0.1);
+  --eq-danger-mid: rgba(97,23,9,0.5);
+  --eq-danger-strong: rgba(97,23,9,0.8);
+  --eq-success-2: #163d13;
+  --eq-success-soft-06: rgba(18,51,16,0.06);
+  --eq-success-soft-12: rgba(18,51,16,0.12);
+  --eq-success-soft-25: rgba(18,51,16,0.25);
+  --eq-success-soft-40: rgba(18,51,16,0.4);
+  --eq-info-dim: rgba(20,44,77,0.7);
+  /* extended (Phase A) — batch A2 (eq-sidebar.css consolidation) */
+  --eq-border-10: rgba(24,21,18,0.1);
+  --eq-text-90: rgba(24,21,18,0.9);
+  --eq-text-55: rgba(24,21,18,0.55);
+  --eq-text-45: rgba(24,21,18,0.45);
+  --eq-text-25: rgba(24,21,18,0.25);
+  --eq-danger-soft-20: rgba(97,23,9,0.2);
+  --eq-danger-soft-40: rgba(97,23,9,0.4);
+  --eq-grad-nav-active: rgba(232,84,30,0.2);
+  --eq-grad-acting-banner: rgba(232,84,30,0.08);
+  --eq-accent-border-35: rgba(232,84,30,0.35);
+  --eq-accent-border-50: rgba(232,84,30,0.5);
+  --eq-accent-tint-15: rgba(232,84,30,0.15);
+  --eq-accent-tint-25: rgba(232,84,30,0.25);
+  --eq-accent-tint-30: rgba(232,84,30,0.3);
+  --eq-accent-transparent: rgba(232,84,30,0);
+  --eq-accent-light: #4a1606;
+  --eq-role-artist-text: #5c1c08;
+  --eq-role-label-bg: rgba(20,44,77,0.15);
+  --eq-role-label-text: #142c4d;
+  --eq-role-operator-bg: rgba(18,51,16,0.15);
+  --eq-role-operator-text: #123310;
+  --eq-select-bg: #fbf8f2;
+  --eq-font-mono-generic: 'Space Mono', monospace;
+  --eq-dur-pulse: 2s;
+  --eq-shadow-pulse-start: 0 0 0 0 var(--eq-focus-ring);
+  --eq-shadow-pulse-end: 0 0 0 4px var(--eq-accent-transparent);
+  /* extended (Phase A) — batch A3 (eq-player.css consolidation) */
+  --eq-panel-bg-95: rgba(244,239,230,0.95);
+  --eq-panel-bg-97: rgba(244,239,230,0.97);
+  --eq-brand-pink-90: rgba(24,21,18,0.9);
+  --eq-brand-pink: #181512;
+  --eq-black: #181512;
+  --eq-radius-2px: 0;
+  --eq-radius-3px: 0;
+  --eq-radius-top-xl: 0;
+  --eq-grad-progress: #e8541e;
+  --eq-accent-soft-12: rgba(232,84,30,0.12);
+  /* extended (Phase A) — batch A4 (client standalone pages: index.html/login.html/join.html) */
+  --eq-blur-glow: none;
+  --eq-accent-soft-40: rgba(232,84,30,0.4);
+  --eq-accent-tint-40: rgba(232,84,30,0.4);
+  --eq-shadow-glow-lg: 0 0 26px rgba(232,84,30,0.5);
+  --eq-brand-pink-30: rgba(24,21,18,0.3);
+  --eq-violet-600: #8a3212;
+  --eq-violet-700: #6b2410;
+  --eq-amber-400: #402c00;
+  --eq-amber-soft-10: rgba(64,44,0,0.1);
+  --eq-amber-soft-30: rgba(64,44,0,0.3);
+  --eq-danger-soft-12: rgba(97,23,9,0.12);
+  --eq-danger-soft-30: rgba(97,23,9,0.3);
+  --eq-danger-light: #4a1207;
+  --eq-emerald-500: #1a4a17;
+  --eq-emerald-12: rgba(26,74,23,0.12);
+  --eq-emerald-20: rgba(26,74,23,0.2);
+  --eq-success-soft-18: rgba(18,51,16,0.18);
+  --eq-border-07: rgba(24,21,18,0.07);
+  --eq-font-mono-alt: 'Space Mono', monospace;
+  --eq-grad-glow-1: transparent;
+  --eq-grad-glow-2: transparent;
+  --eq-grad-demo-btn: #e8541e;
+  --eq-grad-btn-extension: #d1481a;
+  /* extended (Phase A) — batch A5 */
+  --eq-orange: #6b3a0a;
+  --eq-orange-soft-10: rgba(107,58,10,0.1);
+  --eq-orange-soft-30: rgba(107,58,10,0.3);
+  --eq-success-soft-20: rgba(18,51,16,0.2);
+  /* extended (Phase A) — batch A6 (client/home.html) */
+  --eq-purple-alt: #181512;
+  --eq-brand-pink-10: rgba(24,21,18,0.1);
+  --eq-brand-pink-20: rgba(24,21,18,0.2);
+  --eq-brand-violet-alt-10: rgba(232,84,30,0.1);
+  --eq-brand-violet-alt-50: rgba(232,84,30,0.5);
+  --eq-grad-hero: rgba(232,84,30,0.1);
+  --eq-grad-hero-glow: transparent;
+  --eq-blur-hero-glow: none;
+  --eq-shadow-play-btn: 0 0 20px rgba(232,84,30,0.45);
+  --eq-shadow-play-btn-hover: 0 0 26px rgba(232,84,30,0.55);
+  --eq-radius-24: 0;
+  /* extended (Phase A) — batch A7 (client/social.html) */
+  --eq-info-soft-15: rgba(20,44,77,0.15);
+  --eq-success-soft-15: rgba(18,51,16,0.15);
+  --eq-amber-soft-15: rgba(64,44,0,0.15);
+  --eq-shadow-btn-hover: 0 0 18px rgba(232,84,30,0.4);
+  /* extended (Phase A) — batch A8 (client/thread.html, client/messages.html) */
+  --eq-text-95: rgba(24,21,18,0.95);
+  --eq-radius-18: 0;
+  --eq-grad-msg-outgoing: rgba(232,84,30,0.35);
+  /* extended (Phase A) — batch A9 (client/profile.html, client/user.html) */
+  --eq-grad-profile-banner: rgba(232,84,30,0.25);
+  --eq-border-avatar: 4px solid #b5977a;
+  --eq-grad-user-banner: rgba(232,84,30,0.25);
+  --eq-grad-banner-fade: #b5977a;
+  --eq-danger-soft-15: rgba(97,23,9,0.15);
+  --eq-dur-spin-1s: 1s;
+  /* extended (Phase A) — batch A10 (client/artist.html) */
+  --eq-shadow-play-btn-sm: 0 0 16px rgba(232,84,30,0.45);
+  /* extended (Phase A) — batch A11 (client/library.html, client/playlist.html) */
+  --eq-grad-playlist-cover: #181512;
+  --eq-danger-vivid: #a02309;
+  --eq-danger-vivid-soft-15: rgba(160,35,9,0.15);
+  /* extended (Phase A) — batch A12 (client/settings.html) */
+  --eq-success-soft-30: rgba(18,51,16,0.3);
+  /* extended (Phase A) — batch A13 (admin: common/css/admin-base.css + operator pages) */
+  --eq-grad-success: #123310;
+  --eq-shadow-glow-success: 0 0 16px rgba(18,51,16,0.5);
+  --eq-danger-soft-25: rgba(97,23,9,0.25);
+  --eq-radius-14: 0;
+  --eq-font-mono-sf: 'Space Mono', monospace;
+  --eq-amber-soft-20: rgba(64,44,0,0.2);
+  --eq-amber-light: #2c1e00;
+  --eq-accent-tint-20: rgba(232,84,30,0.2);
+  --eq-accent-tint-08: rgba(232,84,30,0.08);
+  --eq-blue-soft-05: rgba(20,44,77,0.05);
+  --eq-blue-soft-10: rgba(20,44,77,0.1);
+  --eq-blue-soft-12: rgba(20,44,77,0.12);
+  --eq-blue-soft-15: rgba(20,44,77,0.15);
+  --eq-blue-soft-20: rgba(20,44,77,0.2);
+  --eq-blur-4: none;
+  --eq-grad-modal: #fbf8f2;
+  --eq-scrim-40: rgba(24,21,18,0.4);
+  --eq-grad-future-card: var(--eq-accent-tint-08);
+  --eq-emerald-light: #2ecc55;
+  --eq-shadow-dot-ok: 0 0 6px rgba(46,204,85,0.5);
+  --eq-red-400: #e8503a;
+  /* extended (Phase A) — batch A14 */
+  --eq-slate-soft-25: rgba(74,70,66,0.25);
+  --eq-slate-light: #4a4642;
+  --eq-blue-soft-25: rgba(20,44,77,0.25);
+  --eq-blue-soft-08: rgba(20,44,77,0.08);
+  --eq-text-75: rgba(24,21,18,0.75);
+  /* extended (Phase A) — batch A15 */
+  --eq-grad-login-bg: #b5977a;
+  --eq-grad-logo-text: #181512;
+  --eq-grad-btn-purple: #e8541e;
+  --eq-shadow-btn-purple: 0 0 24px rgba(232,84,30,0.4);
+  --eq-grad-profile-setup-bg: #b5977a;
+  --eq-success-soft-08: rgba(18,51,16,0.08);
+  --eq-success-light: #1a4a17;
+  --eq-danger-soft-08: rgba(97,23,9,0.08);
+  --eq-warning-soft-08: rgba(64,44,0,0.08);
+  --eq-warning-soft-30: rgba(64,44,0,0.3);
+  --eq-accent-tint-02: rgba(232,84,30,0.02);
+  --eq-grad-found-banner: var(--eq-accent-tint-08);
+  --eq-blue-soft-02: rgba(20,44,77,0.02);
+  --eq-blue-soft-30: rgba(20,44,77,0.3);
+  --eq-grad-found-banner-info: var(--eq-blue-soft-08);
+  /* extended (Phase A) — batch A16 */
+  --eq-blue: #142c4d;
+  --eq-orange-soft-20: rgba(107,58,10,0.2);
+  /* extended (Phase A) — batch A17 (content_node/orchestrator/releases.html) */
+  --eq-accent-soft-05: rgba(232,84,30,0.05);
+  --eq-accent-soft-60: rgba(232,84,30,0.6);
+  --eq-blur-10: none;
+  --eq-grad-release: #123310;
+  --eq-shadow-release: 0 0 14px rgba(18,51,16,0.4);
+  --eq-warning-soft-35: rgba(64,44,0,0.35);
+  /* extended (Phase A) — batch A18 (content_node/orchestrator/edit-release.html) */
+  --eq-grad-danger: #611709;
+  --eq-shadow-danger: 0 0 16px rgba(97,23,9,0.45);
+  --eq-radius-top-md: 0;
+  --eq-radius-bottom-md: 0;
+  --eq-scrim-20: rgba(24,21,18,0.2);
+  --eq-grad-dup-progress: #d1481a;
+  --eq-shadow-glow-release: 0 0 14px rgba(18,51,16,0.4);
+  /* extended (Phase A) — batch A19 (content_node/orchestrator/profile.html) */
+  --eq-amber-soft-90: rgba(64,44,0,0.9);
+  --eq-success-soft-90: rgba(18,51,16,0.9);
+  --eq-danger-soft-90: rgba(97,23,9,0.9);
+  /* extended (Phase A) — batch A21 (content_node/orchestrator/upload.html) */
+  --eq-grad-progress-complete: #123310;
+}
+
+/* === Stencil webfonts (this file only — hook exemption for theme files) === */
+@font-face {
+  font-family: 'Stardos Stencil';
+  src: url('/common/fonts/stardosstencil-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Stardos Stencil';
+  src: url('/common/fonts/stardosstencil-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('/common/fonts/barlowcondensed-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('/common/fonts/barlowcondensed-500.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('/common/fonts/barlowcondensed-600.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('/common/fonts/barlowcondensed-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Space Mono';
+  src: url('/common/fonts/spacemono-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Space Mono';
+  src: url('/common/fonts/spacemono-400-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Space Mono';
+  src: url('/common/fonts/spacemono-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+::selection {
+  background: #181512;
+  color: #f4efe6;
+}
+
+/* Minimal scrollbar styling — ink thumb on the kraft wall */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #181512 #b5977a;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #b5977a;
+}
+::-webkit-scrollbar-thumb {
+  background: #181512;
+  border: 2px solid #b5977a;
+}
