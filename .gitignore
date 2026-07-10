@@ -44,3 +44,4 @@ tools/restyle-tests/.throwaway-identity.json
 tools/restyle-tests/.seed-refs.json
 tools/restyle-tests/baselines/
 tools/restyle-tests/artifacts/
+**/login.txt
