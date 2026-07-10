@@ -1,0 +1,383 @@
+/* Equaliser theme: Xerox — photocopied zine cut-and-paste, ransom-note masthead.
+   Design source: docs/Fable_Analysis/mockup-xerox-home.html
+   Palette: paper #f4f2ec (the photocopied page), desk #d8d5cc (the surface it's
+   pasted on — used as --eq-bg-app, with a faint repeating-linear-gradient
+   "paper feed" texture lifted straight from the mockup's body background),
+   ink #111111, stamp red #c81f1f (the mockup's one vivid accent — "RECORD OF
+   THE WEEK" / "100% PAID" rubber-stamp outlines, never used as a filled
+   block in the mockup itself). Xerox is a light Signal-family relative like
+   Signal and Flyposter: zero radius everywhere (the mockup's "cuttings" are
+   all hard-cornered rectangles taped to the page — even avatars and play
+   buttons are square, so --eq-radius-round is 0 here, departing from
+   Flyposter's 50% avatar circles), 2.5px/3px solid ink borders (the mockup's
+   `.cut{border:2.5px solid var(--ink)}` idiom), hard offset button shadows
+   (`4px 4px 0 rgba(0,0,0,.75)` on `.zb`, no blur) — with one deliberate
+   exception: --eq-shadow-2 reproduces the mockup's own soft ambient
+   `.page{box-shadow:0 14px 40px rgba(0,0,0,.4)}` for large elevated surfaces,
+   since the mockup itself pairs hard component shadows with one soft
+   "page-on-desk" shadow. No glows, no backdrop blur (mockup has neither).
+   --eq-img-filter is `grayscale(1) contrast(1.5) brightness(1.05)` lifted
+   verbatim from the mockup, and --eq-img-filter-hover is IDENTICAL — the
+   mockup's own `.zine:hover img` rule states the aesthetic outright: "xerox
+   never un-photocopies".
+   Text ladder (ink alpha over paper/desk) computed to clear 4.5:1 for
+   text-1/2/3 against the app bg (desk, the more conservative of the two
+   light surfaces); text-4/faint are intentionally sub-AA decorative tiers.
+   --eq-accent-text/--eq-text-link use a hand-darkened stamp red (#a81f16,
+   ~4.98:1 on desk) since the raw stamp red (#c81f1f) only clears ~3.9:1 on
+   desk as body text — the raw red is kept for --eq-accent/--eq-border-focus/
+   --eq-checkbox-accent (bg-only/border/large-mark contexts). Every grad-*
+   token that page CSS places BEHIND inherited text-1 (grad-accent, grad-
+   avatar, grad-nav-active, grad-modal, grad-hero, grad-*-banner, grad-
+   success/danger/release, grad-demo-btn/btn-extension/btn-purple, etc. — all
+   confirmed by grepping their actual consumers, several of which pair a
+   colour fill with a literal `color: var(--eq-text-1)`) has been flattened
+   to a pale desaturated wash (translucent stamp-red rgba() tints over paper,
+   or opaque dusty-red/sage-green swatches for tokens that must stay legible
+   over an unknown backdrop) so ink text reads at ≥4.5:1 on top of it — this
+   is the fix for the same class of bug T6 caught elsewhere: a few of these
+   slots literally fail contrast in Flyposter today, which was double-checked
+   by computing Flyposter's own grad-accent/text-1 pair (~3.6:1, below AA) —
+   Xerox does not repeat that. Tokens confirmed to have NO text drawn on top
+   (progress-bar fills, decorative corner glows) keep the raw vivid stamp red
+   or a punchy status green, matching the "no glow, hard ink" idiom. Token
+   list mirrors theme-classic.css exactly — same names, same order, same
+   batch fence comments for traceability. */
+:root {
+  /* surfaces */
+  --eq-bg-app: repeating-linear-gradient(0deg, rgba(17,17,17,0.025) 0 2px, transparent 2px 4px), #d8d5cc;
+  --eq-surface-1: #f4f2ec;
+  --eq-surface-1-hover: #f8f6f1;
+  --eq-surface-2: #ece7db;
+  --eq-surface-2-hover: #e2dccb;
+  --eq-surface-raised: #f8f6f1;
+  --eq-surface-input: #f8f6f1;
+  --eq-surface-inverse: #111111;
+  --eq-surface-modal: #f8f6f1;
+  --eq-scrim: rgba(17,17,17,0.6);
+  /* text */
+  --eq-text-1: #111111;
+  --eq-text-2: rgba(17,17,17,0.82);
+  --eq-text-2-dim: rgba(17,17,17,0.74);
+  --eq-text-3: rgba(17,17,17,0.65);
+  --eq-text-4: rgba(17,17,17,0.45);
+  --eq-text-faint: rgba(17,17,17,0.32);
+  --eq-text-inverse: #f4f2ec;
+  --eq-text-link: #a81f16;
+  /* accent */
+  --eq-accent: #c81f1f;
+  --eq-accent-2: #b81d1d;
+  --eq-accent-text: #a81f16;
+  --eq-accent-contrast: #f4f2ec;
+  --eq-accent-soft: rgba(200,31,31,0.15);
+  --eq-accent-soft-hover: rgba(200,31,31,0.3);
+  --eq-focus-ring: rgba(200,31,31,0.4);
+  /* status */
+  --eq-danger: #b31c1c;
+  --eq-danger-soft: rgba(179,28,28,0.1);
+  --eq-success: #275417;
+  --eq-success-soft: rgba(39,84,23,0.1);
+  --eq-warning: #7a4f00;
+  --eq-warning-soft: rgba(122,79,0,0.1);
+  --eq-info: #1d4e89;
+  --eq-info-soft: rgba(29,78,137,0.1);
+  /* gradients (Signal will flatten these) */
+  --eq-grad-accent: linear-gradient(135deg, #d98080, #cc6b6b);
+  --eq-grad-avatar: linear-gradient(135deg, #d98080, #cc6b6b);
+  --eq-grad-display-text: #111111;
+  /* borders & dividers (whole-shorthand tokens) */
+  --eq-border: 2.5px solid #111111;
+  --eq-border-strong: 3px solid #111111;
+  --eq-border-soft: 1px solid rgba(17,17,17,0.15);
+  --eq-divider: 2px dashed rgba(17,17,17,0.4);
+  --eq-border-focus: #c81f1f;
+  --eq-border-inverse: 1px solid rgba(244,242,236,0.25);
+  /* radii */
+  --eq-radius-xs: 0;
+  --eq-radius-sm: 0;
+  --eq-radius-md: 0;
+  --eq-radius-lg: 0;
+  --eq-radius-xl: 0;
+  --eq-radius-2xl: 0;
+  --eq-radius-3xl: 0;
+  --eq-radius-pill: 0;
+  --eq-radius-round: 0;
+  /* shadows & effects */
+  --eq-shadow-1: 4px 4px 0 rgba(17,17,17,0.75);
+  --eq-shadow-2: 0 14px 40px rgba(17,17,17,0.4);
+  --eq-shadow-glow: 4px 4px 0 #c81f1f;
+  --eq-blur-backdrop: none;
+  --eq-img-filter: grayscale(1) contrast(1.5) brightness(1.05);
+  --eq-img-filter-hover: grayscale(1) contrast(1.5) brightness(1.05);
+  /* typography */
+  --eq-font-body: 'Special Elite', monospace;
+  --eq-font-display: 'Archivo Black', sans-serif;
+  --eq-font-mono: 'Special Elite', monospace;
+  --eq-transform-display: uppercase;
+  --eq-tracking-display: -0.01em;
+  --eq-weight-display: 400;
+  --eq-transform-label: uppercase;
+  --eq-tracking-label: 0.08em;
+  /* motion */
+  --eq-dur-fast: 0.15s;
+  --eq-dur-med: 0.3s;
+  /* component hooks (canonical values refined at consolidation batches A2/A3/A13) */
+  --eq-btn-radius: 0;
+  --eq-btn-border: 2.5px solid #111111;
+  --eq-btn-transform: uppercase;
+  --eq-btn-primary-bg: var(--eq-grad-accent);
+  --eq-btn-primary-color: #111111;
+  --eq-badge-radius: 0;
+  --eq-badge-transform: uppercase;
+  --eq-card-bg: var(--eq-surface-1);
+  --eq-card-border: var(--eq-border);
+  --eq-card-radius: var(--eq-radius-2xl);
+  --eq-player-bg: rgba(244,242,236,0.97);
+  --eq-player-text: #111111;
+  --eq-player-border-top: 2.5px solid #111111;
+  --eq-sidebar-bg: #f4f2ec;
+  --eq-sidebar-border: 2.5px solid #111111;
+  --eq-sidebar-active-bg: rgba(200,31,31,0.15);
+  --eq-sidebar-active-color: #a81f16;
+  --eq-input-radius: 0;
+  --eq-checkbox-accent: #c81f1f;
+  /* extended (Phase A) */
+  --eq-dur-quick: 0.2s;
+  --eq-border-15: rgba(17,17,17,0.15);
+  --eq-text-mute: rgba(17,17,17,0.35);
+  --eq-text-strong: rgba(17,17,17,0.85);
+  --eq-accent-soft-20: rgba(200,31,31,0.2);
+  --eq-accent-soft-35: rgba(200,31,31,0.35);
+  --eq-accent-mid: rgba(200,31,31,0.5);
+  --eq-scrim-strong: rgba(17,17,17,0.7);
+  --eq-dur-spin: 0.8s;
+  --eq-border-20: rgba(17,17,17,0.2);
+  --eq-border-12: rgba(17,17,17,0.12);
+  --eq-border-08: rgba(17,17,17,0.08);
+  --eq-surface-0: rgba(17,17,17,0.02);
+  --eq-surface-0-hover: rgba(17,17,17,0.04);
+  --eq-text-bright: rgba(17,17,17,0.88);
+  --eq-scrim-soft: rgba(17,17,17,0.3);
+  --eq-brand-youtube: rgba(255,0,0,0.85);
+  --eq-accent-tint-10: rgba(200,31,31,0.1);
+  --eq-accent-soft-03: rgba(200,31,31,0.03);
+  --eq-accent-soft-08: rgba(200,31,31,0.08);
+  --eq-accent-soft-10: rgba(200,31,31,0.1);
+  --eq-danger-mid: rgba(179,28,28,0.5);
+  --eq-danger-strong: rgba(179,28,28,0.8);
+  --eq-success-2: #2f6b1c;
+  --eq-success-soft-06: rgba(39,84,23,0.06);
+  --eq-success-soft-12: rgba(39,84,23,0.12);
+  --eq-success-soft-25: rgba(39,84,23,0.25);
+  --eq-success-soft-40: rgba(39,84,23,0.4);
+  --eq-info-dim: rgba(29,78,137,0.7);
+  /* extended (Phase A) — batch A2 (eq-sidebar.css consolidation) */
+  --eq-border-10: rgba(17,17,17,0.1);
+  --eq-text-90: rgba(17,17,17,0.9);
+  --eq-text-55: rgba(17,17,17,0.55);
+  --eq-text-45: rgba(17,17,17,0.45);
+  --eq-text-25: rgba(17,17,17,0.25);
+  --eq-danger-soft-20: rgba(179,28,28,0.2);
+  --eq-danger-soft-40: rgba(179,28,28,0.4);
+  --eq-grad-nav-active: rgba(200,31,31,0.2);
+  --eq-grad-acting-banner: rgba(200,31,31,0.08);
+  --eq-accent-border-35: rgba(200,31,31,0.35);
+  --eq-accent-border-50: rgba(200,31,31,0.5);
+  --eq-accent-tint-15: rgba(200,31,31,0.15);
+  --eq-accent-tint-25: rgba(200,31,31,0.25);
+  --eq-accent-tint-30: rgba(200,31,31,0.3);
+  --eq-accent-transparent: rgba(200,31,31,0);
+  --eq-accent-light: #8a1712;
+  --eq-role-artist-text: #a81f16;
+  --eq-role-label-bg: rgba(29,78,137,0.15);
+  --eq-role-label-text: #1d4e89;
+  --eq-role-operator-bg: rgba(39,84,23,0.15);
+  --eq-role-operator-text: #275417;
+  --eq-select-bg: #f8f6f1;
+  --eq-font-mono-generic: 'Special Elite', monospace;
+  --eq-dur-pulse: 2s;
+  --eq-shadow-pulse-start: 0 0 0 0 var(--eq-focus-ring);
+  --eq-shadow-pulse-end: 0 0 0 4px var(--eq-accent-transparent);
+  /* extended (Phase A) — batch A3 (eq-player.css consolidation) */
+  --eq-panel-bg-95: rgba(244,242,236,0.95);
+  --eq-panel-bg-97: rgba(244,242,236,0.97);
+  --eq-brand-pink-90: rgba(29,78,137,0.9);
+  --eq-brand-pink: #1d4e89;
+  --eq-black: #111111;
+  --eq-radius-2px: 0;
+  --eq-radius-3px: 0;
+  --eq-radius-top-xl: 0;
+  --eq-grad-progress: #c81f1f;
+  --eq-accent-soft-12: rgba(200,31,31,0.12);
+  /* extended (Phase A) — batch A4 (client standalone pages: index.html/login.html/join.html) */
+  --eq-blur-glow: none;
+  --eq-accent-soft-40: rgba(200,31,31,0.4);
+  --eq-accent-tint-40: rgba(200,31,31,0.4);
+  --eq-shadow-glow-lg: 6px 6px 0 #c81f1f;
+  --eq-brand-pink-30: rgba(29,78,137,0.3);
+  --eq-violet-600: #6e1010;
+  --eq-violet-700: #4f0b0b;
+  --eq-amber-400: #7a4f00;
+  --eq-amber-soft-10: rgba(122,79,0,0.1);
+  --eq-amber-soft-30: rgba(122,79,0,0.3);
+  --eq-danger-soft-12: rgba(179,28,28,0.12);
+  --eq-danger-soft-30: rgba(179,28,28,0.3);
+  --eq-danger-light: #8a1712;
+  --eq-emerald-500: #145c3a;
+  --eq-emerald-12: rgba(20,92,58,0.12);
+  --eq-emerald-20: rgba(20,92,58,0.2);
+  --eq-success-soft-18: rgba(39,84,23,0.18);
+  --eq-border-07: rgba(17,17,17,0.07);
+  --eq-font-mono-alt: 'Special Elite', monospace;
+  --eq-grad-glow-1: transparent;
+  --eq-grad-glow-2: transparent;
+  --eq-grad-demo-btn: #cc6b6b;
+  --eq-grad-btn-extension: #cc6b6b;
+  /* extended (Phase A) — batch A5 */
+  --eq-orange: #8f3908;
+  --eq-orange-soft-10: rgba(143,57,8,0.1);
+  --eq-orange-soft-30: rgba(143,57,8,0.3);
+  --eq-success-soft-20: rgba(39,84,23,0.2);
+  /* extended (Phase A) — batch A6 (client/home.html) */
+  --eq-purple-alt: #111111;
+  --eq-brand-pink-10: rgba(29,78,137,0.1);
+  --eq-brand-pink-20: rgba(29,78,137,0.2);
+  --eq-brand-violet-alt-10: rgba(200,31,31,0.1);
+  --eq-brand-violet-alt-50: rgba(200,31,31,0.5);
+  --eq-grad-hero: rgba(200,31,31,0.1);
+  --eq-grad-hero-glow: transparent;
+  --eq-blur-hero-glow: none;
+  --eq-shadow-play-btn: 4px 4px 0 #c81f1f;
+  --eq-shadow-play-btn-hover: 6px 6px 0 #c81f1f;
+  --eq-radius-24: 0;
+  /* extended (Phase A) — batch A7 (client/social.html) */
+  --eq-info-soft-15: rgba(29,78,137,0.15);
+  --eq-success-soft-15: rgba(39,84,23,0.15);
+  --eq-amber-soft-15: rgba(122,79,0,0.15);
+  --eq-shadow-btn-hover: 4px 4px 0 #c81f1f;
+  /* extended (Phase A) — batch A8 (client/thread.html, client/messages.html) */
+  --eq-text-95: rgba(17,17,17,0.95);
+  --eq-radius-18: 0;
+  --eq-grad-msg-outgoing: rgba(200,31,31,0.35);
+  /* extended (Phase A) — batch A9 (client/profile.html, client/user.html) */
+  --eq-grad-profile-banner: rgba(200,31,31,0.25);
+  --eq-border-avatar: 4px solid #f4f2ec;
+  --eq-grad-user-banner: rgba(200,31,31,0.25);
+  --eq-grad-banner-fade: #f4f2ec;
+  --eq-danger-soft-15: rgba(179,28,28,0.15);
+  --eq-dur-spin-1s: 1s;
+  /* extended (Phase A) — batch A10 (client/artist.html) */
+  --eq-shadow-play-btn-sm: 4px 4px 0 #c81f1f;
+  /* extended (Phase A) — batch A11 (client/library.html, client/playlist.html) */
+  --eq-grad-playlist-cover: #111111;
+  --eq-danger-vivid: #a01810;
+  --eq-danger-vivid-soft-15: rgba(160,24,16,0.15);
+  /* extended (Phase A) — batch A12 (client/settings.html) */
+  --eq-success-soft-30: rgba(39,84,23,0.3);
+  /* extended (Phase A) — batch A13 (admin: common/css/admin-base.css + operator pages) */
+  --eq-grad-success: #7fae6a;
+  --eq-shadow-glow-success: 4px 4px 0 #275417;
+  --eq-danger-soft-25: rgba(179,28,28,0.25);
+  --eq-radius-14: 0;
+  --eq-font-mono-sf: 'Special Elite', monospace;
+  --eq-amber-soft-20: rgba(122,79,0,0.2);
+  --eq-amber-light: #4f3300;
+  --eq-accent-tint-20: rgba(200,31,31,0.2);
+  --eq-accent-tint-08: rgba(200,31,31,0.08);
+  --eq-blue-soft-05: rgba(29,78,137,0.05);
+  --eq-blue-soft-10: rgba(29,78,137,0.1);
+  --eq-blue-soft-12: rgba(29,78,137,0.12);
+  --eq-blue-soft-15: rgba(29,78,137,0.15);
+  --eq-blue-soft-20: rgba(29,78,137,0.2);
+  --eq-blur-4: none;
+  --eq-grad-modal: #f8f6f1;
+  --eq-scrim-40: rgba(17,17,17,0.4);
+  --eq-grad-future-card: var(--eq-accent-tint-08);
+  --eq-emerald-light: #145c3a;
+  --eq-shadow-dot-ok: none;
+  --eq-red-400: #b31c1c;
+  /* extended (Phase A) — batch A14 */
+  --eq-slate-soft-25: rgba(74,70,64,0.25);
+  --eq-slate-light: #4a4640;
+  --eq-blue-soft-25: rgba(29,78,137,0.25);
+  --eq-blue-soft-08: rgba(29,78,137,0.08);
+  --eq-text-75: rgba(17,17,17,0.75);
+  /* extended (Phase A) — batch A15 */
+  --eq-grad-login-bg: #d8d5cc;
+  --eq-grad-logo-text: #111111;
+  --eq-grad-btn-purple: #d98080;
+  --eq-shadow-btn-purple: 6px 6px 0 #c81f1f;
+  --eq-grad-profile-setup-bg: #d8d5cc;
+  --eq-success-soft-08: rgba(39,84,23,0.08);
+  --eq-success-light: #1a3f10;
+  --eq-danger-soft-08: rgba(179,28,28,0.08);
+  --eq-warning-soft-08: rgba(122,79,0,0.08);
+  --eq-warning-soft-30: rgba(122,79,0,0.3);
+  --eq-accent-tint-02: rgba(200,31,31,0.02);
+  --eq-grad-found-banner: var(--eq-accent-tint-08);
+  --eq-blue-soft-02: rgba(29,78,137,0.02);
+  --eq-blue-soft-30: rgba(29,78,137,0.3);
+  --eq-grad-found-banner-info: var(--eq-blue-soft-08);
+  /* extended (Phase A) — batch A16 */
+  --eq-blue: #1d4e89;
+  --eq-orange-soft-20: rgba(143,57,8,0.2);
+  /* extended (Phase A) — batch A17 (content_node/orchestrator/releases.html) */
+  --eq-accent-soft-05: rgba(200,31,31,0.05);
+  --eq-accent-soft-60: rgba(200,31,31,0.6);
+  --eq-blur-10: none;
+  --eq-grad-release: #7fae6a;
+  --eq-shadow-release: 4px 4px 0 #275417;
+  --eq-warning-soft-35: rgba(122,79,0,0.35);
+  /* extended (Phase A) — batch A18 (content_node/orchestrator/edit-release.html) */
+  --eq-grad-danger: #d47a7a;
+  --eq-shadow-danger: 4px 4px 0 #b31c1c;
+  --eq-radius-top-md: 0;
+  --eq-radius-bottom-md: 0;
+  --eq-scrim-20: rgba(17,17,17,0.2);
+  --eq-grad-dup-progress: #c81f1f;
+  --eq-shadow-glow-release: 4px 4px 0 #275417;
+  /* extended (Phase A) — batch A19 (content_node/orchestrator/profile.html) */
+  --eq-amber-soft-90: rgba(122,79,0,0.9);
+  --eq-success-soft-90: rgba(39,84,23,0.9);
+  --eq-danger-soft-90: rgba(179,28,28,0.9);
+  /* extended (Phase A) — batch A21 (content_node/orchestrator/upload.html) */
+  --eq-grad-progress-complete: #2f7a1f;
+}
+
+/* === Xerox webfonts (this file only — hook exemption for theme files) === */
+@font-face {
+  font-family: 'Archivo Black';
+  src: url('/common/fonts/archivoblack-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Special Elite';
+  src: url('/common/fonts/specialelite-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+::selection {
+  background: #111111;
+  color: #f4f2ec;
+}
+
+/* Minimal scrollbar styling — ink on paper */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #111111 #d8d5cc;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #d8d5cc;
+}
+::-webkit-scrollbar-thumb {
+  background: #111111;
+  border: 2px solid #d8d5cc;
+}
