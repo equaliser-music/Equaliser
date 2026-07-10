@@ -15,7 +15,8 @@
     { id: 'console', label: 'Console' },
     { id: 'flyposter', label: 'Flyposter' },
     { id: 'pirate', label: 'Pirate' },
-    { id: 'stencil', label: 'Stencil' }
+    { id: 'stencil', label: 'Stencil' },
+    { id: 'terminal', label: 'Terminal' }
   ];
   var STORAGE_KEY = 'equaliser_theme';
 

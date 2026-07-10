@@ -1,0 +1,439 @@
+/* Equaliser theme: Terminal — green-phosphor CRT terminal, ASCII-drawn boxes.
+   Design source: docs/Fable_Analysis/mockup-terminal-home.html
+   Palette lifted verbatim from the mockup's own :root — void #0a0f0a (the CRT
+   tube, off), phosphor green #4af626 (--ph, the terminal's default ink and
+   this theme's --eq-text-1 — 13.5:1 on the void), a dimmer green #2e8f1f
+   (--dim, used for every structural box border and secondary/metadata text),
+   a faint green #1d5214 (--faint, the ASCII masthead and hairline dividers —
+   deliberately near-invisible, decorative only), amber #ffb000 (--amb, the
+   mockup's one warm accent — zap CTA, prices, the username in the shell
+   prompt, "no algorithm loaded" callout) and a soft mint-white #d8ffd0
+   (--wht, reserved for the brightest inline emphasis — artist names, the
+   verification line). --eq-accent/-text/-focus-ring/-border-focus/
+   -sidebar-active-color all map to amber: it is the only hue in the mockup
+   that behaves like an interactive/CTA colour, everything else is the
+   ambient phosphor read-out. Amber is used ONLY where it sits on the void
+   (text, borders, focus rings, translucent tints) — the FILLED gradient
+   tokens (grad-accent/-avatar/-demo-btn/-btn-extension/-btn-purple/-success/
+   -release/-danger) are dark "highlighted cell" fills instead, because
+   A-phase page CSS renders text-1 phosphor green directly on those blocks
+   (btn-primary/Follow/avatar chips use grad-accent + text-1, not
+   btn-primary-color) and green-on-amber computes to ~1.3:1; the dim/faint
+   green family (#0f2c0b/#143a0e/#1d5214/#236316) carries text-1 at
+   5.1–10.5:1 (see report), reading as a terminal's reverse-video
+   highlighted row rather than a painted button. --eq-btn-primary-color is
+   phosphor green to match. --eq-grad-danger keeps its danger identity via a
+   dark alarm-red fill (#6b1717→#4a0f0f, text-1 at 8.2:1+). --eq-text-1..-faint step down through alpha on
+   the phosphor green itself (0.75/0.66/0.58/0.42/0.3) rather than switching
+   hue — text-3 at 0.58 was chosen (not the more obvious 0.5) because 0.5
+   computes to 4.04:1 on this bg, just under AA; 0.58 clears 5.07:1 with a
+   safety margin (see report for the full ladder). The extended numbered/
+   mute/strong/bright text ladder (text-25/45/55/75/90/95, text-mute/-strong/
+   -bright) also ties to the phosphor hue, following Pirate's precedent of
+   keying the WHOLE text ladder to text-1's own colour rather than plain
+   white — introducing true white anywhere in a single-hue phosphor screen
+   would read as a bug, not a design choice. The generic border-07/08/10/12/
+   15/20 ladder keeps the Classic/Console/Pirate plain rgba(255,255,255,X)
+   formula, since those hairlines composite against arbitrary component
+   surfaces app-wide, not just the void. --eq-danger is an invented CRT-alarm
+   red #ff4d4d (5.99:1) and --eq-info an invented cyan-blue #3ad6ff (11.4:1)
+   — the mockup has neither, but both real terminals commonly render alerts
+   and info streams in these families, so they sit comfortably alongside the
+   green/amber pair. --eq-success is the phosphor green itself: this is a
+   terminal where "good" and "the ambient signal" are the same colour by
+   design. --eq-brand-pink becomes a CRT-alarm magenta-red (#ff4f7f) for the
+   handful of pink-family decorative tokens with no equivalent in the source.
+   Radii are ALL zero, --eq-radius-round included: the mockup has no
+   border-radius anywhere — boxes, thumbnails, keyboard buttons and inverted
+   badges are drawn as hard rectangles, exactly like Signal's flat family,
+   because ASCII/CRT UI has no concept of a rounded corner. Structural
+   borders are literal solid hex quoted straight from the mockup — 1px solid
+   #2e8f1f for --eq-border (the ".box" rule), 1px solid #1d5214 for
+   --eq-divider (the table header's border-bottom), --eq-border-strong
+   brightens to the phosphor hue itself rather than thickening (a 2px rule
+   would break the thin hand-drawn-box illusion). --eq-blur-backdrop is none
+   and the ambient hero-glow blob tokens (--eq-grad-glow-1/2, --eq-blur-glow,
+   --eq-grad-hero-glow, --eq-blur-hero-glow) are flattened to none/transparent
+   — a CRT does not have soft blurred colour bloom sitting behind content,
+   it has scanlines and a crisp phosphor trail, so the "hero blob" device
+   from other themes is dropped entirely. --eq-shadow-glow, however, IS a
+   genuine coloured glow (not flattened): the mockup applies
+   text-shadow:0 0 7px rgba(74,246,38,.45) to the entire page body and a
+   matching amber glow to .amb — real phosphor bloom is the theme's whole
+   identity, so glow tokens throughout (shadow-glow(-lg/-success/-release),
+   shadow-play-btn(-sm/-hover), shadow-dot-ok, shadow-danger) stay real,
+   colour-matched, blurred glows. --eq-img-filter reproduces the mockup's
+   cover-art treatment exactly — grayscale(1) contrast(1.6) brightness(1.05)
+   on `.thumb`/`.bigthumb`, reverting to full colour on hover
+   (`tr.row:hover .thumb{filter:none}`) — cover art is desaturated,
+   high-contrast "terminal preview" until you engage with the row, matching
+   --eq-img-filter-hover (none). --eq-grad-progress reuses the mockup's own
+   dim→phosphor duotone (the `.bar`/`.bar b` colours) rather than inventing
+   one. Typography is 'IBM Plex Mono' for every font token including
+   -generic/-alt/-sf (the mockup's only font, loaded at 400/500/600/700).
+   The mockup has zero text-transform, zero letter-spacing and only
+   font-weight:400 anywhere in its stylesheet (checked line by line) — so,
+   deliberately diverging from Console/Pirate's uppercase-label precedent,
+   --eq-transform-display/-label and --eq-btn-transform/-badge-transform are
+   all `none` and --eq-weight-display stays 400: this is meant to look like
+   literal shell output, and uppercasing or letter-spacing UI labels would
+   fight that raw, unstyled-terminal read. --eq-sidebar-bg/-player-bg are
+   solid #0a0f0a — an exact match for the mockup's own `.playerline{
+   background:var(--bg)}` rule — so the global text ladder (consumed by
+   eq-sidebar.css as --eq-text-4/-2/-1) stays legible: these are not
+   inverted chrome panels, they are the same CRT screen the rest of the page
+   sits on, separated only by the same 1px dim-green rule used everywhere
+   else. Token list mirrors theme-classic.css exactly — same names, same
+   order, same batch fence comments for traceability. */
+:root {
+  /* surfaces */
+  --eq-bg-app: #0a0f0a;
+  --eq-surface-1: rgba(74,246,38,0.04);
+  --eq-surface-1-hover: rgba(74,246,38,0.07);
+  --eq-surface-2: rgba(74,246,38,0.06);
+  --eq-surface-2-hover: rgba(74,246,38,0.09);
+  --eq-surface-raised: rgba(14,20,14,0.97);
+  --eq-surface-input: rgba(74,246,38,0.05);
+  --eq-surface-inverse: #10160f;
+  --eq-surface-modal: #10160f;
+  --eq-scrim: rgba(0,0,0,0.6);
+  /* text */
+  --eq-text-1: #4af626;
+  --eq-text-2: rgba(74,246,38,0.75);
+  --eq-text-2-dim: rgba(74,246,38,0.66);
+  --eq-text-3: rgba(74,246,38,0.58);
+  --eq-text-4: rgba(74,246,38,0.42);
+  --eq-text-faint: rgba(74,246,38,0.3);
+  --eq-text-inverse: #0a0f0a;
+  --eq-text-link: #ffb000;
+  /* accent */
+  --eq-accent: #ffb000;
+  --eq-accent-2: #b37b00;
+  --eq-accent-text: #ffb000;
+  --eq-accent-contrast: #0a0f0a;
+  --eq-accent-soft: rgba(255,176,0,0.15);
+  --eq-accent-soft-hover: rgba(255,176,0,0.3);
+  --eq-focus-ring: rgba(255,176,0,0.4);
+  /* status */
+  --eq-danger: #ff4d4d;
+  --eq-danger-soft: rgba(255,77,77,0.1);
+  --eq-success: #4af626;
+  --eq-success-soft: rgba(74,246,38,0.1);
+  --eq-warning: #cc8800;
+  --eq-warning-soft: rgba(204,136,0,0.1);
+  --eq-info: #3ad6ff;
+  --eq-info-soft: rgba(58,214,255,0.1);
+  /* gradients (Signal will flatten these) */
+  --eq-grad-accent: linear-gradient(135deg, #143a0e, #1d5214);
+  --eq-grad-avatar: linear-gradient(135deg, #143a0e, #1d5214);
+  --eq-grad-display-text: #4af626;
+  /* borders & dividers (whole-shorthand tokens) */
+  --eq-border: 1px solid #2e8f1f;
+  --eq-border-strong: 1px solid #4af626;
+  --eq-border-soft: 1px solid rgba(74,246,38,0.12);
+  --eq-divider: 1px solid #1d5214;
+  --eq-border-focus: #ffb000;
+  --eq-border-inverse: 1px solid rgba(10,15,10,0.3);
+  /* radii */
+  --eq-radius-xs: 0;
+  --eq-radius-sm: 0;
+  --eq-radius-md: 0;
+  --eq-radius-lg: 0;
+  --eq-radius-xl: 0;
+  --eq-radius-2xl: 0;
+  --eq-radius-3xl: 0;
+  --eq-radius-pill: 0;
+  --eq-radius-round: 0;
+  /* shadows & effects */
+  --eq-shadow-1: 0 4px 12px rgba(0,0,0,0.5);
+  --eq-shadow-2: 0 6px 18px rgba(0,0,0,0.55);
+  --eq-shadow-glow: 0 0 10px rgba(74,246,38,0.55);
+  --eq-blur-backdrop: none;
+  --eq-img-filter: grayscale(1) contrast(1.6) brightness(1.05);
+  --eq-img-filter-hover: none;
+  /* typography */
+  --eq-font-body: 'IBM Plex Mono', monospace;
+  --eq-font-display: 'IBM Plex Mono', monospace;
+  --eq-font-mono: 'IBM Plex Mono', monospace;
+  --eq-transform-display: none;
+  --eq-tracking-display: 0em;
+  --eq-weight-display: 400;
+  --eq-transform-label: none;
+  --eq-tracking-label: 0em;
+  /* motion */
+  --eq-dur-fast: 0.15s;
+  --eq-dur-med: 0.3s;
+  /* component hooks (canonical values refined at consolidation batches A2/A3/A13) */
+  --eq-btn-radius: 0;
+  --eq-btn-border: 1px solid #2e8f1f;
+  --eq-btn-transform: none;
+  --eq-btn-primary-bg: var(--eq-grad-accent);
+  --eq-btn-primary-color: #4af626;
+  --eq-badge-radius: 0;
+  --eq-badge-transform: none;
+  --eq-card-bg: var(--eq-surface-1);
+  --eq-card-border: var(--eq-border);
+  --eq-card-radius: var(--eq-radius-2xl);
+  --eq-player-bg: #0a0f0a;
+  --eq-player-text: #4af626;
+  --eq-player-border-top: 1px solid #2e8f1f;
+  --eq-sidebar-bg: #0a0f0a;
+  --eq-sidebar-border: 1px solid #2e8f1f;
+  --eq-sidebar-active-bg: rgba(255,176,0,0.14);
+  --eq-sidebar-active-color: #ffb000;
+  --eq-input-radius: 0;
+  --eq-checkbox-accent: #ffb000;
+  /* extended (Phase A) */
+  --eq-dur-quick: 0.2s;
+  --eq-border-15: rgba(255,255,255,0.15);
+  --eq-text-mute: rgba(74,246,38,0.35);
+  --eq-text-strong: rgba(74,246,38,0.82);
+  --eq-accent-soft-20: rgba(255,176,0,0.2);
+  --eq-accent-soft-35: rgba(255,176,0,0.35);
+  --eq-accent-mid: rgba(255,176,0,0.5);
+  --eq-scrim-strong: rgba(0,0,0,0.7);
+  --eq-dur-spin: 0.8s;
+  --eq-border-20: rgba(255,255,255,0.2);
+  --eq-border-12: rgba(255,255,255,0.12);
+  --eq-border-08: rgba(255,255,255,0.08);
+  --eq-surface-0: rgba(74,246,38,0.02);
+  --eq-surface-0-hover: rgba(74,246,38,0.04);
+  --eq-text-bright: rgba(74,246,38,0.9);
+  --eq-scrim-soft: rgba(0,0,0,0.3);
+  --eq-brand-youtube: rgba(255,0,0,0.85);
+  --eq-accent-tint-10: rgba(255,176,0,0.1);
+  --eq-accent-soft-03: rgba(255,176,0,0.03);
+  --eq-accent-soft-08: rgba(255,176,0,0.08);
+  --eq-accent-soft-10: rgba(255,176,0,0.1);
+  --eq-danger-mid: rgba(255,77,77,0.5);
+  --eq-danger-strong: rgba(255,77,77,0.8);
+  --eq-success-2: #3ecf1f;
+  --eq-success-soft-06: rgba(74,246,38,0.06);
+  --eq-success-soft-12: rgba(74,246,38,0.12);
+  --eq-success-soft-25: rgba(74,246,38,0.25);
+  --eq-success-soft-40: rgba(74,246,38,0.4);
+  --eq-info-dim: rgba(58,214,255,0.7);
+  /* extended (Phase A) — batch A2 (eq-sidebar.css consolidation) */
+  --eq-border-10: rgba(255,255,255,0.1);
+  --eq-text-90: rgba(74,246,38,0.9);
+  --eq-text-55: rgba(74,246,38,0.55);
+  --eq-text-45: rgba(74,246,38,0.45);
+  --eq-text-25: rgba(74,246,38,0.25);
+  --eq-danger-soft-20: rgba(255,77,77,0.2);
+  --eq-danger-soft-40: rgba(255,77,77,0.4);
+  --eq-grad-nav-active: linear-gradient(135deg, rgba(255,176,0,0.2), rgba(255,176,0,0.15));
+  --eq-grad-acting-banner: linear-gradient(135deg, rgba(255,176,0,0.10), rgba(255,176,0,0.04));
+  --eq-accent-border-35: rgba(255,176,0,0.35);
+  --eq-accent-border-50: rgba(255,176,0,0.5);
+  --eq-accent-tint-15: rgba(255,176,0,0.15);
+  --eq-accent-tint-25: rgba(255,176,0,0.25);
+  --eq-accent-tint-30: rgba(255,176,0,0.3);
+  --eq-accent-transparent: rgba(255,176,0,0);
+  --eq-accent-light: #ffd699;
+  --eq-role-artist-text: #ffcf70;
+  --eq-role-label-bg: rgba(58,214,255,0.25);
+  --eq-role-label-text: #7fe0ff;
+  --eq-role-operator-bg: rgba(74,246,38,0.25);
+  --eq-role-operator-text: #8ef760;
+  --eq-select-bg: rgba(10,15,10,0.92);
+  --eq-font-mono-generic: 'IBM Plex Mono', monospace;
+  --eq-dur-pulse: 2s;
+  --eq-shadow-pulse-start: 0 0 0 0 var(--eq-focus-ring);
+  --eq-shadow-pulse-end: 0 0 0 4px var(--eq-accent-transparent);
+  /* extended (Phase A) — batch A3 (eq-player.css consolidation) */
+  --eq-panel-bg-95: rgba(10,15,10,0.95);
+  --eq-panel-bg-97: rgba(10,15,10,0.97);
+  --eq-brand-pink-90: rgba(255,79,127,0.9);
+  --eq-brand-pink: #ff4f7f;
+  --eq-black: #000000;
+  --eq-radius-2px: 0;
+  --eq-radius-3px: 0;
+  --eq-radius-top-xl: 0;
+  --eq-grad-progress: linear-gradient(90deg, #2e8f1f, #4af626);
+  --eq-accent-soft-12: rgba(255,176,0,0.12);
+  /* extended (Phase A) — batch A4 (client standalone pages: index.html/login.html/join.html) */
+  --eq-blur-glow: none;
+  --eq-accent-soft-40: rgba(255,176,0,0.4);
+  --eq-accent-tint-40: rgba(255,176,0,0.4);
+  --eq-shadow-glow-lg: 0 0 24px rgba(74,246,38,0.5);
+  --eq-brand-pink-30: rgba(255,79,127,0.3);
+  --eq-violet-600: #8f5e00;
+  --eq-violet-700: #6b4700;
+  --eq-amber-400: #ffb000;
+  --eq-amber-soft-10: rgba(255,176,0,0.1);
+  --eq-amber-soft-30: rgba(255,176,0,0.3);
+  --eq-danger-soft-12: rgba(255,77,77,0.12);
+  --eq-danger-soft-30: rgba(255,77,77,0.3);
+  --eq-danger-light: #ff9999;
+  --eq-emerald-500: #2fd66a;
+  --eq-emerald-12: rgba(47,214,106,0.12);
+  --eq-emerald-20: rgba(47,214,106,0.2);
+  --eq-success-soft-18: rgba(74,246,38,0.18);
+  --eq-border-07: rgba(255,255,255,0.07);
+  --eq-font-mono-alt: 'IBM Plex Mono', monospace;
+  --eq-grad-glow-1: transparent;
+  --eq-grad-glow-2: transparent;
+  --eq-grad-demo-btn: linear-gradient(135deg, #1d5214, #143a0e);
+  --eq-grad-btn-extension: linear-gradient(135deg, #143a0e, #0f2c0b);
+  /* extended (Phase A) — batch A5 */
+  --eq-orange: #ff7a1a;
+  --eq-orange-soft-10: rgba(255,122,26,0.1);
+  --eq-orange-soft-30: rgba(255,122,26,0.3);
+  --eq-success-soft-20: rgba(74,246,38,0.2);
+  /* extended (Phase A) — batch A6 (client/home.html) */
+  --eq-purple-alt: #3ad6ff;
+  --eq-brand-pink-10: rgba(255,79,127,0.1);
+  --eq-brand-pink-20: rgba(255,79,127,0.2);
+  --eq-brand-violet-alt-10: rgba(58,214,255,0.1);
+  --eq-brand-violet-alt-50: rgba(58,214,255,0.5);
+  --eq-grad-hero: linear-gradient(135deg, rgba(255,79,127,0.1), rgba(58,214,255,0.1));
+  --eq-grad-hero-glow: transparent;
+  --eq-blur-hero-glow: none;
+  --eq-shadow-play-btn: 0 0 20px rgba(255,176,0,0.5);
+  --eq-shadow-play-btn-hover: 0 0 26px rgba(255,176,0,0.7);
+  --eq-radius-24: 0;
+  /* extended (Phase A) — batch A7 (client/social.html) */
+  --eq-info-soft-15: rgba(58,214,255,0.15);
+  --eq-success-soft-15: rgba(74,246,38,0.15);
+  --eq-amber-soft-15: rgba(255,176,0,0.15);
+  --eq-shadow-btn-hover: 0 0 14px rgba(255,176,0,0.4);
+  /* extended (Phase A) — batch A8 (client/thread.html, client/messages.html) */
+  --eq-text-95: rgba(74,246,38,0.95);
+  --eq-radius-18: 0;
+  --eq-grad-msg-outgoing: linear-gradient(135deg, rgba(255,176,0,0.4), rgba(179,123,0,0.3));
+  /* extended (Phase A) — batch A9 (client/profile.html, client/user.html) */
+  --eq-grad-profile-banner: linear-gradient(135deg, rgba(255,176,0,0.3), rgba(255,79,127,0.2), rgba(58,214,255,0.2));
+  --eq-border-avatar: 4px solid #0a0f0a;
+  --eq-grad-user-banner: linear-gradient(135deg, rgba(255,176,0,0.3), rgba(179,123,0,0.2));
+  --eq-grad-banner-fade: linear-gradient(transparent, #0a0f0a);
+  --eq-danger-soft-15: rgba(255,77,77,0.15);
+  --eq-dur-spin-1s: 1s;
+  /* extended (Phase A) — batch A10 (client/artist.html) */
+  --eq-shadow-play-btn-sm: 0 0 16px rgba(255,176,0,0.5);
+  /* extended (Phase A) — batch A11 (client/library.html, client/playlist.html) */
+  --eq-grad-playlist-cover: linear-gradient(135deg, #0a0f0a, #10250f);
+  --eq-danger-vivid: #ff5c5c;
+  --eq-danger-vivid-soft-15: rgba(255,92,92,0.15);
+  /* extended (Phase A) — batch A12 (client/settings.html) */
+  --eq-success-soft-30: rgba(74,246,38,0.3);
+  /* extended (Phase A) — batch A13 (admin: common/css/admin-base.css + operator pages) */
+  --eq-grad-success: linear-gradient(135deg, #236316, #143a0e);
+  --eq-shadow-glow-success: 0 0 16px rgba(74,246,38,0.5);
+  --eq-danger-soft-25: rgba(255,77,77,0.25);
+  --eq-radius-14: 0;
+  --eq-font-mono-sf: 'IBM Plex Mono', monospace;
+  --eq-amber-soft-20: rgba(255,176,0,0.2);
+  --eq-amber-light: #ffd699;
+  --eq-accent-tint-20: rgba(255,176,0,0.2);
+  --eq-accent-tint-08: rgba(255,176,0,0.08);
+  --eq-blue-soft-05: rgba(58,214,255,0.05);
+  --eq-blue-soft-10: rgba(58,214,255,0.1);
+  --eq-blue-soft-12: rgba(58,214,255,0.12);
+  --eq-blue-soft-15: rgba(58,214,255,0.15);
+  --eq-blue-soft-20: rgba(58,214,255,0.2);
+  --eq-blur-4: none;
+  --eq-grad-modal: linear-gradient(135deg, #10160f 0%, #0a0f0a 100%);
+  --eq-scrim-40: rgba(0,0,0,0.4);
+  --eq-grad-future-card: linear-gradient(135deg, rgba(255,176,0,0.08), rgba(58,214,255,0.05));
+  --eq-emerald-light: #8ff0b0;
+  --eq-shadow-dot-ok: 0 0 8px rgba(74,246,38,0.6);
+  --eq-red-400: #ff7a7a;
+  /* extended (Phase A) — batch A14 */
+  --eq-slate-soft-25: rgba(90,110,95,0.25);
+  --eq-slate-light: #c8d6c8;
+  --eq-blue-soft-25: rgba(58,214,255,0.25);
+  --eq-blue-soft-08: rgba(58,214,255,0.08);
+  --eq-text-75: rgba(74,246,38,0.75);
+  /* extended (Phase A) — batch A15 */
+  --eq-grad-login-bg: #0a0f0a;
+  --eq-grad-logo-text: #4af626;
+  --eq-grad-btn-purple: linear-gradient(135deg, #1d5214 0%, #143a0e 100%);
+  --eq-shadow-btn-purple: 0 0 20px rgba(74,246,38,0.35);
+  --eq-grad-profile-setup-bg: #0a0f0a;
+  --eq-success-soft-08: rgba(74,246,38,0.08);
+  --eq-success-light: #a8f0a0;
+  --eq-danger-soft-08: rgba(255,77,77,0.08);
+  --eq-warning-soft-08: rgba(204,136,0,0.08);
+  --eq-warning-soft-30: rgba(204,136,0,0.3);
+  --eq-accent-tint-02: rgba(255,176,0,0.02);
+  --eq-grad-found-banner: linear-gradient(135deg, rgba(255,176,0,0.08), rgba(255,176,0,0.02));
+  --eq-blue-soft-02: rgba(58,214,255,0.02);
+  --eq-blue-soft-30: rgba(58,214,255,0.3);
+  --eq-grad-found-banner-info: linear-gradient(135deg, rgba(58,214,255,0.08), rgba(58,214,255,0.02));
+  /* extended (Phase A) — batch A16 */
+  --eq-blue: #3ad6ff;
+  --eq-orange-soft-20: rgba(255,122,26,0.2);
+  /* extended (Phase A) — batch A17 (content_node/orchestrator/releases.html) */
+  --eq-accent-soft-05: rgba(255,176,0,0.05);
+  --eq-accent-soft-60: rgba(255,176,0,0.6);
+  --eq-blur-10: none;
+  --eq-grad-release: linear-gradient(135deg, #236316, #143a0e);
+  --eq-shadow-release: 0 0 10px rgba(74,246,38,0.4);
+  --eq-warning-soft-35: rgba(204,136,0,0.35);
+  /* extended (Phase A) — batch A18 (content_node/orchestrator/edit-release.html) */
+  --eq-grad-danger: linear-gradient(135deg, #6b1717, #4a0f0f);
+  --eq-shadow-danger: 0 0 16px rgba(255,77,77,0.4);
+  --eq-radius-top-md: 0;
+  --eq-radius-bottom-md: 0;
+  --eq-scrim-20: rgba(0,0,0,0.2);
+  --eq-grad-dup-progress: linear-gradient(90deg, #4af626, #2e8f1f);
+  --eq-shadow-glow-release: 0 0 16px rgba(74,246,38,0.4);
+  /* extended (Phase A) — batch A19 (content_node/orchestrator/profile.html) */
+  --eq-amber-soft-90: rgba(255,176,0,0.9);
+  --eq-success-soft-90: rgba(74,246,38,0.9);
+  --eq-danger-soft-90: rgba(255,77,77,0.9);
+  /* extended (Phase A) — batch A21 (content_node/orchestrator/upload.html) */
+  --eq-grad-progress-complete: linear-gradient(90deg, #4af626, #2fd66a);
+}
+
+/* === Terminal webfonts (this file only — hook exemption for theme files) === */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('/common/fonts/ibmplexmono-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('/common/fonts/ibmplexmono-500.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('/common/fonts/ibmplexmono-600.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('/common/fonts/ibmplexmono-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+::selection {
+  background: #4af626;
+  color: #0a0f0a;
+}
+
+/* Minimal scrollbar styling — dim-green rule on the void, matching the box borders */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2e8f1f #0a0f0a;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0f0a;
+}
+::-webkit-scrollbar-thumb {
+  background: #2e8f1f;
+  border: 2px solid #0a0f0a;
+}
