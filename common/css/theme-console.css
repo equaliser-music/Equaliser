@@ -1,0 +1,409 @@
+/* Equaliser theme: Console — rack-mount hardware, gunmetal panels, signal chain.
+   Design source: docs/Fable_Analysis/mockup-console-home.html + mockup-console-artist.html
+   Palette: gunmetal bg #131416, panel gradient #26292e→#212428 ("panel"/"panel2"),
+   recessed inset #0d0e10 (LCD wells, input fields), off-white ink #e8e6e1, warm greys
+   #9a978f/#5d5b55. Three-lamp signal system lifted straight from the mockup's VU meter:
+   signal green #35d97b (LED "on"/active/success — also chosen as --eq-text-link, since a
+   lit green LED reads as "live signal path"), amber #ffb03a (the logo's bold "MK•I", the
+   active-channel underline, the knob pointer, the Send/pay CTA gradient — Console's true
+   brand accent), peak red #ff4545 (clip/danger). A muted brass/mustard #c9820a is kept
+   separate from the accent amber for status "warning" so the two don't collide. The
+   per-artist "channel" chip colour from the artist mockup (#ff5c4d, coral) supplies the
+   brand-pink decorative family; an invented cool cyan (#4bb4e6/#2f8bc4) fills the info/blue
+   family the mockup itself never needed. Surfaces are SOLID panel hexes, not translucent
+   overlays — Console's chrome is opaque brushed metal, not glass — so surface-1/2/raised/
+   modal/input map directly to rack/panel/panel2/inset tones and --eq-blur-backdrop is
+   none throughout. Borders are literal black bezel edges (var(--edge) = #000) for
+   structural panel outlines, with translucent white hairlines reserved for soft internal
+   row dividers, and a genuine dashed hairline for the "etched, not printed" credits panel.
+   Radii are compressed to the mockup's small mechanical range (3–10px, panel itself is
+   8px) — no soft/pill shapes; --eq-radius-pill is deliberately shrunk to 6px so "pill"
+   components render as small hardware switches, never capsules. --eq-radius-round stays
+   50% (knobs, LEDs are genuinely circular). The mockup DOES glow — LEDs, LCD text-shadow,
+   the channel chip — so --eq-shadow-glow and the dot/status glows are real coloured glows,
+   not flattened. Because this is a dark-on-dark theme like Classic, the plain neutral
+   text/border opacity ladder (rgba(255,255,255,X)) mirrors Classic's numbers directly —
+   both are dark bases, and on a bg this dark every vivid hue in the palette already clears
+   4.5:1 as text without desaturation (see report for the contrast ladder). Token list
+   mirrors theme-classic.css exactly — same names, same order, same batch fence comments
+   for traceability. */
+:root {
+  /* surfaces */
+  --eq-bg-app: #131416;
+  --eq-surface-1: #1e2023;
+  --eq-surface-1-hover: #23262a;
+  --eq-surface-2: #26292e;
+  --eq-surface-2-hover: #2c2f35;
+  --eq-surface-raised: #26292e;
+  --eq-surface-input: #0d0e10;
+  --eq-surface-inverse: #1b1d20;
+  --eq-surface-modal: #1b1d20;
+  --eq-scrim: rgba(0,0,0,0.6);
+  /* text */
+  --eq-text-1: #e8e6e1;
+  --eq-text-2: rgba(255,255,255,0.7);
+  --eq-text-2-dim: rgba(255,255,255,0.6);
+  --eq-text-3: rgba(255,255,255,0.5);
+  --eq-text-4: rgba(255,255,255,0.4);
+  --eq-text-faint: rgba(255,255,255,0.3);
+  --eq-text-inverse: #0d0e10;
+  --eq-text-link: #35d97b;
+  /* accent */
+  --eq-accent: #ffb03a;
+  --eq-accent-2: #caa22e;
+  --eq-accent-text: #ffb03a;
+  --eq-accent-contrast: #171204;
+  --eq-accent-soft: rgba(202,162,46,0.15);
+  --eq-accent-soft-hover: rgba(202,162,46,0.3);
+  --eq-focus-ring: rgba(255,176,58,0.4);
+  /* status */
+  --eq-danger: #ff4545;
+  --eq-danger-soft: rgba(255,69,69,0.1);
+  --eq-success: #35d97b;
+  --eq-success-soft: rgba(53,217,123,0.1);
+  --eq-warning: #c9820a;
+  --eq-warning-soft: rgba(201,130,10,0.1);
+  --eq-info: #4bb4e6;
+  --eq-info-soft: rgba(75,180,230,0.1);
+  /* gradients (Signal will flatten these) */
+  --eq-grad-accent: linear-gradient(135deg, #caa22e, #ffb03a);
+  --eq-grad-avatar: linear-gradient(135deg, #caa22e, #ffb03a);
+  --eq-grad-display-text: #e8e6e1;
+  /* borders & dividers (whole-shorthand tokens) */
+  --eq-border: 1px solid #000;
+  --eq-border-strong: 2px solid #000;
+  --eq-border-soft: 1px solid rgba(255,255,255,0.05);
+  --eq-divider: 1px dashed rgba(255,255,255,0.09);
+  --eq-border-focus: #ffb03a;
+  --eq-border-inverse: 1px solid rgba(255,255,255,0.2);
+  /* radii */
+  --eq-radius-xs: 3px;
+  --eq-radius-sm: 4px;
+  --eq-radius-md: 5px;
+  --eq-radius-lg: 6px;
+  --eq-radius-xl: 7px;
+  --eq-radius-2xl: 8px;
+  --eq-radius-3xl: 10px;
+  --eq-radius-pill: 6px;
+  --eq-radius-round: 50%;
+  /* shadows & effects */
+  --eq-shadow-1: 0 6px 18px rgba(0,0,0,0.45);
+  --eq-shadow-2: 0 8px 24px rgba(0,0,0,0.5);
+  --eq-shadow-glow: 0 0 12px rgba(255,176,58,0.45);
+  --eq-blur-backdrop: none;
+  --eq-img-filter: none;
+  --eq-img-filter-hover: none;
+  /* typography */
+  --eq-font-body: 'Space Grotesk', sans-serif;
+  --eq-font-display: 'Space Grotesk', sans-serif;
+  --eq-font-mono: 'IBM Plex Mono', monospace;
+  --eq-transform-display: none;
+  --eq-tracking-display: -0.01em;
+  --eq-weight-display: 700;
+  --eq-transform-label: uppercase;
+  --eq-tracking-label: 0.12em;
+  /* motion */
+  --eq-dur-fast: 0.15s;
+  --eq-dur-med: 0.3s;
+  /* component hooks (canonical values refined at consolidation batches A2/A3/A13) */
+  --eq-btn-radius: 6px;
+  --eq-btn-border: 1px solid #000;
+  --eq-btn-transform: uppercase;
+  --eq-btn-primary-bg: var(--eq-grad-accent);
+  --eq-btn-primary-color: #171204;
+  --eq-badge-radius: 4px;
+  --eq-badge-transform: uppercase;
+  --eq-card-bg: var(--eq-surface-1);
+  --eq-card-border: var(--eq-border);
+  --eq-card-radius: var(--eq-radius-2xl);
+  --eq-player-bg: #1c1e21;
+  --eq-player-text: #e8e6e1;
+  --eq-player-border-top: 1px solid #000;
+  --eq-sidebar-bg: #1b1d20;
+  --eq-sidebar-border: 1px solid #000;
+  --eq-sidebar-active-bg: rgba(255,176,58,0.12);
+  --eq-sidebar-active-color: #ffb03a;
+  --eq-input-radius: 5px;
+  --eq-checkbox-accent: #ffb03a;
+  /* extended (Phase A) */
+  --eq-dur-quick: 0.2s;
+  --eq-border-15: rgba(255,255,255,0.15);
+  --eq-text-mute: rgba(255,255,255,0.35);
+  --eq-text-strong: rgba(255,255,255,0.8);
+  --eq-accent-soft-20: rgba(202,162,46,0.2);
+  --eq-accent-soft-35: rgba(202,162,46,0.35);
+  --eq-accent-mid: rgba(202,162,46,0.5);
+  --eq-scrim-strong: rgba(0,0,0,0.7);
+  --eq-dur-spin: 0.8s;
+  --eq-border-20: rgba(255,255,255,0.2);
+  --eq-border-12: rgba(255,255,255,0.12);
+  --eq-border-08: rgba(255,255,255,0.08);
+  --eq-surface-0: rgba(255,255,255,0.02);
+  --eq-surface-0-hover: rgba(255,255,255,0.04);
+  --eq-text-bright: rgba(255,255,255,0.85);
+  --eq-scrim-soft: rgba(0,0,0,0.3);
+  --eq-brand-youtube: rgba(255,0,0,0.85);
+  --eq-accent-tint-10: rgba(255,176,58,0.1);
+  --eq-accent-soft-03: rgba(202,162,46,0.03);
+  --eq-accent-soft-08: rgba(202,162,46,0.08);
+  --eq-accent-soft-10: rgba(202,162,46,0.1);
+  --eq-danger-mid: rgba(255,69,69,0.5);
+  --eq-danger-strong: rgba(255,69,69,0.8);
+  --eq-success-2: #22b567;
+  --eq-success-soft-06: rgba(53,217,123,0.06);
+  --eq-success-soft-12: rgba(53,217,123,0.12);
+  --eq-success-soft-25: rgba(53,217,123,0.25);
+  --eq-success-soft-40: rgba(53,217,123,0.4);
+  --eq-info-dim: rgba(75,180,230,0.7);
+  /* extended (Phase A) — batch A2 (eq-sidebar.css consolidation) */
+  --eq-border-10: rgba(255,255,255,0.1);
+  --eq-text-90: rgba(255,255,255,0.9);
+  --eq-text-55: rgba(255,255,255,0.55);
+  --eq-text-45: rgba(255,255,255,0.45);
+  --eq-text-25: rgba(255,255,255,0.25);
+  --eq-danger-soft-20: rgba(255,69,69,0.2);
+  --eq-danger-soft-40: rgba(255,69,69,0.4);
+  --eq-grad-nav-active: linear-gradient(135deg, rgba(202,162,46,0.2), rgba(255,176,58,0.15));
+  --eq-grad-acting-banner: linear-gradient(135deg, rgba(255,176,58,0.10), rgba(255,176,58,0.04));
+  --eq-accent-border-35: rgba(255,176,58,0.35);
+  --eq-accent-border-50: rgba(255,176,58,0.5);
+  --eq-accent-tint-15: rgba(255,176,58,0.15);
+  --eq-accent-tint-25: rgba(255,176,58,0.25);
+  --eq-accent-tint-30: rgba(255,176,58,0.3);
+  --eq-accent-transparent: rgba(255,176,58,0);
+  --eq-accent-light: #ffd699;
+  --eq-role-artist-text: #ffcf80;
+  --eq-role-label-bg: rgba(47,139,196,0.25);
+  --eq-role-label-text: #8dd4f2;
+  --eq-role-operator-bg: rgba(53,217,123,0.25);
+  --eq-role-operator-text: #7de8b0;
+  --eq-select-bg: rgba(19,20,22,0.92);
+  --eq-font-mono-generic: 'IBM Plex Mono', monospace;
+  --eq-dur-pulse: 2s;
+  --eq-shadow-pulse-start: 0 0 0 0 var(--eq-focus-ring);
+  --eq-shadow-pulse-end: 0 0 0 4px var(--eq-accent-transparent);
+  /* extended (Phase A) — batch A3 (eq-player.css consolidation) */
+  --eq-panel-bg-95: rgba(19,20,22,0.95);
+  --eq-panel-bg-97: rgba(19,20,22,0.97);
+  --eq-brand-pink-90: rgba(255,92,77,0.9);
+  --eq-brand-pink: #ff5c4d;
+  --eq-black: #000000;
+  --eq-radius-2px: 2px;
+  --eq-radius-3px: 3px;
+  --eq-radius-top-xl: 8px 8px 0 0;
+  --eq-grad-progress: linear-gradient(90deg, #35d97b, #b7e34a 80%, #ffb03a);
+  --eq-accent-soft-12: rgba(202,162,46,0.12);
+  /* extended (Phase A) — batch A4 (client standalone pages: index.html/login.html/join.html) */
+  --eq-blur-glow: none;
+  --eq-accent-soft-40: rgba(202,162,46,0.4);
+  --eq-accent-tint-40: rgba(255,176,58,0.4);
+  --eq-shadow-glow-lg: 0 8px 30px rgba(255,176,58,0.4);
+  --eq-brand-pink-30: rgba(255,92,77,0.3);
+  --eq-violet-600: #a8790f;
+  --eq-violet-700: #8f6f14;
+  --eq-amber-400: #ffb03a;
+  --eq-amber-soft-10: rgba(255,176,58,0.1);
+  --eq-amber-soft-30: rgba(255,176,58,0.3);
+  --eq-danger-soft-12: rgba(255,69,69,0.12);
+  --eq-danger-soft-30: rgba(255,69,69,0.3);
+  --eq-danger-light: #ff9a91;
+  --eq-emerald-500: #1fae72;
+  --eq-emerald-12: rgba(31,174,114,0.12);
+  --eq-emerald-20: rgba(31,174,114,0.2);
+  --eq-success-soft-18: rgba(53,217,123,0.18);
+  --eq-border-07: rgba(255,255,255,0.07);
+  --eq-font-mono-alt: 'IBM Plex Mono', monospace;
+  --eq-grad-glow-1: transparent;
+  --eq-grad-glow-2: transparent;
+  --eq-grad-demo-btn: linear-gradient(135deg, #ffb03a, #a8790f);
+  --eq-grad-btn-extension: linear-gradient(135deg, #caa22e, #8f6f14);
+  /* extended (Phase A) — batch A5 */
+  --eq-orange: #ff7a3d;
+  --eq-orange-soft-10: rgba(255,122,61,0.1);
+  --eq-orange-soft-30: rgba(255,122,61,0.3);
+  --eq-success-soft-20: rgba(53,217,123,0.2);
+  /* extended (Phase A) — batch A6 (client/home.html) */
+  --eq-purple-alt: #2fa8dd;
+  --eq-brand-pink-10: rgba(255,92,77,0.1);
+  --eq-brand-pink-20: rgba(255,92,77,0.2);
+  --eq-brand-violet-alt-10: rgba(75,180,230,0.1);
+  --eq-brand-violet-alt-50: rgba(75,180,230,0.5);
+  --eq-grad-hero: linear-gradient(135deg, rgba(255,92,77,0.1), rgba(75,180,230,0.1));
+  --eq-grad-hero-glow: transparent;
+  --eq-blur-hero-glow: none;
+  --eq-shadow-play-btn: 0 4px 24px rgba(255,176,58,0.5);
+  --eq-shadow-play-btn-hover: 0 6px 28px rgba(255,176,58,0.7);
+  --eq-radius-24: 10px;
+  /* extended (Phase A) — batch A7 (client/social.html) */
+  --eq-info-soft-15: rgba(75,180,230,0.15);
+  --eq-success-soft-15: rgba(53,217,123,0.15);
+  --eq-amber-soft-15: rgba(255,176,58,0.15);
+  --eq-shadow-btn-hover: 0 4px 16px rgba(255,176,58,0.4);
+  /* extended (Phase A) — batch A8 (client/thread.html, client/messages.html) */
+  --eq-text-95: rgba(255,255,255,0.95);
+  --eq-radius-18: 10px;
+  --eq-grad-msg-outgoing: linear-gradient(135deg, rgba(255,176,58,0.4), rgba(202,162,46,0.3));
+  /* extended (Phase A) — batch A9 (client/profile.html, client/user.html) */
+  --eq-grad-profile-banner: linear-gradient(135deg, rgba(255,176,58,0.3), rgba(255,92,77,0.2), rgba(75,180,230,0.2));
+  --eq-border-avatar: 4px solid #131416;
+  --eq-grad-user-banner: linear-gradient(135deg, rgba(255,176,58,0.3), rgba(202,162,46,0.2));
+  --eq-grad-banner-fade: linear-gradient(transparent, #131416);
+  --eq-danger-soft-15: rgba(255,69,69,0.15);
+  --eq-dur-spin-1s: 1s;
+  /* extended (Phase A) — batch A10 (client/artist.html) */
+  --eq-shadow-play-btn-sm: 0 4px 20px rgba(255,176,58,0.5);
+  /* extended (Phase A) — batch A11 (client/library.html, client/playlist.html) */
+  --eq-grad-playlist-cover: linear-gradient(135deg, #1b1d20, #0d0e10);
+  --eq-danger-vivid: #ff6b60;
+  --eq-danger-vivid-soft-15: rgba(255,107,96,0.15);
+  /* extended (Phase A) — batch A12 (client/settings.html) */
+  --eq-success-soft-30: rgba(53,217,123,0.3);
+  /* extended (Phase A) — batch A13 (admin: common/css/admin-base.css + operator pages) */
+  --eq-grad-success: linear-gradient(135deg, #35d97b, #22b567);
+  --eq-shadow-glow-success: 0 4px 20px rgba(53,217,123,0.4);
+  --eq-danger-soft-25: rgba(255,69,69,0.25);
+  --eq-radius-14: 9px;
+  --eq-font-mono-sf: 'IBM Plex Mono', monospace;
+  --eq-amber-soft-20: rgba(255,176,58,0.2);
+  --eq-amber-light: #ffdb9e;
+  --eq-accent-tint-20: rgba(255,176,58,0.2);
+  --eq-accent-tint-08: rgba(255,176,58,0.08);
+  --eq-blue-soft-05: rgba(47,139,196,0.05);
+  --eq-blue-soft-10: rgba(47,139,196,0.1);
+  --eq-blue-soft-12: rgba(47,139,196,0.12);
+  --eq-blue-soft-15: rgba(47,139,196,0.15);
+  --eq-blue-soft-20: rgba(47,139,196,0.2);
+  --eq-blur-4: none;
+  --eq-grad-modal: linear-gradient(135deg, #1b1d20 0%, #0d0e10 100%);
+  --eq-scrim-40: rgba(0,0,0,0.4);
+  --eq-grad-future-card: linear-gradient(135deg, rgba(255,176,58,0.08), rgba(47,139,196,0.05));
+  --eq-emerald-light: #7de8b0;
+  --eq-shadow-dot-ok: 0 0 8px rgba(53,217,123,0.6);
+  --eq-red-400: #ff6259;
+  /* extended (Phase A) — batch A14 */
+  --eq-slate-soft-25: rgba(93,91,85,0.25);
+  --eq-slate-light: #c7c3b8;
+  --eq-blue-soft-25: rgba(47,139,196,0.25);
+  --eq-blue-soft-08: rgba(47,139,196,0.08);
+  --eq-text-75: rgba(255,255,255,0.75);
+  /* extended (Phase A) — batch A15 */
+  --eq-grad-login-bg: #131416;
+  --eq-grad-logo-text: #ffb03a;
+  --eq-grad-btn-purple: linear-gradient(135deg, #ff5c4d, #e0453a);
+  --eq-shadow-btn-purple: 0 8px 24px rgba(255,92,77,0.3);
+  --eq-grad-profile-setup-bg: #131416;
+  --eq-success-soft-08: rgba(53,217,123,0.08);
+  --eq-success-light: #a8f0c6;
+  --eq-danger-soft-08: rgba(255,69,69,0.08);
+  --eq-warning-soft-08: rgba(201,130,10,0.08);
+  --eq-warning-soft-30: rgba(201,130,10,0.3);
+  --eq-accent-tint-02: rgba(255,176,58,0.02);
+  --eq-grad-found-banner: linear-gradient(135deg, rgba(255,176,58,0.08), rgba(255,176,58,0.02));
+  --eq-blue-soft-02: rgba(47,139,196,0.02);
+  --eq-blue-soft-30: rgba(47,139,196,0.3);
+  --eq-grad-found-banner-info: linear-gradient(135deg, rgba(47,139,196,0.08), rgba(47,139,196,0.02));
+  /* extended (Phase A) — batch A16 */
+  --eq-blue: #2f8bc4;
+  --eq-orange-soft-20: rgba(255,122,61,0.2);
+  /* extended (Phase A) — batch A17 (content_node/orchestrator/releases.html) */
+  --eq-accent-soft-05: rgba(202,162,46,0.05);
+  --eq-accent-soft-60: rgba(202,162,46,0.6);
+  --eq-blur-10: none;
+  --eq-grad-release: linear-gradient(135deg, #35d97b, #22b567);
+  --eq-shadow-release: 0 4px 12px rgba(53,217,123,0.4);
+  --eq-warning-soft-35: rgba(201,130,10,0.35);
+  /* extended (Phase A) — batch A18 (content_node/orchestrator/edit-release.html) */
+  --eq-grad-danger: linear-gradient(135deg, #ff4545, #d92e2e);
+  --eq-shadow-danger: 0 4px 20px rgba(255,69,69,0.4);
+  --eq-radius-top-md: 5px 5px 0 0;
+  --eq-radius-bottom-md: 0 0 5px 5px;
+  --eq-scrim-20: rgba(0,0,0,0.2);
+  --eq-grad-dup-progress: linear-gradient(90deg, #35d97b, #1f9c5c);
+  --eq-shadow-glow-release: 0 4px 20px rgba(53,217,123,0.4);
+  /* extended (Phase A) — batch A19 (content_node/orchestrator/profile.html) */
+  --eq-amber-soft-90: rgba(255,176,58,0.9);
+  --eq-success-soft-90: rgba(53,217,123,0.9);
+  --eq-danger-soft-90: rgba(255,69,69,0.9);
+  /* extended (Phase A) — batch A21 (content_node/orchestrator/upload.html) */
+  --eq-grad-progress-complete: linear-gradient(90deg, #35d97b, #22b567);
+}
+
+/* === Console webfonts (this file only — hook exemption for theme files) === */
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('/common/fonts/spacegrotesk-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('/common/fonts/spacegrotesk-500.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('/common/fonts/spacegrotesk-600.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('/common/fonts/spacegrotesk-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('/common/fonts/ibmplexmono-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('/common/fonts/ibmplexmono-500.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('/common/fonts/ibmplexmono-600.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('/common/fonts/ibmplexmono-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+::selection {
+  background: #ffb03a;
+  color: #171204;
+}
+
+/* Minimal scrollbar styling — brushed metal rack */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #3a3d42 #131416;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #131416;
+}
+::-webkit-scrollbar-thumb {
+  background: #3a3d42;
+  border: 2px solid #131416;
+}
