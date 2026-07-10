@@ -566,7 +566,8 @@ const AdminSidebar = {
             var themeName = 'classic';
             try {
                 var saved = localStorage.getItem('equaliser_theme');
-                if (saved === 'classic' || saved === 'signal') themeName = saved;
+                // Any registered theme id (write side is validated by EqTheme.set); sanity regex only
+                if (saved && /^[a-z][a-z0-9-]{0,30}$/.test(saved)) themeName = saved;
             } catch (e) { /* locked-down storage → default */ }
             var theme = document.createElement('link');
             theme.id = 'eq-theme';

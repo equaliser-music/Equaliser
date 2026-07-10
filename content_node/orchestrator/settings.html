@@ -953,9 +953,19 @@
             document.getElementById('user-hex-display').value = session.publicKey;
             document.getElementById('session-type-display').value = session.type === 'extension' ? 'NIP-07 Browser Extension' : 'Manual (nsec)';
 
-            // Reflect current theme
+            // Build theme options from the single source of truth, then reflect current theme
             const themeSelect = document.getElementById('theme-select');
-            if (themeSelect && window.EqTheme) themeSelect.value = window.EqTheme.get();
+            if (themeSelect && window.EqTheme) {
+                const themes = window.EqTheme.themes();
+                themeSelect.innerHTML = '';
+                themes.forEach((t) => {
+                    const opt = document.createElement('option');
+                    opt.value = t.id;
+                    opt.textContent = t.label;
+                    themeSelect.appendChild(opt);
+                });
+                themeSelect.value = window.EqTheme.get();
+            }
 
             // Fetch existing relay list
             await fetchExistingRelayList(session.publicKey);

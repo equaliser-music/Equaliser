@@ -43,10 +43,23 @@
             const hintEl = document.getElementById('nip05-pubkey-hint');
             if (hintEl) hintEl.textContent = session.publicKey;
 
-            const themeSelect = document.getElementById('theme-select');
-            if (themeSelect && window.EqTheme) themeSelect.value = window.EqTheme.get();
+            this._buildThemeOptions();
 
             Promise.all([this._loadProfile(), this._loadRelayList()]);
+        },
+
+        _buildThemeOptions() {
+            const themeSelect = document.getElementById('theme-select');
+            if (!themeSelect || !window.EqTheme) return;
+            const themes = window.EqTheme.themes();
+            themeSelect.innerHTML = '';
+            themes.forEach((t) => {
+                const opt = document.createElement('option');
+                opt.value = t.id;
+                opt.textContent = t.label;
+                themeSelect.appendChild(opt);
+            });
+            themeSelect.value = window.EqTheme.get();
         },
 
         cleanup() {

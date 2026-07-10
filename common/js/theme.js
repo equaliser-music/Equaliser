@@ -8,13 +8,20 @@
 (function () {
   'use strict';
 
-  var VALID_THEMES = { classic: true, signal: true };
+  var EQ_THEMES = [
+    { id: 'classic', label: 'Classic' },
+    { id: 'signal',  label: 'Signal' }
+  ];
   var STORAGE_KEY = 'equaliser_theme';
+
+  function isValidTheme(name) {
+    return EQ_THEMES.some(function (t) { return t.id === name; });
+  }
 
   function readStoredTheme() {
     try {
       var stored = window.localStorage.getItem(STORAGE_KEY);
-      if (stored && VALID_THEMES[stored]) {
+      if (stored && isValidTheme(stored)) {
         return stored;
       }
     } catch (e) {
@@ -72,7 +79,7 @@
       return currentTheme;
     },
     set: function (name) {
-      if (!VALID_THEMES[name]) {
+      if (!isValidTheme(name)) {
         return;
       }
       currentTheme = name;
@@ -83,6 +90,11 @@
       } catch (e) {
         /* CustomEvent unsupported — nothing more we can do */
       }
+    },
+    themes: function () {
+      return EQ_THEMES.map(function (t) {
+        return { id: t.id, label: t.label };
+      });
     }
   };
 })();
