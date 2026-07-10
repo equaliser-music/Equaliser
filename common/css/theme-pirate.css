@@ -1,0 +1,407 @@
+/* Equaliser theme: Pirate — pirate-radio broadcast aesthetic, unlicensed signal.
+   Design source: docs/Fable_Analysis/mockup-pirate-home.html
+   Palette: void #07060c (near-black transmission dead-air), four neon "signal"
+   colours lifted verbatim from the mockup's own :root — cyan #00f0ff, magenta
+   #ff2ec4, yellow #ffee00, green #39ff6e — each already clears 4.5:1 as text
+   against the void (cyan 14.3:1, magenta 6.2:1, yellow 16.8:1, green 15.1:1;
+   see report), so none needed hand-darkening, unlike lighter-bg themes. Cyan is
+   the primary interactive accent (dial border, main-image border, play button,
+   deck top-border, link colour — the mockup's most "structural" hue). Magenta
+   maps to --eq-brand-pink (a fortunate literal match — the mockup calls it
+   `--mag` and uses it for the hero/ticker border+glow). Yellow is reserved for
+   the "tuned in" / active-nav state (`nav a.on` is the only element using it
+   for a border+glow) and doubles as --eq-warning + --eq-amber-400. Green is
+   --eq-success (ON AIR badge, ledger totals, EQ bars — all positive/confirmed
+   states in the mockup). The mockup has no blue and no true red: --eq-info is
+   an invented sky-blue (#3d8bff, 6.1:1) kept deliberately distinct from the
+   cyan accent so info/label badges don't collide with it, and --eq-danger is
+   an invented neon red (#ff3b3b, 5.7:1) that reads as "red" rather than
+   "pink" next to magenta. --eq-violet-600/700 (classic's "darker accent
+   partner" gradient stops) become a deep teal (#0aa8b8/#087a87) — a darkened
+   member of the cyan family rather than a literal violet, used only as the
+   dim end of accent-toned gradients. Radii are read straight off the mockup's
+   own geometry (dial/buttons 10px, burst pills 999px, signal-cards 12px,
+   main-tx/boxes 14px) giving a generous-but-not-classic-soft scale (2xl=14,
+   3xl=18) — this is NOT a Signal-family zero-radius theme; Pirate's chrome is
+   built from real neon-lit rounded hardware, not flat paper. Structural
+   borders quote the mockup literally: `2px solid #33323f` (its actual
+   dark-grey rule colour) for --eq-border/-strong, and its dashed
+   `1px dashed #33323f` divider for --eq-divider; the finer alpha-ladder
+   border/text tokens (border-08/10/12/15/20, text-25/45/55/75/90 etc.) keep
+   Classic/Console's plain rgba(255,255,255,X) formula since those tokens
+   composite against arbitrary surfaces app-wide, not just the void. Glows are
+   real (not flattened) — the mockup's own `box-shadow:0 0 20px
+   rgba(0,240,255,.5)` on the play button is reused verbatim for
+   --eq-shadow-glow, and --eq-grad-progress reuses the mockup's exact dial/
+   progress-bar duotone `linear-gradient(90deg, cyan, mag)`. --eq-img-filter is
+   `none` — cover art keeps full colour in the mockup (grit comes from neon
+   borders, not desaturation), matching Flyposter's precedent for a
+   full-colour-imagery theme. Fonts: 'Bungee' (400, the only vendored weight)
+   for --eq-font-display — every functional heading/button/nav/card-title in
+   the mockup uses plain Bungee. 'Bungee Shade' appears ONLY on the giant
+   masthead wordmark ("EQUALISER FM") with no equivalent slot in the 267-token
+   contract (there is no "masthead/logotype" token, only --eq-font-display,
+   which the masthead does NOT use unmixed with plain Bungee elsewhere) — so
+   its @font-face is deliberately omitted per the decorative-only carve-out;
+   the two-tone cyan→magenta feel of that wordmark is instead captured via
+   --eq-grad-display-text / --eq-grad-logo-text (kept as genuine gradients,
+   diverging from Signal/Console/Flyposter's precedent of flattening these to
+   solid text-1 — Pirate's whole identity is built on exactly this cyan/
+   magenta duotone, so a flattened solid would throw away the theme's most
+   legible signature). Body/mono is 'Space Mono' (the mockup's actual body
+   font, `font-family:'Space Mono',monospace` on `<body>`), reused for
+   --eq-font-mono-generic/-alt/-sf per Flyposter/Console precedent. Token list
+   mirrors theme-classic.css exactly — same names, same order, same batch
+   fence comments for traceability. */
+:root {
+  /* surfaces */
+  --eq-bg-app: radial-gradient(circle at 20% -10%, rgba(255,46,196,0.16), transparent 45%), radial-gradient(circle at 85% 110%, rgba(0,240,255,0.13), transparent 45%), #07060c;
+  --eq-surface-1: rgba(255,255,255,0.03);
+  --eq-surface-1-hover: rgba(255,255,255,0.06);
+  --eq-surface-2: rgba(255,255,255,0.05);
+  --eq-surface-2-hover: rgba(255,255,255,0.08);
+  --eq-surface-raised: rgba(11,10,18,0.98);
+  --eq-surface-input: rgba(255,255,255,0.05);
+  --eq-surface-inverse: #0b0a12;
+  --eq-surface-modal: #0b0a12;
+  --eq-scrim: rgba(0,0,0,0.6);
+  /* text */
+  --eq-text-1: #efeef4;
+  --eq-text-2: rgba(239,238,244,0.7);
+  --eq-text-2-dim: rgba(239,238,244,0.6);
+  --eq-text-3: rgba(239,238,244,0.5);
+  --eq-text-4: rgba(239,238,244,0.4);
+  --eq-text-faint: rgba(239,238,244,0.3);
+  --eq-text-inverse: #07060c;
+  --eq-text-link: #00f0ff;
+  /* accent */
+  --eq-accent: #00f0ff;
+  --eq-accent-2: #ff2ec4;
+  --eq-accent-text: #00f0ff;
+  --eq-accent-contrast: #07060c;
+  --eq-accent-soft: rgba(0,240,255,0.15);
+  --eq-accent-soft-hover: rgba(0,240,255,0.3);
+  --eq-focus-ring: rgba(0,240,255,0.4);
+  /* status */
+  --eq-danger: #ff3b3b;
+  --eq-danger-soft: rgba(255,59,59,0.1);
+  --eq-success: #39ff6e;
+  --eq-success-soft: rgba(57,255,110,0.1);
+  --eq-warning: #ffee00;
+  --eq-warning-soft: rgba(255,238,0,0.1);
+  --eq-info: #3d8bff;
+  --eq-info-soft: rgba(61,139,255,0.1);
+  /* gradients (Signal will flatten these) */
+  --eq-grad-accent: linear-gradient(135deg, #ff2ec4, #00f0ff);
+  --eq-grad-avatar: linear-gradient(135deg, #ff2ec4, #00f0ff);
+  --eq-grad-display-text: linear-gradient(135deg, #00f0ff, #ff2ec4);
+  /* borders & dividers (whole-shorthand tokens) */
+  --eq-border: 2px solid #33323f;
+  --eq-border-strong: 2px solid #4a4856;
+  --eq-border-soft: 1px solid rgba(255,255,255,0.06);
+  --eq-divider: 1px dashed #33323f;
+  --eq-border-focus: #00f0ff;
+  --eq-border-inverse: 1px solid rgba(255,255,255,0.2);
+  /* radii */
+  --eq-radius-xs: 4px;
+  --eq-radius-sm: 6px;
+  --eq-radius-md: 8px;
+  --eq-radius-lg: 10px;
+  --eq-radius-xl: 12px;
+  --eq-radius-2xl: 14px;
+  --eq-radius-3xl: 18px;
+  --eq-radius-pill: 999px;
+  --eq-radius-round: 50%;
+  /* shadows & effects */
+  --eq-shadow-1: 0 8px 24px rgba(0,0,0,0.5);
+  --eq-shadow-2: 0 8px 32px rgba(0,0,0,0.55);
+  --eq-shadow-glow: 0 0 20px rgba(0,240,255,0.5);
+  --eq-blur-backdrop: blur(20px);
+  --eq-img-filter: none;
+  --eq-img-filter-hover: none;
+  /* typography */
+  --eq-font-body: 'Space Mono', monospace;
+  --eq-font-display: 'Bungee', sans-serif;
+  --eq-font-mono: 'Space Mono', monospace;
+  --eq-transform-display: uppercase;
+  --eq-tracking-display: 0.01em;
+  --eq-weight-display: 400;
+  --eq-transform-label: uppercase;
+  --eq-tracking-label: 0.12em;
+  /* motion */
+  --eq-dur-fast: 0.15s;
+  --eq-dur-med: 0.3s;
+  /* component hooks (canonical values refined at consolidation batches A2/A3/A13) */
+  --eq-btn-radius: 10px;
+  --eq-btn-border: none;
+  --eq-btn-transform: uppercase;
+  --eq-btn-primary-bg: var(--eq-grad-accent);
+  --eq-btn-primary-color: #07060c;
+  --eq-badge-radius: 4px;
+  --eq-badge-transform: uppercase;
+  --eq-card-bg: var(--eq-surface-1);
+  --eq-card-border: var(--eq-border);
+  --eq-card-radius: var(--eq-radius-2xl);
+  --eq-player-bg: rgba(11,10,18,0.95);
+  --eq-player-text: #efeef4;
+  --eq-player-border-top: 2px solid #00f0ff;
+  --eq-sidebar-bg: rgba(7,6,12,0.85);
+  --eq-sidebar-border: 1px solid #33323f;
+  --eq-sidebar-active-bg: rgba(255,238,0,0.15);
+  --eq-sidebar-active-color: #ffee00;
+  --eq-input-radius: 8px;
+  --eq-checkbox-accent: #00f0ff;
+  /* extended (Phase A) */
+  --eq-dur-quick: 0.2s;
+  --eq-border-15: rgba(255,255,255,0.15);
+  --eq-text-mute: rgba(239,238,244,0.35);
+  --eq-text-strong: rgba(239,238,244,0.8);
+  --eq-accent-soft-20: rgba(0,240,255,0.2);
+  --eq-accent-soft-35: rgba(0,240,255,0.35);
+  --eq-accent-mid: rgba(0,240,255,0.5);
+  --eq-scrim-strong: rgba(0,0,0,0.7);
+  --eq-dur-spin: 0.8s;
+  --eq-border-20: rgba(255,255,255,0.2);
+  --eq-border-12: rgba(255,255,255,0.12);
+  --eq-border-08: rgba(255,255,255,0.08);
+  --eq-surface-0: rgba(255,255,255,0.02);
+  --eq-surface-0-hover: rgba(255,255,255,0.04);
+  --eq-text-bright: rgba(239,238,244,0.85);
+  --eq-scrim-soft: rgba(0,0,0,0.3);
+  --eq-brand-youtube: rgba(255,0,0,0.85);
+  --eq-accent-tint-10: rgba(0,240,255,0.1);
+  --eq-accent-soft-03: rgba(0,240,255,0.03);
+  --eq-accent-soft-08: rgba(0,240,255,0.08);
+  --eq-accent-soft-10: rgba(0,240,255,0.1);
+  --eq-danger-mid: rgba(255,59,59,0.5);
+  --eq-danger-strong: rgba(255,59,59,0.8);
+  --eq-success-2: #22cc66;
+  --eq-success-soft-06: rgba(57,255,110,0.06);
+  --eq-success-soft-12: rgba(57,255,110,0.12);
+  --eq-success-soft-25: rgba(57,255,110,0.25);
+  --eq-success-soft-40: rgba(57,255,110,0.4);
+  --eq-info-dim: rgba(61,139,255,0.7);
+  /* extended (Phase A) — batch A2 (eq-sidebar.css consolidation) */
+  --eq-border-10: rgba(255,255,255,0.1);
+  --eq-text-90: rgba(239,238,244,0.9);
+  --eq-text-55: rgba(239,238,244,0.55);
+  --eq-text-45: rgba(239,238,244,0.45);
+  --eq-text-25: rgba(239,238,244,0.25);
+  --eq-danger-soft-20: rgba(255,59,59,0.2);
+  --eq-danger-soft-40: rgba(255,59,59,0.4);
+  --eq-grad-nav-active: linear-gradient(135deg, rgba(255,238,0,0.2), rgba(255,238,0,0.15));
+  --eq-grad-acting-banner: linear-gradient(135deg, rgba(0,240,255,0.10), rgba(0,240,255,0.04));
+  --eq-accent-border-35: rgba(0,240,255,0.35);
+  --eq-accent-border-50: rgba(0,240,255,0.5);
+  --eq-accent-tint-15: rgba(0,240,255,0.15);
+  --eq-accent-tint-25: rgba(0,240,255,0.25);
+  --eq-accent-tint-30: rgba(0,240,255,0.3);
+  --eq-accent-transparent: rgba(0,240,255,0);
+  --eq-accent-light: #99f7ff;
+  --eq-role-artist-text: #7df3ff;
+  --eq-role-label-bg: rgba(61,139,255,0.25);
+  --eq-role-label-text: #a9c9ff;
+  --eq-role-operator-bg: rgba(57,255,110,0.25);
+  --eq-role-operator-text: #9dffc0;
+  --eq-select-bg: rgba(7,6,12,0.92);
+  --eq-font-mono-generic: 'Space Mono', monospace;
+  --eq-dur-pulse: 2s;
+  --eq-shadow-pulse-start: 0 0 0 0 var(--eq-focus-ring);
+  --eq-shadow-pulse-end: 0 0 0 4px var(--eq-accent-transparent);
+  /* extended (Phase A) — batch A3 (eq-player.css consolidation) */
+  --eq-panel-bg-95: rgba(11,10,18,0.95);
+  --eq-panel-bg-97: rgba(11,10,18,0.97);
+  --eq-brand-pink-90: rgba(255,46,196,0.9);
+  --eq-brand-pink: #ff2ec4;
+  --eq-black: #000000;
+  --eq-radius-2px: 2px;
+  --eq-radius-3px: 3px;
+  --eq-radius-top-xl: 14px 14px 0 0;
+  --eq-grad-progress: linear-gradient(90deg, #00f0ff, #ff2ec4);
+  --eq-accent-soft-12: rgba(0,240,255,0.12);
+  /* extended (Phase A) — batch A4 (client standalone pages: index.html/login.html/join.html) */
+  --eq-blur-glow: blur(100px);
+  --eq-accent-soft-40: rgba(0,240,255,0.4);
+  --eq-accent-tint-40: rgba(0,240,255,0.4);
+  --eq-shadow-glow-lg: 0 0 30px rgba(0,240,255,0.5);
+  --eq-brand-pink-30: rgba(255,46,196,0.3);
+  --eq-violet-600: #0aa8b8;
+  --eq-violet-700: #087a87;
+  --eq-amber-400: #ffee00;
+  --eq-amber-soft-10: rgba(255,238,0,0.1);
+  --eq-amber-soft-30: rgba(255,238,0,0.3);
+  --eq-danger-soft-12: rgba(255,59,59,0.12);
+  --eq-danger-soft-30: rgba(255,59,59,0.3);
+  --eq-danger-light: #ff9a9a;
+  --eq-emerald-500: #22cc66;
+  --eq-emerald-12: rgba(34,204,102,0.12);
+  --eq-emerald-20: rgba(34,204,102,0.2);
+  --eq-success-soft-18: rgba(57,255,110,0.18);
+  --eq-border-07: rgba(255,255,255,0.07);
+  --eq-font-mono-alt: 'Space Mono', monospace;
+  --eq-grad-glow-1: radial-gradient(circle, var(--eq-accent-soft-40), transparent);
+  --eq-grad-glow-2: radial-gradient(circle, var(--eq-brand-pink-30), transparent);
+  --eq-grad-demo-btn: linear-gradient(135deg, var(--eq-accent), var(--eq-violet-600));
+  --eq-grad-btn-extension: linear-gradient(135deg, var(--eq-accent-2), var(--eq-violet-700));
+  /* extended (Phase A) — batch A5 */
+  --eq-orange: #ff7a1a;
+  --eq-orange-soft-10: rgba(255,122,26,0.1);
+  --eq-orange-soft-30: rgba(255,122,26,0.3);
+  --eq-success-soft-20: rgba(57,255,110,0.2);
+  /* extended (Phase A) — batch A6 (client/home.html) */
+  --eq-purple-alt: #3d8bff;
+  --eq-brand-pink-10: rgba(255,46,196,0.1);
+  --eq-brand-pink-20: rgba(255,46,196,0.2);
+  --eq-brand-violet-alt-10: rgba(0,240,255,0.1);
+  --eq-brand-violet-alt-50: rgba(0,240,255,0.5);
+  --eq-grad-hero: linear-gradient(135deg, var(--eq-brand-pink-10), var(--eq-brand-violet-alt-10));
+  --eq-grad-hero-glow: radial-gradient(circle, var(--eq-brand-pink-20), transparent);
+  --eq-blur-hero-glow: blur(80px);
+  --eq-shadow-play-btn: 0 0 24px rgba(0,240,255,0.5);
+  --eq-shadow-play-btn-hover: 0 0 28px rgba(0,240,255,0.7);
+  --eq-radius-24: 20px;
+  /* extended (Phase A) — batch A7 (client/social.html) */
+  --eq-info-soft-15: rgba(61,139,255,0.15);
+  --eq-success-soft-15: rgba(57,255,110,0.15);
+  --eq-amber-soft-15: rgba(255,238,0,0.15);
+  --eq-shadow-btn-hover: 0 0 16px rgba(0,240,255,0.4);
+  /* extended (Phase A) — batch A8 (client/thread.html, client/messages.html) */
+  --eq-text-95: rgba(239,238,244,0.95);
+  --eq-radius-18: 18px;
+  --eq-grad-msg-outgoing: linear-gradient(135deg, rgba(0,240,255,0.4), rgba(0,240,255,0.3));
+  /* extended (Phase A) — batch A9 (client/profile.html, client/user.html) */
+  --eq-grad-profile-banner: linear-gradient(135deg, rgba(0,240,255,0.3), rgba(255,46,196,0.2), rgba(61,139,255,0.2));
+  --eq-border-avatar: 4px solid #07060c;
+  --eq-grad-user-banner: linear-gradient(135deg, rgba(0,240,255,0.3), rgba(0,240,255,0.2));
+  --eq-grad-banner-fade: linear-gradient(transparent, #07060c);
+  --eq-danger-soft-15: rgba(255,59,59,0.15);
+  --eq-dur-spin-1s: 1s;
+  /* extended (Phase A) — batch A10 (client/artist.html) */
+  --eq-shadow-play-btn-sm: 0 0 20px rgba(0,240,255,0.5);
+  /* extended (Phase A) — batch A11 (client/library.html, client/playlist.html) */
+  --eq-grad-playlist-cover: linear-gradient(135deg, #0b0a12, #1a0a2e);
+  --eq-danger-vivid: #ff6b6b;
+  --eq-danger-vivid-soft-15: rgba(255,59,59,0.15);
+  /* extended (Phase A) — batch A12 (client/settings.html) */
+  --eq-success-soft-30: rgba(57,255,110,0.3);
+  /* extended (Phase A) — batch A13 (admin: common/css/admin-base.css + operator pages) */
+  --eq-grad-success: linear-gradient(135deg, #22cc66, #39ff6e);
+  --eq-shadow-glow-success: 0 0 20px rgba(57,255,110,0.5);
+  --eq-danger-soft-25: rgba(255,59,59,0.25);
+  --eq-radius-14: 14px;
+  --eq-font-mono-sf: 'Space Mono', monospace;
+  --eq-amber-soft-20: rgba(255,238,0,0.2);
+  --eq-amber-light: #fff066;
+  --eq-accent-tint-20: rgba(0,240,255,0.2);
+  --eq-accent-tint-08: rgba(0,240,255,0.08);
+  --eq-blue-soft-05: rgba(61,139,255,0.05);
+  --eq-blue-soft-10: rgba(61,139,255,0.1);
+  --eq-blue-soft-12: rgba(61,139,255,0.12);
+  --eq-blue-soft-15: rgba(61,139,255,0.15);
+  --eq-blue-soft-20: rgba(61,139,255,0.2);
+  --eq-blur-4: blur(4px);
+  --eq-grad-modal: linear-gradient(135deg, #0b0a12 0%, #07060c 100%);
+  --eq-scrim-40: rgba(0,0,0,0.4);
+  --eq-grad-future-card: linear-gradient(135deg, var(--eq-accent-tint-08), var(--eq-blue-soft-05));
+  --eq-emerald-light: #7dffb0;
+  --eq-shadow-dot-ok: 0 0 8px rgba(57,255,110,0.6);
+  --eq-red-400: #ff6b6b;
+  /* extended (Phase A) — batch A14 */
+  --eq-slate-soft-25: rgba(90,100,110,0.25);
+  --eq-slate-light: #bec8cd;
+  --eq-blue-soft-25: rgba(61,139,255,0.25);
+  --eq-blue-soft-08: rgba(61,139,255,0.08);
+  --eq-text-75: rgba(239,238,244,0.75);
+  /* extended (Phase A) — batch A15 */
+  --eq-grad-login-bg: linear-gradient(135deg, #07060c 0%, #0b0a12 50%, #07060c 100%);
+  --eq-grad-logo-text: linear-gradient(135deg, #00f0ff 0%, #ff2ec4 100%);
+  --eq-grad-btn-purple: linear-gradient(135deg, #00f0ff 0%, #ff2ec4 100%);
+  --eq-shadow-btn-purple: 0 0 24px rgba(0,240,255,0.4);
+  --eq-grad-profile-setup-bg: linear-gradient(135deg, #07060c 0%, #0b0a12 100%);
+  --eq-success-soft-08: rgba(57,255,110,0.08);
+  --eq-success-light: #9dffc0;
+  --eq-danger-soft-08: rgba(255,59,59,0.08);
+  --eq-warning-soft-08: rgba(255,238,0,0.08);
+  --eq-warning-soft-30: rgba(255,238,0,0.3);
+  --eq-accent-tint-02: rgba(0,240,255,0.02);
+  --eq-grad-found-banner: linear-gradient(135deg, var(--eq-accent-tint-08), var(--eq-accent-tint-02));
+  --eq-blue-soft-02: rgba(61,139,255,0.02);
+  --eq-blue-soft-30: rgba(61,139,255,0.3);
+  --eq-grad-found-banner-info: linear-gradient(135deg, var(--eq-blue-soft-08), var(--eq-blue-soft-02));
+  /* extended (Phase A) — batch A16 */
+  --eq-blue: #3d8bff;
+  --eq-orange-soft-20: rgba(255,122,26,0.2);
+  /* extended (Phase A) — batch A17 (content_node/orchestrator/releases.html) */
+  --eq-accent-soft-05: rgba(0,240,255,0.05);
+  --eq-accent-soft-60: rgba(0,240,255,0.6);
+  --eq-blur-10: blur(10px);
+  --eq-grad-release: linear-gradient(135deg, #39ff6e, #22cc66);
+  --eq-shadow-release: 0 0 12px rgba(57,255,110,0.4);
+  --eq-warning-soft-35: rgba(255,238,0,0.35);
+  /* extended (Phase A) — batch A18 (content_node/orchestrator/edit-release.html) */
+  --eq-grad-danger: linear-gradient(135deg, #ff3b3b, #d92e2e);
+  --eq-shadow-danger: 0 0 20px rgba(255,59,59,0.4);
+  --eq-radius-top-md: 8px 8px 0 0;
+  --eq-radius-bottom-md: 0 0 8px 8px;
+  --eq-scrim-20: rgba(0,0,0,0.2);
+  --eq-grad-dup-progress: linear-gradient(90deg, #00f0ff, #087a87);
+  --eq-shadow-glow-release: 0 0 20px rgba(57,255,110,0.4);
+  /* extended (Phase A) — batch A19 (content_node/orchestrator/profile.html) */
+  --eq-amber-soft-90: rgba(255,238,0,0.9);
+  --eq-success-soft-90: rgba(57,255,110,0.9);
+  --eq-danger-soft-90: rgba(255,59,59,0.9);
+  /* extended (Phase A) — batch A21 (content_node/orchestrator/upload.html) */
+  --eq-grad-progress-complete: linear-gradient(90deg, #39ff6e, #22cc66);
+}
+
+/* === Pirate webfonts (this file only — hook exemption for theme files) === */
+@font-face {
+  font-family: 'Bungee';
+  src: url('/common/fonts/bungee-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Space Mono';
+  src: url('/common/fonts/spacemono-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Space Mono';
+  src: url('/common/fonts/spacemono-400-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Space Mono';
+  src: url('/common/fonts/spacemono-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+::selection {
+  background: #00f0ff;
+  color: #07060c;
+}
+
+/* Minimal scrollbar styling — dead-air void with a ticker-grey thumb */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #33323f #07060c;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #07060c;
+}
+::-webkit-scrollbar-thumb {
+  background: #33323f;
+  border: 2px solid #07060c;
+}

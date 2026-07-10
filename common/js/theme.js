@@ -13,7 +13,8 @@
     { id: 'signal',  label: 'Signal' },
     { id: 'sleeve',  label: 'Sleeve' },
     { id: 'console', label: 'Console' },
-    { id: 'flyposter', label: 'Flyposter' }
+    { id: 'flyposter', label: 'Flyposter' },
+    { id: 'pirate', label: 'Pirate' }
   ];
   var STORAGE_KEY = 'equaliser_theme';
 
