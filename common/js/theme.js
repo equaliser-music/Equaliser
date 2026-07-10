@@ -12,7 +12,8 @@
     { id: 'classic', label: 'Classic' },
     { id: 'signal',  label: 'Signal' },
     { id: 'sleeve',  label: 'Sleeve' },
-    { id: 'console', label: 'Console' }
+    { id: 'console', label: 'Console' },
+    { id: 'flyposter', label: 'Flyposter' }
   ];
   var STORAGE_KEY = 'equaliser_theme';
 

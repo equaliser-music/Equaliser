@@ -1,0 +1,404 @@
+/* Equaliser theme: Flyposter — gig-poster wall brutalism, torn-paper editorial.
+   Design source: docs/Fable_Analysis/mockup-flyposter-home.html
+   Palette: paper #efe9dc / paper-bright #f7f2e6 (fresh sheet) / paper2 #e6dcc8
+   (second poster shade), ink #141210, red #d02b20 (the one vivid accent — album
+   art, buttons, "SUPPORT" CTAs, slogan slap), blue #1d4e89 (mockup's ticket/ledger
+   blue — repurposed as info + secondary decorative hue), and the mockup's own
+   wall grey #4a4640 repurposed as the neutral slate tone. Flyposter is Signal-
+   family: zero radius everywhere (posters, tape, buttons, borders — nothing in
+   the mockup ever curves), hard flat colors (no gradients — every grad-* token
+   flattened to a solid, matching Signal's precedent), hard offset shadows with
+   no blur (4px/6px solid-color drops, echoing the mockup's `box-shadow:4px 4px
+   0 var(--ink)` button/image idiom) instead of soft glows, and no backdrop/
+   image filters. Key departure from Signal: --eq-img-filter is `none` — the
+   mockup keeps its poster photography in full colour (no grayscale), so
+   Flyposter's grit comes from ink borders and hard shadows, not desaturation.
+   Text ladder (ink alpha over paper) computed to clear 4.5:1 for text-1/2/3;
+   text-4/faint are intentionally sub-AA decorative tiers, same as reference
+   themes. --eq-accent-text uses a hand-darkened red (#a81f16, 6.04:1) since
+   the mockup's raw red (#d02b20) only just misses AA (4.29:1) as body text —
+   the raw red is kept for --eq-accent/--eq-grad-accent (bg-only/large-bold-text
+   contexts, matching the mockup's own paper-on-red button pairing at 4.29:1,
+   which clears WCAG's 3:1 large-text threshold). Token list mirrors
+   theme-classic.css exactly — same names, same order, same batch fence
+   comments for traceability. */
+:root {
+  /* surfaces */
+  --eq-bg-app: #efe9dc;
+  --eq-surface-1: #f7f2e6;
+  --eq-surface-1-hover: #fbf8f0;
+  --eq-surface-2: #e6dcc8;
+  --eq-surface-2-hover: #ddd0b4;
+  --eq-surface-raised: #f7f2e6;
+  --eq-surface-input: #fbf8f0;
+  --eq-surface-inverse: #141210;
+  --eq-surface-modal: #f7f2e6;
+  --eq-scrim: rgba(20,18,16,0.6);
+  /* text */
+  --eq-text-1: #141210;
+  --eq-text-2: rgba(20,18,16,0.82);
+  --eq-text-2-dim: rgba(20,18,16,0.74);
+  --eq-text-3: rgba(20,18,16,0.65);
+  --eq-text-4: rgba(20,18,16,0.45);
+  --eq-text-faint: rgba(20,18,16,0.32);
+  --eq-text-inverse: #efe9dc;
+  --eq-text-link: #a81f16;
+  /* accent */
+  --eq-accent: #d02b20;
+  --eq-accent-2: #c02620;
+  --eq-accent-text: #a81f16;
+  --eq-accent-contrast: #efe9dc;
+  --eq-accent-soft: rgba(208,43,32,0.15);
+  --eq-accent-soft-hover: rgba(208,43,32,0.3);
+  --eq-focus-ring: rgba(208,43,32,0.4);
+  /* status */
+  --eq-danger: #c02620;
+  --eq-danger-soft: rgba(192,38,32,0.1);
+  --eq-success: #2f6b1f;
+  --eq-success-soft: rgba(47,107,31,0.1);
+  --eq-warning: #7a4f00;
+  --eq-warning-soft: rgba(122,79,0,0.1);
+  --eq-info: #1d4e89;
+  --eq-info-soft: rgba(29,78,137,0.1);
+  /* gradients (Signal will flatten these) */
+  --eq-grad-accent: #d02b20;
+  --eq-grad-avatar: #d02b20;
+  --eq-grad-display-text: #141210;
+  /* borders & dividers (whole-shorthand tokens) */
+  --eq-border: 2px solid #141210;
+  --eq-border-strong: 3px solid #141210;
+  --eq-border-soft: 1px solid rgba(20,18,16,0.15);
+  --eq-divider: 1px solid rgba(20,18,16,0.25);
+  --eq-border-focus: #d02b20;
+  --eq-border-inverse: 1px solid rgba(239,233,220,0.25);
+  /* radii */
+  --eq-radius-xs: 0;
+  --eq-radius-sm: 0;
+  --eq-radius-md: 0;
+  --eq-radius-lg: 0;
+  --eq-radius-xl: 0;
+  --eq-radius-2xl: 0;
+  --eq-radius-3xl: 0;
+  --eq-radius-pill: 0;
+  --eq-radius-round: 50%;
+  /* shadows & effects */
+  --eq-shadow-1: 4px 4px 0 #141210;
+  --eq-shadow-2: 6px 6px 0 #141210;
+  --eq-shadow-glow: 4px 4px 0 #d02b20;
+  --eq-blur-backdrop: none;
+  --eq-img-filter: none;
+  --eq-img-filter-hover: none;
+  /* typography */
+  --eq-font-body: 'Oswald', sans-serif;
+  --eq-font-display: 'Anton', sans-serif;
+  --eq-font-mono: 'Space Mono', monospace;
+  --eq-transform-display: uppercase;
+  --eq-tracking-display: 0.01em;
+  --eq-weight-display: 400;
+  --eq-transform-label: uppercase;
+  --eq-tracking-label: 0.1em;
+  /* motion */
+  --eq-dur-fast: 0.15s;
+  --eq-dur-med: 0.3s;
+  /* component hooks (canonical values refined at consolidation batches A2/A3/A13) */
+  --eq-btn-radius: 0;
+  --eq-btn-border: 3px solid #141210;
+  --eq-btn-transform: uppercase;
+  --eq-btn-primary-bg: var(--eq-grad-accent);
+  --eq-btn-primary-color: #efe9dc;
+  --eq-badge-radius: 0;
+  --eq-badge-transform: uppercase;
+  --eq-card-bg: var(--eq-surface-1);
+  --eq-card-border: var(--eq-border);
+  --eq-card-radius: var(--eq-radius-2xl);
+  --eq-player-bg: #141210;
+  --eq-player-text: #efe9dc;
+  --eq-player-border-top: 2px solid #141210;
+  --eq-sidebar-bg: #efe9dc;
+  --eq-sidebar-border: 3px solid #141210;
+  --eq-sidebar-active-bg: rgba(208,43,32,0.15);
+  --eq-sidebar-active-color: #a81f16;
+  --eq-input-radius: 0;
+  --eq-checkbox-accent: #d02b20;
+  /* extended (Phase A) */
+  --eq-dur-quick: 0.2s;
+  --eq-border-15: rgba(20,18,16,0.15);
+  --eq-text-mute: rgba(20,18,16,0.35);
+  --eq-text-strong: rgba(20,18,16,0.85);
+  --eq-accent-soft-20: rgba(208,43,32,0.2);
+  --eq-accent-soft-35: rgba(208,43,32,0.35);
+  --eq-accent-mid: rgba(208,43,32,0.5);
+  --eq-scrim-strong: rgba(20,18,16,0.7);
+  --eq-dur-spin: 0.8s;
+  --eq-border-20: rgba(20,18,16,0.2);
+  --eq-border-12: rgba(20,18,16,0.12);
+  --eq-border-08: rgba(20,18,16,0.08);
+  --eq-surface-0: rgba(20,18,16,0.02);
+  --eq-surface-0-hover: rgba(20,18,16,0.04);
+  --eq-text-bright: rgba(20,18,16,0.88);
+  --eq-scrim-soft: rgba(20,18,16,0.3);
+  --eq-brand-youtube: rgba(255,0,0,0.85);
+  --eq-accent-tint-10: rgba(208,43,32,0.1);
+  --eq-accent-soft-03: rgba(208,43,32,0.03);
+  --eq-accent-soft-08: rgba(208,43,32,0.08);
+  --eq-accent-soft-10: rgba(208,43,32,0.1);
+  --eq-danger-mid: rgba(192,38,32,0.5);
+  --eq-danger-strong: rgba(192,38,32,0.8);
+  --eq-success-2: #3a7d28;
+  --eq-success-soft-06: rgba(47,107,31,0.06);
+  --eq-success-soft-12: rgba(47,107,31,0.12);
+  --eq-success-soft-25: rgba(47,107,31,0.25);
+  --eq-success-soft-40: rgba(47,107,31,0.4);
+  --eq-info-dim: rgba(29,78,137,0.7);
+  /* extended (Phase A) — batch A2 (eq-sidebar.css consolidation) */
+  --eq-border-10: rgba(20,18,16,0.1);
+  --eq-text-90: rgba(20,18,16,0.9);
+  --eq-text-55: rgba(20,18,16,0.55);
+  --eq-text-45: rgba(20,18,16,0.45);
+  --eq-text-25: rgba(20,18,16,0.25);
+  --eq-danger-soft-20: rgba(192,38,32,0.2);
+  --eq-danger-soft-40: rgba(192,38,32,0.4);
+  --eq-grad-nav-active: rgba(208,43,32,0.2);
+  --eq-grad-acting-banner: rgba(208,43,32,0.08);
+  --eq-accent-border-35: rgba(208,43,32,0.35);
+  --eq-accent-border-50: rgba(208,43,32,0.5);
+  --eq-accent-tint-15: rgba(208,43,32,0.15);
+  --eq-accent-tint-25: rgba(208,43,32,0.25);
+  --eq-accent-tint-30: rgba(208,43,32,0.3);
+  --eq-accent-transparent: rgba(208,43,32,0);
+  --eq-accent-light: #8a1712;
+  --eq-role-artist-text: #a81f16;
+  --eq-role-label-bg: rgba(29,78,137,0.15);
+  --eq-role-label-text: #1d4e89;
+  --eq-role-operator-bg: rgba(47,107,31,0.15);
+  --eq-role-operator-text: #2f6b1f;
+  --eq-select-bg: #fbf8f0;
+  --eq-font-mono-generic: 'Space Mono', monospace;
+  --eq-dur-pulse: 2s;
+  --eq-shadow-pulse-start: 0 0 0 0 var(--eq-focus-ring);
+  --eq-shadow-pulse-end: 0 0 0 4px var(--eq-accent-transparent);
+  /* extended (Phase A) — batch A3 (eq-player.css consolidation) */
+  --eq-panel-bg-95: rgba(247,242,230,0.95);
+  --eq-panel-bg-97: rgba(247,242,230,0.97);
+  --eq-brand-pink-90: rgba(29,78,137,0.9);
+  --eq-brand-pink: #1d4e89;
+  --eq-black: #141210;
+  --eq-radius-2px: 0;
+  --eq-radius-3px: 0;
+  --eq-radius-top-xl: 0;
+  --eq-grad-progress: #d02b20;
+  --eq-accent-soft-12: rgba(208,43,32,0.12);
+  /* extended (Phase A) — batch A4 (client standalone pages: index.html/login.html/join.html) */
+  --eq-blur-glow: none;
+  --eq-accent-soft-40: rgba(208,43,32,0.4);
+  --eq-accent-tint-40: rgba(208,43,32,0.4);
+  --eq-shadow-glow-lg: 6px 6px 0 #d02b20;
+  --eq-brand-pink-30: rgba(29,78,137,0.3);
+  --eq-violet-600: #163f6e;
+  --eq-violet-700: #102f52;
+  --eq-amber-400: #7a4f00;
+  --eq-amber-soft-10: rgba(122,79,0,0.1);
+  --eq-amber-soft-30: rgba(122,79,0,0.3);
+  --eq-danger-soft-12: rgba(192,38,32,0.12);
+  --eq-danger-soft-30: rgba(192,38,32,0.3);
+  --eq-danger-light: #8a1712;
+  --eq-emerald-500: #17663c;
+  --eq-emerald-12: rgba(23,102,60,0.12);
+  --eq-emerald-20: rgba(23,102,60,0.2);
+  --eq-success-soft-18: rgba(47,107,31,0.18);
+  --eq-border-07: rgba(20,18,16,0.07);
+  --eq-font-mono-alt: 'Space Mono', monospace;
+  --eq-grad-glow-1: transparent;
+  --eq-grad-glow-2: transparent;
+  --eq-grad-demo-btn: #d02b20;
+  --eq-grad-btn-extension: #c02620;
+  /* extended (Phase A) — batch A5 */
+  --eq-orange: #a8420a;
+  --eq-orange-soft-10: rgba(168,66,10,0.1);
+  --eq-orange-soft-30: rgba(168,66,10,0.3);
+  --eq-success-soft-20: rgba(47,107,31,0.2);
+  /* extended (Phase A) — batch A6 (client/home.html) */
+  --eq-purple-alt: #141210;
+  --eq-brand-pink-10: rgba(29,78,137,0.1);
+  --eq-brand-pink-20: rgba(29,78,137,0.2);
+  --eq-brand-violet-alt-10: rgba(208,43,32,0.1);
+  --eq-brand-violet-alt-50: rgba(208,43,32,0.5);
+  --eq-grad-hero: rgba(208,43,32,0.1);
+  --eq-grad-hero-glow: transparent;
+  --eq-blur-hero-glow: none;
+  --eq-shadow-play-btn: 4px 4px 0 #d02b20;
+  --eq-shadow-play-btn-hover: 6px 6px 0 #d02b20;
+  --eq-radius-24: 0;
+  /* extended (Phase A) — batch A7 (client/social.html) */
+  --eq-info-soft-15: rgba(29,78,137,0.15);
+  --eq-success-soft-15: rgba(47,107,31,0.15);
+  --eq-amber-soft-15: rgba(122,79,0,0.15);
+  --eq-shadow-btn-hover: 4px 4px 0 #d02b20;
+  /* extended (Phase A) — batch A8 (client/thread.html, client/messages.html) */
+  --eq-text-95: rgba(20,18,16,0.95);
+  --eq-radius-18: 0;
+  --eq-grad-msg-outgoing: rgba(208,43,32,0.35);
+  /* extended (Phase A) — batch A9 (client/profile.html, client/user.html) */
+  --eq-grad-profile-banner: rgba(208,43,32,0.25);
+  --eq-border-avatar: 4px solid #efe9dc;
+  --eq-grad-user-banner: rgba(208,43,32,0.25);
+  --eq-grad-banner-fade: #efe9dc;
+  --eq-danger-soft-15: rgba(192,38,32,0.15);
+  --eq-dur-spin-1s: 1s;
+  /* extended (Phase A) — batch A10 (client/artist.html) */
+  --eq-shadow-play-btn-sm: 4px 4px 0 #d02b20;
+  /* extended (Phase A) — batch A11 (client/library.html, client/playlist.html) */
+  --eq-grad-playlist-cover: #141210;
+  --eq-danger-vivid: #d81f11;
+  --eq-danger-vivid-soft-15: rgba(216,31,17,0.15);
+  /* extended (Phase A) — batch A12 (client/settings.html) */
+  --eq-success-soft-30: rgba(47,107,31,0.3);
+  /* extended (Phase A) — batch A13 (admin: common/css/admin-base.css + operator pages) */
+  --eq-grad-success: #2f6b1f;
+  --eq-shadow-glow-success: 4px 4px 0 #2f6b1f;
+  --eq-danger-soft-25: rgba(192,38,32,0.25);
+  --eq-radius-14: 0;
+  --eq-font-mono-sf: 'Space Mono', monospace;
+  --eq-amber-soft-20: rgba(122,79,0,0.2);
+  --eq-amber-light: #4f3300;
+  --eq-accent-tint-20: rgba(208,43,32,0.2);
+  --eq-accent-tint-08: rgba(208,43,32,0.08);
+  --eq-blue-soft-05: rgba(29,78,137,0.05);
+  --eq-blue-soft-10: rgba(29,78,137,0.1);
+  --eq-blue-soft-12: rgba(29,78,137,0.12);
+  --eq-blue-soft-15: rgba(29,78,137,0.15);
+  --eq-blue-soft-20: rgba(29,78,137,0.2);
+  --eq-blur-4: none;
+  --eq-grad-modal: #f7f2e6;
+  --eq-scrim-40: rgba(20,18,16,0.4);
+  --eq-grad-future-card: var(--eq-accent-tint-08);
+  --eq-emerald-light: #2f9e5c;
+  --eq-shadow-dot-ok: none;
+  --eq-red-400: #d02b20;
+  /* extended (Phase A) — batch A14 */
+  --eq-slate-soft-25: rgba(74,70,64,0.25);
+  --eq-slate-light: #4a4640;
+  --eq-blue-soft-25: rgba(29,78,137,0.25);
+  --eq-blue-soft-08: rgba(29,78,137,0.08);
+  --eq-text-75: rgba(20,18,16,0.75);
+  /* extended (Phase A) — batch A15 */
+  --eq-grad-login-bg: #efe9dc;
+  --eq-grad-logo-text: #141210;
+  --eq-grad-btn-purple: #d02b20;
+  --eq-shadow-btn-purple: 6px 6px 0 #d02b20;
+  --eq-grad-profile-setup-bg: #efe9dc;
+  --eq-success-soft-08: rgba(47,107,31,0.08);
+  --eq-success-light: #1f4a15;
+  --eq-danger-soft-08: rgba(192,38,32,0.08);
+  --eq-warning-soft-08: rgba(122,79,0,0.08);
+  --eq-warning-soft-30: rgba(122,79,0,0.3);
+  --eq-accent-tint-02: rgba(208,43,32,0.02);
+  --eq-grad-found-banner: var(--eq-accent-tint-08);
+  --eq-blue-soft-02: rgba(29,78,137,0.02);
+  --eq-blue-soft-30: rgba(29,78,137,0.3);
+  --eq-grad-found-banner-info: var(--eq-blue-soft-08);
+  /* extended (Phase A) — batch A16 */
+  --eq-blue: #1d4e89;
+  --eq-orange-soft-20: rgba(168,66,10,0.2);
+  /* extended (Phase A) — batch A17 (content_node/orchestrator/releases.html) */
+  --eq-accent-soft-05: rgba(208,43,32,0.05);
+  --eq-accent-soft-60: rgba(208,43,32,0.6);
+  --eq-blur-10: none;
+  --eq-grad-release: #2f6b1f;
+  --eq-shadow-release: 4px 4px 0 #2f6b1f;
+  --eq-warning-soft-35: rgba(122,79,0,0.35);
+  /* extended (Phase A) — batch A18 (content_node/orchestrator/edit-release.html) */
+  --eq-grad-danger: #c02620;
+  --eq-shadow-danger: 4px 4px 0 #c02620;
+  --eq-radius-top-md: 0;
+  --eq-radius-bottom-md: 0;
+  --eq-scrim-20: rgba(20,18,16,0.2);
+  --eq-grad-dup-progress: #d02b20;
+  --eq-shadow-glow-release: 4px 4px 0 #2f6b1f;
+  /* extended (Phase A) — batch A19 (content_node/orchestrator/profile.html) */
+  --eq-amber-soft-90: rgba(122,79,0,0.9);
+  --eq-success-soft-90: rgba(47,107,31,0.9);
+  --eq-danger-soft-90: rgba(192,38,32,0.9);
+  /* extended (Phase A) — batch A21 (content_node/orchestrator/upload.html) */
+  --eq-grad-progress-complete: #2f6b1f;
+}
+
+/* === Flyposter webfonts (this file only — hook exemption for theme files) === */
+@font-face {
+  font-family: 'Anton';
+  src: url('/common/fonts/anton-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Oswald';
+  src: url('/common/fonts/oswald-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Oswald';
+  src: url('/common/fonts/oswald-500.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Oswald';
+  src: url('/common/fonts/oswald-600.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Oswald';
+  src: url('/common/fonts/oswald-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Space Mono';
+  src: url('/common/fonts/spacemono-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Space Mono';
+  src: url('/common/fonts/spacemono-400-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Space Mono';
+  src: url('/common/fonts/spacemono-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+::selection {
+  background: #141210;
+  color: #efe9dc;
+}
+
+/* Minimal scrollbar styling — ink on paper */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #141210 #efe9dc;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #efe9dc;
+}
+::-webkit-scrollbar-thumb {
+  background: #141210;
+  border: 2px solid #efe9dc;
+}
