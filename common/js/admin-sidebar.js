@@ -544,6 +544,22 @@ const AdminSidebar = {
     },
 
     /**
+     * Update the active nav item to match the given path.
+     * Called by the admin SPA router after each navigation — the sidebar
+     * persists across page loads, so the active state must be re-synced.
+     */
+    updateActiveState(path) {
+        if (!this._container) return;
+        const page = (String(path).split('?')[0].split('#')[0].split('/').pop() || '')
+            .replace('.html', '') || 'dashboard';
+        this._container.querySelectorAll('a.nav-item[href]').forEach(a => {
+            const href = a.getAttribute('href') || '';
+            const name = (href.split('?')[0].split('/').pop() || '').replace('.html', '');
+            a.classList.toggle('active', name === page);
+        });
+    },
+
+    /**
      * Handle artist selector change — delegates to SessionManager.
      * Triggers an event for pages to refresh their artist-scoped data.
      */

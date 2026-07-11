@@ -196,7 +196,15 @@ The orchestrator's `services/relay_admin.py` wraps these with httpx; orchestrato
 
 ## Admin Pages (orchestrator/*.html)
 
-All pages use shared `/common/js/session.js` and `/common/js/admin-sidebar.js` (mounted at `/common/` by nginx — see top-level [common/](../common/) directory). Admin pages opt-in to admin behaviours by setting `window.EQ_SURFACE = 'admin'` before the session.js script tag (skips listener-cache auto-registration).
+The admin surface is an SPA, mirroring the client architecture (see [client/CLAUDE.md](../client/CLAUDE.md)):
+
+- `app.html` is the admin shell. It sets `window.EQ_SURFACE = 'admin'`, loads nostr-tools + `/common/js/session.js` + `/common/js/admin-sidebar.js` + `js/admin-router.js`, runs `SessionManager.init()` → `requireSession()` → `AdminSidebar.init()` → `await fetchRole()` once, then starts the router. The sidebar persists across navigation — no background flash on page changes.
+- `js/admin-router.js` intercepts link clicks, fetches raw page HTML from `/admin/raw/<name>.html`, injects `<style>` blocks + `.container` content into `#page-content`, then loads `/admin/js/pages/<name>.js` and calls `window.EqualiserAdminPages[name].init(params)` / `.cleanup()` on exit. After each navigation it re-syncs the sidebar active state (`AdminSidebar.updateActiveState`) and re-renders the acting-as banner.
+- Page HTML files are pure templates (title + inline `<style>` + body markup, no scripts). Page logic lives in `js/pages/<name>.js` — an IIFE registering `{ init(params), cleanup() }`. Functions referenced by inline `on*=` handlers are window-exposed in `init()` and deleted in `cleanup()`; window-level listeners (e.g. `equaliser:artist-switched`) and polling timers are removed/cleared in `cleanup()`.
+- nginx serves the shell for all shell-page URLs (`/admin/<page>.html`) and the raw templates at `/admin/raw/`; unknown admin URLs fall back to the shell, and the router falls back to the dashboard.
+- **Standalone pages** (bypass the shell, keep their own scripts): `login.html`, `setup.html`, `redeem.html`, `onboarding.html`, `profile-setup.html`. These still load session.js directly and set `window.EQ_SURFACE = 'admin'` themselves.
+
+Shared modules `/common/js/session.js` and `/common/js/admin-sidebar.js` are mounted at `/common/` by nginx — see top-level [common/](../common/) directory.
 
 | Page | Purpose |
 |------|---------|
@@ -230,20 +238,18 @@ Mounted at `/common/` by nginx, used by **both** admin and client surfaces. The 
 | `/common/js/session.js` | Session management. nsec / NIP-07 / backup-file login. 30-min idle timeout, multi-tab logout sync. `signEvent()` auto-adds `["app", "Equaliser"]` tag. `authFetch()` adds NIP-98 auth header — also computes SHA256 of body and adds it as a `payload` tag for POST/PUT/PATCH (anti-MITM body-swap; server verifies if present). `fetchRole()` calls `/api/auth/whoami` and exposes `getRole()`/`getManagedArtists()`/`getSelectedArtistPubkey()`/`setSelectedArtistPubkey()`. Persists role + selected artist in sessionStorage and broadcasts artist switches across tabs via BroadcastChannel + `equaliser:artist-switched` window event. Surface-aware: when `window.EQ_SURFACE !== 'admin'`, auto-registers pubkey with the listener cache via `POST /api/users/register` after login. | All admin AND client pages |
 | `/common/js/admin-sidebar.js` | Role-aware navigation sidebar. Two-pass render: synchronous skeleton with cached role, async re-render after `fetchRole()`. Subtitle/badge/nav sections vary by role: artist sees `Manage`; label adds `Label Admin`; operator adds `Node Admin`. Artist selector dropdown shown when label/operator manages >1 artist. Bottom nav has a "Listener View" link to `/`. | All admin pages |
 
-### Admin page conventions (Phase D/E pattern)
+### Admin page conventions (SPA page-module pattern)
 
-Phase D and E admin pages all follow the same pattern — start any new admin page from one of these:
-
-- Label pages (Phase D): `artist-management.html`, `access-requests.html`, `invite-codes.html`
-- Operator pages (Phase E): `node-overview.html`, `sync-manager.html`, `ipfs-storage.html`, `blossom-config.html`, `user-cache.html`, `node-settings.html`
+To add a new admin page: create the HTML template (`<name>.html` — title + inline `<style>` + `.container > .main-content` markup, no scripts) and a page module (`js/pages/<name>.js` registering `window.EqualiserAdminPages['<name>'] = { init(params), cleanup() }`), add the page name to `_shellPages` in `js/admin-router.js` and to the SPA-route regex in `web/nginx.conf`, and add the nav link in `/common/js/admin-sidebar.js`. Use `js/pages/node-overview.js` (simple operator page) or `js/pages/dashboard.js` (artist-scoped data + artist-switched listener) as the model.
 
 Conventions to preserve:
-- `SessionManager.init()` → `requireSession()` → `AdminSidebar.init()` → `await SessionManager.fetchRole()` → role gate → load data
+- The shell has already run `SessionManager.init()`/`requireSession()`/`AdminSidebar.init()` and awaited `fetchRole()` before `init(params)` runs — page modules only do the role gate + data load
 - Role gate displays an error `.notice` and bails (don't render data UI for the wrong role)
 - Use `SessionManager.authFetch` for all API calls — it adds NIP-98 auth automatically
-- Pages that scope by artist read `SessionManager.getSelectedArtistPubkey()` and listen for `window.addEventListener('equaliser:artist-switched', ...)` to refresh on switch
-- The first paint may briefly show `role='artist'` (the sessionStorage fallback) before `fetchRole()` resolves — gate role-sensitive UI on `SessionManager.getRole()` being non-null and the awaited fetchRole
-- Reference `/common/css/admin-base.css` for shared styles; add page-specific CSS in a per-page `<style>` block
+- Pages that scope by artist read `SessionManager.getSelectedArtistPubkey()` and listen for `equaliser:artist-switched` (named handler added in `init()`, removed in `cleanup()`) to refresh on switch
+- Functions referenced by inline `on*=` handlers (static HTML or JS template strings) are window-exposed in `init()` and deleted in `cleanup()`; polling timers are cleared in `cleanup()`
+- Bootstrap-time redirects to shell pages use `setTimeout(() => AdminRouter.navigate('x.html'), 0)` (the router ignores `navigate()` mid-navigation); redirects to standalone pages or the client surface stay `window.location.href`
+- Reference `/common/css/admin-base.css` for shared styles (the shell loads it); add page-specific CSS in a per-page `<style>` block
 
 ### Shared admin CSS
 

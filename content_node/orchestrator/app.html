@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equaliser - Admin</title>
+    <link id="eq-theme" rel="stylesheet" href="/common/css/theme-classic.css?v=1">
+    <script src="/common/js/theme.js?v=1"></script>
+    <link rel="stylesheet" href="/common/css/admin-base.css?v=1">
+    <style>
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Page content wrapper — flex container for the injected .main-content */
+        #page-content {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        #page-content > .main-content {
+            overflow-y: auto;
+            height: 100%;
+            flex: 1;
+        }
+
+        /* Loading state */
+        .page-loading {
+            display: flex;
+            flex: 1;
+            align-items: center;
+            justify-content: center;
+            height: 60vh;
+            color: var(--eq-text-3);
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .page-loading .loading-spinner {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--eq-accent-soft-hover);
+            border-top-color: var(--eq-accent);
+            border-radius: var(--eq-radius-round);
+            animation: spin var(--eq-dur-spin) linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar injected by AdminSidebar.init() -->
+        <div class="sidebar"></div>
+
+        <!-- Page content area - managed by AdminRouter -->
+        <div id="page-content">
+            <div class="page-loading">
+                <div class="loading-spinner"></div>
+                <div>Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dependencies -->
+    <script src="https://unpkg.com/nostr-tools@2.7.2/lib/nostr.bundle.js"></script>
+    <script>window.EQ_SURFACE = 'admin';</script>
+    <script src="/common/js/session.js?v=2"></script>
+    <script src="/common/js/admin-sidebar.js?v=2"></script>
+    <script src="/admin/js/admin-router.js?v=1"></script>
+
+    <script>
+        // Initialize the admin shell
+        (async () => {
+            SessionManager.init();
+            if (!SessionManager.requireSession()) return;
+            AdminSidebar.init();
+            // Resolve the authoritative role before the first page init so
+            // page-level role gates don't race the sessionStorage fallback.
+            try { await SessionManager.fetchRole(); } catch (e) { /* falls back to cached role */ }
+            AdminRouter.init();
+        })();
+    </script>
+</body>
+</html>
