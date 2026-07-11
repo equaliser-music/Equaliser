@@ -127,6 +127,9 @@ const AdminSidebar = {
             }
         }
 
+        // Keep the sidebar invisible until its injected stylesheets load —
+        // otherwise the logo/nav SVGs paint at natural size (FOUC flash).
+        if (!this._cssReady) this._container.style.visibility = 'hidden';
         this._container.innerHTML = this._getSidebarHTML(session);
         this._injectStyles();
 
@@ -577,13 +580,42 @@ const AdminSidebar = {
         }
 
         // Check if styles already injected
-        if (document.getElementById('admin-sidebar-styles')) return;
+        let link = document.getElementById('admin-sidebar-styles');
+        if (!link) {
+            link = document.createElement('link');
+            link.id = 'admin-sidebar-styles';
+            link.rel = 'stylesheet';
+            link.href = '/common/css/eq-sidebar.css?v=1';
+            document.head.appendChild(link);
+        }
 
-        const link = document.createElement('link');
-        link.id = 'admin-sidebar-styles';
-        link.rel = 'stylesheet';
-        link.href = '/common/css/eq-sidebar.css?v=1';
-        document.head.appendChild(link);
+        this._revealWhenStyled([document.getElementById('eq-theme'), link]);
+    },
+
+    /**
+     * Reveal the sidebar once the injected stylesheets have loaded (or after
+     * a safety timeout). Prevents the flash of unstyled logo/nav icons —
+     * JS-appended <link>s don't block rendering the way parser-inserted ones do.
+     */
+    _revealWhenStyled(links) {
+        const reveal = () => {
+            this._cssReady = true;
+            if (this._container) this._container.style.visibility = '';
+        };
+        if (this._cssReady) return reveal();
+
+        // A link with a .sheet has already been loaded and parsed
+        const pending = links.filter(l => l && !l.sheet);
+        if (pending.length === 0) return reveal();
+
+        let remaining = pending.length;
+        const onDone = () => { if (--remaining <= 0) reveal(); };
+        pending.forEach(l => {
+            l.addEventListener('load', onDone, { once: true });
+            l.addEventListener('error', onDone, { once: true });
+        });
+        // Safety net: never leave the sidebar hidden if load events misfire
+        setTimeout(reveal, 1500);
     },
 
     /**
