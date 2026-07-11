@@ -254,7 +254,7 @@ const AdminSidebar = {
         return `
             <div class="logo">
                 <div class="logo-main">
-                    <img src="/images/equaliser-logo.png" alt="Equaliser">
+                    <img src="/images/equaliser-logo.png" alt="Equaliser" width="160" height="163" style="width:160px;height:auto">
                 </div>
                 <span class="logo-subtitle">${subtitle}</span>
             </div>
